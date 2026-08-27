@@ -1,0 +1,40 @@
+#!/bin/sh
+
+rumiai_entry_path()
+{
+  case $0 in
+    */*)
+      _rumiai_entry=$0
+      ;;
+    *)
+      _rumiai_entry=$(command -v "$0") || return 1
+      case $_rumiai_entry in
+        */*) ;;
+        *) return 1 ;;
+      esac
+      ;;
+  esac
+
+  if [ -L "$_rumiai_entry" ]
+  then
+    printf '%s\n' 'rumiai-os: symlink entrypoint is not supported by this bootstrap contract' >&2
+    return 2
+  fi
+
+  printf '%s\n' "$_rumiai_entry"
+}
+
+rumiai_root()
+{
+  _rumiai_entry=$(rumiai_entry_path) || return "$?"
+  _rumiai_dir=${_rumiai_entry%/*}
+  [ "$_rumiai_dir" != "$_rumiai_entry" ] || _rumiai_dir=.
+  CDPATH= cd -P "$_rumiai_dir" 2>/dev/null || return 1
+  pwd -P
+}
+
+RUMIAI_ROOT=$(rumiai_root) || exit "$?"
+export RUMIAI_ROOT
+
+# PoC observable: stable implementation will use RUMIAI_ROOT to load the system.
+printf '%s\n' "$RUMIAI_ROOT"
