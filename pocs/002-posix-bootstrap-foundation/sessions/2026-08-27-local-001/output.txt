@@ -1,0 +1,73 @@
+===== dash =====
+PASS: empty
+PASS: percent
+PASS: command-substitution
+PASS: spaces
+PASS: quotes
+PASS: backslash
+PASS: leading-dash
+PASS: newline
+PASS: trailing-newline
+PASS: utf8
+PASS: shell-looking data remained data
+SUMMARY: fail=0
+PASS: relative invocation
+PASS: absolute invocation
+PASS: different cwd
+PASS: PATH invocation
+PASS: symlink invocation rejected explicitly
+SUMMARY: fail=0
+PASS: portable-shell static checks
+PASS: valid subject accepted
+PASS: invalid fixtures rejected
+SUMMARY: fail=0
+
+===== bash --posix =====
+PASS: empty
+PASS: percent
+PASS: command-substitution
+PASS: spaces
+PASS: quotes
+PASS: backslash
+PASS: leading-dash
+PASS: newline
+PASS: trailing-newline
+PASS: utf8
+PASS: shell-looking data remained data
+SUMMARY: fail=0
+PASS: relative invocation
+PASS: absolute invocation
+PASS: different cwd
+PASS: PATH invocation
+PASS: symlink invocation rejected explicitly
+SUMMARY: fail=0
+PASS: portable-shell static checks
+PASS: valid subject accepted
+PASS: invalid fixtures rejected
+SUMMARY: fail=0
+
+===== busybox sh =====
+PASS: empty
+PASS: percent
+PASS: command-substitution
+PASS: spaces
+PASS: quotes
+PASS: backslash
+PASS: leading-dash
+PASS: newline
+PASS: trailing-newline
+PASS: utf8
+PASS: shell-looking data remained data
+SUMMARY: fail=0
+PASS: relative invocation
+PASS: absolute invocation
+PASS: different cwd
+PASS: PATH invocation
+PASS: symlink invocation rejected explicitly
+SUMMARY: fail=0
+PASS: portable-shell static checks
+PASS: valid subject accepted
+PASS: invalid fixtures rejected
+SUMMARY: fail=0
+
+MATRIX SUMMARY: shells=3 fail=0
