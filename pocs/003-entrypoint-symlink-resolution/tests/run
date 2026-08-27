@@ -1,19 +1,19 @@
 #!/bin/sh
 
-TEST_DIR=$(CDPATH= cd -P "${0%/*}" && pwd -P) || exit 1
+TEST_DIR=$(CDPATH= cd -P -- "${0%/*}" && pwd -P) || exit 1
 POC_DIR=${TEST_DIR%/*}
 SUBJECT=$POC_DIR/subject/rumiai-os
 WORK=$POC_DIR/.work-$$
 NL='
 '
-trap 'rm -rf "$WORK"' 0 1 2 3 15
-mkdir -p "$WORK/bin" "$WORK/links" || exit 1
+trap 'rm -rf -- "$WORK"' 0 1 2 3 15
+mkdir -p -- "$WORK/bin" "$WORK/links" || exit 1
 
 capture_line()
 {
   "$@"
   capture_status=$?
-  printf 'x'
+  printf -- 'x'
   return "$capture_status"
 }
 
@@ -34,7 +34,7 @@ run_capture()
   strip_line "$CAPTURED"
 }
 
-expected_capture=$(capture_line realpath "$POC_DIR/subject") || exit 1
+expected_capture=$(capture_line realpath -- "$POC_DIR/subject") || exit 1
 strip_line "$expected_capture"
 expected=$CAPTURED
 pass=0
@@ -47,15 +47,43 @@ record()
   want=$3
   if [ "$got" = "$want" ]
   then
-    printf 'PASS %s\n' "$name"
+    printf -- 'PASS %s\n' "$name"
     pass=$((pass + 1))
   else
-    printf 'FAIL %s\n' "$name"
+    printf -- 'FAIL %s got=<%s> want=<%s>\n' "$name" "$got" "$want"
     fail=$((fail + 1))
   fi
 }
 
-relative_capture=$(cd "$POC_DIR" && capture_line ./subject/rumiai-os) || exit 1
+record_success()
+{
+  name=$1
+  shift
+  if "$@"
+  then
+    printf -- 'PASS %s\n' "$name"
+    pass=$((pass + 1))
+  else
+    printf -- 'FAIL %s\n' "$name"
+    fail=$((fail + 1))
+  fi
+}
+
+record_failure()
+{
+  name=$1
+  shift
+  if "$@" >/dev/null 2>&1
+  then
+    printf -- 'FAIL %s\n' "$name"
+    fail=$((fail + 1))
+  else
+    printf -- 'PASS %s\n' "$name"
+    pass=$((pass + 1))
+  fi
+}
+
+relative_capture=$(cd -- "$POC_DIR" && capture_line ./subject/rumiai-os) || exit 1
 strip_line "$relative_capture"
 root_from_output "$CAPTURED"
 record relative "$ROOT_RESULT" "$expected"
@@ -63,57 +91,66 @@ record relative "$ROOT_RESULT" "$expected"
 run_capture "$SUBJECT" || exit 1
 root_from_output "$CAPTURED"
 record absolute "$ROOT_RESULT" "$expected"
+record_success root-cd cd -- "$ROOT_RESULT"
 
-ln -s "$SUBJECT" "$WORK/bin/rumiai-os" || exit 1
-path_capture=$(cd "$WORK" && PATH=$WORK/bin:$PATH capture_line rumiai-os) || exit 1
+ln -s -- "$SUBJECT" "$WORK/bin/rumiai-os" || exit 1
+path_capture=$(cd -- "$WORK" && PATH=$WORK/bin:$PATH capture_line rumiai-os) || exit 1
 strip_line "$path_capture"
 root_from_output "$CAPTURED"
 record path "$ROOT_RESULT" "$expected"
 
-ln -s ../../subject/rumiai-os "$WORK/links/relative" || exit 1
+ln -s -- ../../subject/rumiai-os "$WORK/links/relative" || exit 1
 run_capture "$WORK/links/relative" || exit 1
 root_from_output "$CAPTURED"
 record relative-symlink "$ROOT_RESULT" "$expected"
 
-ln -s "$SUBJECT" "$WORK/links/absolute" || exit 1
+ln -s -- "$SUBJECT" "$WORK/links/absolute" || exit 1
 run_capture "$WORK/links/absolute" || exit 1
 root_from_output "$CAPTURED"
 record absolute-symlink "$ROOT_RESULT" "$expected"
 
-ln -s relative "$WORK/links/chain-1" || exit 1
-ln -s chain-1 "$WORK/links/chain-2" || exit 1
+ln -s -- relative "$WORK/links/chain-1" || exit 1
+ln -s -- chain-1 "$WORK/links/chain-2" || exit 1
 run_capture "$WORK/links/chain-2" || exit 1
 root_from_output "$CAPTURED"
 record symlink-chain "$ROOT_RESULT" "$expected"
 
-ln -s "$POC_DIR/subject" "$WORK/subject-link" || exit 1
+ln -s -- "$POC_DIR/subject" "$WORK/subject-link" || exit 1
 run_capture "$WORK/subject-link/rumiai-os" || exit 1
 root_from_output "$CAPTURED"
 record parent-symlink "$ROOT_RESULT" "$expected"
 
-mkdir -p "$WORK/a b -> c" || exit 1
-ln -s "$SUBJECT" "$WORK/a b -> c/entry" || exit 1
+mkdir -p -- "$WORK/a b -> c" || exit 1
+ln -s -- "$SUBJECT" "$WORK/a b -> c/entry" || exit 1
 run_capture "$WORK/a b -> c/entry" || exit 1
 root_from_output "$CAPTURED"
 record spaces-arrow "$ROOT_RESULT" "$expected"
 
-mkdir -p "$WORK/-dir" || exit 1
-ln -s "$SUBJECT" "$WORK/-dir/entry" || exit 1
-leading_capture=$(cd "$WORK" && capture_line ./-dir/entry) || exit 1
+mkdir -p -- "$WORK/-dir" || exit 1
+ln -s -- "$SUBJECT" "$WORK/-dir/entry" || exit 1
+leading_capture=$(cd -- "$WORK" && capture_line ./-dir/entry) || exit 1
 strip_line "$leading_capture"
 root_from_output "$CAPTURED"
 record leading-dash-path "$ROOT_RESULT" "$expected"
 
+ln -s -- loop-b "$WORK/links/loop-a" || exit 1
+ln -s -- loop-a "$WORK/links/loop-b" || exit 1
+record_failure symlink-loop "$WORK/links/loop-a"
+
+ln -s -- "$WORK/missing-target" "$WORK/links/dangling" || exit 1
+record_failure dangling-symlink "$WORK/links/dangling"
+
 weird_root=$WORK/root"$NL"
-mkdir -p "$weird_root" || exit 1
-cp "$SUBJECT" "$weird_root/rumiai-os" || exit 1
-chmod +x "$weird_root/rumiai-os" || exit 1
-weird_expected_capture=$(capture_line realpath "$weird_root") || exit 1
+mkdir -p -- "$weird_root" || exit 1
+cp -- "$SUBJECT" "$weird_root/rumiai-os" || exit 1
+chmod +x -- "$weird_root/rumiai-os" || exit 1
+weird_expected_capture=$(capture_line realpath -- "$weird_root") || exit 1
 strip_line "$weird_expected_capture"
 weird_expected=$CAPTURED
 run_capture "$weird_root/rumiai-os" || exit 1
 root_from_output "$CAPTURED"
 record trailing-newline-path "$ROOT_RESULT" "$weird_expected"
+record_success trailing-newline-root-cd cd -- "$ROOT_RESULT"
 
-printf 'SUMMARY pass=%s fail=%s\n' "$pass" "$fail"
+printf -- 'SUMMARY pass=%s fail=%s\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
