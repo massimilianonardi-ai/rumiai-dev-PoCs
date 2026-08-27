@@ -1,0 +1,26 @@
+===== /bin/dash =====
+INFO: RANDOM=<unset> rand1=0.840188 rand2=0.840188
+FAIL: rand() is deterministic when RANDOM is unavailable
+INFO: a2o literal %s actual=[] expected=[ 045 163]
+FAIL: a2o interprets input as printf format string
+FAIL: array add executes shell syntax embedded in a value
+SUMMARY: pass=0 fail=3
+EXIT=1
+
+===== /bin/bash --posix =====
+INFO: RANDOM=17694 rand1=0.768093 rand2=0.166113
+PASS: rand() did not reproduce deterministic no-RANDOM failure in this shell
+INFO: a2o literal %s actual=[] expected=[ 045 163]
+FAIL: a2o interprets input as printf format string
+FAIL: array add executes shell syntax embedded in a value
+SUMMARY: pass=1 fail=2
+EXIT=1
+
+===== /usr/bin/busybox sh =====
+INFO: RANDOM=4298 rand1=0.491096 rand2=0.615188
+PASS: rand() did not reproduce deterministic no-RANDOM failure in this shell
+INFO: a2o literal %s actual=[] expected=[ 045 163]
+FAIL: a2o interprets input as printf format string
+FAIL: array add executes shell syntax embedded in a value
+SUMMARY: pass=1 fail=2
+EXIT=1
