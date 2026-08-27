@@ -7,7 +7,7 @@ rumiai_capture_line()
 {
   "$@"
   rumiai_capture_status=$?
-  printf 'x'
+  printf -- 'x'
   return "$rumiai_capture_status"
 }
 
@@ -18,7 +18,7 @@ case $0 in
   *)
     if ! RUMIAI_ENTRY=$(rumiai_capture_line command -v -- "$0")
     then
-      printf '%s\n' "rumiai-os: cannot resolve entrypoint through PATH: $0" >&2
+      printf -- '%s\n' "rumiai-os: cannot resolve entrypoint through PATH: $0" >&2
       exit 1
     fi
     RUMIAI_ENTRY=${RUMIAI_ENTRY%x}
@@ -26,24 +26,9 @@ case $0 in
     ;;
 esac
 
-case $RUMIAI_ENTRY in
-  /*)
-    ;;
-  *)
-    if ! RUMIAI_CWD=$(rumiai_capture_line pwd -P)
-    then
-      printf '%s\n' 'rumiai-os: cannot determine physical current directory' >&2
-      exit 1
-    fi
-    RUMIAI_CWD=${RUMIAI_CWD%x}
-    RUMIAI_CWD=${RUMIAI_CWD%"$RUMIAI_NL"}
-    RUMIAI_ENTRY=$RUMIAI_CWD/$RUMIAI_ENTRY
-    ;;
-esac
-
-if ! RUMIAI_ENTRY=$(rumiai_capture_line realpath "$RUMIAI_ENTRY")
+if ! RUMIAI_ENTRY=$(rumiai_capture_line realpath -- "$RUMIAI_ENTRY")
 then
-  printf '%s\n' 'rumiai-os: cannot resolve physical entrypoint path' >&2
+  printf -- '%s\n' 'rumiai-os: cannot resolve physical entrypoint path' >&2
   exit 1
 fi
 RUMIAI_ENTRY=${RUMIAI_ENTRY%x}
@@ -51,13 +36,20 @@ RUMIAI_ENTRY=${RUMIAI_ENTRY%"$RUMIAI_NL"}
 
 if [ ! -f "$RUMIAI_ENTRY" ]
 then
-  printf '%s\n' 'rumiai-os: resolved entrypoint is not a regular file' >&2
+  printf -- '%s\n' 'rumiai-os: resolved entrypoint is not an existing regular file' >&2
   exit 1
 fi
 
 RUMIAI_ROOT=${RUMIAI_ENTRY%/*}
 [ -n "$RUMIAI_ROOT" ] || RUMIAI_ROOT=/
+
+if ! (cd -- "$RUMIAI_ROOT")
+then
+  printf -- '%s\n' 'rumiai-os: resolved root is not an accessible directory' >&2
+  exit 1
+fi
+
 export RUMIAI_ENTRY RUMIAI_ROOT
 
 # PoC-only observable output.
-printf 'ENTRY=%s\nROOT=%s\n' "$RUMIAI_ENTRY" "$RUMIAI_ROOT"
+printf -- 'ENTRY=%s\nROOT=%s\n' "$RUMIAI_ENTRY" "$RUMIAI_ROOT"
