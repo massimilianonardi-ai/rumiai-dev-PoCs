@@ -25,7 +25,7 @@ strip_line()
 
 root_from_output()
 {
-  ROOT_RESULT=${1#*ROOT=}
+  ROOT_RESULT=${1#*RumiAI_ROOT=}
 }
 
 run_capture()
