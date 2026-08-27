@@ -1,0 +1,50 @@
+--- dash ---
+PASS relative
+PASS absolute
+PASS root-cd
+PASS path
+PASS relative-symlink
+PASS absolute-symlink
+PASS symlink-chain
+PASS parent-symlink
+PASS spaces-arrow
+PASS leading-dash-path
+PASS symlink-loop
+PASS dangling-symlink
+PASS trailing-newline-path
+PASS trailing-newline-root-cd
+SUMMARY pass=14 fail=0
+
+--- bash --posix ---
+PASS relative
+PASS absolute
+PASS root-cd
+PASS path
+PASS relative-symlink
+PASS absolute-symlink
+PASS symlink-chain
+PASS parent-symlink
+PASS spaces-arrow
+PASS leading-dash-path
+PASS symlink-loop
+PASS dangling-symlink
+PASS trailing-newline-path
+PASS trailing-newline-root-cd
+SUMMARY pass=14 fail=0
+
+--- busybox sh ---
+PASS relative
+PASS absolute
+PASS root-cd
+PASS path
+PASS relative-symlink
+PASS absolute-symlink
+PASS symlink-chain
+PASS parent-symlink
+PASS spaces-arrow
+PASS leading-dash-path
+PASS symlink-loop
+PASS dangling-symlink
+PASS trailing-newline-path
+PASS trailing-newline-root-cd
+SUMMARY pass=14 fail=0
