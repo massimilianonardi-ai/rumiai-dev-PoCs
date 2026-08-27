@@ -1,55 +1,55 @@
 #!/bin/sh
 
-RUMIAI_NL='
+RumiAI_NL='
 '
 
-rumiai_capture_line()
+RumiAI_capture_line()
 {
   "$@"
-  rumiai_capture_status=$?
+  RumiAI_capture_status=$?
   printf -- 'x'
-  return "$rumiai_capture_status"
+  return "$RumiAI_capture_status"
 }
 
 case $0 in
   */*)
-    RUMIAI_ENTRY=$0
+    RumiAI_BOOTSTRAP_BIN=$0
     ;;
   *)
-    if ! RUMIAI_ENTRY=$(rumiai_capture_line command -v -- "$0")
+    if ! RumiAI_BOOTSTRAP_BIN=$(RumiAI_capture_line command -v -- "$0")
     then
-      printf -- '%s\n' "rumiai-os: cannot resolve entrypoint through PATH: $0" >&2
+      printf -- '%s\n' "rumiai-os: cannot resolve bootstrap executable through PATH: $0" >&2
       exit 1
     fi
-    RUMIAI_ENTRY=${RUMIAI_ENTRY%x}
-    RUMIAI_ENTRY=${RUMIAI_ENTRY%"$RUMIAI_NL"}
+    RumiAI_BOOTSTRAP_BIN=${RumiAI_BOOTSTRAP_BIN%x}
+    RumiAI_BOOTSTRAP_BIN=${RumiAI_BOOTSTRAP_BIN%"$RumiAI_NL"}
     ;;
 esac
 
-if ! RUMIAI_ENTRY=$(rumiai_capture_line realpath -- "$RUMIAI_ENTRY")
+if ! RumiAI_BOOTSTRAP_BIN=$(RumiAI_capture_line realpath -- "$RumiAI_BOOTSTRAP_BIN")
 then
-  printf -- '%s\n' 'rumiai-os: cannot resolve physical entrypoint path' >&2
+  printf -- '%s\n' 'rumiai-os: cannot resolve physical bootstrap executable path' >&2
   exit 1
 fi
-RUMIAI_ENTRY=${RUMIAI_ENTRY%x}
-RUMIAI_ENTRY=${RUMIAI_ENTRY%"$RUMIAI_NL"}
+RumiAI_BOOTSTRAP_BIN=${RumiAI_BOOTSTRAP_BIN%x}
+RumiAI_BOOTSTRAP_BIN=${RumiAI_BOOTSTRAP_BIN%"$RumiAI_NL"}
 
-if [ ! -f "$RUMIAI_ENTRY" ]
+if [ ! -f "$RumiAI_BOOTSTRAP_BIN" ]
 then
-  printf -- '%s\n' 'rumiai-os: resolved entrypoint is not an existing regular file' >&2
+  printf -- '%s\n' 'rumiai-os: resolved bootstrap executable is not an existing regular file' >&2
   exit 1
 fi
 
-RUMIAI_ROOT=${RUMIAI_ENTRY%/*}
-[ -n "$RUMIAI_ROOT" ] || RUMIAI_ROOT=/
+RumiAI_ROOT=${RumiAI_BOOTSTRAP_BIN%/*}
+[ -n "$RumiAI_ROOT" ] || RumiAI_ROOT=/
 
-if ! (cd -- "$RUMIAI_ROOT")
+if ! (cd -- "$RumiAI_ROOT")
 then
   printf -- '%s\n' 'rumiai-os: resolved root is not an accessible directory' >&2
   exit 1
 fi
 
-export RUMIAI_ENTRY RUMIAI_ROOT
+export RumiAI_BOOTSTRAP_BIN RumiAI_ROOT
 
 # PoC-only observable output.
-printf -- 'ENTRY=%s\nROOT=%s\n' "$RUMIAI_ENTRY" "$RUMIAI_ROOT"
+printf -- 'RumiAI_BOOTSTRAP_BIN=%s\nRumiAI_ROOT=%s\n' "$RumiAI_BOOTSTRAP_BIN" "$RumiAI_ROOT"
