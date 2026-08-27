@@ -1,55 +1,52 @@
 #!/bin/sh
 
-RumiAI_NL='
-'
-
-RumiAI_capture_line()
-{
-  "$@"
-  RumiAI_capture_status=$?
-  printf -- 'x'
-  return "$RumiAI_capture_status"
-}
+RumiAI_BOOTSTRAP_FATAL_PATH_RESOLUTION_ERROR=10
+RumiAI_BOOTSTRAP_FATAL_REALPATH_ERROR=11
+RumiAI_BOOTSTRAP_FATAL_BIN_ERROR=12
+RumiAI_BOOTSTRAP_FATAL_ROOT_ERROR=13
 
 case $0 in
   */*)
     RumiAI_BOOTSTRAP_BIN=$0
     ;;
   *)
-    if ! RumiAI_BOOTSTRAP_BIN=$(RumiAI_capture_line command -v -- "$0")
+    if ! RumiAI_BOOTSTRAP_BIN=$(command -v -- "$0" 2>/dev/null)
     then
-      printf -- '%s\n' "rumiai-os: cannot resolve bootstrap executable through PATH: $0" >&2
-      exit 1
+      printf -- '%s\n' 'RumiAI_BOOTSTRAP_FATAL_PATH_RESOLUTION_ERROR' >&2
+      exit "$RumiAI_BOOTSTRAP_FATAL_PATH_RESOLUTION_ERROR"
     fi
-    RumiAI_BOOTSTRAP_BIN=${RumiAI_BOOTSTRAP_BIN%x}
-    RumiAI_BOOTSTRAP_BIN=${RumiAI_BOOTSTRAP_BIN%"$RumiAI_NL"}
     ;;
 esac
 
-if ! RumiAI_BOOTSTRAP_BIN=$(RumiAI_capture_line realpath -- "$RumiAI_BOOTSTRAP_BIN")
+if ! RumiAI_BOOTSTRAP_BIN=$(command -p -- realpath -e -- "$RumiAI_BOOTSTRAP_BIN" 2>/dev/null)
 then
-  printf -- '%s\n' 'rumiai-os: cannot resolve physical bootstrap executable path' >&2
-  exit 1
+  printf -- '%s\n' 'RumiAI_BOOTSTRAP_FATAL_REALPATH_ERROR' >&2
+  exit "$RumiAI_BOOTSTRAP_FATAL_REALPATH_ERROR"
 fi
-RumiAI_BOOTSTRAP_BIN=${RumiAI_BOOTSTRAP_BIN%x}
-RumiAI_BOOTSTRAP_BIN=${RumiAI_BOOTSTRAP_BIN%"$RumiAI_NL"}
 
 if [ ! -f "$RumiAI_BOOTSTRAP_BIN" ]
 then
-  printf -- '%s\n' 'rumiai-os: resolved bootstrap executable is not an existing regular file' >&2
-  exit 1
+  printf -- '%s\n' 'RumiAI_BOOTSTRAP_FATAL_BIN_ERROR' >&2
+  exit "$RumiAI_BOOTSTRAP_FATAL_BIN_ERROR"
 fi
 
 RumiAI_ROOT=${RumiAI_BOOTSTRAP_BIN%/*}
 [ -n "$RumiAI_ROOT" ] || RumiAI_ROOT=/
 
-if ! (cd -- "$RumiAI_ROOT")
+if ! (cd -- "$RumiAI_ROOT" 2>/dev/null)
 then
-  printf -- '%s\n' 'rumiai-os: resolved root is not an accessible directory' >&2
-  exit 1
+  printf -- '%s\n' 'RumiAI_BOOTSTRAP_FATAL_ROOT_ERROR' >&2
+  exit "$RumiAI_BOOTSTRAP_FATAL_ROOT_ERROR"
 fi
 
-export RumiAI_BOOTSTRAP_BIN RumiAI_ROOT
+export -- RumiAI_BOOTSTRAP_BIN RumiAI_ROOT
+readonly -- RumiAI_BOOTSTRAP_BIN RumiAI_ROOT
 
-# PoC-only observable output.
+unset -v -- \
+  RumiAI_BOOTSTRAP_FATAL_PATH_RESOLUTION_ERROR \
+  RumiAI_BOOTSTRAP_FATAL_REALPATH_ERROR \
+  RumiAI_BOOTSTRAP_FATAL_BIN_ERROR \
+  RumiAI_BOOTSTRAP_FATAL_ROOT_ERROR
+
+# PoC-only observable output after phase 0.
 printf -- 'RumiAI_BOOTSTRAP_BIN=%s\nRumiAI_ROOT=%s\n' "$RumiAI_BOOTSTRAP_BIN" "$RumiAI_ROOT"
