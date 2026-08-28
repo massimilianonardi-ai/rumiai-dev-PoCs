@@ -1,0 +1,2 @@
+printf -- 'COMMAND=%s\n' "$RumiAI_COMMAND_BIN"
+return 31

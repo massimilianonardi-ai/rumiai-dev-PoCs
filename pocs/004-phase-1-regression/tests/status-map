@@ -1,0 +1,130 @@
+#!/bin/sh
+
+TEST_DIR=$(CDPATH= cd -P -- "${0%/*}" && pwd -P) || exit 2
+. "$TEST_DIR/common.lib" || exit 2
+
+RumiAI_TEST_PRODUCT_ROOT=${1-}
+[ -n "$RumiAI_TEST_PRODUCT_ROOT" ] || {
+  printf -- 'usage: %s PRODUCT_ROOT\n' "$0" >&2
+  exit 2
+}
+
+RumiAI_TEST_PRODUCT_ROOT=$(command -p -- realpath -- "$RumiAI_TEST_PRODUCT_ROOT") || exit 2
+[ -f "$RumiAI_TEST_PRODUCT_ROOT/rumiai-os" ] || exit 2
+
+RumiAI_TEST_WORK=${TMPDIR:-/tmp}/rumiai-phase1-status-$$
+umask 077
+mkdir -- "$RumiAI_TEST_WORK" || exit 2
+trap 'rm -rf -- "$RumiAI_TEST_WORK"' 0 1 2 3 15
+
+ENTRYPOINT=$RumiAI_TEST_PRODUCT_ROOT/rumiai-os
+
+RumiAI_test_status_with_stderr \
+  status-1-path-resolution 1 RumiAI_BOOTSTRAP_FATAL_PATH_RESOLUTION_ERROR \
+  command -p sh -c 'PATH=; export PATH; . "$1"' \
+  rumiai-status-1 "$ENTRYPOINT"
+
+MISSING=$RumiAI_TEST_WORK/missing/rumiai-os
+RumiAI_test_status_with_stderr \
+  status-2-realpath 2 RumiAI_BOOTSTRAP_FATAL_REALPATH_ERROR \
+  command -p sh -c '. "$1"' \
+  "$MISSING" "$ENTRYPOINT"
+
+mkdir -- "$RumiAI_TEST_WORK/not-a-file" || exit 2
+RumiAI_test_status_with_stderr \
+  status-3-bootstrap-bin 3 RumiAI_BOOTSTRAP_FATAL_BIN_ERROR \
+  command -p sh -c '. "$1"' \
+  "$RumiAI_TEST_WORK/not-a-file" "$ENTRYPOINT"
+
+RumiAI_test_status_with_stderr \
+  status-4-root 4 RumiAI_BOOTSTRAP_FATAL_ROOT_ERROR \
+  command -p sh -c 'cd(){ return 1; }; . "$1"' \
+  "$ENTRYPOINT" "$ENTRYPOINT"
+
+RumiAI_test_fresh_subject status-5 || exit 2
+rm -- "$RumiAI_TEST_SUBJECT/lib/i18n.lib" || exit 2
+RumiAI_test_status_with_stderr \
+  status-5-i18n-load 5 RumiAI_BOOTSTRAP_FATAL_I18N_LOAD_ERROR \
+  command -p sh "$RumiAI_TEST_SUBJECT/rumiai-os"
+
+RumiAI_test_fresh_subject status-6 || exit 2
+rm -- "$RumiAI_TEST_SUBJECT/lib/log.lib" || exit 2
+RumiAI_test_status_with_stderr \
+  status-6-log-load 6 RumiAI_BOOTSTRAP_FATAL_LOG_LOAD_ERROR \
+  command -p sh "$RumiAI_TEST_SUBJECT/rumiai-os"
+
+RumiAI_test_fresh_subject status-7 || exit 2
+rm -- "$RumiAI_TEST_SUBJECT/lib/shell.lib" || exit 2
+RumiAI_test_status_with_stderr \
+  status-7-shell-load 7 '[shell.load-failed]' \
+  command -p sh "$RumiAI_TEST_SUBJECT/rumiai-os"
+
+RumiAI_test_fresh_subject status-8 || exit 2
+RumiAI_test_status_with_stderr \
+  status-8-command-resolution 8 '[bootstrap.command-entry-resolution-failed]' \
+  command -p sh "$RumiAI_TEST_SUBJECT/rumiai-os" "$RumiAI_TEST_WORK/missing-parent/source"
+
+RumiAI_test_fresh_subject status-9 || exit 2
+RumiAI_test_status_with_stderr \
+  status-9-invalid-entry 9 '[bootstrap.invalid-command-entry]' \
+  command -p sh "$RumiAI_TEST_SUBJECT/rumiai-os" "$RumiAI_TEST_SUBJECT/rumiai-os"
+
+RumiAI_test_fresh_subject status-10 || exit 2
+printf -- '%s\n' sh >"$RumiAI_TEST_SUBJECT/conf/shell/default" || exit 2
+RumiAI_REALPATH_TOOL=$(command -p -v realpath) || exit 2
+RumiAI_AWK_TOOL=$(command -p -v awk) || exit 2
+RumiAI_DATE_TOOL=$(command -p -v date) || exit 2
+
+RumiAI_test_status_with_stderr \
+  status-10-shell-launch 10 '[shell.launch-failed]' \
+  command -p sh -c '
+    RumiAI_realpath_tool=$1
+    RumiAI_awk_tool=$2
+    RumiAI_date_tool=$3
+    shift 3
+
+    command()
+    {
+      [ "$#" -gt 0 ] || return 127
+
+      if [ "$1" = -p ]
+      then
+        shift
+      fi
+
+      if [ "$#" -gt 0 ] && [ "$1" = -- ]
+      then
+        shift
+      fi
+
+      if [ "$#" -ge 2 ] && [ "$1" = -v ] && [ "$2" = sh ]
+      then
+        return 1
+      fi
+
+      [ "$#" -gt 0 ] || return 127
+      RumiAI_tool=$1
+      shift
+
+      case $RumiAI_tool in
+        realpath)
+          "$RumiAI_realpath_tool" "$@"
+          ;;
+        awk)
+          "$RumiAI_awk_tool" "$@"
+          ;;
+        date)
+          "$RumiAI_date_tool" "$@"
+          ;;
+        *)
+          return 127
+          ;;
+      esac
+    }
+
+    . "$0"
+  ' \
+  "$RumiAI_TEST_SUBJECT/rumiai-os" \
+  "$RumiAI_REALPATH_TOOL" "$RumiAI_AWK_TOOL" "$RumiAI_DATE_TOOL"
+
+RumiAI_test_summary

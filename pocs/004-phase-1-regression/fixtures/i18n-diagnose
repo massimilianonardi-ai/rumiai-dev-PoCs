@@ -1,0 +1,3 @@
+printf -- 'LANGUAGE=%s\n' "$RumiAI_LANGUAGE"
+printf -- 'ENCODING=%s\n' "$RumiAI_TEXT_ENCODING"
+return 0

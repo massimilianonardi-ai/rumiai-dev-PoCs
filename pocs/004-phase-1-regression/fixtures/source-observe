@@ -1,0 +1,6 @@
+printf -- '%s\n' SOURCE_OK
+printf -- 'ROOT=%s\n' "$RumiAI_ROOT"
+printf -- 'COMMAND=%s\n' "$RumiAI_COMMAND_BIN"
+printf -- 'ARG1=%s\n' "${1-}"
+printf -- 'ARG2=%s\n' "${2-}"
+return 23

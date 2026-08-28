@@ -1,0 +1,2 @@
+kill -TERM "$$"
+printf -- '%s\n' AFTER

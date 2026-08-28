@@ -1,0 +1,318 @@
+#!/bin/sh
+
+TEST_DIR=$(CDPATH= cd -P -- "${0%/*}" && pwd -P) || exit 2
+POC_DIR=${TEST_DIR%/*}
+. "$TEST_DIR/common.lib" || exit 2
+
+RumiAI_TEST_PRODUCT_ROOT=${1-}
+[ -n "$RumiAI_TEST_PRODUCT_ROOT" ] || {
+  printf -- 'usage: %s PRODUCT_ROOT\n' "$0" >&2
+  exit 2
+}
+
+RumiAI_TEST_PRODUCT_ROOT=$(command -p -- realpath -- "$RumiAI_TEST_PRODUCT_ROOT") || exit 2
+[ -f "$RumiAI_TEST_PRODUCT_ROOT/rumiai-os" ] || exit 2
+
+RumiAI_TEST_WORK=${TMPDIR:-/tmp}/rumiai-phase1-core-$$
+umask 077
+mkdir -- "$RumiAI_TEST_WORK" || exit 2
+trap 'rm -rf -- "$RumiAI_TEST_WORK"' 0 1 2 3 15
+
+RumiAI_test_fresh_subject core || exit 2
+SUBJECT=$RumiAI_TEST_SUBJECT
+RUNTIME=$SUBJECT/rumiai-os
+RUNTIME_REAL=$(command -p -- realpath -- "$RUNTIME") || exit 2
+ROOT_REAL=${RUNTIME_REAL%/*}
+
+if [ -x "$RUNTIME" ]
+then
+  RumiAI_test_pass runtime-executable
+else
+  RumiAI_test_fail runtime-executable
+fi
+
+if [ -x "$SUBJECT/bin/log" ]
+then
+  RumiAI_test_pass public-log-executable
+else
+  RumiAI_test_fail public-log-executable
+fi
+
+RumiAI_LINK_TARGET=$(command -p readlink "$SUBJECT/bin/rumiai-os" 2>/dev/null)
+if [ "$RumiAI_LINK_TARGET" = ../rumiai-os ]
+then
+  RumiAI_test_pass structural-runtime-link-target
+else
+  RumiAI_test_fail structural-runtime-link-target "target=$RumiAI_LINK_TARGET expected=../rumiai-os"
+fi
+
+for file in rumiai-os lib/i18n.lib lib/log.lib lib/shell.lib bin/log
+do
+  if command -p sh -n "$SUBJECT/$file"
+  then
+    RumiAI_test_pass "syntax-sh-$file"
+  else
+    RumiAI_test_fail "syntax-sh-$file"
+  fi
+done
+
+if command -v -- bash >/dev/null 2>&1
+then
+  for file in rumiai-os lib/i18n.lib lib/log.lib lib/shell.lib bin/log
+  do
+    if bash --posix -n "$SUBJECT/$file"
+    then
+      RumiAI_test_pass "syntax-bash-posix-$file"
+    else
+      RumiAI_test_fail "syntax-bash-posix-$file"
+    fi
+  done
+else
+  RumiAI_test_skip syntax-bash-posix 'bash unavailable'
+fi
+
+BIN_RUNTIME=$(command -p -- realpath -- "$SUBJECT/bin/rumiai-os" 2>/dev/null)
+if [ "$BIN_RUNTIME" = "$RUNTIME_REAL" ]
+then
+  RumiAI_test_pass structural-runtime-link
+else
+  RumiAI_test_fail structural-runtime-link "resolved=$BIN_RUNTIME expected=$RUNTIME_REAL"
+fi
+
+SOURCE=$RumiAI_TEST_WORK/source
+cp -- "$POC_DIR/fixtures/source-observe" "$SOURCE" || exit 2
+chmod 644 -- "$SOURCE" || exit 2
+SOURCE_REAL=$(command -p -- realpath -- "$SOURCE") || exit 2
+SOURCE_OUT=$RumiAI_TEST_WORK/source.out
+"$RUNTIME" "$SOURCE" 'hello world' second >"$SOURCE_OUT" 2>&1
+SOURCE_STATUS=$?
+if [ "$SOURCE_STATUS" -eq 23 ]
+then
+  RumiAI_test_pass explicit-source-status
+else
+  RumiAI_test_fail explicit-source-status "status=$SOURCE_STATUS expected=23"
+fi
+RumiAI_test_output_has explicit-source-root "$SOURCE_OUT" "ROOT=$ROOT_REAL"
+RumiAI_test_output_has explicit-source-command "$SOURCE_OUT" "COMMAND=$SOURCE_REAL"
+RumiAI_test_output_has explicit-source-arg1 "$SOURCE_OUT" 'ARG1=hello world'
+RumiAI_test_output_has explicit-source-arg2 "$SOURCE_OUT" 'ARG2=second'
+
+DIRECT=$RumiAI_TEST_WORK/direct-source
+cp -- "$POC_DIR/fixtures/direct-source" "$DIRECT" || exit 2
+chmod +x -- "$DIRECT" || exit 2
+DIRECT_REAL=$(command -p -- realpath -- "$DIRECT") || exit 2
+DIRECT_OUT=$RumiAI_TEST_WORK/direct.out
+PATH=$SUBJECT/bin:$PATH "$DIRECT" 'hello direct' second >"$DIRECT_OUT" 2>&1
+DIRECT_STATUS=$?
+if [ "$DIRECT_STATUS" -eq 24 ]
+then
+  RumiAI_test_pass direct-shebang-status
+else
+  RumiAI_test_fail direct-shebang-status "status=$DIRECT_STATUS expected=24"
+fi
+RumiAI_test_output_has direct-shebang-root "$DIRECT_OUT" "ROOT=$ROOT_REAL"
+RumiAI_test_output_has direct-shebang-command "$DIRECT_OUT" "COMMAND=$DIRECT_REAL"
+RumiAI_test_output_has direct-shebang-arg1 "$DIRECT_OUT" 'ARG1=hello direct'
+RumiAI_test_output_has direct-shebang-arg2 "$DIRECT_OUT" 'ARG2=second'
+
+LOG=$SUBJECT/bin/log
+RumiAI_test_status logger-valid 0 command -p env PATH=$SUBJECT/bin:$PATH "$LOG" info bootstrap language-fallback requested it_IT selected it_IT
+RumiAI_test_status logger-invalid-severity 12 command -p env PATH=$SUBJECT/bin:$PATH "$LOG" invalid bootstrap language-fallback
+RumiAI_test_status logger-invalid-domain 13 command -p env PATH=$SUBJECT/bin:$PATH "$LOG" info 'bad/domain' language-fallback
+RumiAI_test_status logger-invalid-message-id 14 command -p env PATH=$SUBJECT/bin:$PATH "$LOG" info bootstrap 'bad/message'
+RumiAI_test_status logger-invalid-fields 15 command -p env PATH=$SUBJECT/bin:$PATH "$LOG" info bootstrap language-fallback dangling
+RumiAI_test_status logger-invalid-level 16 command -p env PATH=$SUBJECT/bin:$PATH RumiAI_LOG_LEVEL=invalid "$LOG" info bootstrap language-fallback
+
+FILTER_OUT=$RumiAI_TEST_WORK/filter.out
+FILTER_ERR=$RumiAI_TEST_WORK/filter.err
+command -p env PATH=$SUBJECT/bin:$PATH "$LOG" debug bootstrap language-fallback >"$FILTER_OUT" 2>"$FILTER_ERR"
+FILTER_STATUS=$?
+if [ "$FILTER_STATUS" -eq 0 ] && [ ! -s "$FILTER_OUT" ] && [ ! -s "$FILTER_ERR" ]
+then
+  RumiAI_test_pass logger-filtered-debug
+else
+  RumiAI_test_fail logger-filtered-debug "status=$FILTER_STATUS"
+fi
+
+CANON_SOURCE=$RumiAI_TEST_WORK/canonical-source
+cp -- "$POC_DIR/fixtures/runtime-observe" "$CANON_SOURCE" || exit 2
+
+RumiAI_run_runtime_case()
+{
+  RumiAI_case=$1
+  shift
+  RumiAI_case_out=$RumiAI_TEST_WORK/$RumiAI_case.out
+  "$@" "$CANON_SOURCE" >"$RumiAI_case_out" 2>&1
+  RumiAI_case_status=$?
+  if [ "$RumiAI_case_status" -eq 0 ]
+  then
+    RumiAI_test_output_has "$RumiAI_case-bootstrap" "$RumiAI_case_out" "BOOTSTRAP=$RUNTIME_REAL"
+    RumiAI_test_output_has "$RumiAI_case-root" "$RumiAI_case_out" "ROOT=$ROOT_REAL"
+  else
+    RumiAI_test_fail "$RumiAI_case" "status=$RumiAI_case_status"
+  fi
+}
+
+RumiAI_run_runtime_case runtime-absolute "$RUNTIME"
+
+mkdir -p -- "$RumiAI_TEST_WORK/caller" "$RumiAI_TEST_WORK/links" || exit 2
+(
+  cd -- "$SUBJECT" || exit 2
+  ./rumiai-os "$CANON_SOURCE"
+) >"$RumiAI_TEST_WORK/runtime-relative.out" 2>&1
+REL_STATUS=$?
+if [ "$REL_STATUS" -eq 0 ]
+then
+  RumiAI_test_output_has runtime-relative-bootstrap "$RumiAI_TEST_WORK/runtime-relative.out" "BOOTSTRAP=$RUNTIME_REAL"
+  RumiAI_test_output_has runtime-relative-root "$RumiAI_TEST_WORK/runtime-relative.out" "ROOT=$ROOT_REAL"
+else
+  RumiAI_test_fail runtime-relative "status=$REL_STATUS"
+fi
+
+PATH_OUT=$RumiAI_TEST_WORK/runtime-path.out
+(
+  cd -- "$RumiAI_TEST_WORK/caller" || exit 2
+  PATH=$SUBJECT/bin:$PATH rumiai-os "$CANON_SOURCE"
+) >"$PATH_OUT" 2>&1
+PATH_STATUS=$?
+if [ "$PATH_STATUS" -eq 0 ]
+then
+  RumiAI_test_output_has runtime-path-bootstrap "$PATH_OUT" "BOOTSTRAP=$RUNTIME_REAL"
+  RumiAI_test_output_has runtime-path-root "$PATH_OUT" "ROOT=$ROOT_REAL"
+else
+  RumiAI_test_fail runtime-path "status=$PATH_STATUS"
+fi
+
+ln -s -- "$RUNTIME" "$RumiAI_TEST_WORK/links/absolute" || exit 2
+RumiAI_run_runtime_case runtime-absolute-symlink "$RumiAI_TEST_WORK/links/absolute"
+
+ln -s -- ../core/product/rumiai-os "$RumiAI_TEST_WORK/links/relative" || exit 2
+RumiAI_run_runtime_case runtime-relative-symlink "$RumiAI_TEST_WORK/links/relative"
+
+ln -s -- absolute "$RumiAI_TEST_WORK/links/chain-1" || exit 2
+ln -s -- chain-1 "$RumiAI_TEST_WORK/links/chain-2" || exit 2
+RumiAI_run_runtime_case runtime-symlink-chain "$RumiAI_TEST_WORK/links/chain-2"
+
+ln -s -- "$SUBJECT" "$RumiAI_TEST_WORK/product-link" || exit 2
+RumiAI_run_runtime_case runtime-intermediate-symlink "$RumiAI_TEST_WORK/product-link/rumiai-os"
+
+mkdir -- "$RumiAI_TEST_WORK/path with spaces" || exit 2
+ln -s -- "$RUNTIME" "$RumiAI_TEST_WORK/path with spaces/rumiai-os" || exit 2
+RumiAI_run_runtime_case runtime-path-spaces "$RumiAI_TEST_WORK/path with spaces/rumiai-os"
+
+REL_PATH_OUT=$RumiAI_TEST_WORK/runtime-relative-path.out
+(
+  cd -- "$RumiAI_TEST_WORK/caller" || exit 2
+  PATH=../core/product/bin:$PATH rumiai-os "$CANON_SOURCE"
+) >"$REL_PATH_OUT" 2>&1
+REL_PATH_STATUS=$?
+if [ "$REL_PATH_STATUS" -eq 0 ]
+then
+  RumiAI_test_output_has runtime-relative-path-bootstrap "$REL_PATH_OUT" "BOOTSTRAP=$RUNTIME_REAL"
+  RumiAI_test_output_has runtime-relative-path-root "$REL_PATH_OUT" "ROOT=$ROOT_REAL"
+else
+  RumiAI_test_fail runtime-relative-path "status=$REL_PATH_STATUS"
+fi
+
+SOURCE_SPACE_DIR=$RumiAI_TEST_WORK/source\ space
+mkdir -- "$SOURCE_SPACE_DIR" || exit 2
+SOURCE_SPACE=$SOURCE_SPACE_DIR/source\ file
+cp -- "$POC_DIR/fixtures/source-canonical" "$SOURCE_SPACE" || exit 2
+SOURCE_SPACE_REAL=$(command -p -- realpath -- "$SOURCE_SPACE") || exit 2
+mkdir -- "$RumiAI_TEST_WORK/source-links" || exit 2
+ln -s -- "$SOURCE_SPACE" "$RumiAI_TEST_WORK/source-links/absolute" || exit 2
+ln -s -- '../source space/source file' "$RumiAI_TEST_WORK/source-links/relative" || exit 2
+ln -s -- absolute "$RumiAI_TEST_WORK/source-links/chain-1" || exit 2
+ln -s -- chain-1 "$RumiAI_TEST_WORK/source-links/chain-2" || exit 2
+
+for RumiAI_source_entry in "$SOURCE_SPACE" "$RumiAI_TEST_WORK/source-links/relative" "$RumiAI_TEST_WORK/source-links/absolute" "$RumiAI_TEST_WORK/source-links/chain-2"
+do
+  RumiAI_source_name=$(basename -- "$RumiAI_source_entry")
+  RumiAI_source_out=$RumiAI_TEST_WORK/source-canonical-$RumiAI_source_name.out
+  command -p sh "$RUNTIME" "$RumiAI_source_entry" >"$RumiAI_source_out" 2>&1
+  RumiAI_source_status=$?
+  if [ "$RumiAI_source_status" -eq 31 ]
+  then
+    RumiAI_test_output_has "source-canonical-$RumiAI_source_name" "$RumiAI_source_out" "COMMAND=$SOURCE_SPACE_REAL"
+  else
+    RumiAI_test_fail "source-canonical-$RumiAI_source_name" "status=$RumiAI_source_status"
+  fi
+done
+
+I18N=$RumiAI_TEST_WORK/i18n-diagnose
+cp -- "$POC_DIR/fixtures/i18n-diagnose" "$I18N" || exit 2
+
+RumiAI_i18n_case()
+{
+  RumiAI_case=$1
+  RumiAI_expected_language=$2
+  RumiAI_expected_encoding=$3
+  shift 3
+  RumiAI_out=$RumiAI_TEST_WORK/$RumiAI_case.out
+  command -p env "$@" "$RumiAI_SH_TOOL" "$RUNTIME" "$I18N" >"$RumiAI_out" 2>&1
+  RumiAI_status=$?
+  if [ "$RumiAI_status" -eq 0 ]
+  then
+    RumiAI_test_output_has "$RumiAI_case-language" "$RumiAI_out" "LANGUAGE=$RumiAI_expected_language"
+    RumiAI_test_output_has "$RumiAI_case-encoding" "$RumiAI_out" "ENCODING=$RumiAI_expected_encoding"
+  else
+    RumiAI_test_fail "$RumiAI_case" "status=$RumiAI_status"
+  fi
+}
+
+RumiAI_SH_TOOL=$(command -p -v sh) || exit 2
+
+RumiAI_i18n_case i18n-lc-all it_IT UTF-8 LC_ALL=it_IT.UTF-8 LC_MESSAGES=en_US.UTF-8 LANG=en_US.UTF-8
+RumiAI_i18n_case i18n-lc-messages en_US UTF-8 LC_ALL= LC_MESSAGES=en_US.UTF-8 LANG=it_IT.UTF-8
+RumiAI_i18n_case i18n-lang it_IT UTF-8 LC_ALL= LC_MESSAGES= LANG=it_IT.UTF-8
+RumiAI_i18n_case i18n-c en_US UTF-8 LC_ALL=C LC_MESSAGES= LANG=it_IT.UTF-8
+RumiAI_i18n_case i18n-unsupported-locale en_US UTF-8 LC_ALL=fr_FR.UTF-8 LC_MESSAGES= LANG=it_IT.UTF-8
+RumiAI_i18n_case encoding-utf8 en_US UTF-8 LC_ALL=C
+
+mkdir -p -- "$SUBJECT/conf/bootstrap" || exit 2
+printf -- '%s\n' it_IT >"$SUBJECT/conf/bootstrap/language" || exit 2
+RumiAI_i18n_case i18n-config-precedence it_IT UTF-8 LC_ALL=en_US.UTF-8 LC_MESSAGES=en_US.UTF-8 LANG=en_US.UTF-8
+printf -- '%s\n' fr_FR >"$SUBJECT/conf/bootstrap/language" || exit 2
+RumiAI_i18n_case i18n-config-unsupported en_US UTF-8 LC_ALL=it_IT.UTF-8
+printf -- '%s\n%s\n' malformed extra >"$SUBJECT/conf/bootstrap/language" || exit 2
+RumiAI_i18n_case i18n-malformed-config en_US UTF-8 LC_ALL=en_US.UTF-8
+rm -- "$SUBJECT/conf/bootstrap/language" || exit 2
+printf -- '%s\n' utf8 >"$SUBJECT/conf/bootstrap/text-encoding" || exit 2
+RumiAI_i18n_case encoding-config-utf8 en_US UTF-8 LC_ALL=C
+printf -- '%s\n' ASCII >"$SUBJECT/conf/bootstrap/text-encoding" || exit 2
+RumiAI_i18n_case encoding-fallback en_US UTF-8 LC_ALL=C
+printf -- '%s\n%s\n' utf8 extra >"$SUBJECT/conf/bootstrap/text-encoding" || exit 2
+RumiAI_i18n_case encoding-malformed-config en_US UTF-8 LC_ALL=C
+
+for RumiAI_lifecycle in return false exit term
+do
+  RumiAI_file=$POC_DIR/fixtures/lifecycle-$RumiAI_lifecycle
+  RumiAI_out=$RumiAI_TEST_WORK/lifecycle-$RumiAI_lifecycle.out
+  "$RUNTIME" "$RumiAI_file" >"$RumiAI_out" 2>&1
+  RumiAI_status=$?
+  case $RumiAI_lifecycle in
+    return) RumiAI_expected=41 ;;
+    false) RumiAI_expected=1 ;;
+    exit) RumiAI_expected=42 ;;
+    term) RumiAI_expected=143 ;;
+  esac
+  if [ "$RumiAI_status" -eq "$RumiAI_expected" ]
+  then
+    RumiAI_test_pass "lifecycle-$RumiAI_lifecycle"
+  else
+    RumiAI_test_fail "lifecycle-$RumiAI_lifecycle" "status=$RumiAI_status expected=$RumiAI_expected"
+  fi
+  case $RumiAI_lifecycle in
+    return | exit | term)
+      RumiAI_after=$(cat -- "$RumiAI_out")
+      case $RumiAI_after in
+        *AFTER*) RumiAI_test_fail "lifecycle-$RumiAI_lifecycle-no-after" 'AFTER executed' ;;
+        *) RumiAI_test_pass "lifecycle-$RumiAI_lifecycle-no-after" ;;
+      esac
+      ;;
+  esac
+done
+
+RumiAI_test_skip interactive-shell-tty 'requires a real TTY; remains a reference-host physical gate'
+
+RumiAI_test_summary

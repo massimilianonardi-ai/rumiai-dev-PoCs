@@ -1,0 +1,3 @@
+printf -- 'BOOTSTRAP=%s\n' "$RumiAI_BOOTSTRAP_BIN"
+printf -- 'ROOT=%s\n' "$RumiAI_ROOT"
+return 0

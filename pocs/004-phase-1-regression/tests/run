@@ -1,0 +1,25 @@
+#!/bin/sh
+
+TEST_DIR=$(CDPATH= cd -P -- "${0%/*}" && pwd -P) || exit 2
+PRODUCT_ROOT=${1-}
+
+[ -n "$PRODUCT_ROOT" ] || {
+  printf -- 'usage: %s PRODUCT_ROOT\n' "$0" >&2
+  exit 2
+}
+
+result=0
+
+printf -- '%s\n' '== Phase 1 regression core =='
+if ! command -p sh "$TEST_DIR/core" "$PRODUCT_ROOT"
+then
+  result=1
+fi
+
+printf -- '%s\n' '== Phase 1 status map 1..10 =='
+if ! command -p sh "$TEST_DIR/status-map" "$PRODUCT_ROOT"
+then
+  result=1
+fi
+
+exit "$result"
