@@ -1,0 +1,185 @@
+#!/bin/sh
+
+set -u
+
+fail()
+{
+  printf '%s\n' "pkg-poc: $*" >&2
+  exit 1
+}
+
+read_one()
+(
+  [ "$#" -eq 1 ] || exit 1
+  file=$1
+  [ -f "$file" ] || exit 1
+  exec 3< "$file" || exit 1
+  value=
+  IFS= read -r value <&3 || exit 1
+  extra=
+  if IFS= read -r extra <&3 || [ -n "$extra" ]
+  then
+    exec 3<&-
+    exit 1
+  fi
+  exec 3<&-
+  printf '%s\n' "$value"
+)
+
+safe_id()
+{
+  case $1 in
+    ''|*[!A-Za-z0-9._+-]*) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
+safe_rel()
+{
+  case $1 in
+    ''|/*|..|../*|*/..|*/../*) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
+write_field()
+{
+  [ "$#" -eq 2 ] || return 1
+  printf '%s\n' "$2" > "$1"
+}
+
+resolve()
+{
+  [ "$#" -eq 2 ] || fail 'resolve requires definition-dir and plan-dir'
+  definition=$1
+  plan=$2
+
+  [ -d "$definition" ] || fail 'definition directory not found'
+  [ ! -e "$plan" ] || fail 'plan path already exists'
+
+  name=$(read_one "$definition/name") || fail 'invalid package name field'
+  version=$(read_one "$definition/version") || fail 'invalid package version field'
+  artifact_ref=$(read_one "$definition/artifact") || fail 'invalid artifact field'
+  command_name=$(read_one "$definition/command-name") || fail 'invalid command-name field'
+  command_path=$(read_one "$definition/command-path") || fail 'invalid command-path field'
+
+  safe_id "$name" || fail 'unsafe package name'
+  safe_id "$version" || fail 'unsafe package version'
+  safe_id "$command_name" || fail 'unsafe command name'
+  safe_rel "$command_path" || fail 'unsafe command path'
+
+  case $artifact_ref in
+    /*) artifact=$artifact_ref ;;
+    *) artifact=$definition/$artifact_ref ;;
+  esac
+  artifact=$(CDPATH= cd -- "$artifact" 2>/dev/null && pwd -P) || fail 'artifact directory not found'
+  [ -f "$artifact/$command_path" ] || fail 'artifact command not found'
+
+  store_rel=pkg/$name/$version
+  integration_rel=bin/$command_name
+
+  mkdir "$plan" || fail 'cannot create plan directory'
+  write_field "$plan/name" "$name" || fail 'cannot write plan'
+  write_field "$plan/version" "$version" || fail 'cannot write plan'
+  write_field "$plan/artifact" "$artifact" || fail 'cannot write plan'
+  write_field "$plan/command-name" "$command_name" || fail 'cannot write plan'
+  write_field "$plan/command-path" "$command_path" || fail 'cannot write plan'
+  write_field "$plan/store-rel" "$store_rel" || fail 'cannot write plan'
+  write_field "$plan/integration-rel" "$integration_rel" || fail 'cannot write plan'
+
+  printf '%s\n' "RESOLVED $name@$version"
+}
+
+install_plan()
+{
+  [ "$#" -eq 2 ] || fail 'install requires plan-dir and root'
+  plan=$1
+  root=$2
+
+  [ -d "$plan" ] || fail 'plan directory not found'
+  root=$(CDPATH= cd -- "$root" 2>/dev/null && pwd -P) || fail 'target root not found'
+
+  name=$(read_one "$plan/name") || fail 'invalid plan name'
+  version=$(read_one "$plan/version") || fail 'invalid plan version'
+  artifact=$(read_one "$plan/artifact") || fail 'invalid plan artifact'
+  command_name=$(read_one "$plan/command-name") || fail 'invalid plan command name'
+  command_path=$(read_one "$plan/command-path") || fail 'invalid plan command path'
+  store_rel=$(read_one "$plan/store-rel") || fail 'invalid plan store path'
+  integration_rel=$(read_one "$plan/integration-rel") || fail 'invalid plan integration path'
+
+  safe_id "$name" || fail 'unsafe plan package name'
+  safe_id "$version" || fail 'unsafe plan package version'
+  safe_id "$command_name" || fail 'unsafe plan command name'
+  safe_rel "$command_path" || fail 'unsafe plan command path'
+  safe_rel "$store_rel" || fail 'unsafe plan store path'
+  safe_rel "$integration_rel" || fail 'unsafe plan integration path'
+  [ -d "$artifact" ] || fail 'resolved artifact is unavailable'
+  [ -f "$artifact/$command_path" ] || fail 'resolved artifact command is unavailable'
+
+  package_dir=$root/$store_rel
+  integration=$root/$integration_rel
+  receipt=$root/.pkg-state/receipts/$name/$version
+
+  [ ! -e "$package_dir" ] || fail 'package already materialized'
+  [ ! -e "$integration" ] || fail 'integration path already exists'
+  [ ! -e "$receipt" ] || fail 'receipt already exists'
+
+  command_parent=${command_path%/*}
+  [ "$command_parent" != "$command_path" ] || command_parent=.
+
+  mkdir -p "$package_dir/$command_parent" || fail 'cannot create package materialization path'
+  cp "$artifact/$command_path" "$package_dir/$command_path" || fail 'cannot materialize artifact'
+  chmod 755 "$package_dir/$command_path" || fail 'cannot set materialized command mode'
+
+  mkdir -p "$root/bin" || fail 'cannot create integration directory'
+  ln -s "../$store_rel/$command_path" "$integration" || fail 'cannot integrate command'
+
+  mkdir -p "$receipt" || fail 'cannot create receipt directory'
+  write_field "$receipt/store-rel" "$store_rel" || fail 'cannot write receipt'
+  write_field "$receipt/integration-rel" "$integration_rel" || fail 'cannot write receipt'
+
+  printf '%s\n' "INSTALLED $name@$version"
+}
+
+uninstall_receipt()
+{
+  [ "$#" -eq 3 ] || fail 'uninstall requires name, version and root'
+  name=$1
+  version=$2
+  root=$3
+
+  safe_id "$name" || fail 'unsafe package name'
+  safe_id "$version" || fail 'unsafe package version'
+  root=$(CDPATH= cd -- "$root" 2>/dev/null && pwd -P) || fail 'target root not found'
+
+  receipt=$root/.pkg-state/receipts/$name/$version
+  [ -d "$receipt" ] || fail 'installation receipt not found'
+
+  store_rel=$(read_one "$receipt/store-rel") || fail 'invalid receipt store path'
+  integration_rel=$(read_one "$receipt/integration-rel") || fail 'invalid receipt integration path'
+  safe_rel "$store_rel" || fail 'unsafe receipt store path'
+  safe_rel "$integration_rel" || fail 'unsafe receipt integration path'
+
+  rm -f "$root/$integration_rel" || fail 'cannot remove integration'
+  rm -rf "$root/$store_rel" || fail 'cannot remove materialized package'
+  rm -rf "$receipt" || fail 'cannot remove receipt'
+
+  rmdir "$root/bin" 2>/dev/null || :
+  rmdir "$root/pkg/$name" 2>/dev/null || :
+  rmdir "$root/pkg" 2>/dev/null || :
+  rmdir "$root/.pkg-state/receipts/$name" 2>/dev/null || :
+  rmdir "$root/.pkg-state/receipts" 2>/dev/null || :
+  rmdir "$root/.pkg-state" 2>/dev/null || :
+
+  printf '%s\n' "UNINSTALLED $name@$version"
+}
+
+[ "$#" -ge 1 ] || fail 'missing command'
+command_name=$1
+shift
+case $command_name in
+  resolve) resolve "$@" ;;
+  install) install_plan "$@" ;;
+  uninstall) uninstall_receipt "$@" ;;
+  *) fail "unknown command: $command_name" ;;
+esac

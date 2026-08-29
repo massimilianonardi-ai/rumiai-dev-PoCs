@@ -1,0 +1,69 @@
+#!/bin/sh
+
+set -u
+
+fail()
+{
+  printf '%s\n' "PoC 005: FAIL: $*" >&2
+  exit 1
+}
+
+resolve_dir()
+{
+  self=$0
+  case $self in
+    */*) : ;;
+    *) self=$(command -v -- "$self" 2>/dev/null) || return 1 ;;
+  esac
+  dir=${self%/*}
+  [ "$dir" != "$self" ] || dir=.
+  CDPATH= cd -- "$dir/.." 2>/dev/null && pwd -P
+}
+
+poc_dir=$(resolve_dir) || fail 'cannot resolve PoC directory'
+pkg=$poc_dir/pkg-poc
+[ -x "$pkg" ] || fail 'pkg-poc is not executable'
+
+tmp=${TMPDIR:-/tmp}/rumiai-pkg-poc-$$
+umask 077
+mkdir "$tmp" || fail 'cannot create temporary workspace'
+trap 'rm -rf "$tmp"' 0 HUP INT TERM
+
+cp -R "$poc_dir/fixtures" "$tmp/fixtures" || fail 'cannot copy fixtures'
+root=$tmp/root
+plan=$tmp/plan
+mkdir "$root" || fail 'cannot create target root'
+printf '%s\n' keep > "$root/preexisting" || fail 'cannot create root sentinel'
+
+before=$tmp/before
+find "$root" -print | LC_ALL=C sort > "$before" || fail 'cannot snapshot initial root'
+
+"$pkg" resolve "$tmp/fixtures/definitions/hello" "$plan" >/dev/null || fail 'resolution failed'
+
+after_resolve=$tmp/after-resolve
+find "$root" -print | LC_ALL=C sort > "$after_resolve" || fail 'cannot snapshot root after resolution'
+cmp -s "$before" "$after_resolve" || fail 'resolution produced target-root side effects'
+
+"$pkg" install "$plan" "$root" >/dev/null || fail 'installation failed'
+[ -f "$root/pkg/hello/1.0/bin/hello" ] || fail 'package was not materialized'
+[ -L "$root/bin/hello" ] || fail 'command was not integrated'
+[ -d "$root/.pkg-state/receipts/hello/1.0" ] || fail 'installation receipt was not written'
+
+output=$(PATH="$root/bin:$PATH" hello) || fail 'integrated command did not execute'
+[ "$output" = 'hello-from-rumiai-package' ] || fail 'integrated command returned unexpected output'
+
+rm -rf "$tmp/fixtures/definitions" "$plan" || fail 'cannot remove definition and plan before uninstall'
+
+"$pkg" uninstall hello 1.0 "$root" >/dev/null || fail 'receipt-driven uninstall failed without definition/plan'
+
+after_uninstall=$tmp/after-uninstall
+find "$root" -print | LC_ALL=C sort > "$after_uninstall" || fail 'cannot snapshot final root'
+cmp -s "$before" "$after_uninstall" || fail 'target root was not restored to its initial state'
+
+printf '%s\n' 'resolve-side-effects=NONE'
+printf '%s\n' 'materialize=PASS'
+printf '%s\n' 'integrate=PASS'
+printf '%s\n' 'receipt=PASS'
+printf '%s\n' 'uninstall-without-definition=PASS'
+printf '%s\n' 'root-restored=PASS'
+printf '%s\n' 'package-manager-foundation=PASS'
