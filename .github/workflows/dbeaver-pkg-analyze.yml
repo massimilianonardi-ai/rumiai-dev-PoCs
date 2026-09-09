@@ -1,6 +1,7 @@
 name: DBeaver pkg-analyze PoC
 
 # Dynamic probe explicitly authorized by the user on 2026-09-09.
+# This PoC intentionally remains non-sandboxed, matching pkg-analyze's diagnostic contract.
 on:
   push:
     paths:
@@ -34,22 +35,60 @@ jobs:
             f504e70a74763aa02e0b63d6842b85ca64526f682be457b3f30e330cc10748ed \
             "$artifact" | sha256sum -c -
 
-      - name: Discover DBeaver candidate
+      - name: Prepare normalized DBeaver tree and probe wrapper
         shell: bash
         run: |
           set -euo pipefail
           root="$GITHUB_WORKSPACE/rumiai-os"
           artifact="$RUNNER_TEMP/dbeaver-ce-26.2.0-linux-x86_64.tar.gz"
+          staging="$RUNNER_TEMP/dbeaver-normalized"
+          configuration_area="$RUNNER_TEMP/dbeaver-configuration"
+          workspace_area="$RUNNER_TEMP/dbeaver-workspace"
           original_home="$RUNNER_TEMP/original-home"
-          mkdir -p "$original_home"
+          mkdir -p "$staging" "$configuration_area" "$workspace_area" "$original_home"
+          export PATH="$root:$root/bin/sys:$PATH"
+
+          extract_harness="$RUNNER_TEMP/pkg-extract-harness"
+          cat > "$extract_harness" <<'EOF_EXTRACT'
+          #!/usr/bin/env rumiai-os
+          . "$m_LIB_DIR/sh/pkg-extract.lib.sh"
+          pkg_extract "$1" "$2" "$3"
+          EOF_EXTRACT
+          chmod 700 "$extract_harness"
+          "$extract_harness" "$artifact" tar.gz "$staging"
+
+          test -x "$staging/dbeaver"
+
+          probe_wrapper="$staging/.poc-dbeaver-explicit-state"
+          cat > "$probe_wrapper" <<'EOF_WRAPPER'
+          #!/bin/sh
+          exec ./dbeaver \
+            -configuration "$POC_CONFIGURATION_AREA" \
+            -data "$POC_WORKSPACE_AREA" \
+            "$@"
+          EOF_WRAPPER
+          chmod 700 "$probe_wrapper"
+
+          printf '%s\n' "$staging" > "$GITHUB_WORKSPACE/normalized-root.txt"
+          printf '%s\n' "$configuration_area" > "$GITHUB_WORKSPACE/configuration-area.txt"
+          printf '%s\n' "$workspace_area" > "$GITHUB_WORKSPACE/workspace-area.txt"
+          printf '%s\n' "$original_home" > "$GITHUB_WORKSPACE/original-home.txt"
+
+      - name: Discover PoC probe candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$GITHUB_WORKSPACE/rumiai-os"
+          staging="$(cat "$GITHUB_WORKSPACE/normalized-root.txt")"
+          original_home="$(cat "$GITHUB_WORKSPACE/original-home.txt")"
           export PATH="$root:$root/bin/sys:$PATH"
           export HOME="$original_home"
 
-          printf '\n' | "$root/bin/sys/pkg-analyze" tar.gz "$artifact" \
+          printf '\n' | "$root/bin/sys/pkg-analyze" "$staging" \
             > "$GITHUB_WORKSPACE/discovery.txt" \
             2> "$GITHUB_WORKSPACE/discovery.stderr"
 
-          candidate_id="$(awk -F '\t' '$2 == "executable" && $3 == "dbeaver" { print $1; exit }' "$GITHUB_WORKSPACE/discovery.txt")"
+          candidate_id="$(awk -F '\t' '$2 == "executable" && $3 == ".poc-dbeaver-explicit-state" { print $1; exit }' "$GITHUB_WORKSPACE/discovery.txt")"
           test -n "$candidate_id"
           printf '%s\n' "$candidate_id" > "$GITHUB_WORKSPACE/dbeaver-candidate-id.txt"
 
@@ -59,18 +98,37 @@ jobs:
           cat "$GITHUB_WORKSPACE/discovery.stderr"
           echo "selected candidate id: $candidate_id"
 
-      - name: Probe DBeaver candidate
+      - name: Probe DBeaver with explicit configuration and workspace
         shell: bash
         run: |
           set -euo pipefail
           root="$GITHUB_WORKSPACE/rumiai-os"
-          artifact="$RUNNER_TEMP/dbeaver-ce-26.2.0-linux-x86_64.tar.gz"
-          original_home="$RUNNER_TEMP/original-home"
+          staging="$(cat "$GITHUB_WORKSPACE/normalized-root.txt")"
+          configuration_area="$(cat "$GITHUB_WORKSPACE/configuration-area.txt")"
+          workspace_area="$(cat "$GITHUB_WORKSPACE/workspace-area.txt")"
+          original_home="$(cat "$GITHUB_WORKSPACE/original-home.txt")"
+          account_home="$(getent passwd "$(id -un)" | cut -d: -f6)"
           candidate_id="$(cat "$GITHUB_WORKSPACE/dbeaver-candidate-id.txt")"
           export PATH="$root:$root/bin/sys:$PATH"
           export HOME="$original_home"
+          export POC_CONFIGURATION_AREA="$configuration_area"
+          export POC_WORKSPACE_AREA="$workspace_area"
 
           command -v xvfb-run >/dev/null
+
+          snapshot_tree()
+          {
+            local tree=$1
+            local output=$2
+            (
+              cd "$tree"
+              find . -mindepth 1 -printf '%P\t%y\n' | LC_ALL=C sort
+            ) > "$output"
+          }
+
+          snapshot_tree "$configuration_area" "$GITHUB_WORKSPACE/configuration.before"
+          snapshot_tree "$workspace_area" "$GITHUB_WORKSPACE/workspace.before"
+          snapshot_tree "$account_home" "$GITHUB_WORKSPACE/account-home.before"
 
           (
             sleep 20
@@ -82,7 +140,7 @@ jobs:
 
           set +e
           printf '%s\ny\n\n' "$candidate_id" | \
-            timeout 55s xvfb-run -a "$root/bin/sys/pkg-analyze" tar.gz "$artifact" \
+            timeout 55s xvfb-run -a "$root/bin/sys/pkg-analyze" "$staging" \
               > "$GITHUB_WORKSPACE/probe.txt" \
               2> "$GITHUB_WORKSPACE/probe.stderr"
           probe_status=$?
@@ -91,9 +149,29 @@ jobs:
           kill "$killer_pid" 2>/dev/null || true
           wait "$killer_pid" 2>/dev/null || true
 
+          snapshot_tree "$configuration_area" "$GITHUB_WORKSPACE/configuration.after"
+          snapshot_tree "$workspace_area" "$GITHUB_WORKSPACE/workspace.after"
+          snapshot_tree "$account_home" "$GITHUB_WORKSPACE/account-home.after"
+
+          {
+            echo 'configuration-area path delta:'
+            comm -13 "$GITHUB_WORKSPACE/configuration.before" "$GITHUB_WORKSPACE/configuration.after" | sed 's/^/  + /'
+            comm -23 "$GITHUB_WORKSPACE/configuration.before" "$GITHUB_WORKSPACE/configuration.after" | sed 's/^/  - /'
+            echo 'workspace-area path delta:'
+            comm -13 "$GITHUB_WORKSPACE/workspace.before" "$GITHUB_WORKSPACE/workspace.after" | sed 's/^/  + /'
+            comm -23 "$GITHUB_WORKSPACE/workspace.before" "$GITHUB_WORKSPACE/workspace.after" | sed 's/^/  - /'
+            echo 'account-home path delta:'
+            comm -13 "$GITHUB_WORKSPACE/account-home.before" "$GITHUB_WORKSPACE/account-home.after" | sed 's/^/  + /'
+            comm -23 "$GITHUB_WORKSPACE/account-home.before" "$GITHUB_WORKSPACE/account-home.after" | sed 's/^/  - /'
+          } > "$GITHUB_WORKSPACE/explicit-state-deltas.txt"
+
           printf '%s\n' "$probe_status" > "$GITHUB_WORKSPACE/probe-status.txt"
+          printf '%s\n' "$account_home" > "$GITHUB_WORKSPACE/account-home.txt"
+
           echo '--- dynamic probe report ---'
           cat "$GITHUB_WORKSPACE/probe.txt"
+          echo '--- explicit state deltas ---'
+          cat "$GITHUB_WORKSPACE/explicit-state-deltas.txt"
           echo '--- dynamic probe diagnostics ---'
           cat "$GITHUB_WORKSPACE/probe.stderr"
           echo "pkg-analyze exit status: $probe_status"
@@ -104,12 +182,24 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dbeaver-pkg-analyze-evidence
+          name: dbeaver-pkg-analyze-explicit-state-evidence
           path: |
+            normalized-root.txt
+            configuration-area.txt
+            workspace-area.txt
+            original-home.txt
+            account-home.txt
             discovery.txt
             discovery.stderr
             dbeaver-candidate-id.txt
             probe.txt
             probe.stderr
             probe-status.txt
+            configuration.before
+            configuration.after
+            workspace.before
+            workspace.after
+            account-home.before
+            account-home.after
+            explicit-state-deltas.txt
           if-no-files-found: warn
