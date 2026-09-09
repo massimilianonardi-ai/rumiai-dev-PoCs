@@ -1,5 +1,6 @@
 name: DBeaver pkg-analyze PoC
 
+# Dynamic probe explicitly authorized by the user on 2026-09-09.
 on:
   push:
     paths:
