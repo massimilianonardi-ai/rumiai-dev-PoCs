@@ -21,41 +21,34 @@ pkg-catalog@514cb620075188ec9ad9090f6bd008fcec85913f
 
 Il risultato funzionale è quindi già positivo; questo PoC riguarda esclusivamente la diagnosi prestazionale.
 
-## Confini
+## Prima ipotesi da verificare
 
-Il PoC separa i costi principali del percorso macOS corrente:
+L'indagine parte dal parser JSON perché i rallentamenti osservati in precedenza nel percorso GitHub sono stati attribuiti a `awk`, mentre il download del DMG DBeaver era già stato osservato separatamente nell'ordine di pochi secondi.
 
-```text
-GitHub release discovery reale tramite pkg_repository_list_versions
-GitHub latest release resolution
-GitHub artifact resolution
-artifact download tramite http-fetch
-SHA-256 tramite digest
-hdiutil attach senza verify, solo come confronto diagnostico
-hdiutil attach con il comportamento corrente di prodotto
-ditto del volume nella destination
-hdiutil detach
-```
-
-La misura `attach-noverify` è esclusivamente diagnostica. Non modifica il contratto `extract` e non costituisce proposta automatica di usare `-noverify` nel prodotto.
-
-Il parser JSON e l'adapter GitHub usati per le prime tre misure sono quelli della revisione `rumiai-os` indicata sopra. Repository descriptor e range descriptor temporanei riproducono i valori correnti di `pkg-catalog` per `dbeaver/catalog-macos-arm64/n0001=26.1.5`.
-
-## Interpretazione
-
-Il PoC permette di distinguere almeno tre famiglie di costo:
+La prima fase del PoC risponde quindi esclusivamente alla domanda:
 
 ```text
-github-list-versions elevato  -> percorso HTTP/JSON/release discovery
-artifact-download/digest      -> trasferimento o hashing
-attach/copy/detach elevato    -> backend DMG nativo
+il parsing della pagina reale GitHub releases?per_page=100 è il costo dominante su macOS?
 ```
 
-Non viene fissata alcuna soglia normativa di performance. I tempi sono evidence diagnostica host-specific.
+Non vengono ancora profilati download artifact, digest o backend DMG. Questi verranno misurati soltanto se la prima fase non spiega il rallentamento.
+
+## Misure della prima fase
+
+`run-macos.sh`:
+
+1. verifica di essere sul reference macOS e di usare `rumiai-os@a2531626b68e81c9df4e76a007e7f963b3f26343`;
+2. scarica una sola volta la pagina reale `dbeaver/dbeaver` `releases?per_page=100&page=1` con gli header GitHub correnti;
+3. registra tempo e dimensione del solo trasferimento HTTP;
+4. sul payload locale misura un controllo `awk` lineare che legge l'intero file;
+5. sullo stesso payload locale misura la vera `json_array_object_fields tag_name draft prerelease created_at published_at` della `json.lib.sh` corrente;
+6. registra `real`, `user`, `sys` tramite `/usr/bin/time -p`.
+
+In questo modo rete e parser non vengono confusi nella stessa misura. Nessuna soglia prestazionale diventa parte del contratto: i tempi sono evidence diagnostica host-specific.
 
 ## Esecuzione
 
-Dal checkout `rumiai-dev-PoCs` collocato sotto il workspace RumiAI corrente:
+Dal checkout `rumiai-dev-PoCs` sotto il workspace RumiAI corrente:
 
 ```sh
 git pull --ff-only
@@ -64,4 +57,4 @@ sh pocs/007-macos-dbeaver-install-performance/run-macos.sh
 
 È possibile passare esplicitamente la root `rumiai-os` come unico argomento se il checkout PoC non si trova nel layout workspace usuale.
 
-Il PoC usa una directory temporanea e la ripulisce al termine. Scarica una volta il DMG DBeaver corrente e non installa né lancia DBeaver.
+Il PoC usa una directory temporanea e la ripulisce al termine. Non installa né lancia DBeaver e non modifica il checkout `rumiai-os`.
