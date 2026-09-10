@@ -2,23 +2,23 @@
 
 ## Obiettivo
 
-Verificare sul reference macOS se il DMG DBeaver corrente può essere materializzato in modo affidabile usando capability native dell'host, senza introdurre ancora alcuna modifica al contratto o all'implementazione stabile di `rumiai-os/bin/sys/extract`.
+Verificare sul reference macOS se il DMG DBeaver corrente può essere materializzato in modo affidabile usando capability native dell'host, prima di modificare il contratto o l'implementazione stabile di `rumiai-os/bin/sys/extract`.
 
 La domanda concreta nasce dal gate live DBeaver:
 
 ```text
 DBeaver macOS range -> format=dmg
-extract dmg         -> 7zz / 7z / 7za nel contratto corrente
+extract dmg         -> 7zz / 7z / 7za nel contratto al momento del PoC
 reference macOS     -> nessuno dei tre backend osservato nel PATH
 ```
 
-Il contratto autorevole corrente resta:
+Il contratto autorevole è:
 
 ```text
 rumiai-dev/decisions/rumiai-os/2026-09-09-digest-and-extract-system-utilities.md
 ```
 
-Questo PoC **non** lo modifica e non promuove automaticamente `hdiutil` o `ditto` a backend di prodotto.
+Al momento dell'esecuzione del PoC il documento associava ancora `dmg` a 7-Zip. Il PoC non modificava autonomamente tale decisione né promuoveva automaticamente `hdiutil` o `ditto` a backend di prodotto.
 
 ## Scope
 
@@ -48,13 +48,10 @@ cleanup automatico delle risorse temporanee
 
 ## Deliberatamente fuori scope
 
-Il PoC non stabilisce ancora:
+Il PoC non stabilisce:
 
 ```text
 semantica universale per DMG multi-volume
-fallback generale fra hdiutil e 7-Zip
-ordine definitivo dei backend extract
-supporto DMG su host non-macOS
 hardening/sandbox dell'estrazione
 pkg install completo
 pkg_default
@@ -77,7 +74,7 @@ hdiutil detach <temporary-mount>
 
 `hdiutil` confina la semantica disk-image specifica di macOS; `ditto` è usato per copiare la gerarchia preservando il metadata filesystem supportato dal tool nativo.
 
-La destination esiste già, coerentemente con il contratto corrente di `extract <format> <artifact> <destination>`.
+La destination esiste già, coerentemente con il contratto di `extract <format> <artifact> <destination>`.
 
 ## Esecuzione
 
@@ -108,11 +105,22 @@ sessions/2026-09-10-reference-macos-arm64/result.md
 
 Sono stati osservati `hdiutil=/usr/bin/hdiutil` e `ditto=/usr/bin/ditto`, mentre `7zz`, `7z` e `7za` risultavano assenti. Il target `DBeaver.app/Contents/MacOS/dbeaver` è rimasto executable e byte-identico dopo la copia dal volume montato alla destination.
 
-## Criterio decisionale successivo
+## Esito e promozione
 
-Il risultato dimostra che la sequenza nativa è tecnicamente praticabile per il DMG DBeaver corrente. Prima di modificare `rumiai-os` è comunque necessario:
+L'evidence del PoC ha giustificato una successiva decisione esplicita dell'utente: il contratto `extract` corrente preferisce ora il backend composto `hdiutil` + `ditto` quando entrambe le capability sono disponibili e usa `7zz`, `7z`, `7za` come fallback di disponibilità. Un errore del backend selezionato non provoca retry.
 
-1. proporre e fissare esplicitamente la modifica del mapping `dmg` nel contratto `extract`;
-2. ottenere l'autorizzazione alla modifica prodotto;
-3. riallineare implementazione e test permanenti;
-4. rieseguire la physical validation proporzionata e infine il gate live DBeaver sui reference host.
+La decisione è stata consolidata in:
+
+```text
+rumiai-dev/decisions/rumiai-os/2026-09-09-digest-and-extract-system-utilities.md
+```
+
+ed è stata implementata in:
+
+```text
+rumiai-os@a2531626b68e81c9df4e76a007e7f963b3f26343
+```
+
+con riallineamento dei test permanenti di `extract` in `rumiai-tests`.
+
+La promozione non trasforma questa evidence sperimentale in physical validation del prodotto. La nuova revisione `rumiai-os` deve essere validata revision-specific sui reference host e successivamente nel gate live DBeaver.
