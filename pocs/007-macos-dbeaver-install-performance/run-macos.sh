@@ -1,6 +1,6 @@
 #!/bin/sh
 
-expected_rumiai_os= a2531626b68e81c9df4e76a007e7f963b3f26343
+expected_rumiai_os=a2531626b68e81c9df4e76a007e7f963b3f26343
 
 fail()
 {
