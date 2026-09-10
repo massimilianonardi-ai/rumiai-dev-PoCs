@@ -96,14 +96,23 @@ Un risultato positivo termina con:
 dmg-native-extraction=PASS
 ```
 
-L'output completo va conservato come evidence sperimentale prima di proporre qualsiasi modifica alla decisione `extract`.
+## Risultato fisico
+
+Il PoC è stato eseguito sul reference macOS ARM64 il 2026-09-10 e ha prodotto `PASS` con il DMG reale DBeaver 26.2.0.
+
+Evidence:
+
+```text
+sessions/2026-09-10-reference-macos-arm64/result.md
+```
+
+Sono stati osservati `hdiutil=/usr/bin/hdiutil` e `ditto=/usr/bin/ditto`, mentre `7zz`, `7z` e `7za` risultavano assenti. Il target `DBeaver.app/Contents/MacOS/dbeaver` è rimasto executable e byte-identico dopo la copia dal volume montato alla destination.
 
 ## Criterio decisionale successivo
 
-Se il PoC PASS sul reference macOS, il risultato dimostra soltanto che la sequenza nativa è tecnicamente praticabile per il DMG DBeaver corrente. Prima di modificare `rumiai-os` sarà comunque necessario:
+Il risultato dimostra che la sequenza nativa è tecnicamente praticabile per il DMG DBeaver corrente. Prima di modificare `rumiai-os` è comunque necessario:
 
-1. registrare l'evidence del PoC;
-2. proporre esplicitamente la modifica del mapping `dmg` nel contratto `extract`;
-3. ottenere l'approvazione dell'utente perché il mapping corrente è già una decisione accettata;
-4. riallineare implementazione e test permanenti;
-5. rieseguire la physical validation proporzionata e infine il gate live DBeaver sui reference host.
+1. proporre e fissare esplicitamente la modifica del mapping `dmg` nel contratto `extract`;
+2. ottenere l'autorizzazione alla modifica prodotto;
+3. riallineare implementazione e test permanenti;
+4. rieseguire la physical validation proporzionata e infine il gate live DBeaver sui reference host.
