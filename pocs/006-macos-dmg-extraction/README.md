@@ -123,4 +123,4 @@ rumiai-os@a2531626b68e81c9df4e76a007e7f963b3f26343
 
 con riallineamento dei test permanenti di `extract` in `rumiai-tests`.
 
-La promozione non trasforma questa evidence sperimentale in physical validation del prodotto. La nuova revisione `rumiai-os` deve essere validata revision-specific sui reference host e successivamente nel gate live DBeaver.
+La promozione non trasforma questa evidence sperimentale in physical validation del prodotto. La revisione `rumiai-os@a253162` è stata successivamente validata revision-specific sul gruppo completo `rumiai-os` dei reference host Ubuntu ARM64 e macOS ARM64 con `rumiai-tests@9198a69`. Resta separato e ancora da eseguire il gate live DBeaver, che deve esercitare nel prodotto il percorso GitHub/upstream reale e, su macOS, l'uso reale di `hdiutil` + `ditto` sul DMG DBeaver.
