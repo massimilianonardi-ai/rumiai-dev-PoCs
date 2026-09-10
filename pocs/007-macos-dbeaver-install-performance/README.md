@@ -67,7 +67,7 @@ semantica dei campi mancanti e duplicati
 
 Cambia soltanto l'accesso alla sorgente: invece di eseguire ogni `substr(...,1)` direttamente sulla stringa multi-megabyte, il cursore carica una finestra di 4096 byte e legge i singoli caratteri dalla finestra. Gli accessi che attraversano il confine della finestra ricadono sul `substr` della sorgente soltanto per il piccolo token richiesto.
 
-`run-macos.sh` ora:
+`run-macos.sh`:
 
 1. confronta parser corrente e candidato su fixture deterministiche per le tre forme API strutturali;
 2. scarica una sola volta la pagina reale GitHub;
@@ -78,7 +78,37 @@ Cambia soltanto l'accesso alla sorgente: invece di eseguire ogni `substr(...,1)`
 
 La prima misura lenta del parser corrente non viene ripetuta: è già evidence fisica conservata e ripeterla aggiungerebbe circa 100 secondi senza informazione nuova.
 
-Il candidato è ancora materiale sperimentale. Nessuna modifica è stata promossa in `rumiai-os`.
+## Risultato della seconda fase
+
+Evidence:
+
+```text
+sessions/2026-09-10-json-windowed-macos-arm64/result.md
+```
+
+Risultato fisico sul reference macOS ARM64:
+
+```text
+semantic-smoke             PASS
+payload                    2,355,841 bytes
+HTTP fetch                 1.386539 s
+awk lineare                0.05 s real / 0.05 s user
+parser windowed            5.23 s real / 5.19 s user
+record emessi              100
+probe                       PASS
+```
+
+Confronto con la baseline già registrata:
+
+```text
+parser corrente            100.02 s real
+parser windowed              5.23 s real
+miglioramento              circa 19.1x
+```
+
+Il candidato risponde positivamente alla domanda del PoC: il costo patologico osservato su macOS è eliminato in larga parte modificando soltanto l'accesso interno alla sorgente, senza cambiare il contratto JSON osservabile nelle verifiche sperimentali.
+
+Il PoC è quindi concluso positivamente per la decisione di promozione. Questa evidence non è validation del prodotto: una volta promosso in `rumiai-os`, il candidato richiede test permanenti e nuova physical validation revision-specific.
 
 ## Esecuzione
 
