@@ -108,7 +108,41 @@ miglioramento              circa 19.1x
 
 Il candidato risponde positivamente alla domanda del PoC: il costo patologico osservato su macOS è eliminato in larga parte modificando soltanto l'accesso interno alla sorgente, senza cambiare il contratto JSON osservabile nelle verifiche sperimentali.
 
-Il PoC è quindi concluso positivamente per la decisione di promozione. Questa evidence non è validation del prodotto: una volta promosso in `rumiai-os`, il candidato richiede test permanenti e nuova physical validation revision-specific.
+Il PoC è quindi concluso positivamente per la decisione di promozione. Al momento della conclusione del PoC questa evidence non costituiva validation del prodotto e richiedeva promozione, test permanenti e nuova physical validation revision-specific.
+
+## Stato successivo alla promozione
+
+Il candidato esatto del PoC è stato successivamente promosso in:
+
+```text
+rumiai-os@79cb5964428ca68c06c2f4eac98ac7350ae9561f
+lib/sh/json.lib.sh blob 6b028e01bba06bd24f7af8fe26bff0d1a9bb29fe
+```
+
+con test permanenti sui boundary della finestra in `rumiai-os/json/structure.test`.
+
+La coppia:
+
+```text
+rumiai-os@79cb5964428ca68c06c2f4eac98ac7350ae9561f
+rumiai-tests@886bd7bee855e613bbaa20af4006c3e8f9477a4d
+selection: rumiai-os
+```
+
+è stata fisicamente validata sui due reference host ARM64:
+
+```text
+Ubuntu ARM64  PASS 65 / FAIL 0 / SKIP 2 / ERROR 0
+macOS ARM64   PASS 67 / FAIL 0 / SKIP 0 / ERROR 0
+```
+
+L'evidence autorevole è registrata in `rumiai-dev`:
+
+```text
+decisions/rumiai-os/2026-09-10-json-windowed-arm64-physical-validation.md
+```
+
+Il successivo gate revision-specific resta la riesecuzione di `external/dbeaver/install-live.test` sulla stessa revisione `79cb596`, che esercita il payload GitHub reale nel percorso package end-to-end.
 
 ## Esecuzione
 
