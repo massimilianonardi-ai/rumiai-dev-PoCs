@@ -21,30 +21,64 @@ pkg-catalog@514cb620075188ec9ad9090f6bd008fcec85913f
 
 Il risultato funzionale è quindi già positivo; questo PoC riguarda esclusivamente la diagnosi prestazionale.
 
-## Prima ipotesi da verificare
+## Prima fase — causa localizzata
 
-L'indagine parte dal parser JSON perché i rallentamenti osservati in precedenza nel percorso GitHub sono stati attribuiti a `awk`, mentre il download del DMG DBeaver era già stato osservato separatamente nell'ordine di pochi secondi.
+La prima fase ha isolato rete e parser sullo stesso payload reale GitHub `dbeaver/dbeaver` `releases?per_page=100&page=1`.
 
-La prima fase del PoC risponde quindi esclusivamente alla domanda:
+Evidence:
 
 ```text
-il parsing della pagina reale GitHub releases?per_page=100 è il costo dominante su macOS?
+sessions/2026-09-10-json-baseline-macos-arm64/result.md
 ```
 
-Non vengono ancora profilati download artifact, digest o backend DMG. Questi verranno misurati soltanto se la prima fase non spiega il rallentamento.
+Risultato fisico sul reference macOS ARM64:
 
-## Misure della prima fase
+```text
+payload                    2,355,841 bytes
+HTTP fetch                 1.408512 s
+awk lineare                0.06 s real / 0.05 s user
+parser JSON corrente       100.02 s real / 99.67 s user
+record emessi              100
+```
 
-`run-macos.sh`:
+Il rallentamento è quindi nel percorso algoritmico del parser JSON corrente, non nel trasferimento HTTP e non nel costo di `awk` come lettore lineare del file.
 
-1. verifica di essere sul reference macOS e di usare `rumiai-os@a2531626b68e81c9df4e76a007e7f963b3f26343`;
-2. scarica una sola volta la pagina reale `dbeaver/dbeaver` `releases?per_page=100&page=1` con gli header GitHub correnti;
-3. registra tempo e dimensione del solo trasferimento HTTP;
-4. sul payload locale misura un controllo `awk` lineare che legge l'intero file;
-5. sullo stesso payload locale misura la vera `json_array_object_fields tag_name draft prerelease created_at published_at` della `json.lib.sh` corrente;
-6. registra `real`, `user`, `sys` tramite `/usr/bin/time -p`.
+Il parser corrente mantiene l'intero documento nella stringa `src` e durante la scansione usa ripetutamente `substr(src, pos, 1)`. Sul `/usr/bin/awk` del reference macOS questa modalità produce il costo dominante osservato.
 
-In questo modo rete e parser non vengono confusi nella stessa misura. Nessuna soglia prestazionale diventa parte del contratto: i tempi sono evidence diagnostica host-specific.
+## Seconda fase — candidato windowed
+
+La seconda fase prova una modifica esclusivamente interna del cursore del parser:
+
+```text
+json-windowed.lib.sh
+```
+
+Il candidato mantiene invariati:
+
+```text
+API shell pubbliche
+typed scalar output
+strutture JSON accettate
+validazione degli escape
+policy Unicode corrente
+rejection di TAB/CR/LF nelle stringhe selezionate
+semantica dei campi mancanti e duplicati
+```
+
+Cambia soltanto l'accesso alla sorgente: invece di eseguire ogni `substr(...,1)` direttamente sulla stringa multi-megabyte, il cursore carica una finestra di 4096 byte e legge i singoli caratteri dalla finestra. Gli accessi che attraversano il confine della finestra ricadono sul `substr` della sorgente soltanto per il piccolo token richiesto.
+
+`run-macos.sh` ora:
+
+1. confronta parser corrente e candidato su fixture deterministiche per le tre forme API strutturali;
+2. scarica una sola volta la pagina reale GitHub;
+3. misura nuovamente un controllo `awk` lineare;
+4. misura il candidato windowed sul payload reale;
+5. richiede esattamente 100 record;
+6. riporta come baseline fisica precedente `100.02 s` su `2,355,841` byte.
+
+La prima misura lenta del parser corrente non viene ripetuta: è già evidence fisica conservata e ripeterla aggiungerebbe circa 100 secondi senza informazione nuova.
+
+Il candidato è ancora materiale sperimentale. Nessuna modifica è stata promossa in `rumiai-os`.
 
 ## Esecuzione
 
