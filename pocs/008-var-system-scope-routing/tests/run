@@ -1,0 +1,73 @@
+#!/bin/sh
+
+fail()
+{
+  printf '%s\n' "FAIL: $*" >&2
+  exit 1
+}
+
+root="${TMPDIR:-/tmp}/rumiai-var-system-scope-$$"
+trap 'rm -rf "$root"' 0 HUP INT TERM
+
+rm -rf "$root" || exit 1
+mkdir -p \
+  "$root/state/system/profile/a/pkg/demo/conf/etc" \
+  "$root/state/system/profile/b/pkg/demo/conf/etc" \
+  "$root/state/user/alice/pkg/demo/home" \
+  "$root/state/user/bob/pkg/demo/home" \
+  "$root/pkg/demo@1/root" \
+  "$root/pkg/demo@1/var" \
+  "$root/pkg/native@1/root" || exit 1
+
+printf '%s\n' profile-a > "$root/state/system/profile/a/pkg/demo/conf/etc/config"
+printf '%s\n' profile-b > "$root/state/system/profile/b/pkg/demo/conf/etc/config"
+
+# Static package-local routing reaches only the active system profile.
+ln -s profile/a "$root/state/system/current" || exit 1
+ln -s ../../../state/system/current/pkg/demo/conf "$root/pkg/demo@1/var/conf" || exit 1
+ln -s ../var/conf/etc "$root/pkg/demo@1/root/etc" || exit 1
+
+[ "$(cat "$root/pkg/demo@1/root/etc/config")" = profile-a ] || \
+  fail "var-backed state did not resolve through active system profile"
+printf '%s\n' var-system-routing=PASS
+
+# User state is reached independently through a native/runtime-selected path.
+printf '%s\n' alice-data > "$root/state/user/alice/pkg/demo/home/value"
+printf '%s\n' bob-data > "$root/state/user/bob/pkg/demo/home/value"
+
+[ "$(cat "$root/state/user/alice/pkg/demo/home/value")" = alice-data ] || \
+  fail "alice state mismatch"
+[ "$(cat "$root/state/user/bob/pkg/demo/home/value")" = bob-data ] || \
+  fail "bob state mismatch"
+[ "$(cat "$root/state/user/alice/pkg/demo/home/value")" != \
+  "$(cat "$root/state/user/bob/pkg/demo/home/value")" ] || \
+  fail "user state collapsed"
+printf '%s\n' native-user-routing=PASS
+
+case "$(readlink "$root/pkg/demo@1/var/conf")" in
+  *state/user/*) fail "var points into user state" ;;
+  *) : ;;
+esac
+printf '%s\n' var-never-user=PASS
+
+# The PoC switches profile only while quiescent. It deliberately does not claim
+# a portable atomic selector-replacement mechanism; that remains a separate
+# design question.
+ln -s profile/b "$root/state/system/current.new" || exit 1
+rm "$root/state/system/current" || exit 1
+mv "$root/state/system/current.new" "$root/state/system/current" || exit 1
+
+[ "$(cat "$root/pkg/demo@1/root/etc/config")" = profile-b ] || \
+  fail "system profile switch did not retarget var-backed state"
+[ "$(cat "$root/state/user/alice/pkg/demo/home/value")" = alice-data ] || \
+  fail "profile switch changed alice state"
+[ "$(cat "$root/state/user/bob/pkg/demo/home/value")" = bob-data ] || \
+  fail "profile switch changed bob state"
+printf '%s\n' profile-switch=PASS
+
+# Fully native-routed packages need no synthetic package-local var view.
+[ ! -e "$root/pkg/native@1/var" ] || \
+  fail "native-routed package gained synthetic var"
+printf '%s\n' native-no-var=PASS
+
+printf '%s\n' var-system-scope-model=PASS
