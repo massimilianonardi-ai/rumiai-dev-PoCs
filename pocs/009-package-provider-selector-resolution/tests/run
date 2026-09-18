@@ -1,0 +1,315 @@
+#!/bin/sh
+set -eu
+
+fail()
+{
+  printf '%s\n' "FAIL: $*" >&2
+  exit 1
+}
+
+pass()
+{
+  printf '%s\n' "PASS: $*"
+}
+
+tmp=${TMPDIR:-/tmp}/rumiai-provider-selector-poc-$$
+trap 'rm -rf "$tmp"' 0 HUP INT TERM
+umask 077
+mkdir -p "$tmp/pkg" "$tmp/state/system/current/sys/pkg/conf/facility-default"
+PKG=$tmp/pkg
+STATE=$tmp/state
+OSARCH=linux-x86_64
+BASE_PATH=/usr/bin:/bin
+
+name_valid()
+{
+  case "$1" in
+    "" | [!a-z0-9]* | *[!a-z0-9._-]* | *[._-]) return 1 ;;
+  esac
+}
+
+facility_valid()
+{
+  case "$1" in
+    "" | [!a-z]* | *[!a-z0-9-]*) return 1 ;;
+  esac
+}
+
+concrete_parse()
+{
+  value=$1
+  concrete_osarch=
+  case "$value" in
+    *!*)
+      concrete_osarch=${value##*!}
+      value=${value%!"$concrete_osarch"}
+      ;;
+  esac
+  case "$value" in
+    *@*)
+      concrete_version=${value##*@}
+      concrete_pkg=${value%@"$concrete_version"}
+      ;;
+    *) return 1 ;;
+  esac
+  name_valid "$concrete_pkg" || return 1
+  [ -n "$concrete_version" ] || return 1
+}
+
+compat_ge()
+{
+  [ "$1" -ge "$2" ]
+}
+
+provider_declares()
+{
+  concrete=$1
+  wanted_facility=$2
+  wanted_operator=$3
+  wanted_compat=$4
+  file=$PKG/$concrete/facility
+  [ -f "$file" ] || return 1
+
+  while IFS=' ' read -r facility compat extra
+  do
+    [ -n "$facility" ] && [ -n "$compat" ] && [ -z "${extra-}" ] || return 1
+    [ "$facility" = "$wanted_facility" ] || continue
+    case "$wanted_operator" in
+      '=') [ "$compat" -eq "$wanted_compat" ] && return 0 ;;
+      '>=') compat_ge "$compat" "$wanted_compat" && return 0 ;;
+      *) return 1 ;;
+    esac
+  done < "$file"
+  return 1
+}
+
+selector_resolve()
+{
+  selector=$1
+  facility=$2
+  operator=$3
+  compat=$4
+  consumer_osarch=$5
+  concrete=
+
+  case "$selector" in
+    *@*)
+      concrete=$selector
+      ;;
+    *)
+      name_valid "$selector" || return 1
+      if [ -L "$PKG/$selector!$consumer_osarch" ]
+      then
+        concrete=$(readlink "$PKG/$selector!$consumer_osarch") || return 1
+      elif [ -L "$PKG/$selector" ]
+      then
+        concrete=$(readlink "$PKG/$selector") || return 1
+      else
+        return 1
+      fi
+      ;;
+  esac
+
+  concrete_parse "$concrete" || return 1
+  [ -d "$PKG/$concrete" ] && [ ! -L "$PKG/$concrete" ] || return 1
+  if [ -n "$concrete_osarch" ]
+  then
+    [ "$concrete_osarch" = "$consumer_osarch" ] || return 1
+  fi
+  provider_declares "$concrete" "$facility" "$operator" "$compat" || return 1
+  RESOLVED_PROVIDER=$concrete
+}
+
+effective_selector()
+{
+  consumer=$1
+  facility=$2
+  binding=$STATE/system/current/pkg/$consumer/conf/.m/binding/$facility
+  default=$STATE/system/current/sys/pkg/conf/facility-default/$facility
+
+  if [ -f "$binding" ]
+  then
+    IFS= read -r EFFECTIVE_SELECTOR < "$binding" || return 1
+  elif [ -f "$default" ]
+  then
+    IFS= read -r EFFECTIVE_SELECTOR < "$default" || return 1
+  else
+    return 1
+  fi
+  [ -n "$EFFECTIVE_SELECTOR" ]
+}
+
+resolve_dependency()
+{
+  consumer=$1
+  facility=$2
+  operator=$3
+  compat=$4
+  effective_selector "$consumer" "$facility" || return 1
+  selector_resolve "$EFFECTIVE_SELECTOR" "$facility" "$operator" "$compat" "$OSARCH"
+}
+
+apply_provider_runtime()
+{
+  concrete=$1
+  facility=$2
+  provider_root=$PKG/$concrete/root
+  projection=$PKG/$concrete/facility-env/$facility
+  [ -d "$provider_root" ] || return 1
+  [ -f "$projection" ] || return 1
+
+  POC_PROVIDER_ROOT=$provider_root
+  export POC_PROVIDER_ROOT
+  PATH=$BASE_PATH
+  unset JAVA_HOME || :
+  . "$projection"
+  unset POC_PROVIDER_ROOT
+}
+
+store_snapshot()
+{
+  (
+    cd "$PKG"
+    find . -print | LC_ALL=C sort | while IFS= read -r item
+    do
+      if [ -L "$item" ]
+      then
+        printf 'L %s -> %s\n' "$item" "$(readlink "$item")"
+      elif [ -f "$item" ]
+      then
+        set -- $(cksum "$item")
+        printf 'F %s %s %s\n' "$item" "$1" "$2"
+      elif [ -d "$item" ]
+      then
+        printf 'D %s\n' "$item"
+      fi
+    done
+  )
+}
+
+make_provider()
+{
+  pkg=$1
+  version=$2
+  compat=$3
+  concrete=$pkg@$version!$OSARCH
+  mkdir -p "$PKG/$concrete/root/bin" "$PKG/$concrete/facility-env"
+  printf 'java %s\n' "$compat" > "$PKG/$concrete/facility"
+  cat > "$PKG/$concrete/facility-env/java" <<'EOF_ENV'
+JAVA_HOME=$POC_PROVIDER_ROOT
+PATH=$POC_PROVIDER_ROOT/bin:$PATH
+export JAVA_HOME PATH
+EOF_ENV
+  : > "$PKG/$concrete/root/bin/java"
+  chmod +x "$PKG/$concrete/root/bin/java"
+}
+
+set_package_default()
+{
+  pkg=$1
+  concrete=$2
+  rm -f "$PKG/$pkg!$OSARCH"
+  ln -s "$concrete" "$PKG/$pkg!$OSARCH"
+}
+
+set_facility_default()
+{
+  facility=$1
+  selector=$2
+  mkdir -p "$STATE/system/current/sys/pkg/conf/facility-default"
+  printf '%s\n' "$selector" > "$STATE/system/current/sys/pkg/conf/facility-default/$facility"
+}
+
+clear_facility_default()
+{
+  rm -f "$STATE/system/current/sys/pkg/conf/facility-default/$1"
+}
+
+set_binding()
+{
+  consumer=$1
+  facility=$2
+  selector=$3
+  dir=$STATE/system/current/pkg/$consumer/conf/.m/binding
+  mkdir -p "$dir"
+  printf '%s\n' "$selector" > "$dir/$facility"
+}
+
+clear_binding()
+{
+  rm -f "$STATE/system/current/pkg/$1/conf/.m/binding/$2"
+}
+
+make_provider temurin 25.0.4 25
+make_provider temurin 25.0.5 25
+make_provider graalvm 25.3.4 25
+make_provider oldjdk 11.0.0 11
+set_package_default temurin "temurin@25.0.4!$OSARCH"
+set_package_default graalvm "graalvm@25.3.4!$OSARCH"
+set_package_default oldjdk "oldjdk@11.0.0!$OSARCH"
+
+# No selector means failure even though compatible providers are installed.
+if resolve_dependency maven java '>=' 17
+then
+  fail 'dependency resolved without consumer binding or facility default'
+fi
+pass 'no implicit only-provider fallback'
+
+# Facility default supplies an unbound consumer.
+set_facility_default java temurin
+resolve_dependency maven java '>=' 17 || fail 'facility default did not resolve'
+[ "$RESOLVED_PROVIDER" = "temurin@25.0.4!$OSARCH" ] || fail 'wrong facility-default provider'
+pass 'consumer inherits facility default'
+
+# Generic selector follows provider package default.
+set_package_default temurin "temurin@25.0.5!$OSARCH"
+resolve_dependency maven java '>=' 17 || fail 'generic selector stopped resolving'
+[ "$RESOLVED_PROVIDER" = "temurin@25.0.5!$OSARCH" ] || fail 'generic selector did not follow package default'
+pass 'generic selector follows package default'
+
+# Explicit consumer binding overrides facility default.
+set_facility_default java graalvm
+set_binding maven java temurin
+resolve_dependency maven java '>=' 17 || fail 'consumer binding did not resolve'
+[ "$RESOLVED_PROVIDER" = "temurin@25.0.5!$OSARCH" ] || fail 'consumer binding did not override facility default'
+pass 'explicit consumer binding overrides facility default'
+
+# Exact selector remains pinned when provider package default moves.
+set_binding maven java "temurin@25.0.4!$OSARCH"
+set_package_default temurin "temurin@25.0.5!$OSARCH"
+resolve_dependency maven java '>=' 17 || fail 'exact selector did not resolve'
+[ "$RESOLVED_PROVIDER" = "temurin@25.0.4!$OSARCH" ] || fail 'exact selector did not remain pinned'
+pass 'exact selector remains pinned'
+
+# Removing binding restores inheritance from facility default.
+clear_binding maven java
+resolve_dependency maven java '>=' 17 || fail 'inheritance was not restored'
+[ "$RESOLVED_PROVIDER" = "graalvm@25.3.4!$OSARCH" ] || fail 'wrong provider after binding removal'
+pass 'binding removal restores facility-default inheritance'
+
+# Incompatible selected provider fails; resolver does not hunt for another provider.
+set_facility_default java oldjdk
+if resolve_dependency maven java '>=' 17
+then
+  fail 'incompatible selected provider was accepted'
+fi
+pass 'incompatible selected provider fails without hidden fallback'
+
+# Runtime projection follows a changed selector without reinstalling consumer and does not mutate package store.
+set_facility_default java temurin
+before=$(store_snapshot)
+resolve_dependency maven java '>=' 17 || fail 'runtime resolution failed for Temurin'
+apply_provider_runtime "$RESOLVED_PROVIDER" java || fail 'Temurin runtime projection failed'
+[ "$JAVA_HOME" = "$PKG/temurin@25.0.5!$OSARCH/root" ] || fail 'Temurin JAVA_HOME incorrect'
+case "$PATH" in "$JAVA_HOME/bin:"*) : ;; *) fail 'Temurin bin is not first in PATH' ;; esac
+
+set_facility_default java graalvm
+resolve_dependency maven java '>=' 17 || fail 'runtime resolution failed after default switch'
+apply_provider_runtime "$RESOLVED_PROVIDER" java || fail 'GraalVM runtime projection failed'
+[ "$JAVA_HOME" = "$PKG/graalvm@25.3.4!$OSARCH/root" ] || fail 'GraalVM JAVA_HOME incorrect'
+case "$PATH" in "$JAVA_HOME/bin:"*) : ;; *) fail 'GraalVM bin is not first in PATH' ;; esac
+after=$(store_snapshot)
+[ "$before" = "$after" ] || fail 'launch-time resolution mutated package store'
+pass 'runtime selector changes are observed without package-store mutation'
+
+printf '%s\n' 'RESULT: dynamic selector resolution is viable'
