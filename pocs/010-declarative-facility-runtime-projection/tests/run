@@ -1,0 +1,99 @@
+#!/bin/sh
+set -eu
+
+fail() { printf '%s\n' "FAIL: $*" >&2; exit 1; }
+pass() { printf '%s\n' "PASS: $*"; }
+
+tmp=${TMPDIR:-/tmp}/rumiai-facility-projection-$$
+trap 'rm -rf "$tmp"' 0 HUP INT TERM
+umask 077
+root=$tmp/provider/root
+def=$tmp/definition
+concrete=$tmp/provider
+mkdir -p "$root/bin" "$def/facility-cmd/java" "$def/facility-env/java"
+
+cat > "$root/bin/java" <<'EOF_JAVA'
+#!/bin/sh
+printf 'java-root=%s\n' "$JAVA_HOME"
+printf 'marker=%s\n' "$POC_MARKER"
+EOF_JAVA
+chmod 700 "$root/bin/java"
+
+printf '%s\n' 'bin/java' > "$def/facility-cmd/java/java"
+printf '%s\n' 'root' > "$def/facility-env/java/JAVA_HOME"
+printf '%s\n' 'literal declarative' > "$def/facility-env/java/POC_MARKER"
+printf '%s\n' 'root-path bin' > "$def/facility-env/java/JAVA_BIN"
+
+materialize_commands()
+{
+  facility=$1
+  source=$def/facility-cmd/$facility
+  target=$concrete/facility-cmd/$facility
+  mkdir -p "$target"
+  for descriptor in "$source"/*
+  do
+    [ -f "$descriptor" ] || return 1
+    command=${descriptor##*/}
+    IFS= read -r relative < "$descriptor" || return 1
+    [ -n "$relative" ] || return 1
+    case "$relative" in /* | *'..'* | *'
+'*) return 1 ;; esac
+    [ -x "$root/$relative" ] || return 1
+    ln -s "../../root/$relative" "$target/$command"
+  done
+}
+
+apply_env()
+{
+  facility=$1
+  source=$def/facility-env/$facility
+  for descriptor in "$source"/*
+  do
+    [ -f "$descriptor" ] || return 1
+    variable=${descriptor##*/}
+    case "$variable" in
+      "" | [!A-Za-z_]* | *[!A-Za-z0-9_]*) return 1 ;;
+    esac
+    IFS= read -r line < "$descriptor" || return 1
+    case "$line" in
+      root)
+        value=$root
+        ;;
+      "root-path "*)
+        relative=${line#root-path }
+        [ -n "$relative" ] || return 1
+        case "$relative" in /* | *'..'*) return 1 ;; esac
+        value=$root/$relative
+        ;;
+      "literal "*)
+        value=${line#literal }
+        ;;
+      literal)
+        value=
+        ;;
+      *)
+        return 1
+        ;;
+    esac
+    eval "$variable=\$value"
+    export "$variable"
+  done
+}
+
+materialize_commands java || fail 'command materialization failed'
+PATH="$concrete/facility-cmd/java:/usr/bin:/bin"
+export PATH
+apply_env java || fail 'environment projection failed'
+
+[ "$JAVA_HOME" = "$root" ] || fail 'root descriptor did not resolve to provider root'
+[ "$JAVA_BIN" = "$root/bin" ] || fail 'root-path descriptor did not resolve below provider root'
+[ "$POC_MARKER" = declarative ] || fail 'literal descriptor did not preserve value'
+[ "$(command -v java)" = "$concrete/facility-cmd/java/java" ] || fail 'facility command directory is not first in PATH'
+output=$(java)
+printf '%s\n' "$output" | grep -Fx "java-root=$root" >/dev/null || fail 'projected java did not receive JAVA_HOME'
+printf '%s\n' "$output" | grep -Fx 'marker=declarative' >/dev/null || fail 'projected java did not receive literal env'
+
+pass 'declarative command projection'
+pass 'declarative environment projection'
+pass 'provider-private PATH precedence'
+printf '%s\n' 'RESULT: declarative facility projection is viable'
