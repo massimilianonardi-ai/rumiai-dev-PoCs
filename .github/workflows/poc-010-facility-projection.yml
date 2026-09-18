@@ -1,0 +1,18 @@
+name: PoC 010 declarative facility projection
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'pocs/010-declarative-facility-runtime-projection/**'
+      - '.github/workflows/poc-010-facility-projection.yml'
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run PoC
+        shell: sh
+        run: pocs/010-declarative-facility-runtime-projection/tests/run
