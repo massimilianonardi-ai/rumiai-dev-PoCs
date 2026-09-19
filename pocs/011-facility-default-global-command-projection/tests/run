@@ -1,0 +1,123 @@
+#!/bin/sh
+set -eu
+
+fail() { printf '%s\n' "FAIL: $*" >&2; exit 1; }
+pass() { printf '%s\n' "PASS: $*"; }
+
+tmp=${TMPDIR:-/tmp}/rumiai-facility-global-command-$$
+trap 'rm -rf "$tmp"' 0 HUP INT TERM
+umask 077
+
+root=$tmp/root
+pkg=$root/pkg
+bin=$root/bin
+mkdir -p "$pkg" "$bin/ext-linux-x86_64" "$bin/ext-linux-arm64"
+
+make_provider()
+{
+  concrete=$1
+  value=$2
+  mkdir -p "$pkg/$concrete/root/bin" "$pkg/$concrete/facility-cmd/java"
+  cat > "$pkg/$concrete/root/bin/java" <<EOF_JAVA
+#!/bin/sh
+printf '%s\\n' '$value'
+EOF_JAVA
+  chmod 700 "$pkg/$concrete/root/bin/java"
+  ln -s ../../root/bin/java "$pkg/$concrete/facility-cmd/java/java"
+}
+
+make_provider 'temurin@1!linux-x86_64' x86-v1
+make_provider 'temurin@2!linux-x86_64' x86-v2
+make_provider 'temurin@1!linux-arm64' arm-v1
+make_provider 'temurin@2!linux-arm64' arm-v2
+
+ln -s 'temurin@1!linux-x86_64' "$pkg/temurin!linux-x86_64"
+ln -s 'temurin@1!linux-arm64' "$pkg/temurin!linux-arm64"
+
+expected_unversioned()
+{
+  osarch=$1
+  command=$2
+  printf '../../pkg/temurin!%s/facility-cmd/java/%s\n' "$osarch" "$command"
+}
+
+expected_pinned()
+{
+  version=$1
+  osarch=$2
+  command=$3
+  printf '../../pkg/temurin@%s!%s/facility-cmd/java/%s\n' "$version" "$osarch" "$command"
+}
+
+publish()
+{
+  public=$1
+  target=$2
+  old_expected=${3-}
+
+  if [ -e "$public" ] || [ -L "$public" ]
+  then
+    [ -n "$old_expected" ] || return 1
+    [ -L "$public" ] || return 1
+    actual=$(readlink "$public") || return 1
+    [ "$actual" = "$old_expected" ] || return 1
+    rm -f "$public" || return 1
+  fi
+
+  ln -s "$target" "$public"
+}
+
+x86_public=$bin/ext-linux-x86_64/java
+arm_public=$bin/ext-linux-arm64/java
+x86_target=$(expected_unversioned linux-x86_64 java)
+arm_target=$(expected_unversioned linux-arm64 java)
+
+publish "$x86_public" "$x86_target" || fail 'cannot publish x86 unversioned facility command'
+publish "$arm_public" "$arm_target" || fail 'cannot publish arm unversioned facility command'
+
+[ "$("$x86_public")" = x86-v1 ] || fail 'x86 unversioned projection did not reach package default v1'
+[ "$("$arm_public")" = arm-v1 ] || fail 'arm unversioned projection did not reach package default v1'
+
+rm -f "$pkg/temurin!linux-x86_64"
+ln -s 'temurin@2!linux-x86_64' "$pkg/temurin!linux-x86_64"
+
+[ "$("$x86_public")" = x86-v2 ] || fail 'unversioned global link did not follow x86 package-default switch'
+[ "$(readlink "$x86_public")" = "$x86_target" ] || fail 'x86 public link had to be rewritten after package-default switch'
+[ "$("$arm_public")" = arm-v1 ] || fail 'x86 package-default switch changed independent arm projection'
+
+pinned_public=$bin/ext-linux-x86_64/javapinned
+pinned_target=$(expected_pinned 1 linux-x86_64 java)
+publish "$pinned_public" "$pinned_target" || fail 'cannot publish pinned facility command'
+[ "$("$pinned_public")" = x86-v1 ] || fail 'pinned projection did not reach pinned concrete'
+[ "$("$x86_public")" = x86-v2 ] || fail 'unversioned projection no longer follows current default'
+[ "$("$pinned_public")" = x86-v1 ] || fail 'pinned projection followed package-default change'
+
+collision=$bin/ext-linux-x86_64/collision
+printf '%s\n' occupied > "$collision"
+if publish "$collision" "$x86_target"
+then
+  fail 'publication overwrote an unrelated public pathname'
+fi
+[ -f "$collision" ] && [ ! -L "$collision" ] || fail 'collision object was modified'
+
+owned=$bin/ext-linux-x86_64/owned
+old_owned=$(expected_pinned 1 linux-x86_64 java)
+new_owned=$(expected_pinned 2 linux-x86_64 java)
+ln -s "$old_owned" "$owned"
+publish "$owned" "$new_owned" "$old_owned" || fail 'owned facility link could not be replaced'
+[ "$(readlink "$owned")" = "$new_owned" ] || fail 'owned facility link replacement produced wrong target'
+[ "$("$owned")" = x86-v2 ] || fail 'replaced owned facility link did not reach new provider'
+
+foreign=$bin/ext-linux-x86_64/foreign
+ln -s ../../pkg/something-else "$foreign"
+if publish "$foreign" "$new_owned" "$old_owned"
+then
+  fail 'publication replaced a link not owned by the old facility projection'
+fi
+[ "$(readlink "$foreign")" = ../../pkg/something-else ] || fail 'foreign link was modified'
+
+pass 'unversioned selector follows package default without republishing'
+pass 'version-pinned selector remains pinned'
+pass 'osarch projections remain independent'
+pass 'collision ownership can be validated by exact old target'
+printf '%s\n' 'RESULT: existing ext command roots support selector-preserving global facility command publication'
