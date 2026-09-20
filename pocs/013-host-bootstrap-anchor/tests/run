@@ -20,6 +20,24 @@ wait_file()
   [ -s "$wait_path" ]
 }
 
+shell_quote()
+{
+  printf "'"
+  printf '%s' "$1" | sed "s/'/'\\\\''/g"
+  printf "'"
+}
+
+write_anchor()
+{
+  anchor_path=$1
+  quoted_bootstrap=$(shell_quote "$fake_m") || return 1
+  {
+    printf '%s\n' '#!/bin/sh'
+    printf 'exec %s "$@"\n' "$quoted_bootstrap"
+  } > "$anchor_path" || return 1
+  chmod 700 "$anchor_path"
+}
+
 xml_escape()
 {
   printf '%s' "$1" | sed \
@@ -107,7 +125,7 @@ run_linux()
   anchor=$unit_dir/m-srv-$service-bootstrap
 
   mkdir -p "$unit_dir" || fail 'cannot create systemd user directory'
-  ln -s "$fake_m" "$anchor" || fail 'cannot create systemd bootstrap anchor'
+  write_anchor "$anchor" || fail 'cannot create systemd bootstrap anchor'
   "$anchor" direct-probe || fail 'systemd bootstrap anchor is not directly executable'
   [ -f "$direct_marker" ] || fail 'systemd direct anchor probe did not reach target'
 
@@ -117,7 +135,7 @@ Description=RumiAI PoC host bootstrap anchor
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/env %h/.config/systemd/user/m-srv-$service-bootstrap srv host user _run $service
+ExecStart=/bin/sh %h/.config/systemd/user/m-srv-$service-bootstrap srv host user _run $service
 
 [Install]
 WantedBy=default.target
@@ -136,7 +154,7 @@ EOF_UNIT
   }
   assert_args
 
-  [ "$(readlink "$anchor")" = "$fake_m" ] || fail 'systemd anchor target changed'
+  [ -f "$anchor" ] && [ ! -L "$anchor" ] && [ -x "$anchor" ] || fail 'systemd anchor is not a regular executable wrapper'
   systemctl --user stop "$unit" || fail 'systemd stop failed'
   systemctl --user disable "$unit" || fail 'systemd disable failed'
   rm -f "$unit_path" "$anchor" || fail 'cannot remove systemd integration'
@@ -174,7 +192,7 @@ run_macos()
   anchor=$agent_dir/$label.bootstrap
 
   mkdir -p "$agent_dir" || fail 'cannot create LaunchAgents directory'
-  ln -s "$fake_m" "$anchor" || fail 'cannot create launchd bootstrap anchor'
+  write_anchor "$anchor" || fail 'cannot create launchd bootstrap anchor'
   "$anchor" direct-probe || fail 'launchd bootstrap anchor is not directly executable'
   [ -f "$direct_marker" ] || fail 'launchd direct anchor probe did not reach target'
 
@@ -189,7 +207,7 @@ run_macos()
   <string>$label</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/usr/bin/env</string>
+    <string>/bin/sh</string>
     <string>$anchor_xml</string>
     <string>srv</string>
     <string>host</string>
@@ -217,7 +235,7 @@ EOF_PLIST
   }
   assert_args
 
-  [ "$(readlink "$anchor")" = "$fake_m" ] || fail 'launchd anchor target changed'
+  [ -f "$anchor" ] && [ ! -L "$anchor" ] && [ -x "$anchor" ] || fail 'launchd anchor is not a regular executable wrapper'
   launchctl bootout "$domain/$label" || fail 'launchctl bootout failed'
   rm -f "$plist" "$anchor" || fail 'cannot remove launchd integration'
 
