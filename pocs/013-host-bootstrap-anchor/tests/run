@@ -37,10 +37,16 @@ prepare_fake_bootstrap()
   fake_m=$weird_dir/m
   marker=$tmp/started
   args_file=$tmp/args
+  direct_marker=$tmp/direct
 
   mkdir -p "$weird_dir" || fail 'cannot create metacharacter bootstrap directory'
   cat > "$fake_m" <<EOF_BOOTSTRAP
 #!/bin/sh
+if [ "${1-}" = direct-probe ]
+then
+  : > "$direct_marker"
+  exit 0
+fi
 : > "$marker"
 : > "$args_file"
 for arg in "\$@"
@@ -102,6 +108,8 @@ run_linux()
 
   mkdir -p "$unit_dir" || fail 'cannot create systemd user directory'
   ln -s "$fake_m" "$anchor" || fail 'cannot create systemd bootstrap anchor'
+  "$anchor" direct-probe || fail 'systemd bootstrap anchor is not directly executable'
+  [ -f "$direct_marker" ] || fail 'systemd direct anchor probe did not reach target'
 
   cat > "$unit_path" <<EOF_UNIT
 [Unit]
@@ -118,8 +126,14 @@ EOF_UNIT
   trap cleanup_linux 0 HUP INT TERM
   systemctl --user daemon-reload || fail 'systemd daemon-reload failed'
   systemctl --user enable "$unit" || fail 'systemd enable failed'
-  systemctl --user start "$unit" || fail 'systemd start failed'
-  wait_file "$marker" || fail 'fake bootstrap was not reached through systemd anchor'
+  systemctl --user start "$unit" || {
+    systemctl --user status "$unit" --no-pager >&2 || :
+    fail 'systemd start failed'
+  }
+  wait_file "$marker" || {
+    systemctl --user status "$unit" --no-pager >&2 || :
+    fail 'fake bootstrap was not reached through systemd anchor'
+  }
   assert_args
 
   [ "$(readlink "$anchor")" = "$fake_m" ] || fail 'systemd anchor target changed'
@@ -161,6 +175,8 @@ run_macos()
 
   mkdir -p "$agent_dir" || fail 'cannot create LaunchAgents directory'
   ln -s "$fake_m" "$anchor" || fail 'cannot create launchd bootstrap anchor'
+  "$anchor" direct-probe || fail 'launchd bootstrap anchor is not directly executable'
+  [ -f "$direct_marker" ] || fail 'launchd direct anchor probe did not reach target'
 
   anchor_xml=$(xml_escape "$anchor") || fail 'cannot XML-escape anchor path'
   service_xml=$(xml_escape "$service") || fail 'cannot XML-escape service name'
@@ -191,8 +207,14 @@ EOF_PLIST
 
   trap cleanup_macos 0 HUP INT TERM
   launchctl enable "$domain/$label" || fail 'launchctl enable failed'
-  launchctl bootstrap "$domain" "$plist" || fail 'launchctl bootstrap failed'
-  wait_file "$marker" || fail 'fake bootstrap was not reached through launchd anchor'
+  launchctl bootstrap "$domain" "$plist" || {
+    launchctl print "$domain/$label" >&2 || :
+    fail 'launchctl bootstrap failed'
+  }
+  wait_file "$marker" || {
+    launchctl print "$domain/$label" >&2 || :
+    fail 'fake bootstrap was not reached through launchd anchor'
+  }
   assert_args
 
   [ "$(readlink "$anchor")" = "$fake_m" ] || fail 'launchd anchor target changed'
