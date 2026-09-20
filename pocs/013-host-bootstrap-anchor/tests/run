@@ -109,7 +109,7 @@ Description=RumiAI PoC host bootstrap anchor
 
 [Service]
 Type=simple
-ExecStart=%h/.config/systemd/user/m-srv-$service-bootstrap srv host user _run $service
+ExecStart=/usr/bin/env %h/.config/systemd/user/m-srv-$service-bootstrap srv host user _run $service
 
 [Install]
 WantedBy=default.target
@@ -173,6 +173,7 @@ run_macos()
   <string>$label</string>
   <key>ProgramArguments</key>
   <array>
+    <string>/usr/bin/env</string>
     <string>$anchor_xml</string>
     <string>srv</string>
     <string>host</string>
