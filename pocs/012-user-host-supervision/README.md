@@ -59,3 +59,50 @@ This PoC answers only:
 - whether stop/uninstall must be modeled differently from native command names.
 
 It does not define system-wide account policy, RumiAI state mapping, restart policy, logging policy or the final adapter filesystem layout.
+
+
+## Result
+
+GitHub-hosted execution established a common user-scope lifecycle on both current auxiliary hosts.
+
+Run `35509150751` at `7e790f838abb7f34b305a4ad6931d2b0d2c258d4` passed on Ubuntu and macOS with:
+
+```text
+Linux
+    install  -> write unit + systemctl --user enable
+    start    -> systemctl --user start
+    stop     -> systemctl --user stop
+    restart  -> systemctl --user restart
+    uninstall-> stop + disable + remove + daemon-reload
+
+macOS
+    install  -> write LaunchAgent definition + launchctl enable
+    start    -> bootstrap when unloaded / kickstart when loaded
+    stop     -> SIGTERM through launchctl while definition remains loaded
+    restart  -> kickstart -k
+    uninstall-> remove definition + bootout
+```
+
+A follow-up run `35509294369` at `168f71396c3547f50af982fa557fece8b4c8f2a4` also passed on both hosts and established that an awaited `launchctl bootout <service-target>` cleanly unloads the installed LaunchAgent while leaving its plist on disk; the service can then be started again with `bootstrap`.
+
+Therefore the cleaner normalized launchd mapping is:
+
+```text
+install
+    persist the plist and enabled intent without starting the service
+
+start
+    bootstrap the installed plist when unloaded
+
+stop
+    bootout the loaded service and leave the plist installed
+
+restart
+    kickstart -k when loaded
+    (implementation must handle the installed-but-unloaded state coherently)
+
+uninstall
+    bootout if loaded, remove the plist, clear any adapter-owned persistent state
+```
+
+The PoC does not establish the final manifest serialization mechanism, adapter filesystem names, system-wide privilege/account policy, or RumiAI product implementation.
