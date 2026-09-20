@@ -112,7 +112,7 @@ Description=RumiAI PoC user host supervision
 
 [Service]
 Type=simple
-ExecStart=$exec_start
+ExecStart=/bin/sh $exec_start
 
 [Install]
 WantedBy=default.target
