@@ -16,6 +16,12 @@ awaited launchd bootout probe:
     GitHub Actions run 35509294369
     Ubuntu   PASS
     macOS    PASS
+
+relocatable invocation probe:
+    rumiai-dev-PoCs@a500e3073d89d00127e0a174958ad64a0d43dbef
+    GitHub Actions run 35511575613
+    Ubuntu   PASS
+    macOS    PASS
 ```
 
 ## Findings
@@ -27,7 +33,10 @@ awaited launchd bootout probe:
 - `launchctl bootstrap` can start that installed-but-unloaded definition again.
 - `launchctl kickstart -k` provides restart for a loaded job.
 - Native supervisor verbs should remain adapter details rather than becoming the portable/public RumiAI host-action vocabulary.
+- systemd rejects an arbitrary special-character RumiAI bootstrap pathname when that pathname is the ExecStart executable, even when unit escaping reconstructs it correctly.
+- Using the already-contracted `/bin/sh` interpreter as the systemd executable and passing the exact `m` bootstrap plus command as serialized arguments preserves relocatability for the stressed path set.
+- launchd `ProgramArguments` constructed through `plutil` preserves the exact bootstrap/command argv for the same stressed path set and avoids shell/XML reinterpretation.
 
 ## Limits
 
-This is auxiliary GitHub-hosted evidence, not physical validation. It does not prove system-scope privilege/account semantics or final RumiAI manifest serialization.
+This is auxiliary GitHub-hosted evidence, not physical validation. It does not prove system-scope privilege/account semantics. User-scope lifecycle and relocatable manifest invocation are established for the tested systemd/launchd hosts.
