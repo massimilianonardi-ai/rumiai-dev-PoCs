@@ -176,6 +176,24 @@ EOF_PLIST
   second_pid=$(cat "$marker") || fail 'cannot read second macOS pid'
   [ "$first_pid" != "$second_pid" ] || fail 'launchctl kickstart did not start a new process'
 
+  launchctl bootout "$domain/$label" || fail 'launchctl bootout failed for installed stop probe'
+  bootout_wait=0
+  while launchctl print "$domain/$label" >/dev/null 2>&1 && [ "$bootout_wait" -lt 10 ]
+  do
+    sleep 1
+    bootout_wait=$((bootout_wait + 1))
+  done
+  if launchctl print "$domain/$label" >/dev/null 2>&1
+  then
+    fail 'launchd service remained loaded after awaited bootout'
+  fi
+  [ -f "$plist" ] || fail 'launch agent plist disappeared during bootout stop probe'
+
+  launchctl bootstrap "$domain" "$plist" || fail 'launchctl bootstrap failed after bootout stop probe'
+  sleep 1
+  bootstrap_pid=$(cat "$marker") || fail 'cannot read bootstrap restart pid'
+  [ "$second_pid" != "$bootstrap_pid" ] || fail 'launchctl bootstrap did not start a new process after bootout'
+
   launchctl kickstart -k "$domain/$label" || fail 'launchctl restart/kickstart failed'
   sleep 1
   third_pid=$(cat "$marker") || fail 'cannot read third macOS pid'
