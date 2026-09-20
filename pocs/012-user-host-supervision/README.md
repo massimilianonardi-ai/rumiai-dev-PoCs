@@ -105,4 +105,19 @@ uninstall
     bootout if loaded, remove the plist, clear any adapter-owned persistent state
 ```
 
-The PoC does not establish the final manifest serialization mechanism, adapter filesystem names, system-wide privilege/account policy, or RumiAI product implementation.
+A relocatability follow-up at `a500e3073d89d00127e0a174958ad64a0d43dbef` (run `35511575613`) also passed on Ubuntu and macOS using bootstrap/command paths containing spaces, percent, dollar, ampersand, semicolon, quotes and backslash.
+
+The follow-up established two host-specific serialization facts:
+
+```text
+Linux/systemd
+    an arbitrary special-character RumiAI bootstrap path cannot be the ExecStart executable itself
+    use /bin/sh as the fixed executable
+    pass the exact m bootstrap and command as separately serialized argv entries
+
+macOS/launchd
+    ProgramArguments preserves exact argv when constructed with plutil
+    no shell command string or manual XML interpolation is required
+```
+
+The PoC does not establish system-wide privilege/account policy or the final RumiAI product adapter implementation.
