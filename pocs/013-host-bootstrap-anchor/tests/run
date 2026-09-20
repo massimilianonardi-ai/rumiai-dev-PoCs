@@ -1,0 +1,210 @@
+#!/bin/sh
+
+set -u
+
+fail()
+{
+  printf '%s\n' "FAIL: $*" >&2
+  exit 1
+}
+
+wait_file()
+{
+  wait_path=$1
+  wait_count=0
+  while [ ! -s "$wait_path" ] && [ "$wait_count" -lt 10 ]
+  do
+    sleep 1
+    wait_count=$((wait_count + 1))
+  done
+  [ -s "$wait_path" ]
+}
+
+xml_escape()
+{
+  printf '%s' "$1" | sed \
+    -e 's/&/\&amp;/g' \
+    -e 's/</\&lt;/g' \
+    -e 's/>/\&gt;/g' \
+    -e 's/"/\&quot;/g' \
+    -e "s/'/\&apos;/g"
+}
+
+prepare_fake_bootstrap()
+{
+  tmp=${TMPDIR:-/tmp}/rumiai-poc-host-anchor-$$
+  weird_dir="$tmp/m root % & < > ' \""
+  fake_m=$weird_dir/m
+  marker=$tmp/started
+  args_file=$tmp/args
+
+  mkdir -p "$weird_dir" || fail 'cannot create metacharacter bootstrap directory'
+  cat > "$fake_m" <<EOF_BOOTSTRAP
+#!/bin/sh
+: > "$marker"
+: > "$args_file"
+for arg in "\$@"
+do
+  printf '%s\\n' "\$arg" >> "$args_file"
+done
+trap 'exit 0' TERM INT HUP
+while :
+do
+  sleep 1
+done
+EOF_BOOTSTRAP
+  chmod 700 "$fake_m" || fail 'cannot make fake bootstrap executable'
+}
+
+assert_args()
+{
+  expected=$tmp/expected
+  cat > "$expected" <<EOF_EXPECTED
+srv
+host
+user
+_run
+$service
+EOF_EXPECTED
+  cmp "$expected" "$args_file" >/dev/null 2>&1 || {
+    printf '%s\n' 'observed arguments:' >&2
+    cat "$args_file" >&2
+    fail 'host definition did not preserve bootstrap argv'
+  }
+}
+
+cleanup_linux()
+{
+  systemctl --user stop "$unit" >/dev/null 2>&1 || :
+  systemctl --user disable "$unit" >/dev/null 2>&1 || :
+  rm -f "$unit_path" "$anchor"
+  systemctl --user daemon-reload >/dev/null 2>&1 || :
+  rm -rf "$tmp"
+}
+
+run_linux()
+{
+  command -v systemctl >/dev/null 2>&1 || {
+    printf '%s\n' 'RESULT linux systemctl-unavailable'
+    return 0
+  }
+  systemctl --user show-environment >/dev/null 2>&1 || {
+    printf '%s\n' 'RESULT linux user-manager-unavailable'
+    return 0
+  }
+
+  prepare_fake_bootstrap
+  service=poc-host-anchor-$$
+  unit=m-srv-$service.service
+  unit_dir=${HOME:?}/.config/systemd/user
+  unit_path=$unit_dir/$unit
+  anchor=$unit_dir/m-srv-$service-bootstrap
+
+  mkdir -p "$unit_dir" || fail 'cannot create systemd user directory'
+  ln -s "$fake_m" "$anchor" || fail 'cannot create systemd bootstrap anchor'
+
+  cat > "$unit_path" <<EOF_UNIT
+[Unit]
+Description=RumiAI PoC host bootstrap anchor
+
+[Service]
+Type=simple
+ExecStart=%h/.config/systemd/user/m-srv-$service-bootstrap srv host user _run $service
+
+[Install]
+WantedBy=default.target
+EOF_UNIT
+
+  trap cleanup_linux 0 HUP INT TERM
+  systemctl --user daemon-reload || fail 'systemd daemon-reload failed'
+  systemctl --user enable "$unit" || fail 'systemd enable failed'
+  systemctl --user start "$unit" || fail 'systemd start failed'
+  wait_file "$marker" || fail 'fake bootstrap was not reached through systemd anchor'
+  assert_args
+
+  [ "$(readlink "$anchor")" = "$fake_m" ] || fail 'systemd anchor target changed'
+  systemctl --user stop "$unit" || fail 'systemd stop failed'
+  systemctl --user disable "$unit" || fail 'systemd disable failed'
+  rm -f "$unit_path" "$anchor" || fail 'cannot remove systemd integration'
+  systemctl --user daemon-reload || fail 'systemd final daemon-reload failed'
+
+  trap - 0 HUP INT TERM
+  rm -rf "$tmp"
+  printf '%s\n' 'RESULT linux bootstrap-anchor-ok'
+}
+
+cleanup_macos()
+{
+  launchctl bootout "$domain/$label" >/dev/null 2>&1 || :
+  rm -f "$plist" "$anchor"
+  rm -rf "$tmp"
+}
+
+run_macos()
+{
+  command -v launchctl >/dev/null 2>&1 || fail 'launchctl unavailable'
+  command -v plutil >/dev/null 2>&1 || fail 'plutil unavailable'
+
+  uid=$(id -u) || fail 'cannot determine uid'
+  domain=gui/$uid
+  launchctl print "$domain" >/dev/null 2>&1 || {
+    printf '%s\n' "RESULT macos gui-domain-unavailable domain=$domain"
+    return 0
+  }
+
+  prepare_fake_bootstrap
+  service=poc-host-anchor-$$
+  label=m.srv.$service
+  agent_dir=${HOME:?}/Library/LaunchAgents
+  plist=$agent_dir/$label.plist
+  anchor=$agent_dir/$label.bootstrap
+
+  mkdir -p "$agent_dir" || fail 'cannot create LaunchAgents directory'
+  ln -s "$fake_m" "$anchor" || fail 'cannot create launchd bootstrap anchor'
+
+  anchor_xml=$(xml_escape "$anchor") || fail 'cannot XML-escape anchor path'
+  service_xml=$(xml_escape "$service") || fail 'cannot XML-escape service name'
+  cat > "$plist" <<EOF_PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>$label</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>$anchor_xml</string>
+    <string>srv</string>
+    <string>host</string>
+    <string>user</string>
+    <string>_run</string>
+    <string>$service_xml</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+</dict>
+</plist>
+EOF_PLIST
+  chmod 600 "$plist" || fail 'cannot set plist mode'
+  plutil -lint "$plist" >/dev/null || fail 'generated plist is invalid'
+
+  trap cleanup_macos 0 HUP INT TERM
+  launchctl enable "$domain/$label" || fail 'launchctl enable failed'
+  launchctl bootstrap "$domain" "$plist" || fail 'launchctl bootstrap failed'
+  wait_file "$marker" || fail 'fake bootstrap was not reached through launchd anchor'
+  assert_args
+
+  [ "$(readlink "$anchor")" = "$fake_m" ] || fail 'launchd anchor target changed'
+  launchctl bootout "$domain/$label" || fail 'launchctl bootout failed'
+  rm -f "$plist" "$anchor" || fail 'cannot remove launchd integration'
+
+  trap - 0 HUP INT TERM
+  rm -rf "$tmp"
+  printf '%s\n' 'RESULT macos bootstrap-anchor-ok'
+}
+
+case $(uname -s) in
+  Linux) run_linux ;;
+  Darwin) run_macos ;;
+  *) printf '%s\n' "RESULT unsupported-host $(uname -s)" ;;
+esac

@@ -1,0 +1,27 @@
+name: poc-013-host-bootstrap-anchor
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/poc-013-host-bootstrap-anchor.yml
+      - pocs/013-host-bootstrap-anchor/**
+  workflow_dispatch:
+
+jobs:
+  probe:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run bootstrap-anchor probe
+        shell: bash
+        run: |
+          chmod +x pocs/013-host-bootstrap-anchor/tests/run
+          pocs/013-host-bootstrap-anchor/tests/run
