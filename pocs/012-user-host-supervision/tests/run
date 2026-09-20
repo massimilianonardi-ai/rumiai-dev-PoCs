@@ -159,18 +159,40 @@ EOF_PLIST
   }
 
   first_pid=$(cat "$marker") || fail 'cannot read first macOS pid'
-  launchctl kickstart -k "$domain/$label" || fail 'launchctl restart/kickstart failed'
+
+  launchctl kill SIGTERM "$domain/$label" || fail 'launchctl stop signal failed'
+  stop_wait=0
+  while kill -0 "$first_pid" 2>/dev/null && [ "$stop_wait" -lt 10 ]
+  do
+    sleep 1
+    stop_wait=$((stop_wait + 1))
+  done
+  kill -0 "$first_pid" 2>/dev/null && fail 'macOS payload remained alive after stop'
+  launchctl print "$domain/$label" >/dev/null 2>&1 ||
+    fail 'launchd service definition disappeared after stop'
+
+  launchctl kickstart "$domain/$label" || fail 'launchctl start/kickstart failed'
   sleep 1
   second_pid=$(cat "$marker") || fail 'cannot read second macOS pid'
-  [ "$first_pid" != "$second_pid" ] || fail 'launchctl kickstart -k did not replace the process'
+  [ "$first_pid" != "$second_pid" ] || fail 'launchctl kickstart did not start a new process'
 
-  launchctl bootout "$domain/$label" || fail 'launchctl bootout failed'
-  if launchctl print "$domain/$label" >/dev/null 2>&1
-  then
-    fail 'launchd service remained loaded after bootout'
-  fi
+  launchctl kickstart -k "$domain/$label" || fail 'launchctl restart/kickstart failed'
+  sleep 1
+  third_pid=$(cat "$marker") || fail 'cannot read third macOS pid'
+  [ "$second_pid" != "$third_pid" ] || fail 'launchctl kickstart -k did not replace the process'
 
   rm -f "$plist" || fail 'cannot remove launch agent plist'
+  launchctl bootout "$domain/$label" || fail 'launchctl bootout failed during uninstall'
+  uninstall_wait=0
+  while launchctl print "$domain/$label" >/dev/null 2>&1 && [ "$uninstall_wait" -lt 10 ]
+  do
+    sleep 1
+    uninstall_wait=$((uninstall_wait + 1))
+  done
+  if launchctl print "$domain/$label" >/dev/null 2>&1
+  then
+    fail 'launchd service remained loaded after uninstall'
+  fi
   trap - 0 HUP INT TERM
   rm -rf "$tmp"
   printf '%s\n' 'RESULT macos user-host-lifecycle-ok'
