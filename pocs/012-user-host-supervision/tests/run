@@ -56,9 +56,15 @@ assert_exact_invocation()
 systemd_exec_arg()
 {
   [ "$#" -eq 1 ] || return 2
+  case "$1" in
+    /*) : ;;
+    *) return 1 ;;
+  esac
 
-  printf '"'
-  LC_ALL=C printf '%s' "$1" |
+  systemd_exec_arg_rest=${1#/}
+
+  printf '"/'
+  LC_ALL=C printf '%s' "$systemd_exec_arg_rest" |
     od -An -tx1 |
     awk '{
       for (i = 1; i <= NF; i++)
@@ -119,7 +125,11 @@ EOF_UNIT
   [ ! -e "$bootstrap_marker" ] && [ ! -e "$command_marker" ] ||
     fail 'systemd install unexpectedly started the service'
 
-  systemctl --user start "$unit" || fail 'systemd start failed'
+  systemctl --user start "$unit" || {
+    cat "$unit_path" >&2
+    systemctl --user status "$unit" --no-pager >&2 || :
+    fail 'systemd start failed'
+  }
   systemctl --user is-active --quiet "$unit" || fail 'systemd unit is not active after start'
   assert_exact_invocation
 
