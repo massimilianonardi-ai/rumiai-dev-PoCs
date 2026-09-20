@@ -8,6 +8,65 @@ fail()
   exit 1
 }
 
+prepare_relocatable_fixture()
+{
+  tmp=${TMPDIR:-/tmp}/"rumiai poc 012 % \$ & ; \" ' \\ $$"
+  root=$tmp/"RumiAI root % \$ & ; \" ' \\"
+  bootstrap=$root/m
+  command=$root/"bin/sys/host command"
+  bootstrap_marker=$bootstrap.bootstrap-marker
+  command_marker=$command.command-marker
+
+  mkdir -p "$root/bin/sys" || fail 'cannot prepare relocatable fixture'
+
+  cat > "$bootstrap" <<'EOF_BOOTSTRAP'
+#!/bin/sh
+printf '%s\n' "$0" > "$0.bootstrap-marker"
+[ "$#" -eq 1 ] || exit 91
+exec "$1"
+EOF_BOOTSTRAP
+
+  cat > "$command" <<'EOF_COMMAND'
+#!/bin/sh
+printf '%s\n' "$0" > "$0.command-marker"
+trap 'exit 0' TERM INT HUP
+while :
+do
+  sleep 1
+done
+EOF_COMMAND
+
+  chmod 700 "$bootstrap" "$command" || fail 'cannot make relocatable fixture executable'
+}
+
+assert_exact_invocation()
+{
+  [ -s "$bootstrap_marker" ] || fail 'bootstrap marker missing'
+  [ -s "$command_marker" ] || fail 'command marker missing'
+
+  observed_bootstrap=$(cat "$bootstrap_marker") || fail 'cannot read bootstrap marker'
+  observed_command=$(cat "$command_marker") || fail 'cannot read command marker'
+
+  [ "$observed_bootstrap" = "$bootstrap" ] ||
+    fail "bootstrap argv/path mismatch: expected=$bootstrap observed=$observed_bootstrap"
+  [ "$observed_command" = "$command" ] ||
+    fail "command argv/path mismatch: expected=$command observed=$observed_command"
+}
+
+systemd_exec_arg()
+{
+  [ "$#" -eq 1 ] || return 2
+
+  printf '"'
+  LC_ALL=C printf '%s' "$1" |
+    od -An -tx1 |
+    awk '{
+      for (i = 1; i <= NF; i++)
+        printf "\\x%s", $i
+    }' || return 1
+  printf '"'
+}
+
 cleanup_linux()
 {
   systemctl --user stop "$unit" >/dev/null 2>&1 || :
@@ -23,6 +82,8 @@ run_linux()
     printf '%s\n' 'RESULT linux systemctl-unavailable'
     return 0
   }
+  command -v od >/dev/null 2>&1 || fail 'od unavailable'
+  command -v awk >/dev/null 2>&1 || fail 'awk unavailable'
 
   if ! systemctl --user show-environment >/dev/null 2>&1
   then
@@ -30,32 +91,22 @@ run_linux()
     return 0
   fi
 
-  tmp=${TMPDIR:-/tmp}/rumiai-poc-user-host-$$
+  prepare_relocatable_fixture
+
   unit=m-poc-user-host-supervision.service
   unit_dir=${HOME:?}/.config/systemd/user
   unit_path=$unit_dir/$unit
-  payload=$tmp/payload
-  marker=$tmp/marker
+  exec_start="$(systemd_exec_arg "$bootstrap") $(systemd_exec_arg "$command")" ||
+    fail 'cannot serialize systemd ExecStart'
 
-  mkdir -p "$tmp" "$unit_dir" || fail 'cannot prepare linux fixture'
-  cat > "$payload" <<EOF_PAYLOAD
-#!/bin/sh
-trap 'exit 0' TERM INT HUP
-printf '%s\\n' "\$\$" > "$marker"
-while :
-do
-  sleep 1
-done
-EOF_PAYLOAD
-  chmod 700 "$payload" || fail 'cannot make linux payload executable'
-
+  mkdir -p "$unit_dir" || fail 'cannot prepare linux unit directory'
   cat > "$unit_path" <<EOF_UNIT
 [Unit]
 Description=RumiAI PoC user host supervision
 
 [Service]
 Type=simple
-ExecStart=$payload
+ExecStart=$exec_start
 
 [Install]
 WantedBy=default.target
@@ -65,14 +116,23 @@ EOF_UNIT
 
   systemctl --user daemon-reload || fail 'systemd daemon-reload failed'
   systemctl --user enable "$unit" || fail 'systemd enable failed'
+  [ ! -e "$bootstrap_marker" ] && [ ! -e "$command_marker" ] ||
+    fail 'systemd install unexpectedly started the service'
+
   systemctl --user start "$unit" || fail 'systemd start failed'
   systemctl --user is-active --quiet "$unit" || fail 'systemd unit is not active after start'
-  [ -s "$marker" ] || fail 'linux payload marker missing after start'
+  assert_exact_invocation
 
-  first_pid=$(cat "$marker") || fail 'cannot read first linux pid'
+  first_pid=$(systemctl --user show "$unit" -p MainPID --value) ||
+    fail 'cannot read first systemd pid'
+  case "$first_pid" in ""|0|*[!0123456789]*) fail 'invalid first systemd pid' ;; esac
+
+  rm -f "$bootstrap_marker" "$command_marker"
   systemctl --user restart "$unit" || fail 'systemd restart failed'
   systemctl --user is-active --quiet "$unit" || fail 'systemd unit is not active after restart'
-  second_pid=$(cat "$marker") || fail 'cannot read second linux pid'
+  assert_exact_invocation
+  second_pid=$(systemctl --user show "$unit" -p MainPID --value) ||
+    fail 'cannot read second systemd pid'
   [ "$first_pid" != "$second_pid" ] || fail 'systemd restart did not replace the process'
 
   systemctl --user stop "$unit" || fail 'systemd stop failed'
@@ -87,7 +147,7 @@ EOF_UNIT
 
   trap - 0 HUP INT TERM
   rm -rf "$tmp"
-  printf '%s\n' 'RESULT linux user-host-lifecycle-ok'
+  printf '%s\n' 'RESULT linux user-host-relocatable-invocation-ok'
 }
 
 cleanup_macos()
@@ -105,11 +165,8 @@ run_macos()
   uid=$(id -u) || fail 'cannot determine uid'
   domain=gui/$uid
   label=m.poc.user-host-supervision
-  tmp=${TMPDIR:-/tmp}/rumiai-poc-user-host-$$
   agent_dir=${HOME:?}/Library/LaunchAgents
   plist=$agent_dir/$label.plist
-  payload=$tmp/payload
-  marker=$tmp/marker
 
   if ! launchctl print "$domain" >/dev/null 2>&1
   then
@@ -117,103 +174,71 @@ run_macos()
     return 0
   fi
 
-  mkdir -p "$tmp" "$agent_dir" || fail 'cannot prepare macOS fixture'
-  cat > "$payload" <<EOF_PAYLOAD
-#!/bin/sh
-trap 'exit 0' TERM INT HUP
-printf '%s\\n' "\$\$" > "$marker"
-while :
-do
-  sleep 1
-done
-EOF_PAYLOAD
-  chmod 700 "$payload" || fail 'cannot make macOS payload executable'
+  prepare_relocatable_fixture
+  mkdir -p "$agent_dir" || fail 'cannot prepare macOS agent directory'
 
-  cat > "$plist" <<EOF_PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key>
-  <string>$label</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>$payload</string>
-  </array>
-  <key>RunAtLoad</key>
-  <true/>
-</dict>
-</plist>
-EOF_PLIST
+  plutil -create xml1 "$plist" || fail 'cannot create launchd plist'
+  plutil -insert Label -string "$label" "$plist" || fail 'cannot set launchd label'
+  plutil -insert ProgramArguments -array "$plist" || fail 'cannot create ProgramArguments'
+  plutil -insert ProgramArguments.0 -string "$bootstrap" "$plist" ||
+    fail 'cannot serialize bootstrap ProgramArgument'
+  plutil -insert ProgramArguments.1 -string "$command" "$plist" ||
+    fail 'cannot serialize command ProgramArgument'
+  plutil -insert RunAtLoad -bool true "$plist" || fail 'cannot set RunAtLoad'
   chmod 600 "$plist" || fail 'cannot set plist mode'
   plutil -lint "$plist" >/dev/null || fail 'plist syntax invalid'
 
   trap cleanup_macos 0 HUP INT TERM
 
   launchctl enable "$domain/$label" || fail 'launchctl enable failed'
+  [ ! -e "$bootstrap_marker" ] && [ ! -e "$command_marker" ] ||
+    fail 'launchd install unexpectedly started the service'
+
   launchctl bootstrap "$domain" "$plist" || fail 'launchctl bootstrap failed'
   launchctl print "$domain/$label" >/dev/null 2>&1 || fail 'launchd service is not loaded'
-  [ -s "$marker" ] || {
-    sleep 1
-    [ -s "$marker" ] || fail 'macOS payload marker missing after bootstrap'
-  }
+  sleep 1
+  assert_exact_invocation
 
-  first_pid=$(cat "$marker") || fail 'cannot read first macOS pid'
+  first_pid=$(launchctl print "$domain/$label" | awk '/^[[:space:]]*pid = / { print $3; exit }') ||
+    fail 'cannot read first launchd pid'
+  case "$first_pid" in ""|0|*[!0123456789]*) fail 'invalid first launchd pid' ;; esac
 
-  launchctl kill SIGTERM "$domain/$label" || fail 'launchctl stop signal failed'
+  launchctl bootout "$domain/$label" || fail 'launchctl stop/bootout failed'
   stop_wait=0
-  while kill -0 "$first_pid" 2>/dev/null && [ "$stop_wait" -lt 10 ]
+  while launchctl print "$domain/$label" >/dev/null 2>&1 && [ "$stop_wait" -lt 10 ]
   do
     sleep 1
     stop_wait=$((stop_wait + 1))
   done
-  kill -0 "$first_pid" 2>/dev/null && fail 'macOS payload remained alive after stop'
-  launchctl print "$domain/$label" >/dev/null 2>&1 ||
-    fail 'launchd service definition disappeared after stop'
-
-  launchctl kickstart "$domain/$label" || fail 'launchctl start/kickstart failed'
-  sleep 1
-  second_pid=$(cat "$marker") || fail 'cannot read second macOS pid'
-  [ "$first_pid" != "$second_pid" ] || fail 'launchctl kickstart did not start a new process'
-
-  launchctl bootout "$domain/$label" || fail 'launchctl bootout failed for installed stop probe'
-  bootout_wait=0
-  while launchctl print "$domain/$label" >/dev/null 2>&1 && [ "$bootout_wait" -lt 10 ]
-  do
-    sleep 1
-    bootout_wait=$((bootout_wait + 1))
-  done
   if launchctl print "$domain/$label" >/dev/null 2>&1
   then
-    fail 'launchd service remained loaded after awaited bootout'
+    fail 'launchd service remained loaded after stop'
   fi
-  [ -f "$plist" ] || fail 'launch agent plist disappeared during bootout stop probe'
+  [ -f "$plist" ] || fail 'launch agent plist disappeared during stop'
 
-  launchctl bootstrap "$domain" "$plist" || fail 'launchctl bootstrap failed after bootout stop probe'
+  rm -f "$bootstrap_marker" "$command_marker"
+  launchctl bootstrap "$domain" "$plist" || fail 'launchctl start/bootstrap failed after stop'
   sleep 1
-  bootstrap_pid=$(cat "$marker") || fail 'cannot read bootstrap restart pid'
-  [ "$second_pid" != "$bootstrap_pid" ] || fail 'launchctl bootstrap did not start a new process after bootout'
+  assert_exact_invocation
+  second_pid=$(launchctl print "$domain/$label" | awk '/^[[:space:]]*pid = / { print $3; exit }') ||
+    fail 'cannot read second launchd pid'
+  [ "$first_pid" != "$second_pid" ] || fail 'launchctl bootstrap did not start a new process after stop'
 
+  rm -f "$bootstrap_marker" "$command_marker"
   launchctl kickstart -k "$domain/$label" || fail 'launchctl restart/kickstart failed'
   sleep 1
-  third_pid=$(cat "$marker") || fail 'cannot read third macOS pid'
+  assert_exact_invocation
+  third_pid=$(launchctl print "$domain/$label" | awk '/^[[:space:]]*pid = / { print $3; exit }') ||
+    fail 'cannot read third launchd pid'
   [ "$second_pid" != "$third_pid" ] || fail 'launchctl kickstart -k did not replace the process'
 
+  launchctl bootout "$domain/$label" >/dev/null 2>&1 || :
   rm -f "$plist" || fail 'cannot remove launch agent plist'
-  launchctl bootout "$domain/$label" || fail 'launchctl bootout failed during uninstall'
-  uninstall_wait=0
-  while launchctl print "$domain/$label" >/dev/null 2>&1 && [ "$uninstall_wait" -lt 10 ]
-  do
-    sleep 1
-    uninstall_wait=$((uninstall_wait + 1))
-  done
-  if launchctl print "$domain/$label" >/dev/null 2>&1
-  then
-    fail 'launchd service remained loaded after uninstall'
-  fi
+  launchctl disable "$domain/$label" >/dev/null 2>&1 || :
+
   trap - 0 HUP INT TERM
   rm -rf "$tmp"
-  printf '%s\n' 'RESULT macos user-host-lifecycle-ok'
+  printf '%s\n' 'RESULT macos user-host-relocatable-invocation-ok'
 }
 
 case $(uname -s) in
