@@ -142,7 +142,7 @@ An `up-to-date` operation is a **verified current-request success-equivalent**:
 
 This is required for generated-source pipelines. Otherwise an incremental generator would be skipped but its `collection.after` consumer could never become authoritative.
 
-A future product implementation must reconcile result-observation semantics consistently: a validated prior success may be reused as successful current-request lifecycle evidence, while failed executions are never cached.
+A verified hit does **not** fabricate a current-request process result. Existing `result.status` / `result.ok` / `result.signal` / `result.error` operands retain their current meaning as actual execution-result evidence. If a reachable condition observes a result field of an otherwise up-to-date operation, that producer must execute in the current request instead of reusing the freshness hit. Output observation does not require this forced execution because the cached-success record plus current output fingerprint validation supplies explicit current-request output evidence rather than trusting a stale pathname alone.
 
 ## Failure behavior
 
@@ -233,7 +233,9 @@ The local executable experiment verifies:
 13. `--plan` does not create persistent cache state;
 14. canonical project identity prevents accidental cache reuse after copying the checkout;
 15. an incremental side-effect-only operation with no declared output is rejected;
-16. a failed action never creates reusable freshness state.
+16. a failed action never creates reusable freshness state;
+17. output evidence may be reused from an `up-to-date` producer;
+18. a reachable `result` observation forces actual producer execution rather than synthesizing an exit result.
 
 The experiment passes locally with Node.js 22.16.0.
 
