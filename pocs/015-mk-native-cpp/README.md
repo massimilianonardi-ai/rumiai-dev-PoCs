@@ -157,7 +157,7 @@ prerequisite
 process action
 ```
 
-The missing responsibility exposed by this case is therefore **deriving/expanding the concrete operation graph from current project state before planning**, not a new compile/link execution primitive.
+For this specific filesystem-discovery case, deriving the currently concrete compile/link operations from current project state before executing them is sufficient. The experiment does not establish that all lifecycle resolution must finish before execution, and it does not constrain cases whose later graph/branch selection depends on results produced during execution.
 
 ## Hosted evidence
 
@@ -188,8 +188,10 @@ Therefore this PoC has positive Ubuntu hosted evidence and no macOS execution ev
 
 This experiment narrows the next design question substantially.
 
-The existing static planner/executor can remain unchanged for this class of native build if a prior model-expansion stage can turn declarative project intent plus current project state into ordinary operations.
+The existing static planner/executor can handle this class of native build once the operations needed at that point are resolved from declarative project intent plus current project state.
 
-What remains unresolved is **which extension boundary owns that expansion**. Plausible classes include a trusted reusable operation provider/builder, a generic declarative expansion facility, or another extension mechanism. The PoC does not select among them.
+That is a local result, not a general requirement for one-shot pre-planning. The broader lifecycle may need repeated resolution/refinement when later choices depend on outputs or outcomes that do not exist initially.
 
-The experiment therefore does not justify promoting a new public schema or modifying `mk` yet. The next useful test should compare candidate expansion boundaries against another graph-producing case—especially generated sources—before fixing the product API.
+What remains unresolved is **which trusted extension/resolution boundary derives contextual operations and conditional alternatives**. Plausible classes include a reusable operation provider/builder, a generic declarative derivation facility, or another extension mechanism. The PoC does not select among them.
+
+The experiment therefore does not justify promoting a new public schema or modifying `mk` yet.
