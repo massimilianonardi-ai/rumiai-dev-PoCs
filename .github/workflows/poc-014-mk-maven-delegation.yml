@@ -1,0 +1,52 @@
+name: poc-014-mk-maven-delegation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/poc-014-mk-maven-delegation.yml
+      - pocs/014-mk-maven-delegation/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  delegation:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout PoC
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: rumiai-dev-PoCs
+
+      - name: Checkout exact rumiai-os revision
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-os
+          ref: bacf3b6d37b508c6b07bd8b6bb88019bc50a627f
+          path: rumiai-os
+
+      - name: Install managed tools
+        shell: bash
+        run: |
+          ./rumiai-os/m pkg install nodejs temurin maven
+          ./rumiai-os/m pkg default nodejs
+          ./rumiai-os/m pkg default temurin
+          ./rumiai-os/m pkg provider default java temurin
+          ./rumiai-os/m pkg default maven
+
+      - name: Run Maven delegation PoC
+        shell: bash
+        run: |
+          ./rumiai-dev-PoCs/pocs/014-mk-maven-delegation/tests/run.sh "$(pwd)/rumiai-os"

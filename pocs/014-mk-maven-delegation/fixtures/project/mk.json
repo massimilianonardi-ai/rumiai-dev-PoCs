@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "goals": {
+    "build": ["maven-package"]
+  },
+  "operations": {
+    "maven-package": {
+      "action": {
+        "type": "process",
+        "command": "mvn",
+        "args": ["-q", "package"]
+      }
+    }
+  }
+}
