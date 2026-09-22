@@ -1,6 +1,6 @@
 # PoC 018 — mk declarative facility requirements
 
-Status: Experiment completed locally
+Status: Experiment completed; resulting baseline promoted
 Date: 2026-09-22
 
 ## Question
@@ -24,13 +24,13 @@ A project is not a package consumer. Therefore the PoC rejects creating a synthe
 
 The existing package model already establishes a precedent for global non-package consumption: `srv` uses the system facility default when no package consumer identity exists.
 
-The candidate baseline therefore resolves an `mk` facility requirement against the **system facility default**, not a project-specific package binding.
+The promoted baseline therefore resolves an `mk` facility requirement against the **system facility default**, not a project-specific package binding.
 
 Resolution is a query only. It does not install providers, create defaults/bindings or silently choose among installed providers.
 
-## Candidate mk model
+## Promoted mk model
 
-The PoC uses named requirement definitions:
+The PoC established named requirement definitions that were subsequently promoted:
 
 ```json
 {
@@ -96,15 +96,15 @@ The product implementation may propagate provider requirements to derived operat
 
 The existing public `pkg_dependency_resolve` API is package-consumer-oriented and therefore is not the correct direct API for a project.
 
-The product needs a small package-owned query that composes the existing facility/default/constraint semantics without creating new selection policy.
+The promoted product adds a small package-owned query that composes the existing facility/default/constraint semantics without creating new selection policy.
 
-The candidate public command surface is:
+The promoted public command surface is:
 
 ```text
 pkg requirement resolve <facility> <constraint>...
 ```
 
-Candidate behavior:
+Promoted behavior:
 
 - resolve the configured system facility default using normal package-class/osarch semantics;
 - validate that the selected installed concrete declares the requested facility and satisfies every compatibility constraint;
@@ -113,7 +113,7 @@ Candidate behavior:
 - return status 2 for invalid invocation/syntax;
 - perform no installation, provider selection, binding mutation or projection mutation.
 
-The exact implementation should reuse the current package dependency/provider libraries. It must not duplicate constraint parsing or provider-selection logic in `mk`.
+The implementation reuses the current package facility/dependency/provider libraries. `mk` consumes only the public query and does not duplicate constraint parsing or provider-selection logic.
 
 The `requirement` term already exists in the current package and mk conceptual models; this query is a public resolution surface over existing package semantics, not a second requirement/provider abstraction.
 
