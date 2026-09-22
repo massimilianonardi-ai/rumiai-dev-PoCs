@@ -1,6 +1,6 @@
 # PoC 015 — mk native C++ graph expansion
 
-Status: Active
+Status: Experiment completed
 Date: 2026-09-22
 
 ## Question
@@ -105,3 +105,91 @@ A successful experiment should establish only these claims:
 3. pre-planning graph expansion can produce an ordinary current `mk` graph that handles add/remove/rename without changing planner/executor semantics.
 
 The experiment does **not** by itself decide whether the final product boundary should be a provider/plugin API, a generic declarative expansion primitive, another trusted extension mechanism, or something else.
+
+## Result
+
+The experiment establishes the expected separation.
+
+### 1. Fine-grained execution already works
+
+The hand-written static graph successfully builds and runs through the current unmodified `mk` implementation.
+
+The initial plan is:
+
+```text
+dir-dist
+dir-build-obj
+compile-main
+dir-build-obj-math
+compile-add
+compile-multiply
+link
+```
+
+Each translation unit is compiled by its own ordinary `process` action and `link` depends on all compile operations.
+
+### 2. Static configuration does not discover a changed source set
+
+After adding `src/math/subtract.cpp` and changing `main.cpp` to call `subtract()` without changing `mk.json`, the same static graph fails as expected because no operation exists for the new translation unit.
+
+This is not a planner or process-executor failure. The graph being planned is simply stale.
+
+### 3. Pre-planning graph expansion is sufficient
+
+The PoC-only expander discovers sources and emits an ordinary current version-1 `mk.json`. No planner/executor change is required.
+
+After expansion, the build succeeds through the real current `mk`. Re-expansion also handles:
+
+```text
+add     src/math/subtract.cpp
+rename  src/math/multiply.cpp -> src/math/product.cpp
+remove  src/math/add.cpp
+```
+
+without changing the experimental project descriptor.
+
+The final generated graph contains only the already-current concepts:
+
+```text
+goal
+operation
+prerequisite
+process action
+```
+
+The missing responsibility exposed by this case is therefore **deriving/expanding the concrete operation graph from current project state before planning**, not a new compile/link execution primitive.
+
+## Hosted evidence
+
+The workflow is:
+
+```text
+GitHub Actions run 35720179362
+PoC revision      1e3260d4f07b7e365ba1cde961cdac199988ed35
+rumiai-os         c2dcde09c2582ff67733911816088952fa1eb5ee
+```
+
+Ubuntu completed the full experiment:
+
+```text
+PASS poc-015 mk native C++ graph expansion
+```
+
+The macOS job did not reach `mk` in either attempt. Both attempts failed while provisioning the required managed `nodejs` runtime:
+
+```text
+pkg install nodejs
+curl: (56) The requested URL returned error: 403
+```
+
+Therefore this PoC has positive Ubuntu hosted evidence and no macOS execution evidence. The macOS failure is outside the property under test and is not counted as evidence against the `mk` model.
+
+## Architectural consequence
+
+This experiment narrows the next design question substantially.
+
+The existing static planner/executor can remain unchanged for this class of native build if a prior model-expansion stage can turn declarative project intent plus current project state into ordinary operations.
+
+What remains unresolved is **which extension boundary owns that expansion**. Plausible classes include a trusted reusable operation provider/builder, a generic declarative expansion facility, or another extension mechanism. The PoC does not select among them.
+
+The experiment therefore does not justify promoting a new public schema or modifying `mk` yet. The next useful test should compare candidate expansion boundaries against another graph-producing case—especially generated sources—before fixing the product API.
