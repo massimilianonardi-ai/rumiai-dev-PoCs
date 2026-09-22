@@ -1,6 +1,6 @@
 # PoC 017 — recursive mk project dependency delegation
 
-Status: Experiment completed locally
+Status: Experiment completed; resulting baseline promoted
 Date: 2026-09-22
 
 ## Question
@@ -13,7 +13,7 @@ The experiment intentionally isolates this question from the existing operation/
 
 A project dependency remains a first-class project-to-project relation. It is not represented as a fake local operation or an ordinary process action.
 
-The candidate descriptor used by this PoC is deliberately provisional:
+The descriptor was provisional when exercised by this PoC and was subsequently adopted by the promoted `mk` version-2 contract:
 
 ```json
 {
@@ -148,7 +148,7 @@ No global multi-project operation graph is required for these cases.
 
 The experiment therefore supports continuing with a design in which project dependency orchestration is implemented by `mk` delegating the dependent lifecycle request to another `mk` instance, while keeping `dependency`, `prerequisite` and `process action` semantically distinct.
 
-## Open boundary exposed by the PoC
+## Diamond boundary exposed by the PoC
 
 Recursive process delegation by itself does not provide global de-duplication across sibling branches of a diamond dependency graph:
 
@@ -160,20 +160,14 @@ Recursive process delegation by itself does not provide global de-duplication ac
     D
 ```
 
-If both `B` and `C` independently request `D`, separate child process trees can request `D` twice. The current experiment deliberately does not add shared-session coordination, locking, cache or incremental semantics merely to solve that future case.
+If both `B` and `C` independently request `D`, separate child process trees can request `D` twice.
 
-Before product promotion, the task should decide whether the first project-dependency contract:
-
-- permits independent repeated lifecycle requests across sibling branches; or
-- requires request-wide project/goal de-duplication and therefore a shared invocation/session context.
-
-This is the main remaining semantic question exposed by PoC 017.
+The promoted baseline deliberately accepts those independent repeated lifecycle requests. Project dependency semantics do not imply request-wide exactly-once execution or de-duplication across sibling branches. Shared-session coordination, cache and incremental semantics remain separate future concerns rather than being added implicitly to the dependency relation.
 
 ## Scope limit
 
 This PoC does not define:
 
-- the final `mk.json` field names;
 - remote project discovery/fetching;
 - requirement-to-`pkg` resolution;
 - incremental fingerprints/cache;
