@@ -40,10 +40,11 @@ jobs:
       - name: Install managed tools
         shell: bash
         run: |
-          ./rumiai-os/m pkg install nodejs temurin maven
+          ./rumiai-os/m pkg install nodejs temurin
           ./rumiai-os/m pkg default nodejs
           ./rumiai-os/m pkg default temurin
           ./rumiai-os/m pkg provider default java temurin
+          ./rumiai-os/m pkg install maven
           ./rumiai-os/m pkg default maven
 
       - name: Run Maven delegation PoC
