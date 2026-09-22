@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "goals": {
+    "build": ["link"]
+  },
+  "operations": {
+    "dir-build-obj": {
+      "action": {
+        "type": "process",
+        "command": "mkdir",
+        "args": ["-p", "build/obj"]
+      }
+    },
+    "dir-build-obj-math": {
+      "action": {
+        "type": "process",
+        "command": "mkdir",
+        "args": ["-p", "build/obj/math"]
+      }
+    },
+    "dir-dist": {
+      "action": {
+        "type": "process",
+        "command": "mkdir",
+        "args": ["-p", "dist"]
+      }
+    },
+    "compile-main": {
+      "prerequisites": ["dir-build-obj"],
+      "action": {
+        "type": "process",
+        "command": "c++",
+        "args": ["-std=c++17", "-Iinclude", "-c", "src/main.cpp", "-o", "build/obj/main.cpp.o"]
+      }
+    },
+    "compile-add": {
+      "prerequisites": ["dir-build-obj-math"],
+      "action": {
+        "type": "process",
+        "command": "c++",
+        "args": ["-std=c++17", "-Iinclude", "-c", "src/math/add.cpp", "-o", "build/obj/math/add.cpp.o"]
+      }
+    },
+    "compile-multiply": {
+      "prerequisites": ["dir-build-obj-math"],
+      "action": {
+        "type": "process",
+        "command": "c++",
+        "args": ["-std=c++17", "-Iinclude", "-c", "src/math/multiply.cpp", "-o", "build/obj/math/multiply.cpp.o"]
+      }
+    },
+    "link": {
+      "prerequisites": ["dir-dist", "compile-main", "compile-add", "compile-multiply"],
+      "action": {
+        "type": "process",
+        "command": "c++",
+        "args": [
+          "build/obj/main.cpp.o",
+          "build/obj/math/add.cpp.o",
+          "build/obj/math/multiply.cpp.o",
+          "-o",
+          "dist/native-cpp-poc"
+        ]
+      }
+    }
+  }
+}

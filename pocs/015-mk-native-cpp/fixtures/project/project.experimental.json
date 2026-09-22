@@ -1,0 +1,9 @@
+{
+  "sourceRoot": "src",
+  "objectRoot": "build/obj",
+  "output": "dist/native-cpp-poc",
+  "compiler": "c++",
+  "extensions": [".cpp"],
+  "includeDirs": ["include"],
+  "flags": ["-std=c++17"]
+}

@@ -1,0 +1,54 @@
+name: poc-015-mk-native-cpp
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/poc-015-mk-native-cpp.yml
+      - pocs/015-mk-native-cpp/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-cpp:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout PoC
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: rumiai-dev-PoCs
+
+      - name: Checkout exact rumiai-os revision
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-os
+          ref: c2dcde09c2582ff67733911816088952fa1eb5ee
+          path: rumiai-os
+
+      - name: Install managed mk runtime
+        shell: bash
+        run: |
+          ./rumiai-os/m pkg install nodejs
+          ./rumiai-os/m pkg default nodejs
+
+      - name: Show host C++ compiler
+        shell: bash
+        run: |
+          c++ --version
+
+      - name: Run native C++ graph-expansion PoC
+        shell: bash
+        run: |
+          ./rumiai-dev-PoCs/pocs/015-mk-native-cpp/tests/run.sh "$(pwd)/rumiai-os"
