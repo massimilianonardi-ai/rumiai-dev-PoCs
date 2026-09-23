@@ -1,6 +1,6 @@
 # PoC 022 — shared operation input identity
 
-Status: Normalization experiment completed; real-resolver integration still required
+Status: Experiment completed; resulting shared-input model promoted
 Date: 2026-09-23
 
 ## Question
@@ -181,15 +181,17 @@ inputs only
     -> shared normalized inputs + incremental disabled
 ```
 
-This establishes schema/normalization plausibility only. It does not yet prove that extracting input ownership into the real current resolver preserves all existing runtime semantics.
+This established schema/normalization plausibility. PoC 023 subsequently validated the same ownership split against the real current resolver and executor.
 
-The next experiment must instrument the real current `mk.lib.js` and apply the smallest candidate parser/resolver transformation needed to verify:
+PoC 023 instrumented the real current `mk.lib.js` and verified:
 
 - existing `incremental.inputs` behavior remains identical;
 - new first-class `inputs` feeds the same data-dependency machinery;
 - non-incremental declared inputs become visible to the watch trigger snapshot;
 - one-shot non-incremental execution remains ordinary execution and never becomes `up-to-date`;
 - ambiguous dual declaration is rejected.
+
+The resulting first-class operation input model was then promoted to the current `MK.md`, `CURRENT-MODEL.md` and product implementation while retaining legacy `incremental.inputs` compatibility.
 
 ## Scope limit
 
