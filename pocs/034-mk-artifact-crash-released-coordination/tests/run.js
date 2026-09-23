@@ -72,7 +72,7 @@ async function crashResidue(root, engine, maintenance, target, cache, shared) {
   ok(maintain(maintenance,'sweep',sroot).state==='blocked-publication','live selector publication not protected'); sc.kill('SIGKILL'); await sd; maintain(maintenance,'sweep',sroot);
   ok(!fs.existsSync(path.join(sroot,stmp)) && leases(sroot,'publication').length===0,'dead selector residue not reclaimed');
 
-  const mr=oneRoot(shared), mm=path.join(root,'maint-ready'), mw=path.join(root,'maint-wait');
+  const mr=roots(shared).find(r=>current(r)!==null), mm=path.join(root,'maint-ready'), mw=path.join(root,'maint-wait');\n  ok(mr,'maintenance crash fingerprint root not found');
   const mc=cp.spawn(process.execPath,[maintenance,'sweep',mr],{env:{...process.env,RUMIAI_POC_MAINTENANCE_LEASE_MARKER:mm,RUMIAI_POC_MAINTENANCE_LEASE_WAIT:mw},stdio:['ignore','pipe','pipe']}); const md=result(mc);
   await wait(()=>fs.existsSync(mm),'maintenance lease pause missing'); ok(leases(mr,'maintenance').length===1,'maintenance FIFO not visible'); mc.kill('SIGKILL'); await md; maintain(maintenance,'sweep',mr);
   ok(leases(mr,'maintenance').length===0,'stale maintenance FIFO not reaped');
