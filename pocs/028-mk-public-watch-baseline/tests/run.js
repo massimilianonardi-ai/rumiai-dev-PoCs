@@ -178,8 +178,28 @@ async function mainScenario() {
   const tool = path.join(parentRoot, 'tool.sh');
   writeExecutable(tool, '#!/bin/sh\nprintf "parent\\n" >> "$POC028_TRACE"\ncp input.txt build.out\n');
 
+  const directTrigger = run(trigger, ['--project', parentRoot, 'build'], {env: env({POC028_TRACE: trace})});
+  assert(
+    directTrigger.signal === null && directTrigger.status === 0 && /^[0-9a-f]{64}\n?$/.test(directTrigger.stdout),
+    'integrated trigger command failed before watch: status=' + directTrigger.status +
+      ' signal=' + directTrigger.signal + ' stderr=' + JSON.stringify(directTrigger.stderr)
+  );
+
+  const directRun = run(runOnce, ['--project', parentRoot, 'build'], {env: env({POC028_TRACE: trace})});
+  assert(
+    directRun.signal === null && directRun.status === 0,
+    'integrated one-shot command failed before watch: status=' + directRun.status +
+      ' signal=' + directRun.signal + ' stderr=' + JSON.stringify(directRun.stderr)
+  );
+  assert(lines(trace).length === 3, 'integrated one-shot command did not execute recursive lifecycle exactly once');
+  fs.rmSync(trace, {force: true});
+
   const watch = startWatch(['--watch', '--project', parentRoot, 'build'], {POC028_TRACE: trace});
-  await waitFor(() => lines(trace).length === 3, 'initial recursive lifecycle did not run exactly once');
+  await waitFor(
+    () => lines(trace).length === 3,
+    'initial recursive lifecycle did not run exactly once; trace=' + lines(trace).join(',') +
+      ' exit=' + watch.child.exitCode + ' stderr=' + watch.stderr()
+  );
   const initial = lines(trace).length;
 
   await sleep(220);
