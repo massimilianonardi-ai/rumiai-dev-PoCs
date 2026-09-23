@@ -1,6 +1,6 @@
 # PoC 030 — mk local artifact restoration
 
-Status: Experiment in progress
+Status: Experiment completed; resulting local-restoration baseline validated
 Date: 2026-09-23
 
 ## Question
@@ -141,3 +141,60 @@ The PoC does not define:
 - security/signing of cache contents.
 
 Those remain separate concerns.
+
+
+## Result
+
+The corrected experiment passed on both Ubuntu and macOS in GitHub Actions run:
+
+```text
+35843428637
+```
+
+against exact target:
+
+```text
+rumiai-os 5f01f0bccef37020057195c98809ba492f02443c
+```
+
+Observed:
+
+```text
+PASS PoC 030 mk local artifact restoration
+OBSERVED artifact-cache=local-user-nonauthoritative
+OBSERVED restoration=execution-path-only
+OBSERVED moved-project=cache-miss
+```
+
+The experiment validates the smallest local restoration model:
+
+- no new project declaration is required;
+- declared incremental outputs define the artifact boundary;
+- artifact bytes are non-authoritative user-scoped mk cache state;
+- planning remains read-only;
+- restore is attempted only on the execution path when the current fingerprint still matches recorded freshness evidence;
+- artifact bytes and manifest are verified against the existing output snapshots before replacement;
+- missing/corrupt artifact state is a conservative miss and causes ordinary action execution;
+- a successful restore is observed by the next normal resolver pass as ordinary up-to-date state;
+- result-field observation still forces real action execution;
+- output-input consumers and provider-derived members reuse the same ordinary operation machinery;
+- canonical-project-root identity keeps a moved/copied checkout isolated in this local baseline.
+
+Diagnostic runs before the final pass did not exercise contradictory semantics:
+
+```text
+35843018194
+    candidate source-transformation template escaped an internal value incorrectly.
+
+35843149251
+    fixture collection name violated the controlled-name grammar.
+
+35843217017
+    corrected collection name was not quoted as a JavaScript object key.
+
+35843281264
+    artifact manifest serialization left a literal escaped newline, so store
+    verification conservatively rejected the cache and action execution occurred.
+```
+
+Each issue was corrected forward in the PoC. The final run exercised the intended candidate semantics on both hosts.
