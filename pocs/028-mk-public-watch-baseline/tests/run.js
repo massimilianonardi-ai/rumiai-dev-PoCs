@@ -57,11 +57,9 @@ if (!target) {
 
 const targetRoot = fs.realpathSync(target);
 const pocRoot = path.resolve(__dirname, '..');
-const candidate = path.join(pocRoot, 'candidate-mk.js');
-const trigger = path.join(pocRoot, 'trigger-snapshot.js');
-const runOnce = path.join(pocRoot, 'run-once.js');
-const bootstrap = path.join(targetRoot, 'm');
-const hostNode = process.execPath;
+const candidate = path.join(pocRoot, 'candidate-mk');
+const trigger = path.join(pocRoot, 'trigger-command');
+const runOnce = path.join(pocRoot, 'run-command');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'rumiai-poc028-'));
 let activeWatch = null;
 
@@ -69,18 +67,20 @@ function env(extra = {}) {
   return {
     ...process.env,
     RUMIAI_POC_RUMIAI_OS: targetRoot,
+    RUMIAI_POC_HOST_NODE: process.execPath,
     RUMIAI_POC_WATCH_TRIGGER: trigger,
     RUMIAI_POC_WATCH_RUN_ONCE: runOnce,
+    PATH: targetRoot + path.delimiter + path.join(targetRoot, 'bin', 'sys') + path.delimiter + (process.env.PATH || ''),
     ...extra
   };
 }
 
 function runCandidate(args, extra = {}) {
-  return run(bootstrap, [hostNode, candidate, ...args], {env: env(extra)});
+  return run(candidate, args, {env: env(extra)});
 }
 
 function startWatch(args, extra = {}) {
-  const child = childProcess.spawn(bootstrap, [hostNode, candidate, ...args], {
+  const child = childProcess.spawn(candidate, args, {
     env: env(extra),
     stdio: ['ignore', 'ignore', 'pipe']
   });
@@ -91,7 +91,7 @@ function startWatch(args, extra = {}) {
 }
 
 function directDigest(projectRoot, extra = {}) {
-  const result = run(bootstrap, [hostNode, trigger, '--project', projectRoot, 'build'], {env: env(extra)});
+  const result = run(trigger, ['--project', projectRoot, 'build'], {env: env(extra)});
   assert(
     result.signal === null && result.status === 0,
     'direct trigger resolution failed: status=' + result.status + ' stderr=' + result.stderr
