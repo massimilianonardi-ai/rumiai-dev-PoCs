@@ -1,6 +1,6 @@
 # PoC 025 — watch session transient invalid configuration
 
-Status: Experiment in progress
+Status: Experiment completed; transient-invalid policy validated
 Date: 2026-09-23
 
 ## Question
@@ -125,9 +125,54 @@ supervisor policy can distinguish it from invalid configuration.
 10. a fatal trigger resolver failure still terminates the session;
 11. recursive trigger ownership remains opaque to the supervisor.
 
+## Result
+
+The experiment passed on both Ubuntu and macOS in GitHub Actions run:
+
+```text
+35827415176
+```
+
+against exact `rumiai-os` revision:
+
+```text
+92f0d459225ee4117f3c2cb32aa1b8aa9f17ec90
+```
+
+Observed:
+
+```text
+PASS PoC 025 watch transient invalid configuration
+OBSERVED invalid-config=retry-with-last-valid-baseline
+OBSERVED fatal-trigger-error=session-failure
+```
+
+The experiment validates a useful separation:
+
+```text
+configuration unavailable
+    retryable watch state
+
+trigger resolver failure after valid configuration
+    fatal watch-session error
+```
+
+The session never runs lifecycle work while trigger configuration is invalid. At startup it waits for the first valid trigger snapshot before the initial one-shot request. During an established session it retains the last valid baseline across an invalid interval.
+
+When valid configuration returns:
+
+- unchanged normalized semantics produce the previous digest and no cycle;
+- changed declared input/model identity produces a new digest and exactly one cycle.
+
+The behavior works when the transient invalidity is in an active dependent project because the recursive trigger resolver owns child configuration resolution; the outer supervisor sees only the temporary/fatal classification and opaque digest.
+
+The experiment also confirms that temporary configuration errors should not be represented as an ordinary digest value. Doing so would incorrectly turn invalidity itself into a lifecycle-change event.
+
+The temporary hosted workflow was removed after evidence collection.
+
 ## Promotion gate
 
-A successful result would support this policy:
+The experiment supports this policy:
 
 ```text
 configuration-invalid trigger outcome
