@@ -71,17 +71,17 @@ function requiredEnv(name) {
   return value;
 }
 
-function childArgs(command, request) {
-  const args = [command, '--project', request.project];
+function requestArgs(request) {
+  const args = ['--project', request.project];
   if (request.profile !== null) args.push('--profile', request.profile);
   args.push(...request.goals);
   return args;
 }
 
-function readSnapshot(bootstrap, hostNode, trigger, request) {
+function readSnapshot(trigger, request) {
   const result = childProcess.spawnSync(
-    bootstrap,
-    [hostNode, ...childArgs(trigger, request)],
+    trigger,
+    requestArgs(request),
     {
       env: process.env,
       encoding: 'utf8',
@@ -106,11 +106,11 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function runLifecycle(bootstrap, hostNode, runOnce, request, signalState) {
+function runLifecycle(runOnce, request, signalState) {
   return new Promise((resolve, reject) => {
     const child = childProcess.spawn(
-      bootstrap,
-      [hostNode, ...childArgs(runOnce, request)],
+      runOnce,
+      requestArgs(request),
       {env: process.env, stdio: 'inherit'}
     );
     signalState.child = child;
@@ -130,8 +130,6 @@ async function main() {
   const targetRoot = fs.realpathSync(target);
   process.env.m_ROOT = targetRoot;
 
-  const bootstrap = path.join(targetRoot, 'm');
-  const hostNode = process.execPath;
   const trigger = requiredEnv('RUMIAI_POC_WATCH_TRIGGER');
   const runOnce = requiredEnv('RUMIAI_POC_WATCH_RUN_ONCE');
   const request = watchRequest(process.argv.slice(2), targetRoot);
@@ -151,7 +149,7 @@ async function main() {
   }
 
   function observeSnapshot() {
-    const state = readSnapshot(bootstrap, hostNode, trigger, request);
+    const state = readSnapshot(trigger, request);
     if (state.kind === 'temporary') {
       if (!temporaryReported) {
         process.stderr.write('mk --watch: project configuration temporarily unavailable; waiting\n');
@@ -179,7 +177,7 @@ async function main() {
   }
 
   async function cycle() {
-    const result = await runLifecycle(bootstrap, hostNode, runOnce, request, signalState);
+    const result = await runLifecycle(runOnce, request, signalState);
     if (signalState.requested !== null) return result;
     if (result.signal !== null) {
       process.stderr.write(`mk --watch: lifecycle cycle terminated by signal ${result.signal}\n`);
