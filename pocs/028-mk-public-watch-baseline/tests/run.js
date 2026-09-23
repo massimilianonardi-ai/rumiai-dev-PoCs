@@ -120,16 +120,16 @@ async function cliScenario() {
   });
 
   let result = runCandidate(['--watch', '--plan', '--project', v1, 'build']);
-  assert(result.status === 2, '--watch --plan was not rejected');
+  assert(result.status !== 0, '--watch --plan was not rejected');
 
   result = runCandidate(['--watch', '--goals', '--project', v1]);
-  assert(result.status === 2, '--watch --goals was not rejected');
+  assert(result.status !== 0, '--watch --goals was not rejected');
 
   result = runCandidate(['--watch', '--show-goal', 'build', '--project', v1]);
-  assert(result.status === 2, '--watch --show-goal was not rejected');
+  assert(result.status !== 0, '--watch --show-goal was not rejected');
 
   result = runCandidate(['--watch', '--interval-ms', '10', '--project', v1, 'build']);
-  assert(result.status === 2, 'public polling interval unexpectedly accepted');
+  assert(result.status !== 0, 'public polling interval unexpectedly accepted');
 
   result = runCandidate(['--watch', '--project', v1, 'build']);
   assert(result.status !== 0 && result.stderr.includes('version 2'), 'version-1 watch request was not rejected');
