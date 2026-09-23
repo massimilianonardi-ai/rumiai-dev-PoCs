@@ -1,6 +1,6 @@
 # PoC 031 — cross-checkout shared artifact identity
 
-Status: Experiment in progress
+Status: Experiment completed; identity split validated, concurrency still open
 Date: 2026-09-23
 
 ## Question
@@ -77,9 +77,67 @@ The experiment therefore reuses the current effective operation fingerprint rath
 9. an incremental `map-process` member can restore across checkouts through the same existing per-operation fingerprint semantics;
 10. no artifact reuse requires or implies network transport, project-dependency de-duplication or shared freshness metadata.
 
+## Result
+
+The corrected experiment passed on both Ubuntu and macOS in GitHub Actions run:
+
+```text
+35846792755
+```
+
+against exact `rumiai-os` revision:
+
+```text
+533095820ea4f22446510a0f7b338253d908d018
+```
+
+Observed:
+
+```text
+PASS PoC 031 cross-checkout shared artifact identity
+OBSERVED freshness-metadata=project-scoped
+OBSERVED artifact-bytes=fingerprint-shared-local
+OBSERVED remote-transport=not-required
+```
+
+The first diagnostic run `35846703434` failed only because the corruption fixture selected an arbitrary shared store whose output bytes matched `SAME`; by that point several deliberately different fingerprints produced those same bytes. The fixture was corrected to capture and corrupt the exact store created by checkout A while it was still the only candidate. No candidate semantic change was required.
+
+The experiment validates the identity split:
+
+```text
+project-local freshness metadata
+    remains keyed by canonical project root + operation
+
+shared user-local artifact bytes
+    may be keyed by the existing effective operation fingerprint
+
+successful cross-checkout restore
+    verifies shared artifact
+    materializes declared outputs
+    writes the receiving checkout's local freshness record
+    returns to ordinary refinement
+```
+
+The existing fingerprint was sufficient for the exercised cases. Different operation definitions, different declared inputs and different operation names remained distinct even when resulting output bytes could be identical. Provider-derived members reused the same ordinary per-operation mechanism.
+
+No network/remote transport was required or exercised.
+
+## Remaining promotion blocker
+
+Moving from project-scoped artifact paths to a user-local shared fingerprint namespace creates a new concurrency surface: independent mk processes/checkouts may attempt to publish or restore the same fingerprint concurrently.
+
+The current experiment is single-writer/sequential and therefore does not establish:
+
+- atomic publication semantics for simultaneous writers;
+- behavior when one process observes another process's staging/publish transition;
+- simultaneous restore and refresh after corrupt shared state;
+- loser/winner cleanup without deleting a valid artifact published by another process.
+
+This must be resolved before promotion because a cross-checkout shared namespace is unsafe if concurrent writers can destroy or partially expose verified artifact state.
+
 ## Promotion gate
 
-A successful result would support this narrow architecture:
+The experiment supports this narrow architecture once concurrent publication/restore semantics are also validated:
 
 ```text
 project-scoped freshness metadata
