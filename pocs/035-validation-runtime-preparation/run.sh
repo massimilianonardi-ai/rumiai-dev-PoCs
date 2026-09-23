@@ -38,6 +38,9 @@ git -C "$target" remote set-url origin "$product_origin" || fail "cannot restore
 
   cd "$target"
 
+  ./m ./bin/sys/osarch update || fail "cannot select disposable target host platform"
+  selected_osarch="$(./m ./bin/sys/osarch)" || fail "cannot read selected target platform"
+
   install_ok=0
   install_try=0
   while [ "$install_try" -lt 3 ]
@@ -55,16 +58,13 @@ git -C "$target" remote set-url origin "$product_origin" || fail "cannot restore
 
   ./m ./bin/sys/pkg default nodejs || fail "managed nodejs default selection failed"
 
-  node_version="$(./m node --version)" || fail "managed node execution failed"
+  managed_node="$(./m sh -c 'command -v node')" || fail "cannot resolve node through prepared target"
+  case "$managed_node" in
+    "$target"/bin/ext/*|"$target"/bin/ext-*/*) : ;;
+    *) fail "node resolved outside disposable target integration: $managed_node" ;;
+  esac
 
-  managed_node=
-  for candidate in "$target"/bin/ext/node "$target"/bin/ext-*/node
-  do
-    [ -e "$candidate" ] || [ -L "$candidate" ] || continue
-    managed_node=$candidate
-    break
-  done
-  [ -n "$managed_node" ] || fail "managed node integration link not found in disposable target"
+  node_version="$(./m node --version)" || fail "managed node execution failed"
 
   cache_root="$(./m ./bin/sys/state-path system sys pkg cache)" || fail "cannot resolve package cache"
   catalog="$cache_root/pkg-catalog"
@@ -76,6 +76,7 @@ git -C "$target" remote set-url origin "$product_origin" || fail "cannot restore
   esac
 
   printf '%s\n' "product-commit=$product_commit"
+  printf '%s\n' "selected-osarch=$selected_osarch"
   printf '%s\n' "catalog-commit=$catalog_commit"
   printf '%s\n' "managed-node=$managed_node"
   printf '%s\n' "node-version=$node_version"
