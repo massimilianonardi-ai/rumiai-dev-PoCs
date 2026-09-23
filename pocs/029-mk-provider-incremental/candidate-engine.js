@@ -19,70 +19,78 @@ function loadCandidate(targetRoot) {
   if (!source.includes(allowedOld)) fail('unexpected provider allowed-key boundary');
   source = source.replace(allowedOld, allowedNew);
 
-  const resultOld = `    result[name] = {
-      type: 'map-process',
-      collection: provider.collection,
-      prerequisites: _normalizeNameArray(provider.prerequisites, \`${context}: provider ${name} prerequisites\`),
-      requirements: _normalizeNameArray(provider.requirements, \`${context}: provider ${name} requirements\`),
-      action: _normalizeProcessAction(provider.action, \`${context}: provider ${name}\`, true)
-    };`;
+  const resultOld = [
+    "    result[name] = {",
+    "      type: 'map-process',",
+    "      collection: provider.collection,",
+    "      prerequisites: _normalizeNameArray(provider.prerequisites, \`${context}: provider ${name} prerequisites\`),",
+    "      requirements: _normalizeNameArray(provider.requirements, \`${context}: provider ${name} requirements\`),",
+    "      action: _normalizeProcessAction(provider.action, \`${context}: provider ${name}\`, true)",
+    "    };"
+  ].join('\n');
 
-  const resultNew = `    const inputs = _normalizeOperationInputs(provider.inputs, \`${context}: provider ${name}\`);
-    const outputs = _normalizeOutputs(provider.outputs, \`${context}: provider ${name}\`);
-    let incremental = null;
-    if (provider.incremental !== undefined) {
-      if (!_isObject(provider.incremental)) {
-        _error(\`${context}: provider ${name}: incremental must be an object\`);
-      }
-      _assertAllowedKeys(provider.incremental, new Set(), \`${context}: provider ${name}: incremental\`);
-      if (Object.keys(outputs).length === 0) {
-        _error(\`${context}: provider ${name}: incremental requires at least one declared output\`);
-      }
-      incremental = {};
-    }
-    result[name] = {
-      type: 'map-process',
-      collection: provider.collection,
-      prerequisites: _normalizeNameArray(provider.prerequisites, \`${context}: provider ${name} prerequisites\`),
-      requirements: _normalizeNameArray(provider.requirements, \`${context}: provider ${name} requirements\`),
-      inputs,
-      outputs,
-      incremental,
-      action: _normalizeProcessAction(provider.action, \`${context}: provider ${name}\`, true)
-    };`;
+  const resultNew = [
+    "    const inputs = _normalizeOperationInputs(provider.inputs, \`${context}: provider ${name}\`);",
+    "    const outputs = _normalizeOutputs(provider.outputs, \`${context}: provider ${name}\`);",
+    "    let incremental = null;",
+    "    if (provider.incremental !== undefined) {",
+    "      if (!_isObject(provider.incremental)) {",
+    "        _error(\`${context}: provider ${name}: incremental must be an object\`);",
+    "      }",
+    "      _assertAllowedKeys(provider.incremental, new Set(), \`${context}: provider ${name}: incremental\`);",
+    "      if (Object.keys(outputs).length === 0) {",
+    "        _error(\`${context}: provider ${name}: incremental requires at least one declared output\`);",
+    "      }",
+    "      incremental = {};",
+    "    }",
+    "    result[name] = {",
+    "      type: 'map-process',",
+    "      collection: provider.collection,",
+    "      prerequisites: _normalizeNameArray(provider.prerequisites, \`${context}: provider ${name} prerequisites\`),",
+    "      requirements: _normalizeNameArray(provider.requirements, \`${context}: provider ${name} requirements\`),",
+    "      inputs,",
+    "      outputs,",
+    "      incremental,",
+    "      action: _normalizeProcessAction(provider.action, \`${context}: provider ${name}\`, true)",
+    "    };"
+  ].join('\n');
   if (!source.includes(resultOld)) fail('unexpected provider normalization boundary');
   source = source.replace(resultOld, resultNew);
 
-  const deriveOld = `  return {
-    name: \`${providerName}-${token}\`,
-    definition: {prerequisites: provider.prerequisites.slice(), requirements: provider.requirements.slice(), action: substituteAction, when: null, inputs: {}, outputs: {}, failure: 'stop', incremental: null},
-    derived: {provider: providerName, item}
-  };`;
+  const deriveOld = [
+    "  return {",
+    "    name: \`${providerName}-${token}\`,",
+    "    definition: {prerequisites: provider.prerequisites.slice(), requirements: provider.requirements.slice(), action: substituteAction, when: null, inputs: {}, outputs: {}, failure: 'stop', incremental: null},",
+    "    derived: {provider: providerName, item}",
+    "  };"
+  ].join('\n');
 
-  const deriveNew = `  const inputs = {'$item': {type: 'path', path: item}};
-  for (const [name, input] of Object.entries(provider.inputs)) {
-    if (input.type === 'path') inputs[name] = {type: 'path', path: _substituteItem(input.path, item)};
-    else if (input.type === 'collection') inputs[name] = {type: 'collection', collection: input.collection};
-    else inputs[name] = {type: 'output', operation: input.operation, name: input.name};
-  }
-  const outputs = Object.fromEntries(
-    Object.entries(provider.outputs).map(([name, output]) => [name, {path: _substituteItem(output.path, item)}])
-  );
-  const incremental = provider.incremental === null ? null : {inputs};
-  return {
-    name: \`${providerName}-${token}\`,
-    definition: {
-      prerequisites: provider.prerequisites.slice(),
-      requirements: provider.requirements.slice(),
-      action: substituteAction,
-      when: null,
-      inputs,
-      outputs,
-      failure: 'stop',
-      incremental
-    },
-    derived: {provider: providerName, item}
-  };`;
+  const deriveNew = [
+    "  const inputs = {'$item': {type: 'path', path: item}};",
+    "  for (const [name, input] of Object.entries(provider.inputs)) {",
+    "    if (input.type === 'path') inputs[name] = {type: 'path', path: _substituteItem(input.path, item)};",
+    "    else if (input.type === 'collection') inputs[name] = {type: 'collection', collection: input.collection};",
+    "    else inputs[name] = {type: 'output', operation: input.operation, name: input.name};",
+    "  }",
+    "  const outputs = Object.fromEntries(",
+    "    Object.entries(provider.outputs).map(([name, output]) => [name, {path: _substituteItem(output.path, item)}])",
+    "  );",
+    "  const incremental = provider.incremental === null ? null : {inputs};",
+    "  return {",
+    "    name: \`${providerName}-${token}\`,",
+    "    definition: {",
+    "      prerequisites: provider.prerequisites.slice(),",
+    "      requirements: provider.requirements.slice(),",
+    "      action: substituteAction,",
+    "      when: null,",
+    "      inputs,",
+    "      outputs,",
+    "      failure: 'stop',",
+    "      incremental",
+    "    },",
+    "    derived: {provider: providerName, item}",
+    "  };"
+  ].join('\n');
   if (!source.includes(deriveOld)) fail('unexpected provider derivation boundary');
   source = source.replace(deriveOld, deriveNew);
 
