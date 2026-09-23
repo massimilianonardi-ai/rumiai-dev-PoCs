@@ -286,8 +286,19 @@ async function failedCycleScenario() {
   const watch = startWatch(['--watch', '--project', projectRoot, 'build'], {POC028_TRACE: trace});
   await waitFor(() => lines(trace).length === 1, 'failure scenario initial cycle did not run');
 
+  const digestBeforeFailure = directDigest(projectRoot, {POC028_TRACE: trace});
   fs.writeFileSync(path.join(projectRoot, 'input.txt'), 'fail\n');
-  await waitFor(() => lines(trace).length === 2, 'failing lifecycle cycle did not run');
+  const digestAfterFailureInput = directDigest(projectRoot, {POC028_TRACE: trace});
+  assert(digestAfterFailureInput !== digestBeforeFailure, 'failure-scenario input change did not alter trigger digest');
+  await waitFor(
+    () => lines(trace).length === 2 || watch.child.exitCode !== null,
+    'failing lifecycle cycle neither ran nor terminated the supervisor'
+  );
+  assert(
+    lines(trace).length === 2,
+    'failing lifecycle cycle did not run; exit=' + watch.child.exitCode +
+      ' stderr=' + JSON.stringify(watch.stderr())
+  );
   await sleep(180);
   assert(lines(trace).length === 2, 'failed cycle busy-looped without another trigger');
   assert(watch.stderr().includes('lifecycle cycle failed with status 1'), 'failed lifecycle cycle was not reported');
