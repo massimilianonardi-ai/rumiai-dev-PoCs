@@ -102,6 +102,9 @@ try {
   assert(result.status === 0, `checkout A build failed: ${result.stderr}`);
   assert(traceLines(a).length === 1, 'checkout A did not execute exactly once');
   assert(fs.existsSync(sharedRoot), 'checkout A did not seed shared artifact storage');
+  const initialSharedStores = fs.readdirSync(sharedRoot);
+  assert(initialSharedStores.length === 1, 'checkout A did not create exactly one initial shared artifact store');
+  const sharedABStore = path.join(sharedRoot, initialSharedStores[0]);
 
   const bPlan = path.join(root, 'b.plan.json');
   result = candidateRun(b, ['--plan', 'build']);
@@ -143,24 +146,9 @@ try {
   assert(result.status === 0, `different-operation-name build failed: ${result.stderr}`);
   assert(traceLines(otherName).length === 1, 'different operation name unexpectedly shared artifact identity');
 
-  // Corrupt the shared artifact seeded by a fresh canonical-equivalent checkout,
-  // then prove a new checkout conservatively executes and refreshes it.
-  const seed = writeProject(root, 'Seed', config);
-  fs.rmSync(projectCache(seed), {recursive: true, force: true});
-  result = candidateRun(seed, ['build']);
-  assert(result.status === 0, 'corruption seed build failed');
-  // Its fingerprint is one directory in sharedRoot; find the newest matching store
-  // by locating a manifest whose operation is build and output snapshot matches SAME.
-  let corruptStore = null;
-  for (const name of fs.readdirSync(sharedRoot)) {
-    const manifestPath = path.join(sharedRoot, name, 'manifest.json');
-    if (!fs.existsSync(manifestPath)) continue;
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-    if (manifest.operation === 'build' && manifest.outputs.artifact && manifest.outputs.artifact.sha256 === key('SAME\n')) {
-      corruptStore = path.join(sharedRoot, name);
-    }
-  }
-  assert(corruptStore !== null, 'cannot locate shared store to corrupt');
+  // Corrupt the exact shared artifact created by A, then prove a new
+  // canonical-equivalent checkout conservatively executes and refreshes it.
+  const corruptStore = sharedABStore;
   const payloadFiles = fs.readdirSync(path.join(corruptStore, 'payload'));
   assert(payloadFiles.length === 1, 'unexpected shared payload shape');
   fs.writeFileSync(path.join(corruptStore, 'payload', payloadFiles[0]), 'CORRUPT\n');
