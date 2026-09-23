@@ -1,0 +1,36 @@
+name: mk watch trigger composition PoC
+
+on:
+  push:
+    paths:
+      - '.github/workflows/mk-watch-trigger-composition-poc.yml'
+  workflow_dispatch:
+
+jobs:
+  poc026:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout PoCs
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-dev-PoCs
+          ref: d1f36fe70df91b8dfb51f086992133e8b46d8793
+          path: rumiai-dev-PoCs
+
+      - name: Checkout target
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-os
+          ref: c2d8d4a0c4503e1de461e72840a13abb0da61c41
+          path: rumiai-os
+
+      - name: Run PoC 026
+        shell: sh
+        run: |
+          RUMIAI_POC_RUMIAI_OS="$PWD/rumiai-os"
+          export RUMIAI_POC_RUMIAI_OS
+          node rumiai-dev-PoCs/pocs/026-mk-watch-trigger-composition/tests/run.js
