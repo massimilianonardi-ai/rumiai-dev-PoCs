@@ -69,7 +69,7 @@ try {
       observed: ['observe']
     },
     collections: {
-      provider-sources: {
+      'provider-sources': {
         type: 'files',
         root: 'src',
         include: ['provider-a.txt', 'provider-b.txt']
