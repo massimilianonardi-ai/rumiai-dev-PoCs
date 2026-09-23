@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: massimilianonardi-ai/rumiai-dev-PoCs
-          ref: 3c75c028745b2899e42670cdd5956bd8698a2ea5
+          ref: 03b63e90f17cfc398366debaa3a675e2c71fbdcf
           path: rumiai-dev-PoCs
 
       - name: Checkout target
