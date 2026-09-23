@@ -73,7 +73,7 @@ try {
 
   const b = writeProject(root, 'B', {
     version: 2,
-    goals: {build: ['build']},
+    goals: {build: ['build'], other: []},
     dependencies: {
       c: {project: '../C', goals: {build: ['build']}},
       inactive: {project: '../I', goals: {other: ['build']}}
