@@ -1,6 +1,6 @@
 # PoC 033 — shared artifact garbage collection/reclamation safety
 
-Status: Experiment in progress
+Status: Experiment completed; safety validated, crash-liveness blocker remains
 Date: 2026-09-23
 
 ## Question
@@ -121,3 +121,49 @@ The experiment can validate reclamation **safety** independently from reclamatio
 If filesystem marker/pin coordination passes the races but a killed process necessarily leaves state that cannot be classified safely without timeouts or process inspection, the result is not ready for product promotion. The next design step would be to evaluate a local coordination primitive whose ownership is released by the kernel on process termination, while preserving the same candidate/quarantine semantics.
 
 No production contract is changed by this PoC until that remaining boundary is resolved and promoted through the normal specification gate.
+
+## Result
+
+The experiment passed on both Ubuntu and macOS in GitHub Actions run:
+
+```text
+35859604116
+```
+
+against exact `rumiai-os` revision:
+
+```text
+c3c51e6f070c774c103eeb7f71c759e3ebfda4ec
+```
+
+Observed:
+
+```text
+PASS PoC 033 shared artifact reclamation safety
+OBSERVED reader-lease=not-required-with-quarantine+transactional-restore
+OBSERVED writer-maintenance-gate=filesystem-pin+maintenance-marker-safe
+OBSERVED crash-residue=conservative-retention-or-block
+OBSERVED promotion-blocker=crash-liveness-needs-kernel-released-coordination
+```
+
+The safety result is positive:
+
+- an ordinary sweep can quarantine/delete unselected immutable candidates while keeping the selected candidate;
+- a restore does not require a reader lease if reclamation is atomic at the candidate pathname and restoration remains transactional;
+- a reader whose captured candidate disappears before copy/verification degrades to a conservative miss and ordinary execution without partial project output exposure;
+- publication requires exclusion from reclamation only across the final verified-candidate-to-selector-commit window;
+- whole-fingerprint eviction can leave project-scoped freshness metadata behind; missing artifact bytes remain a conservative miss.
+
+The filesystem-only publication pin + maintenance marker is **not promotable** as the production coordination mechanism. `SIGKILL` can leave both pin and maintenance marker pathnames behind. Treating them as live is safe but can block reclamation indefinitely; deleting them based on age or guessed process identity would add a non-portable or unsafe liveness rule.
+
+The same limitation prevents safe automatic reclamation of abandoned `.staging-*` and `.current-*` residue when ownership is represented only by persistent pathnames.
+
+## Decision
+
+PoC 033 closes the reader-safety question: no reader lease is required for immutable candidate reclamation under the current transactional restore contract.
+
+It does **not** close crash liveness. Before product/spec promotion, the writer/maintenance ownership mechanism must be replaced by a local primitive whose live ownership disappears or is reliably detectable after process termination. The next experiment should retain the validated quarantine/transactional semantics and evaluate a POSIX-compatible crash-released ownership primitive.
+
+No current `MK.md`, `CURRENT-MODEL.md`, `rumiai-os` implementation or permanent test is changed by this result yet.
+
+The temporary hosted workflow was removed after evidence collection.
