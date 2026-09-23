@@ -37,7 +37,8 @@ const {mkMain} = engine;
 const mk = engine.__poc;
 
 function resolve(project, goals) {
-  const config = mk._loadProjectConfig(path.join(project, 'mk.json'));
+  const projectRoot = fs.realpathSync(project);
+  const config = mk._loadProjectConfig(path.join(projectRoot, 'mk.json'));
   const model = mk._selectModel(config, null);
   mk._validateReferences(model);
   const runtime = {
@@ -47,7 +48,7 @@ function resolve(project, goals) {
     providerMembers: {},
     providerState: {}
   };
-  const plan = mk._resolveV2(project, model, goals, runtime);
+  const plan = mk._resolveV2(projectRoot, model, goals, runtime);
   return {model, runtime, plan: mk._publicPlan(plan, [])};
 }
 
