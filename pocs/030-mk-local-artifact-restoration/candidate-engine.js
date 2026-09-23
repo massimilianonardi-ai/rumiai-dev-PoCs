@@ -90,7 +90,7 @@ function _storeArtifacts(projectRoot, operationName, fingerprint, operation, out
   const storePath = _artifactStorePath(projectRoot, operationName, fingerprint);
   if (storePath === null) return false;
   const parent = path.dirname(storePath);
-  const temporary = \`${storePath}.tmp-${process.pid}\`;
+  const temporary = storePath + '.tmp-' + process.pid;
   try {
     fs.mkdirSync(parent, {recursive: true, mode: 0o700});
     fs.rmSync(temporary, {recursive: true, force: true});
@@ -106,7 +106,7 @@ function _storeArtifacts(projectRoot, operationName, fingerprint, operation, out
     }
     fs.writeFileSync(
       path.join(temporary, 'manifest.json'),
-      \`${JSON.stringify({schema: 1, operation: operationName, fingerprint, outputs}, null, 2)}\\n\`,
+      JSON.stringify({schema: 1, operation: operationName, fingerprint, outputs}, null, 2) + '\\\\n',
       {mode: 0o600}
     );
     if (!_artifactStoreVerified(temporary, operationName, fingerprint, outputs)) {
@@ -135,7 +135,7 @@ function _restoreArtifacts(projectRoot, operationName, fingerprint, operation) {
     for (const name of Object.keys(operation.outputs).sort(_byteCompare)) {
       const declared = operation.outputs[name].path;
       const destination = path.isAbsolute(declared) ? declared : path.resolve(projectRoot, declared);
-      const temporary = \`${destination}.mk-restore-${process.pid}-${index}\`;
+      const temporary = destination + '.mk-restore-' + process.pid + '-' + index;
       index += 1;
       fs.mkdirSync(path.dirname(destination), {recursive: true, mode: 0o700});
       fs.rmSync(temporary, {recursive: true, force: true});
