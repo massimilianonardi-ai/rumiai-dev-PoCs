@@ -1,6 +1,6 @@
 # PoC 023 — shared inputs in the real mk resolver
 
-Status: Active experiment
+Status: Experiment completed; shared input ownership validated
 Date: 2026-09-23
 
 ## Question
@@ -74,6 +74,47 @@ The test uses the transformed real current engine and verifies:
 7. a non-incremental collection input makes the collection reachable;
 8. ambiguous simultaneous non-empty `inputs` and `incremental.inputs` is rejected;
 9. the existing legacy form remains accepted without project migration.
+
+## Result
+
+The final corrected experiment passed on both Ubuntu and macOS in GitHub Actions run:
+
+```text
+35825649079
+```
+
+Two earlier diagnostic runs were harness failures, not product-model failures:
+
+- `35825437879`: source-instrumentation template strings were not escaped correctly;
+- `35825511309`: the PoC called the internal resolver with a non-canonical temporary project path on macOS while `mkMain` correctly canonicalized it to `/private/var/...`, so the experiment looked up a different project cache identity.
+
+After applying the product's canonical project-root rule, both hosts passed.
+
+The real-resolver experiment validates the candidate ownership split:
+
+```text
+operation.inputs
+    owns declared path/collection/output data identity
+
+operation.incremental
+    opts the operation into reusable freshness
+```
+
+It also validates backward-compatible normalization of existing `incremental.inputs` into the same shared input map.
+
+Observed behavior with the transformed real engine:
+
+- legacy and candidate incremental forms normalize identically;
+- their current incremental fingerprints are identical within the transformed engine;
+- both reach the existing `up-to-date` path through normal freshness records;
+- first-class inputs on a non-incremental operation are observable but never make that operation reusable;
+- output inputs create the same producer data dependency without a duplicate prerequisite;
+- collection inputs use the same collection reachability machinery;
+- ambiguous dual declaration is rejected.
+
+The experiment therefore supports promoting first-class operation input identity without introducing `watch.inputs`.
+
+Because freshness metadata is explicitly non-authoritative, a product-version change in the normalized operation/fingerprint representation may conservatively invalidate old cache records. Preserving old cache hits across an engine/schema change is not required for correctness; false hits remain forbidden.
 
 ## Scope limit
 
