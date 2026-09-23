@@ -1,0 +1,45 @@
+name: poc-035-validation-runtime-preparation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/poc-035-validation-runtime-preparation.yml
+      - pocs/035-validation-runtime-preparation/**
+  workflow_dispatch:
+
+jobs:
+  experiment:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout PoC
+        uses: actions/checkout@v4
+        with:
+          path: rumiai-dev-PoCs
+
+      - name: Checkout exact product revision
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-os
+          ref: ec670644237079b6e809aa2efe95cba5ed853b92
+          fetch-depth: 0
+          path: rumiai-os
+
+      - name: Normalize product origin
+        shell: bash
+        run: git -C rumiai-os remote set-url origin https://github.com/massimilianonardi-ai/rumiai-os.git
+
+      - name: Run experiment
+        shell: bash
+        run: |
+          chmod +x rumiai-dev-PoCs/pocs/035-validation-runtime-preparation/run.sh
+          rumiai-dev-PoCs/pocs/035-validation-runtime-preparation/run.sh rumiai-os
