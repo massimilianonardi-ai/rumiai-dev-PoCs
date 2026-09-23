@@ -1,6 +1,6 @@
 # PoC 032 — concurrent shared artifact publication/restoration
 
-Status: Experiment completed; concurrent shared-local protocol validated
+Status: Experiment completed; concurrent shared-local protocol promoted
 Date: 2026-09-23
 
 ## Question
@@ -189,9 +189,11 @@ Committed but unselected candidates are deliberately not deleted by writers. Saf
 
 The temporary hosted workflow was removed after evidence collection.
 
-## Promotion gate
+## Promotion status
 
-The experiment supports promotion of the PoC 031 identity split together with this local concurrency protocol:
+The PoC 031 identity split and this concurrency protocol were subsequently promoted into current `MK.md` and `CURRENT-MODEL.md` and implemented in `rumiai-os`.
+
+The promoted shared-local architecture is:
 
 ```text
 project-local freshness metadata
@@ -200,7 +202,7 @@ project-local freshness metadata
 + conservative corruption miss/recovery
 ```
 
-It would still not establish:
+Promotion still does not establish:
 
 - remote/network artifact transport;
 - shared multi-user trust;
@@ -209,3 +211,10 @@ It would still not establish:
 - distributed locking;
 - cross-operation semantic equivalence;
 - parallel lifecycle scheduling.
+
+The first promoted product implementation is `rumiai-os` commit
+`699c77923cda2cd5fd58844f29a6dc9e175d760b`; manual alignment follows through
+`c3c51e6f070c774c103eeb7f71c759e3ebfda4ec`.
+
+Permanent product coverage is provided by the real public `mk` tests including
+`artifact-restoration.test` and `shared-artifact-concurrency.test`.
