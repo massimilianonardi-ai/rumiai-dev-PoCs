@@ -1,0 +1,12 @@
+#!/usr/bin/env m
+
+main()
+{
+  [ -n "${RUMIAI_POC_HOST_NODE-}" ] || exit 2
+  poc_root=${0%/*}
+  [ "$poc_root" != "$0" ] || poc_root=.
+  poc_root="$(CDPATH= cd -- "$poc_root" 2>/dev/null && pwd -P)" || exit 1
+  exec "$RUMIAI_POC_HOST_NODE" "$poc_root/trigger-snapshot.js" "$@"
+}
+
+main "$@"
