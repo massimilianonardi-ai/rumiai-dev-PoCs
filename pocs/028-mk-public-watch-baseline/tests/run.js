@@ -90,6 +90,15 @@ function startWatch(args, extra = {}) {
   return {child, stderr: () => stderr};
 }
 
+function directDigest(projectRoot, extra = {}) {
+  const result = run(bootstrap, [hostNode, trigger, '--project', projectRoot, 'build'], {env: env(extra)});
+  assert(
+    result.signal === null && result.status === 0,
+    'direct trigger resolution failed: status=' + result.status + ' stderr=' + result.stderr
+  );
+  return result.stdout.trim();
+}
+
 async function stopWatch(child, expected = 143) {
   child.kill('SIGTERM');
   const status = await new Promise((resolve, reject) => {
@@ -187,8 +196,15 @@ async function mainScenario() {
   fs.appendFileSync(tool, '# executable change\n');
   await waitFor(() => lines(trace).length === 9, 'reachable executable change did not trigger exactly one cycle');
 
+  const childDigestBefore = directDigest(parentRoot, {POC028_TRACE: trace});
   fs.writeFileSync(path.join(childRoot, 'child.txt'), 'child-two\n');
-  await waitFor(() => lines(trace).length === 12, 'active child input change did not trigger parent lifecycle');
+  const childDigestAfter = directDigest(parentRoot, {POC028_TRACE: trace});
+  assert(childDigestAfter !== childDigestBefore, 'active child input change did not alter recursive trigger digest');
+  await waitFor(
+    () => lines(trace).length === 12,
+    'recursive digest changed but parent lifecycle did not run; trace=' + lines(trace).join(',') +
+      ' exit=' + watch.child.exitCode + ' stderr=' + watch.stderr()
+  );
 
   const childConfig = fs.readFileSync(path.join(childRoot, 'mk.json'), 'utf8');
   fs.writeFileSync(path.join(childRoot, 'mk.json'), '{');
