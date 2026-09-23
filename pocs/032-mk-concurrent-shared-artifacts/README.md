@@ -1,6 +1,6 @@
 # PoC 032 — concurrent shared artifact publication/restoration
 
-Status: Experiment in progress
+Status: Experiment completed; concurrent shared-local protocol validated
 Date: 2026-09-23
 
 ## Question
@@ -150,9 +150,48 @@ They are not proposed product API.
 12. final selected artifact bytes remain verified/readable;
 13. no normal race leaves selector temp files or private staging directories.
 
+## Result
+
+The experiment passed on both Ubuntu and macOS in GitHub Actions run:
+
+```text
+35854778813
+```
+
+against exact `rumiai-os` revision:
+
+```text
+446418f1a9bfd31238088b8dee81a29e0c814b14
+```
+
+Observed:
+
+```text
+PASS PoC 032 concurrent shared artifact publication/restoration
+OBSERVED publication=immutable-candidate+atomic-selector
+OBSERVED equivalent-writers=idempotent-no-global-lock
+OBSERVED corrupt-refresh=no-delete-of-committed-candidate
+OBSERVED freshness-metadata=project-scoped
+```
+
+The experiment validates the concurrency protocol required to promote the PoC 031 identity split:
+
+- equivalent concurrent publishers converge on one deterministic candidate without a global lock;
+- a slow/losing writer never removes or replaces another writer's committed candidate;
+- selector publication is atomic and only ever points at a fully verified immutable candidate;
+- handled staging failure leaves no selected partial artifact;
+- concurrent restorers can safely consume the same immutable candidate and independently establish project-scoped freshness metadata;
+- corrupt selected state is a conservative miss and can be refreshed by publishing a new immutable recovery candidate, without deleting the corrupt candidate while readers may still reference it;
+- a reader can restore from the newly selected recovery candidate while the refreshing publisher is still alive after selector commit;
+- normal race handling cleans staging and selector temporary files.
+
+Committed but unselected candidates are deliberately not deleted by writers. Safe reclamation/eviction remains future garbage-collection work.
+
+The temporary hosted workflow was removed after evidence collection.
+
 ## Promotion gate
 
-A successful result would support promotion of the PoC 031 identity split together with this local concurrency protocol:
+The experiment supports promotion of the PoC 031 identity split together with this local concurrency protocol:
 
 ```text
 project-local freshness metadata
