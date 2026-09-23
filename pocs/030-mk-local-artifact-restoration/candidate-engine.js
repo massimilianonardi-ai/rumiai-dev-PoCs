@@ -106,7 +106,7 @@ function _storeArtifacts(projectRoot, operationName, fingerprint, operation, out
     }
     fs.writeFileSync(
       path.join(temporary, 'manifest.json'),
-      JSON.stringify({schema: 1, operation: operationName, fingerprint, outputs}, null, 2) + '\\\\n',
+      JSON.stringify({schema: 1, operation: operationName, fingerprint, outputs}, null, 2),
       {mode: 0o600}
     );
     if (!_artifactStoreVerified(temporary, operationName, fingerprint, outputs)) {
