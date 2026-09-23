@@ -1,6 +1,6 @@
 # PoC 027 — mk watch fresh-bootstrap supervision
 
-Status: Experiment in progress
+Status: Experiment completed; fresh-bootstrap supervision validated
 Date: 2026-09-23
 
 ## Question
@@ -86,9 +86,45 @@ The test verifies:
 9. a direct new m bootstrap after the transition independently reports `two`;
 10. no in-process environment mutation or package resolver duplication is required.
 
+## Result
+
+The experiment passed on both Ubuntu and macOS in GitHub Actions run:
+
+```text
+35830031823
+```
+
+against exact `rumiai-os` revision:
+
+```text
+c2d8d4a0c4503e1de461e72840a13abb0da61c41
+```
+
+Observed:
+
+```text
+PASS PoC 027 mk watch fresh-bootstrap supervision
+OBSERVED supervisor-environment=stable-old-bootstrap
+OBSERVED trigger-environment=fresh-bootstrap
+OBSERVED lifecycle-environment=fresh-bootstrap
+```
+
+The test used the real current `m` bootstrap and real `pkg` facility-default environment projection. A synthetic facility exported `POC027_VALUE=one` from provider v1 and `POC027_VALUE=two` from provider v2. The facility default retained an unversioned provider selector while the provider package default changed.
+
+The long-running supervisor was itself started while v1 was selected and continued to observe its inherited value `one` throughout both lifecycle cycles. After the provider package default moved to v2:
+
+- a direct fresh `m` bootstrap observed `two`;
+- the next trigger-resolution child, started through a fresh `m` bootstrap, observed `two` and changed the trigger digest;
+- exactly one new lifecycle cycle started;
+- that cycle also ran through a fresh `m` bootstrap and its real `mk` action observed `two`.
+
+No in-process environment refresh or provider-resolution duplication was needed.
+
+The temporary hosted workflow was removed after evidence collection.
+
 ## Result sought
 
-A successful experiment would establish this watch-session process invariant:
+The experiment establishes this watch-session process invariant:
 
 ```text
 session control may be long-lived
