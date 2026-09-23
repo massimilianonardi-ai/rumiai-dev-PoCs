@@ -21,39 +21,39 @@ function loadCandidate(targetRoot) {
     return null;
   }
   if (!_isObject(value)) {
-    _error(\`${context}: incremental must be an object\`);
+    _error(\`\${context}: incremental must be an object\`);
   }
-  _assertAllowedKeys(value, new Set(['inputs']), \`${context}: incremental\`);
+  _assertAllowedKeys(value, new Set(['inputs']), \`\${context}: incremental\`);
   const rawInputs = value.inputs === undefined ? {} : value.inputs;
   if (!_isObject(rawInputs)) {
-    _error(\`${context}: incremental inputs must be an object\`);
+    _error(\`\${context}: incremental inputs must be an object\`);
   }
   const inputs = {};
   for (const name of Object.keys(rawInputs)) {
     if (!_validName(name)) {
-      _error(\`${context}: invalid incremental input name: ${name}\`);
+      _error(\`\${context}: invalid incremental input name: \${name}\`);
     }
-    inputs[name] = _normalizeIncrementalInput(rawInputs[name], \`${context}: incremental input ${name}\`);
+    inputs[name] = _normalizeIncrementalInput(rawInputs[name], \`\${context}: incremental input \${name}\`);
   }
   return {inputs};
 }
 `,
 `function _normalizeOperationInputs(value, context) {
   if (value === undefined) return {};
-  if (!_isObject(value)) _error(\`${context}: inputs must be an object\`);
+  if (!_isObject(value)) _error(\`\${context}: inputs must be an object\`);
   const inputs = {};
   for (const name of Object.keys(value)) {
-    if (!_validName(name)) _error(\`${context}: invalid input name: ${name}\`);
-    inputs[name] = _normalizeIncrementalInput(value[name], \`${context}: input ${name}\`);
+    if (!_validName(name)) _error(\`\${context}: invalid input name: \${name}\`);
+    inputs[name] = _normalizeIncrementalInput(value[name], \`\${context}: input \${name}\`);
   }
   return inputs;
 }
 
 function _normalizeIncremental(value, context) {
   if (value === undefined) return null;
-  if (!_isObject(value)) _error(\`${context}: incremental must be an object\`);
-  _assertAllowedKeys(value, new Set(['inputs']), \`${context}: incremental\`);
-  return {inputs: _normalizeOperationInputs(value.inputs, \`${context}: incremental\`)};
+  if (!_isObject(value)) _error(\`\${context}: incremental must be an object\`);
+  _assertAllowedKeys(value, new Set(['inputs']), \`\${context}: incremental\`);
+  return {inputs: _normalizeOperationInputs(value.inputs, \`\${context}: incremental\`)};
 }
 `,
     'normalize input ownership'
@@ -73,7 +73,7 @@ function _normalizeIncremental(value, context) {
     incremental: null
   };
   if (version >= 2) {
-    operation.when = value.when === undefined ? null : _normalizeCondition(value.when, \`${context}: when\`);
+    operation.when = value.when === undefined ? null : _normalizeCondition(value.when, \`\${context}: when\`);
     operation.outputs = _normalizeOutputs(value.outputs, context);
     operation.incremental = _normalizeIncremental(value.incremental, context);
 `,
@@ -83,13 +83,13 @@ function _normalizeIncremental(value, context) {
     incremental: null
   };
   if (version >= 2) {
-    operation.when = value.when === undefined ? null : _normalizeCondition(value.when, \`${context}: when\`);
+    operation.when = value.when === undefined ? null : _normalizeCondition(value.when, \`\${context}: when\`);
     operation.outputs = _normalizeOutputs(value.outputs, context);
     const directInputs = _normalizeOperationInputs(value.inputs, context);
     operation.incremental = _normalizeIncremental(value.incremental, context);
     const legacyInputs = operation.incremental === null ? {} : operation.incremental.inputs;
     if (Object.keys(directInputs).length > 0 && Object.keys(legacyInputs).length > 0) {
-      _error(\`${context}: must not declare both inputs and incremental.inputs\`);
+      _error(\`\${context}: must not declare both inputs and incremental.inputs\`);
     }
     operation.inputs = Object.keys(directInputs).length > 0 ? directInputs : legacyInputs;
     if (operation.incremental !== null) operation.incremental.inputs = operation.inputs;
@@ -102,12 +102,12 @@ function _normalizeIncremental(value, context) {
 `    if (operation.incremental !== null) {
       for (const input of Object.values(operation.incremental.inputs)) {
         if (input.type === 'collection' && model.collections[input.collection] === undefined) {
-          _error(\`operation ${operationName} references unknown incremental collection: ${input.collection}\`);
+          _error(\`operation \${operationName} references unknown incremental collection: \${input.collection}\`);
         }
         if (input.type === 'output') {
           const producer = model.operations[input.operation];
           if (producer === undefined || producer.outputs[input.name] === undefined) {
-            _error(\`operation ${operationName} references unknown incremental output: ${input.operation}.${input.name}\`);
+            _error(\`operation \${operationName} references unknown incremental output: \${input.operation}.\${input.name}\`);
           }
         }
       }
@@ -115,12 +115,12 @@ function _normalizeIncremental(value, context) {
 `,
 `    for (const input of Object.values(operation.inputs)) {
       if (input.type === 'collection' && model.collections[input.collection] === undefined) {
-        _error(\`operation ${operationName} references unknown input collection: ${input.collection}\`);
+        _error(\`operation \${operationName} references unknown input collection: \${input.collection}\`);
       }
       if (input.type === 'output') {
         const producer = model.operations[input.operation];
         if (producer === undefined || producer.outputs[input.name] === undefined) {
-          _error(\`operation ${operationName} references unknown input output: ${input.operation}.${input.name}\`);
+          _error(\`operation \${operationName} references unknown input output: \${input.operation}.\${input.name}\`);
         }
       }
     }
