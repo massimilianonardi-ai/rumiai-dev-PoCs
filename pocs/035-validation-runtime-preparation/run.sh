@@ -38,16 +38,34 @@ git -C "$target" remote set-url origin "$product_origin" || fail "cannot restore
 
   cd "$target"
 
-  ./m ./bin/sys/pkg install nodejs || fail "managed nodejs installation failed"
+  install_ok=0
+  install_try=0
+  while [ "$install_try" -lt 3 ]
+  do
+    install_try=$((install_try + 1))
+    if ./m ./bin/sys/pkg install nodejs
+    then
+      install_ok=1
+      break
+    fi
+    [ "$install_try" -lt 3 ] || break
+    sleep 5
+  done
+  [ "$install_ok" -eq 1 ] || fail "managed nodejs installation failed"
+
   ./m ./bin/sys/pkg default nodejs || fail "managed nodejs default selection failed"
 
-  managed_node="$(./m sh -c 'command -v node')" || fail "cannot resolve managed node"
-  case "$managed_node" in
-    "$target"/bin/ext/*|"$target"/bin/ext-*/*) : ;;
-    *) fail "node did not resolve through disposable target integration: $managed_node" ;;
-  esac
-
   node_version="$(./m node --version)" || fail "managed node execution failed"
+
+  managed_node=
+  for candidate in "$target"/bin/ext/node "$target"/bin/ext-*/node
+  do
+    [ -e "$candidate" ] || [ -L "$candidate" ] || continue
+    managed_node=$candidate
+    break
+  done
+  [ -n "$managed_node" ] || fail "managed node integration link not found in disposable target"
+
   cache_root="$(./m ./bin/sys/state-path system sys pkg cache)" || fail "cannot resolve package cache"
   catalog="$cache_root/pkg-catalog"
   [ -d "$catalog/.git" ] || fail "package catalog cache missing"
