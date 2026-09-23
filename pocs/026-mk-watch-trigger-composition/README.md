@@ -1,6 +1,6 @@
 # PoC 026 — mk watch trigger composition
 
-Status: Experiment in progress
+Status: Experiment completed; local trigger composition validated
 Date: 2026-09-23
 
 ## Question
@@ -124,9 +124,60 @@ A watch supervisor still establishes its baseline **after** each one-shot cycle,
 
 A real synthetic pkg facility/provider pair is used for the requirement-provider scenario; the package resolver is not stubbed.
 
+## Result
+
+The experiment passed on both Ubuntu and macOS in GitHub Actions run:
+
+```text
+35829179152
+```
+
+against exact `rumiai-os` revision:
+
+```text
+c2d8d4a0c4503e1de461e72840a13abb0da61c41
+```
+
+Observed:
+
+```text
+PASS PoC 026 mk watch trigger composition
+OBSERVED nonincremental-executable=trigger-identity
+OBSERVED requirement-provider=reachable-plan-identity
+OBSERVED output-input=trigger-identity
+OBSERVED ordinary-output=not-trigger-identity
+OBSERVED provider-collection-content=trigger-identity
+```
+
+The result closes the local trigger-composition question.
+
+The public plan already carries reachable requirement/provider state and incremental ready/up-to-date effects, but it is not sufficient alone. A correct local trigger additionally needs:
+
+- current executable/effective-environment identity for reachable non-skipped process actions;
+- current content identity of declared operation inputs, including output inputs even when a fresh zero-execution runtime cannot mark their producer completed;
+- current member content for reachable resolved collections, because `map-process` provider membership alone does not change when a source file changes in place;
+- current declared-output evidence for incremental operations.
+
+The experiment also validates an important exclusion boundary: an ordinary non-incremental output that is not consumed through another declared data relation is not trigger identity. Rewriting or externally changing such an output does not by itself request another lifecycle cycle.
+
+This does not weaken output-input or incremental semantics:
+
+```text
+ordinary unconsumed output
+    excluded
+
+output explicitly consumed as operation input
+    included
+
+incremental output
+    included as freshness evidence
+```
+
+The temporary hosted workflow was removed after evidence collection.
+
 ## Promotion gate
 
-A successful experiment would establish the local trigger-composition boundary needed before deciding public watch/session syntax.
+The experiment establishes the local trigger-composition boundary needed before deciding public watch/session syntax.
 
 It would not yet select:
 
