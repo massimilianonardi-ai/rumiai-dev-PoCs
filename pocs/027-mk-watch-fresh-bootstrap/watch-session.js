@@ -73,10 +73,11 @@ async function main() {
   const runCommand = requiredEnv('RUMIAI_POC_WATCH_RUN');
   const supervisorEnvFile = requiredEnv('RUMIAI_POC_WATCH_SUPERVISOR_ENV_FILE');
 
-  fs.writeFileSync(supervisorEnvFile, `${process.env.POC027_VALUE || '<unset>'}\n`);
+  fs.writeFileSync(supervisorEnvFile, `start:${process.env.POC027_VALUE || '<unset>'}\n`);
 
   let runs = 0;
   async function cycle(reason) {
+    fs.appendFileSync(supervisorEnvFile, `cycle:${reason}:${process.env.POC027_VALUE || '<unset>'}\n`);
     const result = await runCycle(bootstrap, runCommand, reason);
     runs += 1;
     if (result.signal !== null) fail(`cycle terminated by signal ${result.signal}`);
