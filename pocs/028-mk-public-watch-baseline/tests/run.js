@@ -319,6 +319,31 @@ async function signalScenario() {
     operations: {}
   });
 
+  const directActive = path.join(root, 'signal-direct-active');
+  const directForwarded = path.join(root, 'signal-direct-forwarded');
+  const directChild = childProcess.spawn(
+    runOnce,
+    ['--project', projectRoot, 'build'],
+    {
+      env: env({
+        RUMIAI_POC_SIGNAL_MODE: '1',
+        RUMIAI_POC_SIGNAL_ACTIVE: directActive,
+        RUMIAI_POC_SIGNAL_FORWARDED: directForwarded
+      }),
+      stdio: ['ignore', 'ignore', 'pipe']
+    }
+  );
+  await waitFor(() => fs.existsSync(directActive), 'direct signal-mode child did not become active');
+  directChild.kill('SIGTERM');
+  const directStatus = await new Promise((resolve, reject) => {
+    directChild.once('error', reject);
+    directChild.once('exit', (code, signal) => resolve({code, signal}));
+  });
+  assert(
+    fs.existsSync(directForwarded),
+    'direct integrated one-shot child did not observe SIGTERM: ' + JSON.stringify(directStatus)
+  );
+
   const watch = startWatch(
     ['--watch', '--project', projectRoot, 'build'],
     {
@@ -330,7 +355,10 @@ async function signalScenario() {
 
   await waitFor(() => fs.existsSync(active), 'signal-mode one-shot child did not become active');
   await stopWatch(watch.child);
-  assert(fs.existsSync(forwarded), 'SIGTERM was not forwarded to active one-shot child');
+  assert(
+    fs.existsSync(forwarded),
+    'SIGTERM was not forwarded to active one-shot child; supervisor-stderr=' + JSON.stringify(watch.stderr())
+  );
 }
 
 (async () => {
