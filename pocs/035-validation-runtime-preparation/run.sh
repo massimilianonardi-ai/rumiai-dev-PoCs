@@ -18,9 +18,11 @@ product_origin="$(git -C "$source_root" remote get-url origin)" || fail "cannot 
 tmp="${TMPDIR:-/tmp}/rumiai-poc-035-$$"
 trap 'rm -rf -- "$tmp"' 0 HUP INT TERM
 mkdir -p "$tmp/home/.config" "$tmp/home/.cache" "$tmp/home/.local/share" "$tmp/home/.local/state" "$tmp/tmp" "$tmp/runtime"
+tmp="$(CDPATH= cd -- "$tmp" && pwd -P)" || fail "cannot canonicalize disposable root"
 
 target="$tmp/target"
 git clone --no-local --no-checkout -q -- "$source_root" "$target" || fail "cannot clone source"
+target="$(CDPATH= cd -- "$target" && pwd -P)" || fail "cannot canonicalize disposable target"
 git -C "$target" checkout -q --detach "$product_commit" || fail "cannot checkout exact product commit"
 git -C "$target" remote set-url origin "$product_origin" || fail "cannot restore product origin"
 
