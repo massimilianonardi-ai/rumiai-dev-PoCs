@@ -1,6 +1,6 @@
 # PoC 020 — mk watch session
 
-Status: Active experiment
+Status: Session-boundary experiment completed; trigger resolver still open
 Date: 2026-09-23
 
 ## Question
@@ -105,7 +105,27 @@ Candidate evidence to evaluate includes:
 
 A likely architectural requirement is that trigger resolution belongs inside the current trusted `mk` engine, while the long-running session itself may remain a thin supervisor around fresh one-shot engine processes.
 
-That is still working design, not current contract.
+Hosted execution of this session-boundary experiment succeeded on both Ubuntu and macOS in GitHub Actions run:
+
+```text
+35824307930
+```
+
+The result supports the session boundary itself, but it does not yet promote a production watch trigger model.
+
+Inspection of the current product engine after the experiment also showed that `mk.lib.js` already owns the authoritative machinery for:
+
+- resolving reachable incremental path/collection/output inputs;
+- collection `after` semantics;
+- requirement-provider identities;
+- executable/environment identity;
+- current-request output/data evidence.
+
+Therefore an outer watcher must **not** independently reconstruct trigger identity from `mk.json` or the project filesystem. Doing so would create a second lifecycle resolver.
+
+The next experiment should expose or reuse a **trusted internal trigger-snapshot derivation inside the existing mk engine**, then feed only that opaque deterministic snapshot to the thin session supervisor.
+
+This remains working design, not current contract.
 
 ## Experiment interface
 
@@ -141,6 +161,22 @@ Options:
 7. another later trigger change causes a new cycle after a failure;
 8. trigger-snapshot failure terminates the supervisor rather than guessing;
 9. SIGTERM is forwarded to an active child and terminates the watch session.
+
+## Result
+
+The session-level hypothesis is validated:
+
+```text
+thin watch supervisor
+    -> one-shot request
+    -> post-cycle trigger baseline
+    -> wait
+    -> fresh one-shot request on trigger change
+```
+
+The supervisor can own repetition, failed-cycle waiting and signal forwarding without changing one-shot `_executeV2` lifetime semantics.
+
+The remaining architectural question is not session ownership; it is **authoritative trigger derivation**. Current product evidence indicates that derivation belongs inside the existing trusted `mk` engine so it can reuse the same resolved incremental/context semantics instead of duplicating them.
 
 ## Scope limit
 
