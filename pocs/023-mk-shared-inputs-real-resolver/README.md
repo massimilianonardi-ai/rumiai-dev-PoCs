@@ -1,6 +1,6 @@
 # PoC 023 — shared inputs in the real mk resolver
 
-Status: Experiment completed; shared input ownership validated
+Status: Experiment completed; validated model promoted
 Date: 2026-09-23
 
 ## Question
@@ -112,10 +112,10 @@ Observed behavior with the transformed real engine:
 - collection inputs use the same collection reachability machinery;
 - ambiguous dual declaration is rejected.
 
-The experiment therefore supports promoting first-class operation input identity without introducing `watch.inputs`.
+The experiment supported promotion of first-class operation input identity without introducing `watch.inputs`. The resulting model is now current in `MK.md`, `CURRENT-MODEL.md` and `rumiai-os`.
 
 Because freshness metadata is explicitly non-authoritative, a product-version change in the normalized operation/fingerprint representation may conservatively invalidate old cache records. Preserving old cache hits across an engine/schema change is not required for correctness; false hits remain forbidden.
 
 ## Scope limit
 
-This is still an experiment. It does not modify `MK.md` or `rumiai-os`, and it does not yet establish the public watch command/session contract.
+The experiment itself remains historical evidence. The shared-input model it validated is promoted; the public watch command/session contract remains intentionally unpromoted.
