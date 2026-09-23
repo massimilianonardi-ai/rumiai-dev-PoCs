@@ -132,7 +132,12 @@ async function cliScenario() {
   assert(result.status !== 0, 'public polling interval unexpectedly accepted');
 
   result = runCandidate(['--watch', '--project', v1, 'build']);
-  assert(result.status !== 0, 'version-1 watch request was not rejected');
+  assert(
+    result.status !== 0,
+    'version-1 watch request was not rejected: status=' + result.status +
+      ' signal=' + result.signal + ' stdout=' + JSON.stringify(result.stdout) +
+      ' stderr=' + JSON.stringify(result.stderr)
+  );
 }
 
 async function mainScenario() {
