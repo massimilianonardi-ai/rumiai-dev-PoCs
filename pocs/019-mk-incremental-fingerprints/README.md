@@ -1,6 +1,6 @@
 # PoC 019 — mk incremental fingerprints
 
-Status: Experiment completed locally; working design not yet promoted
+Status: Experiment completed; resulting baseline promoted
 Date: 2026-09-22
 
 ## Question
@@ -16,7 +16,7 @@ The experiment starts from the current version-2 lifecycle model and preserves t
 - managed persistent state must use `state-path`;
 - cache state is non-authoritative/regenerable.
 
-## Candidate declarative shape
+## Promoted declarative shape
 
 Incremental behavior is explicit and opt-in per ordinary operation:
 
@@ -78,7 +78,7 @@ The same declarative-economy rule applies to a collection input whose collection
 
 The PoC computes a SHA-256 fingerprint from a canonical structured representation of the effective operation.
 
-The candidate fingerprint includes:
+The promoted fingerprint includes:
 
 - effective operation definition, including action, incremental input declarations, outputs, prerequisite names and requirement names;
 - selected profile/project environment as reflected in the effective model;
@@ -158,7 +158,7 @@ If a successful action does not leave every declared output present and fingerpr
 
 ## State location and authority
 
-The production state root should be obtained through:
+The promoted production state root is obtained through:
 
 ```text
 state-path user sys mk cache
@@ -195,7 +195,7 @@ A cache defect must not be able to turn an operation that should execute into a 
 
 The selected concrete provider identity of each existing `pkg` facility requirement participates in the fingerprint. Changing the effective provider therefore invalidates the operation even when project files are unchanged.
 
-The candidate also fingerprints the complete effective environment passed to a process action and the observable executable identity. This intentionally favors correctness over hit rate for the first baseline.
+The implementation also fingerprints the complete effective environment passed to a process action and the observable executable identity. This intentionally favors correctness over hit rate for the first baseline.
 
 External behavior not represented by project inputs, effective environment, executable identity or declared requirements remains outside deterministic incremental identity. A cacheable operation must not silently depend on undeclared mutable external state.
 
@@ -267,7 +267,7 @@ successful execution
 
 This is freshness metadata, not artifact caching.
 
-## Still outside the candidate baseline
+## Still outside the promoted baseline
 
 The PoC does not settle or implement:
 
