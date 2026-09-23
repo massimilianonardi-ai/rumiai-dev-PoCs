@@ -47,25 +47,15 @@ function snapshot(project, goals, profile = null) {
   return result.stdout.trim();
 }
 
+process.env.m_ROOT = targetRoot;
+const {mkMain} = require(path.join(targetRoot, 'lib', 'sys', 'js', 'mk.lib.js'));
+
 function execute(project, goals, profile = null) {
-  const driver = `
-const path=require('node:path');
-process.env.m_ROOT=process.env.TARGET;
-const {mkMain}=require(path.join(process.env.TARGET,'lib','sys','js','mk.lib.js'));
-const args=['--project',process.env.PROJECT];
-if(process.env.PROFILE) args.push('--profile',process.env.PROFILE);
-args.push(...process.argv.slice(1));
-process.exitCode=mkMain(args);
-`;
-  const result = run(process.execPath, ['-e', driver, ...goals], {
-    env: {
-      ...process.env,
-      TARGET: targetRoot,
-      PROJECT: project,
-      PROFILE: profile || ''
-    }
-  });
-  assert(result.status === 0, `one-shot mk execution failed: ${result.stderr}`);
+  const args = ['--project', project];
+  if (profile !== null) args.push('--profile', profile);
+  args.push(...goals);
+  const status = mkMain(args);
+  assert(status === 0, `one-shot mk execution failed with status ${status}`);
 }
 
 function statePath() {
