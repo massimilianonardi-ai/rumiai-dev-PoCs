@@ -1,0 +1,37 @@
+name: mk watch trigger snapshot poc
+
+on:
+  push:
+    paths:
+      - '.github/workflows/mk-watch-trigger-snapshot-poc.yml'
+  workflow_dispatch:
+
+jobs:
+  poc:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout PoCs
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-dev-PoCs
+          ref: 637f3315cfa9fe1abf70de26e2f72d666a961d58
+          path: rumiai-dev-PoCs
+      - name: Checkout target
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-os
+          ref: f2747e16560d0fbbe1cc0fe6e4d5c6c836ef041b
+          path: rumiai-os
+      - name: Normalize target origin
+        shell: sh
+        run: git -C rumiai-os remote set-url origin https://github.com/massimilianonardi-ai/rumiai-os.git
+      - name: Run PoC 021
+        shell: sh
+        run: |
+          RUMIAI_POC_RUMIAI_OS="$PWD/rumiai-os"
+          export RUMIAI_POC_RUMIAI_OS
+          node rumiai-dev-PoCs/pocs/021-mk-watch-trigger-snapshot/tests/run.js
