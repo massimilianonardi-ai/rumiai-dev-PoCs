@@ -69,7 +69,7 @@ try {
       observed: ['observe']
     },
     collections: {
-      providerSources: {
+      provider-sources: {
         type: 'files',
         root: 'src',
         include: ['provider-a.txt', 'provider-b.txt']
@@ -78,7 +78,7 @@ try {
     providers: {
       compile: {
         type: 'map-process',
-        collection: 'providerSources',
+        collection: 'provider-sources',
         outputs: {artifact: {path: 'out/${item}.out'}},
         incremental: {},
         action: {
