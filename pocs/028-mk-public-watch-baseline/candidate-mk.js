@@ -217,6 +217,8 @@ main().then(
   status => { process.exitCode = status; },
   error => {
     process.stderr.write(`mk-watch-candidate: ${error && error.message ? error.message : 'unexpected failure'}\n`);
-    process.exitCode = error && Number.isInteger(error.status) ? error.status : 1;
+    process.exitCode = error && Number.isInteger(error.status)
+      ? error.status
+      : (error && Number.isInteger(error.mkStatus) ? error.mkStatus : 1);
   }
 );
