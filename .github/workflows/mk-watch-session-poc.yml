@@ -1,0 +1,21 @@
+name: mk watch session poc
+
+on:
+  push:
+    paths:
+      - '.github/workflows/mk-watch-session-poc.yml'
+  workflow_dispatch:
+
+jobs:
+  poc:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 33ab4681e8d2e95a5fc65e6841dedd6f1c9765c9
+      - name: Run PoC 020
+        run: node pocs/020-mk-watch-session/tests/run.js
