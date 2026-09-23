@@ -1,6 +1,6 @@
 # PoC 022 — shared operation input identity
 
-Status: Active experiment
+Status: Normalization experiment completed; real-resolver integration still required
 Date: 2026-09-23
 
 ## Question
@@ -159,6 +159,37 @@ The executable candidate normalizer verifies:
 6. duplicate declarations across `inputs` and `incremental.inputs` are rejected;
 7. empty legacy incremental inputs remain valid;
 8. a separate `watch.inputs` design requires duplicated input identity for the common incremental+watch case.
+
+## Result
+
+The normalization experiment passed on both Ubuntu and macOS in GitHub Actions run:
+
+```text
+35825100360
+```
+
+It confirms that a shared operation-level input map can preserve the current legacy incremental form while avoiding a second watch-only input namespace:
+
+```text
+legacy incremental.inputs
+    -> shared normalized inputs + incremental enabled
+
+inputs + incremental {}
+    -> same shared normalized inputs + incremental enabled
+
+inputs only
+    -> shared normalized inputs + incremental disabled
+```
+
+This establishes schema/normalization plausibility only. It does not yet prove that extracting input ownership into the real current resolver preserves all existing runtime semantics.
+
+The next experiment must instrument the real current `mk.lib.js` and apply the smallest candidate parser/resolver transformation needed to verify:
+
+- existing `incremental.inputs` behavior remains identical;
+- new first-class `inputs` feeds the same data-dependency machinery;
+- non-incremental declared inputs become visible to the watch trigger snapshot;
+- one-shot non-incremental execution remains ordinary execution and never becomes `up-to-date`;
+- ambiguous dual declaration is rejected.
 
 ## Scope limit
 
