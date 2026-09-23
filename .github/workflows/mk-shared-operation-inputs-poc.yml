@@ -1,0 +1,21 @@
+name: mk shared operation inputs poc
+
+on:
+  push:
+    paths:
+      - '.github/workflows/mk-shared-operation-inputs-poc.yml'
+  workflow_dispatch:
+
+jobs:
+  poc:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 1ec90355c41be0f568a7ec872c578ac41c4a1496
+      - name: Run PoC 022
+        run: node pocs/022-mk-shared-operation-inputs/tests/run.js
