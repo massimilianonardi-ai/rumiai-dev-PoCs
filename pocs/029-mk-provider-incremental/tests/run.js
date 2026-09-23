@@ -49,7 +49,7 @@ function writeConfig(project, include = null) {
           command: 'sh',
           args: [
             '-c',
-            'mkdir -p "$(dirname "$3")"; cat "$2" build.conf > "$3"; printf "%s\\n" "$2" >> trace',
+            'mkdir -p "$(dirname "$2")"; cat "$1" build.conf > "$2"; printf "%s\\n" "$1" >> trace',
             'provider-member',
             '${item}',
             'out/${item}.out'
