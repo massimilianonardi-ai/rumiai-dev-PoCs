@@ -1,0 +1,43 @@
+name: poc-034-mk-artifact-crash-released-coordination
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/poc-034-mk-artifact-crash-released-coordination.yml
+      - pocs/034-mk-artifact-crash-released-coordination/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  coordination:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout PoC
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: rumiai-dev-PoCs
+
+      - name: Checkout exact rumiai-os revision
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-os
+          ref: e07902112ef0075933399d9b3834ea110448a6cc
+          path: rumiai-os
+
+      - name: Run PoC 034
+        env:
+          RUMIAI_POC_RUMIAI_OS: ${{ github.workspace }}/rumiai-os
+        run: node rumiai-dev-PoCs/pocs/034-mk-artifact-crash-released-coordination/tests/run.js
