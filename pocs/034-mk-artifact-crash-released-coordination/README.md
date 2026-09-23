@@ -1,6 +1,6 @@
 # PoC 034 — crash-released shared artifact maintenance coordination
 
-Status: Experiment in progress
+Status: Experiment completed; crash-released coordination validated
 Date: 2026-09-23
 
 ## Question
@@ -134,3 +134,48 @@ If a reader captured that old candidate, transactional restoration either comple
 A PASS on Ubuntu and macOS would establish development evidence that POSIX FIFO activity tokens resolve PoC 033's crash-liveness blocker on both hosted platforms while preserving the existing shared-artifact safety semantics.
 
 That evidence alone does not yet change `MK.md` or product code. Promotion would still require the normal specification decision, product/manual realignment, permanent tests and proportional validation against the then-current revisions.
+
+
+## Result
+
+The corrected experiment passed on both Ubuntu and macOS in GitHub Actions run:
+
+```text
+35862288363
+```
+
+against exact `rumiai-os` revision:
+
+```text
+e07902112ef0075933399d9b3834ea110448a6cc
+```
+
+Observed on both hosted platforms:
+
+```text
+PASS PoC 034 crash-released artifact maintenance coordination
+OBSERVED ownership-witness=posix-fifo-open-reader
+OBSERVED crash-liveness=stale-fifo-detectable-without-pid-or-timeout
+OBSERVED abandoned-staging=reclaimable-after-owner-death
+OBSERVED selector-temp=reclaimable-after-owner-death
+OBSERVED reader-lease=still-not-required
+```
+
+Two earlier hosted attempts failed because of defects in the PoC test driver itself: the first selected an ambiguous fingerprint root after intentionally creating several fingerprints, and the second contained a literal escaped newline introduced by the forward patch. Neither failure contradicted the coordination model; both were corrected forward before the successful run above.
+
+The result closes PoC 033's crash-liveness blocker at the experimental level:
+
+- a live FIFO read descriptor provides a local activity witness;
+- abrupt process death closes that descriptor in the kernel while a leftover FIFO pathname becomes detectably stale;
+- stale publication, attempt and maintenance tokens can therefore be reaped without PID inspection or timeout heuristics;
+- abandoned `.staging-*` and `.current-*` residue can be reclaimed after owner death;
+- live writer/publication state remains protected from maintenance;
+- readers still need no lease because candidate reclamation remains quarantine-first and restore remains transactional.
+
+## Decision
+
+The reclamation safety mechanism is now experimentally complete enough to leave the coordination question and move to the separate product-policy question.
+
+No product/specification contract is promoted by this PoC alone. Before changing `MK.md` or `rumiai-os`, the active task must decide when maintenance runs, which retention/eviction policy is in baseline scope, and whether the maintenance behavior remains entirely private to `mk` or exposes any user-facing control.
+
+The temporary hosted workflow was removed after evidence collection.
