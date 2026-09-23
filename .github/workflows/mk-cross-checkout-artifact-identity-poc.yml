@@ -1,0 +1,36 @@
+name: mk cross checkout artifact identity PoC
+
+on:
+  push:
+    paths:
+      - '.github/workflows/mk-cross-checkout-artifact-identity-poc.yml'
+  workflow_dispatch:
+
+jobs:
+  poc031:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout PoCs
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-dev-PoCs
+          ref: 652acf5a425f3c4205d7a71392d68dffaa9c795f
+          path: rumiai-dev-PoCs
+
+      - name: Checkout target
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-os
+          ref: 533095820ea4f22446510a0f7b338253d908d018
+          path: rumiai-os
+
+      - name: Run PoC 031
+        shell: sh
+        run: |
+          RUMIAI_POC_RUMIAI_OS="$PWD/rumiai-os"
+          export RUMIAI_POC_RUMIAI_OS
+          node rumiai-dev-PoCs/pocs/031-mk-cross-checkout-artifact-identity/tests/run.js
