@@ -1,6 +1,6 @@
 # PoC 029 — provider-level incremental templates
 
-Status: Experiment in progress
+Status: Experiment completed; resulting baseline ready for promotion
 Date: 2026-09-23
 
 ## Question
@@ -126,9 +126,58 @@ It does not copy the resolver, incremental engine, cache code or executor.
 
 No product repository modification is made by this experiment.
 
+## Result
+
+The corrected experiment passed on both Ubuntu and macOS in GitHub Actions run:
+
+```text
+35839548560
+```
+
+against exact target:
+
+```text
+rumiai-os 48bd93440ef78b809b6b952429cc4f8b9ea7a523
+```
+
+Exact candidate/test behavior revision:
+
+```text
+03b63e90f17cfc398366debaa3a675e2c71fbdcf
+```
+
+Observed:
+
+```text
+PASS PoC 029 provider-level incremental templates
+OBSERVED provider-cache=ordinary-derived-operation-freshness
+OBSERVED provider-item-input=implicit-private
+OBSERVED collection-order=identity-independent
+```
+
+Two earlier runs were PoC harness failures and did not contradict the candidate semantics:
+
+- `35839252013`: the in-memory source transformation interpolated target-code identifiers in the PoC loader context and failed with `context is not defined`;
+- `35839410408`: the shell fixture used incorrect `sh -c` positional arguments and therefore did not create the declared output.
+
+After those harness corrections, both hosts validated the same model.
+
+The experiment confirms that provider-level incremental freshness does not require provider-level cache semantics. Each derived item is an ordinary derived operation whose current stable operation name, inputs, outputs, executable/environment identity, requirements and freshness record are handled by the existing ordinary operation machinery.
+
+Collection membership changes remain local:
+
+- adding one item creates one new derived operation and executes only that member;
+- removing one item does not invalidate unchanged reachable members;
+- changing collection enumeration order does not affect per-item identity;
+- stale freshness metadata/output for a now-unreachable removed member remains non-authoritative and is not cleaned automatically.
+
+The implicit private `$item` input is required so the item content itself participates in freshness without asking project configuration to duplicate the provider's already-declared collection-to-item mapping.
+
+The temporary hosted workflow was removed after evidence collection.
+
 ## Promotion gate
 
-A successful result would support promoting the smallest provider extension:
+The experiment supports promoting the smallest provider extension:
 
 ```text
 map-process provider template
