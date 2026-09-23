@@ -1,6 +1,6 @@
 # PoC 024 — recursive watch trigger ownership
 
-Status: Experiment in progress
+Status: Experiment completed; recursive ownership direction validated
 Date: 2026-09-23
 
 ## Question
@@ -102,9 +102,47 @@ The experimental command prints JSON containing:
 10. same-named operations across projects do not collide because child identity is scoped behind the child digest;
 11. `A -> B -> A` is rejected as a recursive project-dependency cycle.
 
+## Result
+
+The corrected experiment passed on both Ubuntu and macOS in GitHub Actions run:
+
+```text
+35827023231
+```
+
+against exact `rumiai-os` revision:
+
+```text
+fde0ae399da0994e19ff7657605017f809b8fe8e
+```
+
+Observed:
+
+```text
+PASS PoC 024 recursive watch trigger ownership
+OBSERVED child-trigger-identity=opaque-recursive
+OBSERVED diamond-downstream-resolution=per-branch
+```
+
+The first run `35826969986` was diagnostic only. Its fixture attempted to demonstrate an inactive dependency by mapping a nonexistent parent goal, but the current model correctly validates every declared dependency goal mapping before reachability. The fixture was corrected by adding a real but unrequested parent goal; no product change was required.
+
+The result supports recursive ownership:
+
+```text
+parent local trigger identity
++ one opaque digest per active direct child request
+-> parent trigger digest
+```
+
+A deep child input change propagates through child digests without exposing or flattening the child lifecycle graph. Formatting-only child configuration rewrites remain stable because identity uses the selected normalized model. Explicit child profiles are naturally scoped to the child request. An inactive dependency contributes no trigger identity.
+
+In a diamond, the same downstream project is resolved independently through each sibling branch, matching current project-dependency semantics and introducing no request-wide exactly-once/de-duplication behavior.
+
+The temporary hosted workflow was removed after evidence collection.
+
 ## Promotion gate
 
-A successful result would support this working direction:
+The experiment supports this working direction:
 
 ```text
 watch supervisor
