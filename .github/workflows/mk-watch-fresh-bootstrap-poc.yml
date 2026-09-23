@@ -1,0 +1,36 @@
+name: mk watch fresh bootstrap PoC
+
+on:
+  push:
+    paths:
+      - '.github/workflows/mk-watch-fresh-bootstrap-poc.yml'
+  workflow_dispatch:
+
+jobs:
+  poc027:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout PoCs
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-dev-PoCs
+          ref: 8e5197ccfb0ce6f4423088c2bc52fc2caaf58cd1
+          path: rumiai-dev-PoCs
+
+      - name: Checkout target
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-os
+          ref: c2d8d4a0c4503e1de461e72840a13abb0da61c41
+          path: rumiai-os
+
+      - name: Run PoC 027
+        shell: sh
+        run: |
+          RUMIAI_POC_RUMIAI_OS="$PWD/rumiai-os"
+          export RUMIAI_POC_RUMIAI_OS
+          node rumiai-dev-PoCs/pocs/027-mk-watch-fresh-bootstrap/tests/run.js
