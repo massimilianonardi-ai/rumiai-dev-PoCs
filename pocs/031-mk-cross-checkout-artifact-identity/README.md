@@ -1,6 +1,6 @@
 # PoC 031 — cross-checkout shared artifact identity
 
-Status: Experiment completed; identity split validated, concurrency still open
+Status: Experiment completed; identity split promoted after PoC 032
 Date: 2026-09-23
 
 ## Question
@@ -122,22 +122,11 @@ The existing fingerprint was sufficient for the exercised cases. Different opera
 
 No network/remote transport was required or exercised.
 
-## Remaining promotion blocker
+## Promotion status
 
-Moving from project-scoped artifact paths to a user-local shared fingerprint namespace creates a new concurrency surface: independent mk processes/checkouts may attempt to publish or restore the same fingerprint concurrently.
+The concurrency blocker identified here was subsequently resolved by PoC 032. The combined identity/concurrency model was then promoted into current `MK.md` and `CURRENT-MODEL.md` and implemented in `rumiai-os`.
 
-The current experiment is single-writer/sequential and therefore does not establish:
-
-- atomic publication semantics for simultaneous writers;
-- behavior when one process observes another process's staging/publish transition;
-- simultaneous restore and refresh after corrupt shared state;
-- loser/winner cleanup without deleting a valid artifact published by another process.
-
-This must be resolved before promotion because a cross-checkout shared namespace is unsafe if concurrent writers can destroy or partially expose verified artifact state.
-
-## Promotion gate
-
-The experiment supports this narrow architecture once concurrent publication/restore semantics are also validated:
+The promoted architecture is:
 
 ```text
 project-scoped freshness metadata
@@ -152,12 +141,16 @@ restore success
     returns to normal resolver refinement
 ```
 
-It would not yet establish:
+Promotion does not establish:
 
 - remote/network artifact transport;
 - global/multi-user sharing;
 - artifact eviction or garbage collection;
 - trust/signing for imported remote artifacts;
 - cross-operation-name semantic equivalence;
-- parallel execution/restoration;
+- parallel lifecycle scheduling;
 - request-wide project dependency exactly-once behavior.
+
+The first promoted product implementation is `rumiai-os` commit
+`699c77923cda2cd5fd58844f29a6dc9e175d760b`; manual alignment follows through
+`c3c51e6f070c774c103eeb7f71c759e3ebfda4ec`.
