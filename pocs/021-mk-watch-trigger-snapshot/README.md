@@ -1,6 +1,6 @@
 # PoC 021 — mk internal watch trigger snapshot
 
-Status: Active experiment
+Status: Trigger-snapshot experiment completed; watchability policy still open
 Date: 2026-09-23
 
 ## Question
@@ -119,6 +119,31 @@ The test uses the real current `mk.lib.js` implementation and verifies:
 7. reachable condition-state change alters the digest;
 8. formatting-only `mk.json` rewrite leaves selected-model digest stable;
 9. undeclared mutable input of a non-incremental operation remains invisible, demonstrating the unresolved contract gap.
+
+## Result
+
+The corrected experiment passed on both Ubuntu and macOS in GitHub Actions run:
+
+```text
+35824764421
+```
+
+The first diagnostic run `35824693503` failed because the PoC execution driver intentionally fingerprinted a different process environment from the snapshot process; this was an harness mismatch, not a product failure. The corrected test executes the real `mkMain` in the same environment identity used by the trigger snapshot.
+
+Observed result:
+
+```text
+PASS PoC 021 mk internal watch trigger snapshot
+OBSERVED undeclared-nonincremental-input=invisible
+```
+
+The experiment establishes two points.
+
+First, for lifecycle influences already represented by the current declarative model, the existing engine can derive an authoritative opaque trigger digest without introducing a second resolver. The digest reacts to incremental input content, output validity, executable identity and reachable condition state while remaining stable for mtime-only changes and formatting-only JSON rewrites.
+
+Second, no trigger algorithm can infer a mutable dependency that the lifecycle model does not declare. The watch design therefore now has one focused policy question: how a non-incremental operation declares change-driving inputs without duplicating the existing incremental input model.
+
+A promising next experiment is to evaluate whether operation inputs should become a reusable first-class declaration shared by incremental freshness and watch triggering, with `incremental` remaining an opt-in freshness policy rather than the owner of input identity. This is not yet a promoted change.
 
 ## Scope limit
 
