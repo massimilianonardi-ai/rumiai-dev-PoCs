@@ -1,6 +1,6 @@
 # PoC 028 — mk public watch baseline
 
-Status: Experiment in progress
+Status: Experiment completed; public watch baseline validated
 Date: 2026-09-23
 
 ## Question
@@ -126,8 +126,47 @@ The experiment-only status/diagnostic transport is not a proposed public product
 13. SIGTERM terminates the long-running supervisor and is forwarded to an active one-shot child;
 14. no public polling interval/tuning option is accepted by the candidate surface.
 
+## Result
+
+The final experiment passed on both GitHub-hosted Ubuntu and macOS in run:
+
+```text
+35834779030
+```
+
+against exact target revision:
+
+```text
+rumiai-os c2d8d4a0c4503e1de461e72840a13abb0da61c41
+```
+
+The final harness exercises the candidate through integrated `#!/usr/bin/env m` command wrappers and verifies the real current lifecycle engine for every one-shot cycle.
+
+The diagnostic iterations exposed two useful implementation constraints rather than product-model failures:
+
+- an integrated command is sourced by `m`, so its own pathname must come from `m_COMMAND_BIN`, not `$0`;
+- signal semantics must be tested at the same integrated-command process boundary that the product will use.
+
+The final run validates the complete first baseline:
+
+- `--watch` as execution mode, not goal/schema;
+- version 2 only;
+- plan/introspection incompatibility;
+- no public polling tuning;
+- initial one-shot cycle followed by post-cycle baseline;
+- content-based trigger changes without mtime-only noise;
+- no feedback from ordinary unconsumed outputs;
+- reachable executable identity changes;
+- recursive opaque child-project trigger ownership;
+- temporary invalid root/child configuration retry;
+- changed child identity during invalidity causing one recovery cycle;
+- failed lifecycle cycle reporting without busy-loop/session termination;
+- later recovery after a failed cycle;
+- SIGTERM forwarding to an active integrated one-shot child;
+- fresh integrated `m` bootstrap boundaries for trigger and lifecycle children.
+
 ## Promotion gate
 
-A successful experiment would make the watch model complete enough to promote a first public baseline into `MK.md`, implement it in `rumiai-os`, add permanent tests and validate the composed real public command.
+The experiment closes the design gate for the first public watch baseline. The next work is canonical promotion into `MK.md`, product implementation in `rumiai-os`, permanent tests and task validation.
 
-Until then, watch remains working design.
+Portable polling remains the first implementation mechanism. Optional host notification backends remain a future optimization and must preserve the same authoritative trigger semantics.
