@@ -1,0 +1,36 @@
+name: mk concurrent shared artifacts PoC
+
+on:
+  push:
+    paths:
+      - '.github/workflows/mk-concurrent-shared-artifacts-poc.yml'
+  workflow_dispatch:
+
+jobs:
+  poc032:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout PoCs
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-dev-PoCs
+          ref: 67add9ce898e545275e8ba969159e72d7078b902
+          path: rumiai-dev-PoCs
+
+      - name: Checkout target
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-os
+          ref: 446418f1a9bfd31238088b8dee81a29e0c814b14
+          path: rumiai-os
+
+      - name: Run PoC 032
+        shell: sh
+        run: |
+          RUMIAI_POC_RUMIAI_OS="$PWD/rumiai-os"
+          export RUMIAI_POC_RUMIAI_OS
+          node rumiai-dev-PoCs/pocs/032-mk-concurrent-shared-artifacts/tests/run.js
