@@ -196,9 +196,13 @@ async function mainScenario() {
 
   const watch = startWatch(['--watch', '--project', parentRoot, 'build'], {POC028_TRACE: trace});
   await waitFor(
-    () => lines(trace).length === 3,
+    () => lines(trace).length === 3 || watch.child.exitCode !== null,
+    'watch supervisor neither ran the initial lifecycle nor terminated'
+  );
+  assert(
+    lines(trace).length === 3,
     'initial recursive lifecycle did not run exactly once; trace=' + lines(trace).join(',') +
-      ' exit=' + watch.child.exitCode + ' stderr=' + watch.stderr()
+      ' exit=' + watch.child.exitCode + ' stderr=' + JSON.stringify(watch.stderr())
   );
   const initial = lines(trace).length;
 
