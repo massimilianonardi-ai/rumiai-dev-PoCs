@@ -51,3 +51,22 @@ For both Linux and macOS the experiment:
 A PASS is evidence that an ordinary pip/setuptools source-build path can operate after relocation for the tested pure/native fixtures and that the resulting materialized consumers remain independent from the runtime location.
 
 It does not establish that arbitrary PyPI sdists are relocatable, does not adopt pip/setuptools as the final RumiAI build frontend/backend, and does not settle Python ABI compatibility or the final consumer-environment projection.
+
+
+## First hosted finding
+
+The first hosted run, `36271127218`, successfully completed the actual packaging work on both Linux and macOS before the final runtime scan failed:
+
+```text
+relocated standalone Python provides pip          -> PASS
+isolated PEP 517 pure sdist -> wheel              -> PASS
+isolated PEP 517 CPython-extension sdist -> wheel -> PASS
+materialized #!/usr/bin/env python                -> PASS
+pure/native consumers before second move          -> PASS
+pure/native consumers after second move           -> PASS
+wheel/materialized-output old-runtime scan        -> clean
+```
+
+The failure was a distinct mutability finding: running `pip`/the build frontend had populated the standalone runtime's own `__pycache__` tree. After the runtime moved a second time, those generated `.pyc` files retained the previous runtime prefix in code metadata (489 hits on Linux and 493 on macOS).
+
+The follow-up revision therefore routes **build-time bytecode** to an external `PYTHONPYCACHEPREFIX` and snapshots the standalone runtime's pre-existing cache files before and after the build. The rerun must prove that the packaging pipeline succeeds while the provider runtime remains unchanged. This does not erase the first finding: an immutable Python provider needs an explicit bytecode-cache policy when it is used as a build tool.

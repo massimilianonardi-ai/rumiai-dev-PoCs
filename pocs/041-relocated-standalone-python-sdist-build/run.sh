@@ -81,6 +81,33 @@ python_b=$runtime_b/python/bin/python3
     exit 1
 }
 
+runtime_cache_snapshot()
+{
+    cache_root=$1
+    (
+        cd "$cache_root"
+        find . -type f -path '*/__pycache__/*' -exec cksum {} \; |
+            LC_ALL=C sort |
+            cksum
+    )
+}
+
+runtime_cache_count()
+{
+    cache_root=$1
+    (
+        cd "$cache_root"
+        find . -type f -path '*/__pycache__/*' -print | wc -l | sed 's/[[:space:]]//g'
+    )
+}
+
+runtime_cache_before=$(runtime_cache_snapshot "$runtime_b/python")
+runtime_cache_count_before=$(runtime_cache_count "$runtime_b/python")
+printf 'runtime-preexisting-bytecode-files=%s\n' "$runtime_cache_count_before"
+
+PYTHONPYCACHEPREFIX="$work/build-pycache"
+export PYTHONPYCACHEPREFIX
+
 prefix_b=$("$python_b" -c 'import sys; print(sys.prefix)')
 [ "$prefix_b" = "$runtime_b_physical/python" ] || {
     echo "ERROR first relocated sys.prefix is stale: $prefix_b" >&2
@@ -202,6 +229,18 @@ printf 'pure-wheel=%s\n' "${pure_wheel##*/}"
 printf 'native-wheel=%s\n' "${native_wheel##*/}"
 printf 'pip-pep517-sdist-build=PASS\n'
 
+runtime_cache_after_build=$(runtime_cache_snapshot "$runtime_b/python")
+runtime_cache_count_after_build=$(runtime_cache_count "$runtime_b/python")
+[ "$runtime_cache_after_build" = "$runtime_cache_before" ] || {
+    echo "ERROR source build mutated standalone runtime bytecode cache" >&2
+    exit 1
+}
+[ "$runtime_cache_count_after_build" = "$runtime_cache_count_before" ] || {
+    echo "ERROR source build changed standalone runtime bytecode cache file count" >&2
+    exit 1
+}
+printf 'build-bytecode-externalized=PASS runtime-cache-count=%s\n' "$runtime_cache_count_after_build"
+
 pure_payload=$work/pure-payload
 native_payload=$work/native-payload
 "$python_b" "$poc038_dir/materialize-wheel.py" "$pure_wheel" "$pure_payload"
@@ -217,6 +256,7 @@ done
 printf 'materialized-shebangs=PASS_ENV_PYTHON\n'
 
 host_path=$PATH
+unset PYTHONPYCACHEPREFIX
 export PYTHONDONTWRITEBYTECODE=1
 export RUMIAI_PYTHON_PROVIDER=standalone-sdist
 

@@ -57,3 +57,45 @@ MICROMAMBA_SHA256=... \
 ```
 
 The associated GitHub Actions workflow supplies pinned official artifacts for Linux x86_64 and macOS runner architectures.
+
+
+## Observed result
+
+PASS on GitHub Actions run `36271204228` at PoC revision `2bb78d88eab49ab43749a9b8647ffc04b369fc8c`, on Ubuntu 24.04 and macOS 14 Apple Silicon.
+
+The result separates interpreter relocation from environment relocation very clearly.
+
+```text
+conda-forge CPython 3.13.15
+    direct prefix move             -> PASS on Linux and macOS
+    sys.prefix after move          -> follows moved environment
+    python -m pip after move       -> PASS
+    micromamba list moved prefix   -> PASS
+
+generated pip command
+    shebang                         -> absolute original-prefix Python
+    direct pip after move           -> BREAKS
+                                      Linux status 127
+                                      macOS status 126
+
+Conda relocation metadata
+    Linux paths.json files          -> 25
+    Linux path entries              -> 7058
+    Linux prefix-placeholder entries-> 207
+    Python-package placeholder entries -> 12
+
+    macOS paths.json files          -> 19
+    macOS path entries              -> 7014
+    macOS prefix-placeholder entries-> 206
+    Python-package placeholder entries -> 12
+
+old original-prefix references after raw mv
+    Linux                           -> 654 files
+    macOS                           -> 163 files
+```
+
+On macOS, the environment was created through the lexical `/var/...` temporary path while its physical location is `/private/var/...`. The corrected experiment compares directory identity after physical canonicalization but deliberately scans both lexical and physical prefix spellings, because both can be embedded in installed files.
+
+The evidence therefore supports a narrower conclusion than "Conda environments are relocatable": the tested conda-forge CPython interpreter itself discovers the moved prefix and continues to run, while the materialized environment retains substantial installation-prefix state and generated commands can remain bound to the original location.
+
+For RumiAI, the reusable parts are the package-prefix model, explicit relocation metadata and deliberate native-binary relocation techniques. The destination-prefix binding model itself is not a match for the stronger permanent-relocatability goal.
