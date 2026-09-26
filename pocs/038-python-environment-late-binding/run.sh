@@ -221,7 +221,9 @@ EOF_COMMAND
 }
 
 printf 'rumiai-disposable-root=%s\n' "$root"
+set -x
 make_provider "$provider_a" A POC38_PYTHON_A
+set +x
 printf 'provider-a-integration=PASS\n'
 make_provider "$provider_b" B POC38_PYTHON_B
 printf 'provider-b-integration=PASS\n'
