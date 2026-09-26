@@ -244,9 +244,9 @@ printf 'native-consumer-integration=PASS\n'
 pure_target=$root/pkg/$pure_consumer@1/root/bin/poc-pure
 pure_data_target=$root/pkg/$pure_consumer@1/root/bin/poc-data
 native_target=$root/pkg/$native_consumer@1/root/bin/poc-native
-pure_hash_before=$(cksum "$pure_target")
-pure_data_hash_before=$(cksum "$pure_data_target")
-native_hash_before=$(cksum "$native_target")
+pure_hash_before=$(cksum < "$pure_target")
+pure_data_hash_before=$(cksum < "$pure_data_target")
+native_hash_before=$(cksum < "$native_target")
 
 run_managed poc-pure > "$work/pure-default-a.out"
 assert_line "$work/pure-default-a.out" 'fixture=pure'
@@ -262,7 +262,7 @@ run_pkg provider bind "$pure_consumer" "$facility" "$provider_b" >/dev/null
 run_managed poc-pure > "$work/pure-bound-b.out"
 assert_line "$work/pure-bound-b.out" 'provider=B'
 assert_line "$work/pure-bound-b.out" "version=$version_b"
-[ "$(cksum "$pure_target")" = "$pure_hash_before" ] || {
+[ "$(cksum < "$pure_target")" = "$pure_hash_before" ] || {
     echo "ERROR provider binding rewrote the pure console script" >&2
     exit 1
 }
@@ -300,7 +300,7 @@ set -e
 }
 assert_line "$work/native-b.out" 'native-import-provider=B'
 assert_line "$work/native-b.out" "native-import-version=$version_b"
-[ "$(cksum "$native_target")" = "$native_hash_before" ] || {
+[ "$(cksum < "$native_target")" = "$native_hash_before" ] || {
     echo "ERROR native provider binding rewrote the native console script" >&2
     exit 1
 }
@@ -330,7 +330,7 @@ assert_line "$work/native-relocated.out" 'native=native-ok'
     echo "ERROR physical relocation changed the pure console script" >&2
     exit 1
 }
-[ "$(cksum "$pure_data_target")" = "$pure_data_hash_before" ] || {
+[ "$(cksum < "$pure_data_target")" = "$pure_data_hash_before" ] || {
     echo "ERROR physical relocation changed the wheel data script" >&2
     exit 1
 }
