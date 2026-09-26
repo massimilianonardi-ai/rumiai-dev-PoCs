@@ -1,0 +1,46 @@
+name: PoC 042 Python bytecode cache as package state
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - pocs/042-python-bytecode-state-cache/**
+      - .github/workflows/poc-042-python-bytecode-state-cache.yml
+      - pocs/038-python-environment-late-binding/build-fixtures.py
+      - pocs/038-python-environment-late-binding/materialize-wheel.py
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-os
+          ref: b6f33c542155d58b770e5afabd460d116936318d
+          path: rumiai-os
+      - name: Run PoC
+        shell: bash
+        run: |
+          set -o pipefail
+          ./pocs/042-python-bytecode-state-cache/run.sh "$GITHUB_WORKSPACE/rumiai-os" | tee poc-042-linux.log
+
+  macos:
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-os
+          ref: b6f33c542155d58b770e5afabd460d116936318d
+          path: rumiai-os
+      - name: Run PoC
+        shell: bash
+        run: |
+          set -o pipefail
+          ./pocs/042-python-bytecode-state-cache/run.sh "$GITHUB_WORKSPACE/rumiai-os" | tee poc-042-macos.log
