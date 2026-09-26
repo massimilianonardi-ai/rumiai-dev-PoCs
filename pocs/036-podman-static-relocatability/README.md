@@ -59,3 +59,76 @@ A failure must be classified before proposing a private patch:
 - Podman contract requirement;
 - RumiAI package-integration mismatch.
 
+## Observed results
+
+GitHub Actions run `36226837622` exercised the released `v6.1.2` archive after extracting it and physically moving the complete bundle to a different path.
+
+### Binary closure
+
+The inspected shipped executables used by the experiment are static or static PIE and expose no ELF interpreter, including:
+
+- `podman`;
+- `crun`;
+- `runc`;
+- `conmon`;
+- `fuse-overlayfs` and `fusermount3`;
+- `pasta` / `passt`;
+- `netavark`;
+- `aardvark-dns`;
+- `catatonit`;
+- `rootlessport`;
+- `quadlet`.
+
+The relocated Podman process was observed using the relocated `conmon` and `crun` paths and experiment-owned graph/run roots. No copy into `/usr/local` was required.
+
+### Rootless functional path
+
+On Ubuntu 22.04, and on Ubuntu 24.04 with its unprivileged-user-namespace AppArmor restriction disabled only for the diagnostic run, the unmodified release bundle passed:
+
+- `podman info`;
+- image pull and basic container execution;
+- rootless outbound networking;
+- communication between containers in one pod;
+- host port forwarding;
+- `podman kube play --network=pasta` followed by `podman kube down`.
+
+The experiment used explicit launch-time configuration and isolated state only; it did not rebuild or patch the upstream binaries.
+
+### Ubuntu 24.04 AppArmor path policy
+
+On the strict Ubuntu 24.04 hosted runner:
+
+- AppArmor was enabled;
+- `kernel.apparmor_restrict_unprivileged_userns=1`;
+- the installed Podman profile was pathname-bound to `/usr/bin/podman`;
+- the relocated binary failed during rootless re-exec.
+
+The kernel audit identified the relocated executable and denied `/proc/self/exe` execution while transitioned into the `unprivileged_userns` profile.
+
+This is classified as a host security-policy/path integration constraint, not evidence that the static bundle itself requires its original extraction path.
+
+### Default Kube networking without a user systemd bus
+
+On the hosted environments that otherwise passed rootless execution, plain `podman kube play` reached Netavark/Aardvark but failed when Aardvark attempted to use `systemd-run --user` while no user systemd bus was available.
+
+The same manifest passed with `--network=pasta`. For the initial RumiAI service-test use case, the experiment therefore demonstrates a rootless path that does not require the default Aardvark startup path.
+
+### Health-check scheduling
+
+A container created with an automatic health check remained in `starting` after the configured interval. This matches the known consequence of the current `podman-static` build omitting Podman's `systemd` build tag: the release is usable for the tested container/service behaviors, but automatic Podman health-check scheduling must not currently be assumed.
+
+RumiAI can still perform explicit readiness probes independently; whether automatic Podman health scheduling is a required package property remains a separate integration decision.
+
+## Current conclusion
+
+The evidence supports direct reuse of `mgoltzsche/podman-static` as the preferred upstream basis rather than rebuilding the Podman userland closure.
+
+No RumiAI-specific binary patch has been justified by this PoC. The remaining concerns are host/integration contracts:
+
+1. rootless subordinate-ID/user-namespace prerequisites;
+2. hardened AppArmor pathname policy on recent Ubuntu hosts;
+3. default Netavark/Aardvark behavior when a systemd host has no user bus;
+4. absent automatic health-check scheduling in the no-systemd Podman build.
+
+These must be handled or explicitly scoped by the eventual package/test integration rather than silently hidden in a private fork.
+
