@@ -22,7 +22,7 @@ need()
     }
 }
 
-for tool in cc cksum cp curl find grep head mktemp mv rm sed sha256sum tar; do
+for tool in cc cksum cp curl find grep head mktemp mv rm sed sha256sum sort tar; do
     need "$tool"
 done
 
@@ -215,6 +215,31 @@ run_pkg default "$provider@1" >/dev/null
 run_pkg provider default "$facility" "$provider" >/dev/null
 printf 'standalone-provider-integration=PASS\n'
 
+provider_cache_snapshot()
+{
+    cache_root=$1
+    (
+        cd "$cache_root"
+        find . -type f -path '*/__pycache__/*' -exec cksum {} \; |
+            LC_ALL=C sort |
+            cksum
+    )
+}
+
+provider_cache_count()
+{
+    cache_root=$1
+    (
+        cd "$cache_root"
+        find . -type f -path '*/__pycache__/*' -print | wc -l | sed 's/[[:space:]]//g'
+    )
+}
+
+provider_root=$root/pkg/$provider@1/root
+provider_cache_before=$(provider_cache_snapshot "$provider_root")
+provider_cache_files_before=$(provider_cache_count "$provider_root")
+printf 'provider-preexisting-bytecode-files=%s\n' "$provider_cache_files_before"
+
 make_consumer()
 {
     package=$1
@@ -341,10 +366,23 @@ if hits:
     raise SystemExit(1)
 PY_SCAN2
 
-if find "$root/pkg/$provider@1/root" "$root/pkg/$pure_consumer@1/root" "$root/pkg/$native_consumer@1/root" -type d -name __pycache__ -print | grep . >/dev/null 2>&1
+if find "$root/pkg/$pure_consumer@1/root" "$root/pkg/$native_consumer@1/root" -type d -name __pycache__ -print | grep . >/dev/null 2>&1
 then
-    echo "ERROR Python wrote bytecode cache into immutable managed package roots" >&2
+    echo "ERROR Python wrote bytecode cache into immutable consumer package roots" >&2
     exit 1
 fi
-printf 'package-root-bytecode-cache=PASS_NONE\n'
+printf 'consumer-package-root-bytecode-cache=PASS_NONE\n'
+
+provider_root=$root/pkg/$provider@1/root
+provider_cache_after=$(provider_cache_snapshot "$provider_root")
+provider_cache_files_after=$(provider_cache_count "$provider_root")
+[ "$provider_cache_after" = "$provider_cache_before" ] || {
+    echo "ERROR managed execution changed preexisting provider bytecode cache contents" >&2
+    exit 1
+}
+[ "$provider_cache_files_after" = "$provider_cache_files_before" ] || {
+    echo "ERROR managed execution changed provider bytecode cache file count" >&2
+    exit 1
+}
+printf 'provider-preexisting-bytecode-cache=PASS_UNCHANGED count=%s\n' "$provider_cache_files_after"
 printf 'PASS python-build-standalone relocatable provider experiment\n'
