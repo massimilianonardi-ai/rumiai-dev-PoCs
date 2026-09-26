@@ -26,6 +26,14 @@ for tool in cc cksum cp curl find grep head mktemp mv rm sed sort tar; do
     need "$tool"
 done
 
+physical_dir()
+{
+    (
+        CDPATH= cd "$1" 2>/dev/null
+        pwd -P
+    )
+}
+
 sha256_file()
 {
     if command -v sha256sum >/dev/null 2>&1
@@ -108,8 +116,10 @@ probe "$python_a" before-move > "$work/probe-before.out"
 cat "$work/probe-before.out"
 
 old_runtime=$runtime_a
+old_runtime_physical=$(physical_dir "$runtime_a")
 runtime_b=$work/runtime-b
 mv "$runtime_a" "$runtime_b"
+runtime_b_physical=$(physical_dir "$runtime_b")
 python_b=$runtime_b/python/bin/python3
 [ -x "$python_b" ] || { echo "ERROR moved standalone Python executable missing" >&2; exit 1; }
 
@@ -117,13 +127,13 @@ probe "$python_b" after-move > "$work/probe-after.out"
 cat "$work/probe-after.out"
 
 after_prefix=$("$python_b" -c 'import sys; print(sys.prefix)')
-[ "$after_prefix" = "$runtime_b/python" ] || {
-    echo "ERROR moved standalone sys.prefix is not the live runtime prefix: $after_prefix" >&2
+[ "$after_prefix" = "$runtime_b_physical/python" ] || {
+    echo "ERROR moved standalone sys.prefix is not the live physical runtime prefix: $after_prefix" >&2
     exit 1
 }
 after_include=$("$python_b" -c 'import sysconfig; print(sysconfig.get_paths()["include"])')
 case "$after_include" in
-    "$runtime_b/python"/*) : ;;
+    "$runtime_b_physical/python"/*) : ;;
     *)
         echo "ERROR moved standalone sysconfig include is not live-prefix based: $after_include" >&2
         exit 1
@@ -163,6 +173,7 @@ printf 'materialized-shebangs=PASS_ENV_PYTHON\n'
 target_a=$work/target-a
 cp -R "$source_root" "$target_a"
 root=$target_a
+root_physical=$(physical_dir "$root")
 if [ ! -e "$root/pkg" ] && [ ! -L "$root/pkg" ]; then mkdir "$root/pkg"; fi
 [ -d "$root/pkg" ] && [ ! -L "$root/pkg" ] || {
     echo "ERROR disposable package store invalid" >&2
@@ -301,7 +312,7 @@ PATH="$root/bin/ext:$root/bin/sys:$host_path"
 export PATH
 managed_prefix=$(python -c 'import sys; print(sys.prefix)')
 case "$managed_prefix" in
-    "$root/pkg/$provider@1/root/python") : ;;
+    "$root_physical/pkg/$provider@1/root/python") : ;;
     *)
         echo "ERROR globally projected Python has unexpected prefix: $managed_prefix" >&2
         exit 1
@@ -309,7 +320,7 @@ case "$managed_prefix" in
 esac
 managed_include=$(python -c 'import sysconfig; print(sysconfig.get_paths()["include"])')
 case "$managed_include" in
-    "$root/pkg/$provider@1/root/python"/*) : ;;
+    "$root_physical/pkg/$provider@1/root/python"/*) : ;;
     *)
         echo "ERROR managed provider sysconfig include is not live-prefix based: $managed_include" >&2
         exit 1
@@ -318,9 +329,11 @@ esac
 printf 'managed-standalone-sysconfig=PASS\n'
 
 old_root=$root
+old_root_physical=$(physical_dir "$old_root")
 relocated=$work/target-b
 mv "$old_root" "$relocated"
 root=$relocated
+root_physical=$(physical_dir "$root")
 
 run_managed poc-pure > "$work/pure-after-root-move.out"
 assert_line "$work/pure-after-root-move.out" 'provider=standalone'
@@ -332,13 +345,13 @@ assert_line "$work/native-after-root-move.out" 'native=native-ok'
 PATH="$root/bin/ext:$root/bin/sys:$host_path"
 export PATH
 relocated_prefix=$(python -c 'import sys; print(sys.prefix)')
-[ "$relocated_prefix" = "$root/pkg/$provider@1/root/python" ] || {
+[ "$relocated_prefix" = "$root_physical/pkg/$provider@1/root/python" ] || {
     echo "ERROR relocated managed provider prefix is stale: $relocated_prefix" >&2
     exit 1
 }
 printf 'managed-root-relocation-with-provider=PASS\n'
 
-"$python_b" - "$old_root" "$root/pkg/$provider@1" "$root/pkg/$pure_consumer@1" "$root/pkg/$native_consumer@1" <<'PY_SCAN'
+"$python_b" - "$old_root_physical" "$root/pkg/$provider@1" "$root/pkg/$pure_consumer@1" "$root/pkg/$native_consumer@1" <<'PY_SCAN'
 import pathlib
 import sys
 needle = sys.argv[1].encode()
@@ -360,7 +373,7 @@ PY_SCAN
 printf 'managed-old-prefix-scan=PASS\n'
 
 # The original arbitrary extraction path should not become a durable dependency.
-"$python_b" - "$old_runtime" "$root/pkg/$provider@1" <<'PY_SCAN2'
+"$python_b" - "$old_runtime_physical" "$root/pkg/$provider@1" <<'PY_SCAN2'
 import pathlib
 import sys
 needle = sys.argv[1].encode()
