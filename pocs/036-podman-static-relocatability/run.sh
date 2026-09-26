@@ -35,8 +35,9 @@ cleanup() {
     if [ -n "${PODMAN_BIN:-}" ] && [ -x "${PODMAN_BIN:-}" ]; then
         "$PODMAN_BIN" pod rm -af >/dev/null 2>&1 || true
         "$PODMAN_BIN" rm -af >/dev/null 2>&1 || true
+        "$PODMAN_BIN" system reset -f >/dev/null 2>&1 || true
     fi
-    rm -rf "$work"
+    rm -rf "$work" 2>/dev/null || true
 }
 trap cleanup EXIT HUP INT TERM
 
@@ -219,6 +220,12 @@ for attempt in 1 2 3 4 5; do
 done
 [ "${out:-}" = "pod-ok" ] || {
     echo "ERROR pod interaction failed: ${out:-<empty>}" >&2
+    echo "pod-diagnostics-begin" >&2
+    "$PODMAN_BIN" pod ps >&2 || true
+    "$PODMAN_BIN" ps -a --pod >&2 || true
+    "$PODMAN_BIN" pod inspect rumi-poc-pod >&2 || true
+    "$PODMAN_BIN" logs rumi-poc-server >&2 || true
+    echo "pod-diagnostics-end" >&2
     exit 1
 }
 echo "pod-interaction=PASS"
