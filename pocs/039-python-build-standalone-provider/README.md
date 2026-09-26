@@ -83,6 +83,28 @@ whole RumiAI-root move
 
 The upstream install-only distribution contained three pre-existing bytecode-cache files. The first PoC 039 run incorrectly treated the mere presence of those shipped files as runtime mutation. The corrected run snapshots those files before managed execution and proves their count/content remain unchanged. Consumer package roots acquired no `__pycache__` directories while `PYTHONDONTWRITEBYTECODE=1` was projected experimentally.
 
-This gives direct Linux evidence that the tested `python-build-standalone` artifact can serve as a movable RumiAI Python provider and that its ordinary `sysconfig` include paths follow the live runtime prefix strongly enough to build a CPython native extension after relocation.
+A later cross-host rerun, GitHub Actions run `36270231418` at PoC revision `00da3691eab956902a4b8a7303f62d7e3d0a1b93`, passed both Ubuntu 24.04 and macOS 14 (Apple Silicon). The macOS job used the pinned aarch64 Apple Darwin artifact with SHA-256 `a18e1d1b6067d39cf7b2b605fdb78ad6b8a3aed221c44ef934d399dccf355453`.
 
-The result does not establish equivalent macOS behavior, does not prove every `sysconfig` variable is path-independent, and does not yet settle bytecode-cache ownership, Python compatibility semantics, or the final wheel materializer.
+The macOS job established the same tested properties as Linux:
+
+```text
+standalone CPython 3.13.15
+    direct runtime move                 -> PASS
+    sys.prefix after move               -> live physical prefix
+    tested sysconfig include path       -> live physical prefix
+    SSL / sqlite / ctypes               -> PASS
+    native extension build after move   -> PASS
+
+RumiAI provider integration
+    provider + pure/native consumers    -> PASS
+    #!/usr/bin/env python               -> PASS
+    whole managed-root move             -> PASS
+    managed old-prefix scan             -> clean
+    initial extraction-prefix hits      -> 0
+```
+
+The preceding macOS failure at run `36269415163` was a harness bug: macOS exposed the same temporary directory lexically as `/var/...` while CPython reported its physical path as `/private/var/...`. The corrected PoC canonicalizes directory paths with `pwd -P` before semantic comparison or old-prefix scanning.
+
+This now gives direct Linux + macOS evidence that the tested `python-build-standalone` artifact can serve as a movable RumiAI Python provider and that the tested `sysconfig` include path follows the live runtime prefix strongly enough to build a CPython native extension after relocation.
+
+The result still does not prove every `sysconfig` variable is path-independent and does not settle bytecode-cache ownership, Python compatibility semantics, consumer environment projection, or the final wheel materializer.
