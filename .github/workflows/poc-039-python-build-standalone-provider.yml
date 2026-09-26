@@ -1,0 +1,45 @@
+name: PoC 039 python-build-standalone relocatable provider
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - pocs/039-python-build-standalone-provider/**
+      - .github/workflows/poc-039-python-build-standalone-provider.yml
+      - pocs/038-python-environment-late-binding/build-fixtures.py
+      - pocs/038-python-environment-late-binding/materialize-wheel.py
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout PoCs
+        uses: actions/checkout@v4
+
+      - name: Checkout exact rumiai-os input
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-os
+          ref: 7d71de0de59120fb85236f087f0298c6dc637d71
+          path: rumiai-os
+
+      - name: Run PoC
+        shell: bash
+        env:
+          PBS_URL: https://github.com/astral-sh/python-build-standalone/releases/download/20260924/cpython-3.13.15%2B20260924-x86_64-unknown-linux-gnu-install_only.tar.gz
+          PBS_SHA256: c20e1ff8600a0241849588b36948942eaccdc80da34df69674f3784a687197de
+        run: |
+          set -o pipefail
+          ./pocs/039-python-build-standalone-provider/run.sh "$GITHUB_WORKSPACE/rumiai-os" | tee poc-039-result.log
+
+      - name: Upload result log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-039-result
+          path: poc-039-result.log
+          if-no-files-found: ignore
