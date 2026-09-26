@@ -265,10 +265,28 @@ spec:
       image: $IMAGE
       command: ["sh", "-c", "sleep 30"]
 EOF_KUBE
-"$PODMAN_BIN" kube play "$kube"
+kube_default_log="$work/kube-default.log"
+if "$PODMAN_BIN" kube play "$kube" >"$kube_default_log" 2>&1; then
+    cat "$kube_default_log"
+    echo "kube-default-network=PASS"
+    "$PODMAN_BIN" pod exists rumi-poc-kube
+    "$PODMAN_BIN" kube down "$kube"
+else
+    kube_default_status=$?
+    cat "$kube_default_log"
+    if grep -q 'aardvark-dns failed to start: Failed to connect to bus' "$kube_default_log"; then
+        echo "kube-default-network=BLOCKED_HOST_USER_SYSTEMD_BUS"
+    else
+        echo "ERROR kube play default network failed: $kube_default_status" >&2
+        exit "$kube_default_status"
+    fi
+    "$PODMAN_BIN" kube down "$kube" >/dev/null 2>&1 || true
+fi
+
+"$PODMAN_BIN" kube play --network=pasta "$kube"
 "$PODMAN_BIN" pod exists rumi-poc-kube
 "$PODMAN_BIN" kube down "$kube"
-echo "kube-play-down=PASS"
+echo "kube-pasta-play-down=PASS"
 
 "$PODMAN_BIN" run -d --name rumi-poc-health \
     --health-cmd 'true' --health-interval 1s --health-retries 1 "$IMAGE" sleep 20 >/dev/null
