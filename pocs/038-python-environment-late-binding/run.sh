@@ -121,6 +121,14 @@ root=$target_a
     echo "ERROR disposable rumiai-os copy is incomplete" >&2
     exit 1
 }
+if [ ! -e "$root/pkg" ] && [ ! -L "$root/pkg" ]
+then
+    mkdir "$root/pkg"
+fi
+[ -d "$root/pkg" ] && [ ! -L "$root/pkg" ] || {
+    echo "ERROR disposable rumiai-os package store is not a real directory" >&2
+    exit 1
+}
 
 host_path=$PATH
 export POC38_PYTHON_A=$PYTHON_A
@@ -221,9 +229,7 @@ EOF_COMMAND
 }
 
 printf 'rumiai-disposable-root=%s\n' "$root"
-set -x
 make_provider "$provider_a" A POC38_PYTHON_A
-set +x
 printf 'provider-a-integration=PASS\n'
 make_provider "$provider_b" B POC38_PYTHON_B
 printf 'provider-b-integration=PASS\n'
