@@ -50,3 +50,39 @@ Runtime startup can succeed while build metadata remains tied to an earlier pref
 A PASS establishes Linux evidence only for this pinned upstream artifact and exact RumiAI input revision. It does not yet validate macOS loader/install-name behavior, choose a permanent Python facility compatibility contract, adopt `PYTHONPATH`, or promote the experimental wheel materializer.
 
 The experiment deliberately keeps `PYTHONDONTWRITEBYTECODE=1` as the provisional package-root immutability control discovered by PoC 038. Bytecode-cache ownership remains a separate open design question.
+
+
+## Observed result
+
+PASS on GitHub Actions run `36269289831`, using PoC revision `e311db990ebae3d8674b90cdc53c4f082c16463d` against exact `rumiai-os` revision `7d71de0de59120fb85236f087f0298c6dc637d71` on Ubuntu 24.04.
+
+The pinned upstream artifact digest matched `c20e1ff8600a0241849588b36948942eaccdc80da34df69674f3784a687197de`.
+
+Observed behavior:
+
+```text
+standalone CPython 3.13.15
+    extract at runtime-a -> startup/sysconfig/native stdlib OK
+    move to runtime-b    -> startup/sysconfig/native stdlib OK
+    sys.prefix           -> follows runtime-b
+    sysconfig include    -> follows runtime-b
+    native extension build after move -> PASS
+
+RumiAI provider integration
+    provider command -> standalone python/bin/python3
+    pure consumer    -> PASS via #!/usr/bin/env python
+    native consumer  -> PASS
+    sysconfig inside managed provider -> live package prefix
+
+whole RumiAI-root move
+    provider + consumers move together
+    pure/native commands still run
+    managed old-prefix scan -> clean
+    initial standalone extraction prefix hits -> 0
+```
+
+The upstream install-only distribution contained three pre-existing bytecode-cache files. The first PoC 039 run incorrectly treated the mere presence of those shipped files as runtime mutation. The corrected run snapshots those files before managed execution and proves their count/content remain unchanged. Consumer package roots acquired no `__pycache__` directories while `PYTHONDONTWRITEBYTECODE=1` was projected experimentally.
+
+This gives direct Linux evidence that the tested `python-build-standalone` artifact can serve as a movable RumiAI Python provider and that its ordinary `sysconfig` include paths follow the live runtime prefix strongly enough to build a CPython native extension after relocation.
+
+The result does not establish equivalent macOS behavior, does not prove every `sysconfig` variable is path-independent, and does not yet settle bytecode-cache ownership, Python compatibility semantics, or the final wheel materializer.
