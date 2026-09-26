@@ -1,0 +1,36 @@
+name: poc-036-podman-static-relocatability
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/poc-036-podman-static-relocatability.yml
+      - pocs/036-podman-static-relocatability/**
+  workflow_dispatch:
+
+jobs:
+  experiment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout PoC
+        uses: actions/checkout@v4
+
+      - name: Host baseline
+        shell: sh
+        run: |
+          uname -a
+          id
+          command -v newuidmap || true
+          command -v newgidmap || true
+          test ! -r /etc/subuid || cat /etc/subuid
+          test ! -r /etc/subgid || cat /etc/subgid
+          test ! -e /dev/fuse || ls -l /dev/fuse
+
+      - name: Run unmodified upstream bundle experiment
+        shell: sh
+        run: |
+          chmod +x pocs/036-podman-static-relocatability/run.sh
+          pocs/036-podman-static-relocatability/run.sh
