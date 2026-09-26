@@ -98,10 +98,13 @@ probe "$python_a" before-move > "$work/before.out"
 cat "$work/before.out"
 
 before_prefix=$("$python_a" -c 'import sys; print(sys.prefix)')
-[ "$before_prefix" = "$prefix_a_physical" ] || {
-    echo "ERROR CPython prefix differs from physical environment prefix: $before_prefix" >&2
+before_prefix_physical=$(physical_dir "$before_prefix")
+[ "$before_prefix_physical" = "$prefix_a_physical" ] || {
+    echo "ERROR CPython prefix does not resolve to the environment directory: $before_prefix" >&2
     exit 1
 }
+printf 'before-prefix-lexical=%s\n' "$before_prefix"
+printf 'before-prefix-physical=%s\n' "$before_prefix_physical"
 
 pip_shebang=$(head -n 1 "$pip_a")
 printf 'pip-shebang=%s\n' "$pip_shebang"
@@ -116,7 +119,7 @@ entries = 0
 placeholders = 0
 python_placeholders = 0
 examples = []
-for path in root.glob("*/info/paths.json"):
+for path in root.rglob("info/paths.json"):
     files += 1
     try:
         data = json.loads(path.read_text())
@@ -140,8 +143,15 @@ for package, rel, placeholder, mode in examples:
     print(f"conda-prefix-placeholder={package}|{rel}|{mode}|{placeholder}")
 PY_META
 
-before_hits=$(grep -R -a -l -F "$prefix_a_physical" "$prefix_a" 2>/dev/null | wc -l | sed 's/[[:space:]]//g')
-printf 'old-prefix-hit-files-before-move=%s\n' "$before_hits"
+before_hits_lexical=$(grep -R -a -l -F "$before_prefix" "$prefix_a" 2>/dev/null | wc -l | sed 's/[[:space:]]//g')
+printf 'old-prefix-hit-files-before-move-lexical=%s\n' "$before_hits_lexical"
+if [ "$before_prefix" = "$before_prefix_physical" ]
+then
+    before_hits_physical=$before_hits_lexical
+else
+    before_hits_physical=$(grep -R -a -l -F "$before_prefix_physical" "$prefix_a" 2>/dev/null | wc -l | sed 's/[[:space:]]//g')
+fi
+printf 'old-prefix-hit-files-before-move-physical=%s\n' "$before_hits_physical"
 
 prefix_b=$work/env-b
 mv "$prefix_a" "$prefix_b"
@@ -152,10 +162,13 @@ pip_b=$prefix_b/bin/pip
 probe "$python_b" after-move > "$work/after.out"
 cat "$work/after.out"
 after_prefix=$("$python_b" -c 'import sys; print(sys.prefix)')
-[ "$after_prefix" = "$prefix_b_physical" ] || {
-    echo "ERROR moved CPython did not follow physical prefix: $after_prefix" >&2
+after_prefix_physical=$(physical_dir "$after_prefix")
+[ "$after_prefix_physical" = "$prefix_b_physical" ] || {
+    echo "ERROR moved CPython prefix does not resolve to moved environment: $after_prefix" >&2
     exit 1
 }
+printf 'after-prefix-lexical=%s\n' "$after_prefix"
+printf 'after-prefix-physical=%s\n' "$after_prefix_physical"
 printf 'conda-python-direct-relocation=PASS\n'
 
 "$python_b" -m pip --version > "$work/python-m-pip.out"
@@ -180,7 +193,17 @@ fi
 grep -E '^(python|pip)[[:space:]]' "$work/list-after-move.out" || :
 printf 'micromamba-recognizes-moved-prefix=PASS\n'
 
-after_hits=$(grep -R -a -l -F "$prefix_a_physical" "$prefix_b" 2>/dev/null | wc -l | sed 's/[[:space:]]//g')
-printf 'old-prefix-hit-files-after-move=%s\n' "$after_hits"
+after_hits_lexical=$(grep -R -a -l -F "$before_prefix" "$prefix_b" 2>/dev/null | wc -l | sed 's/[[:space:]]//g')
+printf 'old-prefix-hit-files-after-move-lexical=%s\n' "$after_hits_lexical"
+if [ "$before_prefix" = "$before_prefix_physical" ]
+then
+    after_hits_physical=$after_hits_lexical
+else
+    after_hits_physical=$(grep -R -a -l -F "$before_prefix_physical" "$prefix_b" 2>/dev/null | wc -l | sed 's/[[:space:]]//g')
+fi
+printf 'old-prefix-hit-files-after-move-physical=%s\n' "$after_hits_physical"
+
+printf 'old-prefix-hit-examples-after-move:\n'
+grep -R -a -l -F "$before_prefix" "$prefix_b" 2>/dev/null | LC_ALL=C sort | head -n 20 || :
 
 printf 'PASS micromamba Python prefix relocation experiment\n'
