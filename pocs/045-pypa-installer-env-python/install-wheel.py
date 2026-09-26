@@ -22,14 +22,15 @@ class EnvPythonDestination(SchemeDictionaryDestination):
         if scheme == Scheme("scripts"):
             data = stream.read()
             first, separator, rest = data.partition(b"\n")
-            if separator and first in {b"#!python", b"#!pythonw"}:
+            rewritten_python_script = separator and first in {b"#!python", b"#!pythonw"}
+            if rewritten_python_script:
                 data = ENV_PYTHON_SHEBANG + rest
             with io.BytesIO(data) as rewritten:
                 return self.write_to_fs(
                     scheme,
                     str(path),
                     rewritten,
-                    is_executable=is_executable,
+                    is_executable=is_executable or rewritten_python_script,
                 )
         return super().write_file(scheme, path, stream, is_executable)
 
