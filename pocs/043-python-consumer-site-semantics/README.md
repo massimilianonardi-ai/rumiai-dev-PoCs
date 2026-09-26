@@ -33,3 +33,30 @@ The experiment compares:
 A PASS should establish whether bare `PYTHONPATH` preserves normal site semantics. If it does not, the result does **not** automatically adopt `site.addsitedir()` as the RumiAI mechanism. It only identifies the semantic gap that the eventual consumer-environment projection must deliberately preserve or deliberately exclude.
 
 The experiment also records that processing ordinary `.pth` files can execute `import` lines. Preserving normal Python site semantics therefore includes that behavior; a future RumiAI design must not accidentally claim ordinary site compatibility while silently skipping it.
+
+
+## Observed result
+
+PASS on GitHub Actions run `36271936061` at PoC revision `b7f983119456981e9544a4de2c12d670aa7fbc69`, on Ubuntu 24.04 and macOS 14.
+
+Both hosts produced the same semantic result:
+
+```text
+ordinary site-packages
+    .pth relative path                 -> processed
+    .pth import line                   -> executed
+
+bare PYTHONPATH
+    directory itself on sys.path       -> yes
+    .pth relative path                 -> not processed
+    .pth import line                   -> not executed
+
+site.addsitedir(consumer site)
+    .pth relative path                 -> processed
+    .pth import line                   -> executed
+    after complete tree relocation     -> still works
+```
+
+Therefore the provisional PoC 038 projection based only on `PYTHONPATH` is sufficient to prove interpreter/environment separation for simple imports, but it is **not semantically equivalent to an ordinary Python site-packages directory**.
+
+The final RumiAI consumer-environment design must make an explicit choice: preserve ordinary site-directory semantics (including `.pth` path additions and executable `import` lines), or deliberately define a narrower model and reject/transform packages that depend on those semantics. `site.addsitedir()` is now proven as one relocatable Python-native primitive for processing a consumer site directory, but this PoC does not prescribe how RumiAI should invoke it.
