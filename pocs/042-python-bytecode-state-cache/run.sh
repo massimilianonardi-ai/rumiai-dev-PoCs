@@ -140,6 +140,13 @@ cache_before_path=$(cache_path_for "$module_before")
     echo "ERROR expected state bytecode path missing: $cache_before_path" >&2
     exit 1
 }
+case "$cache_before_path" in
+    "$cache"/*) cache_before_rel=${cache_before_path#"$cache"/} ;;
+    *)
+        echo "ERROR first cache path is outside consumer cache root: $cache_before_path" >&2
+        exit 1
+        ;;
+esac
 count_before=$(find "$cache" -type f -name '*.pyc' | wc -l | sed 's/[[:space:]]//g')
 printf 'package-root-bytecode=PASS_NONE\n'
 printf 'state-bytecode-files-before-move=%s\n' "$count_before"
@@ -148,6 +155,15 @@ old_root=$root
 root=$work/target-b
 mv "$old_root" "$root"
 package_root=$root/pkg/$consumer@1/root
+
+consumer_home=$("$root/m" "$root/bin/sys/state-path" user pkg "$consumer" home)
+consumer_state=${consumer_home%/home}
+cache=$consumer_home/.cache/python
+old_cache_after_move=$cache/$cache_before_rel
+[ -f "$old_cache_after_move" ] || {
+    echo "ERROR old bytecode cache did not move with consumer state" >&2
+    exit 1
+}
 
 run_managed "$work/second.out"
 grep -Fx 'fixture=pure' "$work/second.out" >/dev/null
@@ -161,18 +177,19 @@ if find "$package_root" -type d -name __pycache__ -print | grep . >/dev/null 2>&
     exit 1
 fi
 cache_after_path=$(cache_path_for "$module_after")
-[ "$cache_after_path" != "$cache_before_path" ] || {
-    echo "ERROR cache path did not follow relocated source" >&2
+[ "$cache_after_path" != "$old_cache_after_move" ] || {
+    echo "ERROR cache path did not distinguish relocated source" >&2
     exit 1
 }
 [ -f "$cache_after_path" ] || {
     echo "ERROR no cache file for relocated source: $cache_after_path" >&2
     exit 1
 }
-[ -f "$cache_before_path" ] || {
-    echo "ERROR old cache file unexpectedly disappeared" >&2
+[ -f "$old_cache_after_move" ] || {
+    echo "ERROR old cache file unexpectedly disappeared after relocation" >&2
     exit 1
 }
+printf 'old-state-cache-moved-with-root=PASS\n'
 printf 'old-state-cache-harmless-after-relocation=PASS\n'
 printf 'relocated-source-cache-path=PASS\n'
 
@@ -183,8 +200,8 @@ find "$cache" -type f -name '*.pyc' -print | grep . >/dev/null 2>&1 || {
     echo "ERROR bytecode cache did not regenerate" >&2
     exit 1
 }
-[ ! -e "$cache_before_path" ] || {
-    echo "ERROR old cache path reappeared after discard/regeneration" >&2
+[ ! -e "$old_cache_after_move" ] || {
+    echo "ERROR old-source cache path reappeared after discard/regeneration" >&2
     exit 1
 }
 [ -f "$cache_after_path" ] || {
