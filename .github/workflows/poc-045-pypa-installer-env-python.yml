@@ -26,7 +26,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          ./pocs/045-pypa-installer-env-python/run.sh | tee poc-045-linux.log
+          sh ./pocs/045-pypa-installer-env-python/run.sh | tee poc-045-linux.log
 
   macos:
     runs-on: macos-14
@@ -42,4 +42,4 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          ./pocs/045-pypa-installer-env-python/run.sh | tee poc-045-macos.log
+          sh ./pocs/045-pypa-installer-env-python/run.sh | tee poc-045-macos.log
