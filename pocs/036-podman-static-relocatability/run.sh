@@ -147,7 +147,6 @@ if [ -f "$relocated/etc/containers/registries.conf" ]; then
     export CONTAINERS_REGISTRIES_CONF="$relocated/etc/containers/registries.conf"
 fi
 export TMPDIR="$tmp"
-export PODMAN_NO_PAUSE_PROCESS=1
 export PATH="$relocated/usr/local/bin:$PATH"
 mkdir -p "$HOME"
 
