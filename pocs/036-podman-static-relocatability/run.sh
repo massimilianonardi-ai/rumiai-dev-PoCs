@@ -175,15 +175,24 @@ else
 fi
 
 "$PODMAN_BIN" --version
-"$CRUN_BIN" --version | head -1
-"$CONMON_BIN" --version | head -1
+"$CRUN_BIN" --version | head -n 1
+"$CONMON_BIN" --version | head -n 1
 
 echo "podman-info-begin"
-if "$PODMAN_BIN" --log-level=debug info; then
+info_log="$work/podman-info.log"
+if "$PODMAN_BIN" --log-level=debug info >"$info_log" 2>&1; then
+    cat "$info_log"
     echo "podman-info-result=PASS"
 else
     info_status=$?
+    cat "$info_log"
     echo "podman-info-result=FAIL:$info_status"
+    if [ -r /proc/sys/kernel/apparmor_restrict_unprivileged_userns ] &&
+       [ "$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns)" = 1 ] &&
+       grep -q 'failed to reexec: Permission denied' "$info_log"; then
+        echo "rootless-execution=SKIP_HOST_APPARMOR_PATH_POLICY"
+        exit 0
+    fi
     if [ "$rootless_ready" = yes ]; then
         exit "$info_status"
     fi
@@ -200,7 +209,7 @@ echo "basic-container=PASS"
 echo "rootless-network=PASS"
 
 "$PODMAN_BIN" pod create --name rumi-poc-pod >/dev/null
-"$PODMAN_BIN" run -d --pod rumi-poc-pod --name rumi-poc-server "$IMAGE""
+"$PODMAN_BIN" run -d --pod rumi-poc-pod --name rumi-poc-server "$IMAGE" \
     sh -c 'mkdir -p /www && printf "pod-ok\\n" >/www/index.html && exec httpd -f -p 8080 -h /www' >/dev/null
 for attempt in 1 2 3 4 5; do
     if out=$("$PODMAN_BIN" run --rm --pod rumi-poc-pod "$IMAGE" wget -qO- http://127.0.0.1:8080 2>/dev/null); then
