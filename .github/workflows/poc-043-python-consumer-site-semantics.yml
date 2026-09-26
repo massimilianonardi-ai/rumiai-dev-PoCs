@@ -1,0 +1,34 @@
+name: PoC 043 Python consumer site semantics
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - pocs/043-python-consumer-site-semantics/**
+      - .github/workflows/poc-043-python-consumer-site-semantics.yml
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run PoC
+        shell: bash
+        run: |
+          set -o pipefail
+          ./pocs/043-python-consumer-site-semantics/run.sh | tee poc-043-linux.log
+
+  macos:
+    runs-on: macos-14
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run PoC
+        shell: bash
+        run: |
+          set -o pipefail
+          ./pocs/043-python-consumer-site-semantics/run.sh | tee poc-043-macos.log
