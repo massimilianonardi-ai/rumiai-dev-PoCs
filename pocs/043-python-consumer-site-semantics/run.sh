@@ -14,6 +14,14 @@ for tool in cp grep mkdir mktemp mv rm; do
     }
 done
 
+physical_dir()
+{
+    (
+        CDPATH= cd "$1" 2>/dev/null
+        pwd -P
+    )
+}
+
 work=$(mktemp -d "${TMPDIR:-/tmp}/rumiai-python-site-poc.XXXXXX")
 cleanup()
 {
@@ -22,8 +30,8 @@ cleanup()
 trap cleanup 0 HUP INT TERM
 
 tree_a=$work/tree-a
-site_a=$tree_a/site-packages
-mkdir -p "$site_a/extras"
+mkdir -p "$tree_a/site-packages/extras"
+site_a=$(physical_dir "$tree_a/site-packages")
 
 cat > "$site_a/poc43.pth" <<'EOF_PTH'
 extras
@@ -89,7 +97,7 @@ printf 'explicit-addsitedir-pth-processing=PASS\n'
 # Move the complete consumer-style tree and repeat without rewriting it.
 tree_b=$work/tree-b
 mv "$tree_a" "$tree_b"
-site_b=$tree_b/site-packages
+site_b=$(physical_dir "$tree_b/site-packages")
 
 PYTHONPATH="$site_b" "$PYTHON" - "$site_b" > "$work/relocated.out" <<'PY_RELOCATED'
 import builtins
