@@ -64,9 +64,9 @@ echo "installer-scripts-begin"
 find "$expanded" -type f \( -name preinstall -o -name postinstall \) -print | sort
 echo "installer-scripts-end"
 
-payload_podman=$(find "$expanded" -type d -path '*/Payload/opt/podman' -print | sed -n '1p')
+payload_podman=$(find "$expanded" -type d -path '*/Payload/podman' -print | sed -n '1p')
 [ -n "$payload_podman" ] && [ -d "$payload_podman" ] || {
-  echo "ERROR official /opt/podman payload not found" >&2
+  echo "ERROR official podman payload not found" >&2
   find "$expanded" -maxdepth 5 -print >&2
   exit 1
 }
