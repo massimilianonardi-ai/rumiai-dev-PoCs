@@ -22,9 +22,23 @@ need()
     }
 }
 
-for tool in cc cksum cp curl find grep head mktemp mv rm sed sha256sum sort tar; do
+for tool in cc cksum cp curl find grep head mktemp mv rm sed sort tar; do
     need "$tool"
 done
+
+sha256_file()
+{
+    if command -v sha256sum >/dev/null 2>&1
+    then
+        sha256sum "$1" | sed 's/[[:space:]].*$//'
+    elif command -v shasum >/dev/null 2>&1
+    then
+        shasum -a 256 "$1" | sed 's/[[:space:]].*$//'
+    else
+        echo "ERROR no SHA-256 command available" >&2
+        return 1
+    fi
+}
 
 script_dir=$(CDPATH= cd "${0%/*}" 2>/dev/null && pwd -P)
 poc038_dir=${script_dir%/*}/038-python-environment-late-binding
@@ -43,7 +57,7 @@ trap cleanup 0 HUP INT TERM
 archive=$work/python.tar.gz
 printf 'download=%s\n' "$PBS_URL"
 curl -L --fail --silent --show-error "$PBS_URL" -o "$archive"
-actual_sha=$(sha256sum "$archive" | sed 's/[[:space:]].*$//')
+actual_sha=$(sha256_file "$archive")
 [ "$actual_sha" = "$PBS_SHA256" ] || {
     echo "ERROR upstream artifact digest mismatch: $actual_sha" >&2
     exit 1

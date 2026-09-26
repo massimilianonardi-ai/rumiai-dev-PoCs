@@ -117,7 +117,27 @@ PyMODINIT_FUNC PyInit__nativeprobe(void) {
         cfile = td / "nativeprobe.c"
         sofile = td / ("_nativeprobe" + ext_suffix)
         cfile.write_text(c_source)
-        cmd = [os.environ.get("CC", "cc"), "-shared", "-fPIC", f"-I{include}", str(cfile), "-o", str(sofile)]
+        if sys.platform == "darwin":
+            cmd = [
+                os.environ.get("CC", "cc"),
+                "-bundle",
+                "-undefined",
+                "dynamic_lookup",
+                f"-I{include}",
+                str(cfile),
+                "-o",
+                str(sofile),
+            ]
+        else:
+            cmd = [
+                os.environ.get("CC", "cc"),
+                "-shared",
+                "-fPIC",
+                f"-I{include}",
+                str(cfile),
+                "-o",
+                str(sofile),
+            ]
         subprocess.run(cmd, check=True)
         native_bytes = sofile.read_bytes()
 
