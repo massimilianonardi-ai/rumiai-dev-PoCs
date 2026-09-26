@@ -275,7 +275,7 @@ run_pkg provider default "$facility" "$provider_b" >/dev/null
 run_managed poc-pure > "$work/pure-default-b.out"
 assert_line "$work/pure-default-b.out" 'provider=B'
 assert_line "$work/pure-default-b.out" "version=$version_b"
-[ "$(cksum "$pure_target")" = "$pure_hash_before" ] || {
+[ "$(cksum < "$pure_target")" = "$pure_hash_before" ] || {
     echo "ERROR facility-default change rewrote the pure console script" >&2
     exit 1
 }
@@ -326,7 +326,7 @@ assert_line "$work/data-relocated.out" 'provider=A'
 run_managed poc-native > "$work/native-relocated.out"
 assert_line "$work/native-relocated.out" 'native=native-ok'
 
-[ "$(cksum "$pure_target")" = "$pure_hash_before" ] || {
+[ "$(cksum < "$pure_target")" = "$pure_hash_before" ] || {
     echo "ERROR physical relocation changed the pure console script" >&2
     exit 1
 }
@@ -334,7 +334,7 @@ assert_line "$work/native-relocated.out" 'native=native-ok'
     echo "ERROR physical relocation changed the wheel data script" >&2
     exit 1
 }
-[ "$(cksum "$native_target")" = "$native_hash_before" ] || {
+[ "$(cksum < "$native_target")" = "$native_hash_before" ] || {
     echo "ERROR physical relocation changed the native console script" >&2
     exit 1
 }
