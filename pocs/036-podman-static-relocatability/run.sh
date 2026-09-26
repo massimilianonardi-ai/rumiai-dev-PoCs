@@ -3,6 +3,7 @@ set -eu
 
 VERSION=${PODMAN_STATIC_VERSION:-v6.1.2}
 IMAGE=${PODMAN_TEST_IMAGE:-docker.io/library/alpine:3.22}
+SERVER_IMAGE=${PODMAN_SERVER_IMAGE:-docker.io/library/nginx:alpine}
 
 case "$(uname -m)" in
     x86_64|amd64)
@@ -203,6 +204,7 @@ fi
 echo "podman-info-end"
 
 "$PODMAN_BIN" pull "$IMAGE"
+"$PODMAN_BIN" pull "$SERVER_IMAGE"
 "$PODMAN_BIN" run --rm --network=host "$IMAGE" sh -c 'printf "basic-container-ok\\n"'
 echo "basic-container=PASS"
 
@@ -210,16 +212,17 @@ echo "basic-container=PASS"
 echo "rootless-network=PASS"
 
 "$PODMAN_BIN" pod create --name rumi-poc-pod >/dev/null
-"$PODMAN_BIN" run -d --pod rumi-poc-pod --name rumi-poc-server "$IMAGE" \
-    sh -c 'mkdir -p /www && printf "pod-ok\\n" >/www/index.html && exec httpd -f -p 8080 -h /www' >/dev/null
+"$PODMAN_BIN" run -d --pod rumi-poc-pod --name rumi-poc-server "$SERVER_IMAGE" >/dev/null
+out=
 for attempt in 1 2 3 4 5; do
-    if out=$("$PODMAN_BIN" run --rm --pod rumi-poc-pod "$IMAGE" wget -qO- http://127.0.0.1:8080 2>/dev/null); then
+    if "$PODMAN_BIN" run --rm --pod rumi-poc-pod "$IMAGE" wget -qO- http://127.0.0.1 >/dev/null 2>&1; then
+        out=pod-ok
         break
     fi
     sleep 1
 done
 [ "${out:-}" = "pod-ok" ] || {
-    echo "ERROR pod interaction failed: ${out:-<empty>}" >&2
+    echo "ERROR pod interaction failed" >&2
     echo "pod-diagnostics-begin" >&2
     "$PODMAN_BIN" pod ps >&2 || true
     "$PODMAN_BIN" ps -a --pod >&2 || true
@@ -232,17 +235,19 @@ echo "pod-interaction=PASS"
 "$PODMAN_BIN" pod rm -f rumi-poc-pod >/dev/null
 
 port=18080
-"$PODMAN_BIN" run -d --name rumi-poc-port -p "127.0.0.1:${port}:8080" "$IMAGE" \
-    sh -c 'mkdir -p /www && printf "port-ok\\n" >/www/index.html && exec httpd -f -p 8080 -h /www' >/dev/null
+"$PODMAN_BIN" run -d --name rumi-poc-port -p "127.0.0.1:${port}:80" "$SERVER_IMAGE" >/dev/null
 port_out=
 for attempt in 1 2 3 4 5 6 7 8 9 10; do
-    if port_out=$(curl -fsS "http://127.0.0.1:${port}" 2>/dev/null); then
+    if curl -fsS "http://127.0.0.1:${port}" >/dev/null 2>&1; then
+        port_out=port-ok
         break
     fi
     sleep 1
 done
 [ "${port_out:-}" = "port-ok" ] || {
-    echo "ERROR port forwarding failed: ${port_out:-<empty>}" >&2
+    echo "ERROR port forwarding failed" >&2
+    "$PODMAN_BIN" ps -a >&2 || true
+    "$PODMAN_BIN" logs rumi-poc-port >&2 || true
     exit 1
 }
 echo "port-forwarding=PASS"
