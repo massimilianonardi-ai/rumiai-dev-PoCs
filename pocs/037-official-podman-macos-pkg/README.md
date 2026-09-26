@@ -37,3 +37,33 @@ The experiment deliberately does not claim `podman machine start` validation bec
 A successful result would show that the official userland payload itself can remain unmodified and relocatable with documented configuration only. It would not by itself prove complete equivalence with the system installer, because the official pre/post-install scripts also configure PATH/manpath and install the optional `podman-mac-helper` system service used for default Docker socket integration.
 
 A failure is evidence against using a relocatable RumiAI `pkg podman` on macOS and favors simply using the official system installer.
+
+## Observed result
+
+GitHub Actions run `36227410955` executed on the standard ARM64 `macos-14` runner.
+
+The exact upstream v6.1.2 installer:
+
+- matched the release SHA-256;
+- was signed by `Developer ID Installer: Red Hat, Inc. (HYSCB8KRL2)`;
+- was trusted by Apple's notary service and accepted by Gatekeeper;
+- expanded to the official Podman payload containing `podman`, `gvproxy`, `vfkit`, `krunkit`, `podman-mac-helper`, libraries and documentation;
+- preserved valid code signatures for all principal relocated executables.
+
+The official `podman` binary contains the build-time `/opt/podman/bin` helper path, as expected from the upstream installer build. With only the documented `helper_binaries_dir` override pointed at the relocated official payload, the relocated client:
+
+- reported Podman 6.1.2;
+- selected its macOS machine provider;
+- successfully downloaded the machine image;
+- completed `podman machine init`;
+- successfully exposed the resulting machine through `podman machine inspect`.
+
+`podman machine start` was intentionally not used as validation because GitHub-hosted macOS runners do not support nested virtualization.
+
+## Conclusion
+
+The exact official Podman userland payload is substantially relocatable without rebuilding: documented configuration is sufficient for the tested client and machine-initialization path.
+
+It is nevertheless **not identical to running the official installer**, because relocation deliberately omits the installer's system-side effects, including PATH/manpath registration and installation of `podman-mac-helper` for the default Docker socket integration.
+
+Under the task's stricter equivalence criterion, this PoC therefore does not justify a RumiAI `pkg podman`. The official macOS `.pkg` installer already provides the no-Homebrew path while preserving the complete upstream installation behavior.
