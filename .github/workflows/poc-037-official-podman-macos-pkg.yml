@@ -1,0 +1,25 @@
+name: poc-037-official-podman-macos-pkg
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/poc-037-official-podman-macos-pkg.yml
+      - pocs/037-official-podman-macos-pkg/**
+  workflow_dispatch:
+
+jobs:
+  experiment:
+    runs-on: macos-14
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout PoC
+        uses: actions/checkout@v4
+
+      - name: Run official Podman pkg relocation experiment
+        shell: sh
+        run: |
+          chmod +x pocs/037-official-podman-macos-pkg/run.sh
+          pocs/037-official-podman-macos-pkg/run.sh
