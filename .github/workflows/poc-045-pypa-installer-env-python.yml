@@ -1,0 +1,45 @@
+name: PoC 045 PyPA installer env-python destination
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - pocs/045-pypa-installer-env-python/**
+      - .github/workflows/poc-045-pypa-installer-env-python.yml
+      - pocs/038-python-environment-late-binding/build-fixtures.py
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install pinned PyPA installer
+        run: python -m pip install --disable-pip-version-check 'installer==1.0.1'
+      - name: Run PoC
+        shell: bash
+        run: |
+          set -o pipefail
+          ./pocs/045-pypa-installer-env-python/run.sh | tee poc-045-linux.log
+
+  macos:
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install pinned PyPA installer
+        run: python -m pip install --disable-pip-version-check 'installer==1.0.1'
+      - name: Run PoC
+        shell: bash
+        run: |
+          set -o pipefail
+          ./pocs/045-pypa-installer-env-python/run.sh | tee poc-045-macos.log
