@@ -25,12 +25,35 @@ jobs:
           id
           command -v newuidmap || true
           command -v newgidmap || true
+          command -v podman || true
+          podman --version 2>/dev/null || true
           test ! -r /etc/subuid || cat /etc/subuid
           test ! -r /etc/subgid || cat /etc/subgid
           test ! -e /dev/fuse || ls -l /dev/fuse
+          test ! -r /sys/module/apparmor/parameters/enabled || {
+            printf 'apparmor-enabled='
+            cat /sys/module/apparmor/parameters/enabled
+          }
+          test ! -r /proc/sys/kernel/apparmor_restrict_unprivileged_userns || {
+            printf 'apparmor-restrict-unprivileged-userns='
+            cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+          }
+          if [ -r /etc/apparmor.d/podman ]; then
+            echo apparmor-podman-profile-begin
+            grep -n -E '^(profile podman|[[:space:]]*/.*podman)' /etc/apparmor.d/podman || true
+            echo apparmor-podman-profile-end
+          fi
 
       - name: Run unmodified upstream bundle experiment
         shell: sh
         run: |
           chmod +x pocs/036-podman-static-relocatability/run.sh
           pocs/036-podman-static-relocatability/run.sh
+
+      - name: Security diagnostics after failure
+        if: failure()
+        shell: sh
+        run: |
+          echo kernel-security-diagnostics-begin
+          sudo journalctl -k --no-pager -n 300 2>/dev/null | grep -Ei 'apparmor|DENIED|userns|podman' || true
+          echo kernel-security-diagnostics-end
