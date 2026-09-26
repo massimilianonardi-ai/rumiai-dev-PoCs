@@ -220,24 +220,18 @@ EOF_COMMAND
     run_pkg default "$package@1" >/dev/null
 }
 
-make_provider "$provider_a" A POC38_PYTHON_A > "$work/provider-a-integrate.out" 2> "$work/provider-a-integrate.err" || {
-    cat "$work/provider-a-integrate.err" >&2
-    exit 1
-}
-make_provider "$provider_b" B POC38_PYTHON_B > "$work/provider-b-integrate.out" 2> "$work/provider-b-integrate.err" || {
-    cat "$work/provider-b-integrate.err" >&2
-    exit 1
-}
-run_pkg provider default "$facility" "$provider_a" >/dev/null
+printf 'rumiai-disposable-root=%s\n' "$root"
+make_provider "$provider_a" A POC38_PYTHON_A
+printf 'provider-a-integration=PASS\n'
+make_provider "$provider_b" B POC38_PYTHON_B
+printf 'provider-b-integration=PASS\n'
+run_pkg provider default "$facility" "$provider_a"
+printf 'facility-default-a-selection=PASS\n'
 
-make_consumer "$pure_consumer" "$pure_payload" poc-pure poc-data > "$work/pure-integrate.out" 2> "$work/pure-integrate.err" || {
-    cat "$work/pure-integrate.err" >&2
-    exit 1
-}
-make_consumer "$native_consumer" "$native_payload" poc-native > "$work/native-integrate.out" 2> "$work/native-integrate.err" || {
-    cat "$work/native-integrate.err" >&2
-    exit 1
-}
+make_consumer "$pure_consumer" "$pure_payload" poc-pure poc-data
+printf 'pure-consumer-integration=PASS\n'
+make_consumer "$native_consumer" "$native_payload" poc-native
+printf 'native-consumer-integration=PASS\n'
 
 pure_target=$root/pkg/$pure_consumer@1/root/bin/poc-pure
 pure_data_target=$root/pkg/$pure_consumer@1/root/bin/poc-data
