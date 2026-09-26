@@ -38,7 +38,7 @@ jobs:
           PYTHON_B: ${{ steps.python-b.outputs.path }}
         run: |
           set -o pipefail
-          ./pocs/044-python-wheel-compatibility/run.sh | tee poc-044-linux.log
+          sh ./pocs/044-python-wheel-compatibility/run.sh | tee poc-044-linux.log
 
   macos:
     runs-on: macos-14
@@ -66,4 +66,4 @@ jobs:
           PYTHON_B: ${{ steps.python-b.outputs.path }}
         run: |
           set -o pipefail
-          ./pocs/044-python-wheel-compatibility/run.sh | tee poc-044-macos.log
+          sh ./pocs/044-python-wheel-compatibility/run.sh | tee poc-044-macos.log
