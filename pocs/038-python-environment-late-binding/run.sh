@@ -188,9 +188,11 @@ make_provider()
     variable=$3
     range=$work/range-$package
     payload=$work/payload-$package
-    mkdir -p "$range/facility-cmd/$facility" "$payload/bin"
+    mkdir -p "$range/facility-cmd/$facility" "$range/facility-env" "$payload/bin"
     printf '%s %s\n' "$facility" 1 > "$range/facility"
     printf '%s\n' bin/python > "$range/facility-cmd/$facility/python"
+    tab=$(printf '\t')
+    printf 'PYTHONDONTWRITEBYTECODE%sliteral 1\n' "$tab" > "$range/facility-env/$facility"
     cat > "$payload/bin/python" <<EOF_PROVIDER
 #!/bin/sh
 RUMIAI_PYTHON_PROVIDER=$marker
@@ -307,6 +309,13 @@ assert_line "$work/native-b.out" "native-import-version=$version_b"
 printf 'native-provider-b-status=%s\n' "$native_b_status"
 printf 'native-abi-mismatch=PASS_EXPECTED_REJECTION\n'
 run_pkg provider bind -u -- "$native_consumer" "$facility" >/dev/null
+
+if find "$root/pkg/$pure_consumer@1/root" "$root/pkg/$native_consumer@1/root" -type d -name __pycache__ -print | grep . >/dev/null 2>&1
+then
+    echo "ERROR Python wrote bytecode cache into immutable consumer package roots" >&2
+    exit 1
+fi
+printf 'provider-bytecode-cache-policy=PASS_NO_PACKAGE_ROOT_PYCACHE\n'
 
 # Physical relocation of the whole managed root must not require consumer rewrites.
 run_pkg provider default "$facility" "$provider_a" >/dev/null
