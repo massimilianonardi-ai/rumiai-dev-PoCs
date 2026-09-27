@@ -4,70 +4,81 @@ Status: Experimental
 
 ## Question
 
-Can the existing `pkg` facility compatibility model represent the Python compatibility classes observed in PoC 044 without introducing a second dependency resolver or composing two independently selected interpreter providers for one consumer?
+Can the existing `pkg` facility compatibility model represent the CPython compatibility classes observed in PoC 044 without introducing another dependency resolver or a second independently selected interpreter facility?
 
-This experiment deliberately uses PoC-only facility names. It tests a shape rather than proposing final public names:
+The revised experiment uses one PoC-only Python runtime facility. Its compatibility level is the CPython major/minor runtime level:
+
+```text
+provider CPython 3.12 -> facility compatibility 3.12
+provider CPython 3.13 -> facility compatibility 3.13
+```
+
+Consumers then use the existing dependency constraint language:
+
+```text
+pure-Python-like consumer
+    >=3.12 <3.14
+
+abi3-like CPython consumer
+    >=3.8 <3.14
+
+cp312-specific consumer
+    =3.12
+```
+
+Every provider exposes the same facility command:
+
+```text
+python
+```
+
+and every consumer command keeps:
+
+```sh
+#!/usr/bin/env python
+```
+
+## Why the experiment was revised
+
+The first PoC 049 revision deliberately tested a two-facility model:
 
 ```text
 generic Python runtime facility
-    suitable for pure-Python consumers
-
-CPython runtime facility
-    suitable for CPython-specific consumers
-    including abi3 and minor-specific extensions
+CPython-specific facility
 ```
 
-A CPython provider can realize both facilities. An alternate Python implementation can realize only the generic one.
+with the same CPython provider realizing both and both facilities exposing a command named `python`.
 
-## Why one facility per interpreter requirement
+Hosted run `36303903347` reached provider-default configuration on both Linux and macOS and then failed when the second facility default was set. The current `pkg` global facility-command projection correctly prevents two independent facility defaults from owning the same public `python` command.
 
-PoC 044 proved that these wheel classes have different compatibility semantics:
+That is useful negative evidence: splitting one interpreter identity across two independently selected facilities is not a clean fit for the current model and would also create a coherence problem if their selectors diverged.
 
-```text
-py3-none-any
-cp38-abi3-<platform>
-cp312-cp312-<platform>
-```
-
-Modeling "runtime Python" and "CPython ABI" as two simultaneous dependencies would allow `pkg` to select two different provider packages independently. This PoC instead checks whether a consumer can express one atomic interpreter requirement using the existing facility mechanism:
-
-- pure Python -> generic runtime facility range;
-- abi3 CPython extension -> CPython facility range;
-- CPython-minor extension -> exact CPython facility level.
-
-Platform compatibility remains an orthogonal wheel/osarch selection concern.
+The revised experiment therefore tests the smallest current requirement: interchangeable **CPython** providers under one facility. Supporting another Python implementation in the future is deliberately not predesigned by this task.
 
 ## Experiment shape
 
-Two CPython-like provider packages and one alternate-implementation-like provider are integrated into a disposable copy of the current `rumiai-os`:
+Two CPython-like provider packages are integrated into a disposable copy of the current `rumiai-os`:
 
 ```text
 provider cp312
-    generic facility 3.12
-    CPython facility 3.12
+    Python facility 3.12
 
 provider cp313
-    generic facility 3.13
-    CPython facility 3.13
-
-provider alternate313
-    generic facility 3.13 only
+    Python facility 3.13
 ```
-
-Every exposed Python command is reached through the provider's normal `facility-cmd/<facility>/python` projection. Consumer commands use `#!/usr/bin/env python`.
 
 The experiment proves:
 
-1. a pure consumer with `>=3.12 <3.14` can switch from the CPython-like provider to the alternate provider;
-2. an abi3-like consumer with a CPython range can switch from 3.12 to 3.13;
-3. a CPython-3.12-specific consumer with `=3.12` cannot execute with the 3.13 CPython provider;
-4. a CPython-specific consumer cannot execute with a provider that exposes only the generic Python facility;
-5. removing a binding restores normal facility-default inheritance.
+1. a pure-Python-like consumer can inherit 3.12, bind to 3.13 without reinstalling, then return to the default;
+2. an abi3-like consumer can do the same across the tested CPython minor levels;
+3. a cp312-specific consumer cannot execute under the 3.13 provider;
+4. changing the facility default to 3.13 is observed by compatible unbound consumers, while the incompatible exact-3.12 consumer is rejected before its target executes;
+5. restoring the facility default to 3.12 restores the exact consumer without rewriting it.
 
-The provider-binding command may reject an incompatible selector immediately or may accept the selector as configuration and let dependency resolution reject it at launch. Either behavior is acceptable for this PoC; the required invariant is that an incompatible provider never executes the consumer.
+The provider-binding command may reject an incompatible selector immediately or may accept it as configuration and let dependency resolution reject it at launch. Either behavior is acceptable for this PoC; the required invariant is that an incompatible provider never executes the consumer.
 
 ## Scope
 
-A PASS establishes that the existing facility/dependency primitives are expressive enough for the tested compatibility shape.
+A PASS establishes that the existing facility/dependency compatibility primitives are expressive enough for the tested **CPython minor-version** compatibility classes.
 
-It does not choose the final facility names, define the final Python facility contracts, or prove that catalog authors can derive all required constraints automatically from arbitrary Python package metadata.
+It does not choose the final public facility name, define the complete Python facility contract, solve cross-implementation compatibility, or prove that arbitrary Python package metadata can always be converted automatically into the correct facility constraint.
