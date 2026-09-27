@@ -81,13 +81,16 @@ puts "driver:handoff"
 flush stdout
 
 set result {}
-interact -i $child_spawn_id eof {
-    if {[catch {wait -i $child_spawn_id} result]} {
-        puts stderr "handoff-driver.exp: wait failed after child EOF: $result"
-        set result {}
+interact \
+    -input $user_spawn_id -output $child_spawn_id \
+    -input $child_spawn_id -output $user_spawn_id \
+    eof {
+        if {[catch {wait -i $child_spawn_id} result]} {
+            puts stderr "handoff-driver.exp: wait failed after child EOF: $result"
+            set result {}
+        }
+        return
     }
-    return
-}
 log_file
 
 if {[llength $result] < 4} {
