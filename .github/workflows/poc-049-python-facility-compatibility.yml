@@ -1,0 +1,44 @@
+name: PoC 049 Python facility compatibility mapping
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - pocs/049-python-facility-compatibility/**
+      - .github/workflows/poc-049-python-facility-compatibility.yml
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-os
+          ref: 51d0cba5696a94caaf5ae39e2e476a31598a0ae1
+          path: rumiai-os
+      - name: Run PoC
+        shell: bash
+        run: |
+          set -o pipefail
+          ./pocs/049-python-facility-compatibility/run.sh "$GITHUB_WORKSPACE/rumiai-os" | tee poc-049-linux.log
+
+  macos:
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-os
+          ref: 51d0cba5696a94caaf5ae39e2e476a31598a0ae1
+          path: rumiai-os
+      - name: Run PoC
+        shell: bash
+        run: |
+          set -o pipefail
+          ./pocs/049-python-facility-compatibility/run.sh "$GITHUB_WORKSPACE/rumiai-os" | tee poc-049-macos.log
