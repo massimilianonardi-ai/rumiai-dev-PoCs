@@ -1,0 +1,82 @@
+#!/usr/bin/expect -f
+
+if {$argc != 3} {
+    puts stderr "usage: handoff-harness.exp <handoff-driver> <transcript> <fixture>"
+    exit 2
+}
+
+set driver [lindex $argv 0]
+set transcript [lindex $argv 1]
+set fixture [lindex $argv 2]
+
+set timeout 10
+spawn -noecho $driver $transcript -- $fixture
+
+set outcome none
+expect {
+    -exact "driver:handoff" {
+        set outcome matched
+    }
+    timeout {
+        set outcome timeout
+    }
+    eof {
+        set outcome eof
+    }
+}
+
+if {$outcome ne "matched"} {
+    if {$outcome eq "timeout"} {
+        puts stderr "handoff-harness.exp: timeout waiting for driver handoff"
+        exit 124
+    }
+    puts stderr "handoff-harness.exp: driver exited before handoff"
+    exit 125
+}
+
+send -- "operator\r"
+
+set outcome none
+expect {
+    -exact "human-seen:operator" {
+        set outcome matched
+    }
+    timeout {
+        set outcome timeout
+    }
+    eof {
+        set outcome eof
+    }
+}
+
+if {$outcome ne "matched"} {
+    if {$outcome eq "timeout"} {
+        puts stderr "handoff-harness.exp: timeout waiting for operator input acknowledgement"
+        exit 124
+    }
+    puts stderr "handoff-harness.exp: driver exited before operator acknowledgement"
+    exit 125
+}
+
+expect eof
+set result [wait]
+
+if {[llength $result] < 4} {
+    puts stderr "handoff-harness.exp: invalid wait result"
+    exit 126
+}
+
+set os_error [lindex $result 2]
+set value [lindex $result 3]
+
+if {$os_error != 0} {
+    puts stderr "handoff-harness.exp: wait reported operating-system error: $value"
+    exit 126
+}
+
+if {$value != 37} {
+    puts stderr "handoff-harness.exp: handoff driver returned $value instead of child status 37"
+    exit 1
+}
+
+exit 0

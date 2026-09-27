@@ -12,7 +12,9 @@ This PoC tests only:
 - exact prompt synchronization before sending each response;
 - transcript capture;
 - distinction between dialogue synchronization failure and child-command result;
-- propagation of a normal child exit status.
+- propagation of a normal child exit status;
+- handoff from automated dialogue to the operator through Expect `interact`;
+- return from that handoff when the child terminates, preserving its exit status.
 
 It does not define a public RumiAI command name, final CLI, scenario API, activity DSL, assertion DSL or testlab integration.
 
@@ -26,7 +28,7 @@ The experiment does not install or package Tcl/Expect through RumiAI `pkg`.
 
 ## Fixture
 
-The fixture program deliberately:
+The prompt/dialogue fixture deliberately:
 
 1. requires standard input to be a TTY;
 2. prints a prompt without a terminating newline;
@@ -35,6 +37,15 @@ The fixture program deliberately:
 5. waits for the second exact response;
 6. prints an observable completion record;
 7. exits with status 23.
+
+A second handoff fixture verifies the hybrid path:
+
+1. requires a TTY;
+2. accepts one response sent by automated Expect logic;
+3. announces that operator handoff is ready;
+4. waits for input that can arrive only through the driver's `interact` phase;
+5. reports the operator-supplied value;
+6. exits with status 37.
 
 A driver that merely pre-feeds ordinary stdin is not the semantic model being tested; the Expect driver explicitly waits for each prompt before sending its corresponding response.
 
@@ -61,11 +72,31 @@ The run verifies:
 - the responses reached the child;
 - the transcript contains the final completion record;
 - the driver returned the child's status 23 after successful dialogue;
-- a deliberately wrong prompt produces driver timeout status 124 rather than being reported as a child/application result.
+- a deliberately wrong prompt produces driver timeout status 124 rather than being reported as a child/application result;
+- the handoff driver completes automated setup before entering `interact`;
+- input from the caller's terminal reaches the child only after handoff;
+- child output remains visible through the handoff path;
+- when the child exits, `interact` returns and the driver propagates child status 37.
 
 ## Human handoff
 
-Expect's `interact` primitive remains the intended mechanism to hand an already-spawned PTY back to the operator in a later adapter design. This PoC deliberately does not fix how that transition is represented in a public interface; it first proves the common prompt-synchronized PTY core.
+The PoC now exercises Expect's real `interact` primitive.
+
+The inner handoff driver performs one deterministic setup exchange, emits an experimental handoff marker, then calls `interact`. A second Expect process is used only as an automated laboratory harness: it provides a real controlling PTY to the inner driver and simulates operator input after observing the handoff marker.
+
+This nesting is intentionally test infrastructure, not a proposed product design. It lets CI mechanically establish the same boundary a human operator will use on a physical terminal:
+
+```text
+automated Expect setup
+    -> interact
+    -> caller terminal input/output
+    -> child PTY
+    -> child exits
+    -> interact returns
+    -> driver reports child status
+```
+
+The PoC still does not fix a public command, escape sequence or higher-level handoff UI.
 
 ## Interpretation
 
@@ -111,4 +142,4 @@ That result mechanically exercised a TTY-requiring child, two exact prompt/respo
 
 This supports using Expect as the common stronger PTY/dialogue prerequisite rather than reducing the contract to the weaker pre-fed-input behavior currently used with `script(1)` on Linux.
 
-The run is CI evidence only. It does not replace execution on the physical/reference macOS host or Ubuntu 26.04 reference host, and it does not yet validate the future human-handoff surface built around Expect `interact`.
+The run is CI evidence only. It does not replace execution on the physical/reference macOS host or Ubuntu 26.04 reference host. The original recorded run predates the added `interact` experiment; a new result is recorded only after the updated PoC has run successfully.

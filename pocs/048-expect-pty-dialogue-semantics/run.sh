@@ -34,9 +34,15 @@ need cat
 root=$(resolve_dir) || die "cannot resolve PoC directory"
 driver="$root/driver.exp"
 fixture="$root/fixtures/prompt-program.sh"
+handoff_driver="$root/handoff-driver.exp"
+handoff_harness="$root/handoff-harness.exp"
+handoff_fixture="$root/fixtures/handoff-program.sh"
 
 [ -x "$driver" ] || die "Expect driver is unavailable"
 [ -x "$fixture" ] || die "fixture program is unavailable"
+[ -x "$handoff_driver" ] || die "Expect handoff driver is unavailable"
+[ -x "$handoff_harness" ] || die "Expect handoff harness is unavailable"
+[ -x "$handoff_fixture" ] || die "handoff fixture program is unavailable"
 
 work=$(mktemp -d "${TMPDIR:-/tmp}/expect-pty-poc.XXXXXX") || die "cannot create temporary directory"
 cleanup()
@@ -84,4 +90,14 @@ unset TESTLAB_EXPECT_POC_TIMEOUT
 [ "$bad_status" -eq 124 ] ||
     die "dialogue timeout returned $bad_status instead of 124"
 
-printf '%s\n' "PASS expect PTY dialogue semantics"
+handoff_transcript="$work/handoff-transcript"
+
+"$handoff_harness" "$handoff_driver" "$handoff_transcript" "$handoff_fixture" ||
+    die "Expect interact handoff experiment failed"
+
+grep -F 'handoff-ready' "$handoff_transcript" >/dev/null 2>&1 ||
+    die "handoff readiness missing from transcript"
+grep -F 'human-seen:operator' "$handoff_transcript" >/dev/null 2>&1 ||
+    die "operator interaction missing from transcript"
+
+printf '%s\n' "PASS expect PTY dialogue and interact handoff semantics"

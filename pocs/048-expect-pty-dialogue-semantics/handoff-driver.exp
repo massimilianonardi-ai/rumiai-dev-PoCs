@@ -1,0 +1,100 @@
+#!/usr/bin/expect -f
+
+if {$argc < 3} {
+    puts stderr "usage: handoff-driver.exp <transcript> -- <command> ?arg ...?"
+    exit 2
+}
+
+set transcript [lindex $argv 0]
+
+if {[lindex $argv 1] ne "--"} {
+    puts stderr "handoff-driver.exp: missing -- before child command"
+    exit 2
+}
+
+set command [lrange $argv 2 end]
+if {[llength $command] == 0} {
+    puts stderr "handoff-driver.exp: empty child command"
+    exit 2
+}
+
+set timeout 10
+if {[info exists env(TESTLAB_EXPECT_POC_TIMEOUT)]} {
+    set timeout $env(TESTLAB_EXPECT_POC_TIMEOUT)
+}
+
+log_user 1
+log_file -noappend $transcript
+
+spawn -noecho {*}$command
+
+set outcome none
+expect {
+    -exact "auto> " {
+        set outcome matched
+    }
+    timeout {
+        set outcome timeout
+    }
+    eof {
+        set outcome eof
+    }
+}
+
+if {$outcome ne "matched"} {
+    log_file
+    if {$outcome eq "timeout"} {
+        puts stderr "handoff-driver.exp: timeout waiting for automated setup prompt"
+        exit 124
+    }
+    puts stderr "handoff-driver.exp: child reached EOF before automated setup prompt"
+    exit 125
+}
+
+send -- "automated\r"
+
+set outcome none
+expect {
+    -exact "handoff-ready" {
+        set outcome matched
+    }
+    timeout {
+        set outcome timeout
+    }
+    eof {
+        set outcome eof
+    }
+}
+
+if {$outcome ne "matched"} {
+    log_file
+    if {$outcome eq "timeout"} {
+        puts stderr "handoff-driver.exp: timeout waiting for handoff readiness"
+        exit 124
+    }
+    puts stderr "handoff-driver.exp: child reached EOF before handoff readiness"
+    exit 125
+}
+
+puts "driver:handoff"
+flush stdout
+
+interact
+
+set result [wait]
+log_file
+
+if {[llength $result] < 4} {
+    puts stderr "handoff-driver.exp: invalid wait result"
+    exit 126
+}
+
+set os_error [lindex $result 2]
+set value [lindex $result 3]
+
+if {$os_error != 0} {
+    puts stderr "handoff-driver.exp: wait reported operating-system error: $value"
+    exit 126
+}
+
+exit $value
