@@ -134,4 +134,6 @@ if {$count < 1 || ![string is integer -strict $value] || $value < 0 || $value > 
     exit 126
 }
 
+puts "driver:child-status:$value"
+flush stdout
 exit $value
