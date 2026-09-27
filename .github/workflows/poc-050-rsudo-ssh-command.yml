@@ -25,6 +25,9 @@ jobs:
           ref: 287577204412cef46cae83157547dbe9ac28d2f8
           path: rumiai-tests
 
+      - name: Normalize target origin for suite discovery
+        run: git -C rumiai-os remote set-url origin https://github.com/massimilianonardi-ai/rumiai-os.git
+
       - name: Install host prerequisites
         run: |
           sudo apt-get update
