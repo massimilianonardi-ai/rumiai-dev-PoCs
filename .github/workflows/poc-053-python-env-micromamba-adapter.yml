@@ -1,0 +1,57 @@
+name: PoC 053 python-env micromamba adapter
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - pocs/053-python-env-micromamba-adapter/**
+      - .github/workflows/poc-053-python-env-micromamba-adapter.yml
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run PoC
+        shell: sh
+        env:
+          MICROMAMBA_URL: https://github.com/mamba-org/micromamba-releases/releases/download/2.9.0-0/micromamba-linux-64
+          MICROMAMBA_SHA256: 366cd9cd8be14df1ab8ed50352a82111082a36686b2d389fdb79a92c3fafb3e3
+        run: |
+          set -eu
+          sh -n pocs/053-python-env-micromamba-adapter/run.sh
+          sh pocs/053-python-env-micromamba-adapter/run.sh
+
+  macos:
+    runs-on: macos-14
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select pinned micromamba artifact
+        shell: sh
+        run: |
+          set -eu
+          case "$(uname -m)" in
+            arm64)
+              echo 'MICROMAMBA_URL=https://github.com/mamba-org/micromamba-releases/releases/download/2.9.0-0/micromamba-osx-arm64' >> "$GITHUB_ENV"
+              echo 'MICROMAMBA_SHA256=ec2a072f028e1a7cf20f3e2e74d5a8127cf5a5f27636375b5359811565f4e5be' >> "$GITHUB_ENV"
+              ;;
+            x86_64)
+              echo 'MICROMAMBA_URL=https://github.com/mamba-org/micromamba-releases/releases/download/2.9.0-0/micromamba-osx-64' >> "$GITHUB_ENV"
+              echo 'MICROMAMBA_SHA256=1e71054bb3ac9a076e21f7ec48acfef536f9b3f1408f371a942784bf5ef83d8a' >> "$GITHUB_ENV"
+              ;;
+            *)
+              echo "unsupported macOS architecture: $(uname -m)" >&2
+              exit 2
+              ;;
+          esac
+      - name: Run PoC
+        shell: sh
+        run: |
+          set -eu
+          sh -n pocs/053-python-env-micromamba-adapter/run.sh
+          sh pocs/053-python-env-micromamba-adapter/run.sh
