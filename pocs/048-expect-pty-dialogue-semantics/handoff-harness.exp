@@ -16,8 +16,10 @@ set timeout 10
 spawn -noecho $launcher $driver $transcript $status_file $status_wrapper -- $fixture
 
 set outcome none
+set takeover_token ""
 expect {
-    -exact "driver:take-control> type takeover and press Enter: " {
+    -re {driver:take-control> type (takeover-[0-9]+) and press Enter: } {
+        set takeover_token $expect_out(1,string)
         set outcome matched
     }
     timeout {
@@ -37,7 +39,7 @@ if {$outcome ne "matched"} {
     exit 125
 }
 
-send -- "takeover\r"
+send -- "$takeover_token\r"
 
 set outcome none
 expect {

@@ -79,20 +79,19 @@ if {$outcome ne "matched"} {
     exit 125
 }
 
-proc acquire_operator {} {
+proc acquire_operator {takeover_token} {
     global timeout
 
     set saved_timeout $timeout
     set timeout -1
 
     while {1} {
-        send_tty -- "driver:take-control> type takeover and press Enter: "
+        send_tty -- "driver:take-control> type $takeover_token and press Enter: "
 
-        set outcome none
         expect_tty {
             -re {([^\r\n]*)\r?\n} {
                 set line [string trim $expect_out(1,string)]
-                if {$line eq "takeover"} {
+                if {$line eq $takeover_token} {
                     set timeout $saved_timeout
                     return
                 }
@@ -106,7 +105,9 @@ proc acquire_operator {} {
     }
 }
 
-if {[catch {acquire_operator} takeover_error]} {
+set takeover_token "takeover-[pid]"
+
+if {[catch {acquire_operator $takeover_token} takeover_error]} {
     log_file
     puts stderr $takeover_error
     exit 127

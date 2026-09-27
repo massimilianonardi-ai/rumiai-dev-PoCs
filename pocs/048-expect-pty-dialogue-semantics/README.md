@@ -219,3 +219,11 @@ This serves two purposes:
 The fixture now also uses distinct exit statuses for handoff-start EOF/mismatch, operator EOF/mismatch and post-handoff EOF/mismatch. These distinctions are diagnostic PoC mechanics, not public semantics.
 
 The takeover word, handoff-start token and escape sequence remain experimental and are not promoted product interfaces.
+
+### Runtime-unique operator acquisition token
+
+The physical Ubuntu diagnostic status record established that the child returned status `38`: it received a complete line different from `operator`, rather than EOF, immediately after `human>`. The transcript showed no visible payload, consistent with queued terminal input reaching the child at handoff.
+
+The fixed literal `takeover` barrier was therefore insufficient because that same literal could itself already be queued from prior/anticipated operator input. The PoC now generates a per-driver runtime token of the form `takeover-<pid>`. The token is unknown before the driver starts. `expect_tty` discards every complete line until the exact runtime token is entered, consuming its terminating newline before the driver exposes the child's `human>` prompt and enters `interact`.
+
+The automated outer harness discovers the runtime token from the acquisition prompt and echoes that exact value. A physical operator must type the displayed token after it appears. This keeps the experiment strict: the child still rejects unexpected human input instead of silently tolerating or masking queued input.
