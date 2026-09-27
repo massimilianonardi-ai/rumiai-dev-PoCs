@@ -29,4 +29,4 @@ jobs:
         run: |
           set -eu
           sh -n pocs/051-loadlib-injection-stream/run.sh
-          pocs/051-loadlib-injection-stream/run.sh "$GITHUB_WORKSPACE/rumiai-os"
+          sh pocs/051-loadlib-injection-stream/run.sh "$GITHUB_WORKSPACE/rumiai-os"
