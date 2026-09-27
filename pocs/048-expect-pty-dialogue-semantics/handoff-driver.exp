@@ -30,7 +30,7 @@ spawn -noecho {*}$command
 set child_spawn_id $spawn_id
 
 set outcome none
-expect {
+expect -i $child_spawn_id {
     -exact "auto> " {
         set outcome matched
     }
@@ -52,10 +52,10 @@ if {$outcome ne "matched"} {
     exit 125
 }
 
-send -- "automated\r"
+send -i $child_spawn_id -- "automated\r"
 
 set outcome none
-expect {
+expect -i $child_spawn_id {
     -exact "handoff-ready" {
         set outcome matched
     }
@@ -80,17 +80,40 @@ if {$outcome ne "matched"} {
 puts "driver:handoff"
 flush stdout
 
-set result {}
-interact \
-    -input $user_spawn_id -output $child_spawn_id \
-    -input $child_spawn_id -output $user_spawn_id \
-    eof {
-        if {[catch {wait -i $child_spawn_id} result]} {
-            puts stderr "handoff-driver.exp: wait failed after child EOF: $result"
-            set result {}
-        }
-        return
+interact -i $child_spawn_id "__TESTLAB_RETURN__" {
+    return
+}
+
+puts "driver:resumed"
+flush stdout
+
+send -i $child_spawn_id -- "automated-finish\r"
+
+set outcome none
+expect -i $child_spawn_id {
+    -exact "handoff-done" {
+        set outcome matched
     }
+    timeout {
+        set outcome timeout
+    }
+    eof {
+        set outcome eof
+    }
+}
+
+if {$outcome ne "matched"} {
+    log_file
+    if {$outcome eq "timeout"} {
+        puts stderr "handoff-driver.exp: timeout waiting for post-handoff completion"
+        exit 124
+    }
+    puts stderr "handoff-driver.exp: child reached EOF before post-handoff completion"
+    exit 125
+}
+
+expect -i $child_spawn_id eof
+set result [wait -i $child_spawn_id]
 log_file
 
 if {[llength $result] < 4} {

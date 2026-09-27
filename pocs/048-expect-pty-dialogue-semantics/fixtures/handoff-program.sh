@@ -13,6 +13,11 @@ printf '%s\n' 'handoff-ready'
 printf 'human> '
 IFS= read -r operator || exit 32
 [ "$operator" = operator ] || exit 32
-
 printf 'human-seen:%s\n' "$operator"
+
+printf 'resume> '
+IFS= read -r final || exit 33
+[ "$final" = automated-finish ] || exit 33
+
+printf '%s\n' 'handoff-done'
 exit 37

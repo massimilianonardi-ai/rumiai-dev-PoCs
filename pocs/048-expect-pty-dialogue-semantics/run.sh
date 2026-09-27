@@ -99,5 +99,7 @@ grep -F 'handoff-ready' "$handoff_transcript" >/dev/null 2>&1 ||
     die "handoff readiness missing from transcript"
 grep -F 'human-seen:operator' "$handoff_transcript" >/dev/null 2>&1 ||
     die "operator interaction missing from transcript"
+grep -F 'handoff-done' "$handoff_transcript" >/dev/null 2>&1 ||
+    die "post-handoff automation completion missing from transcript"
 
 printf '%s\n' "PASS expect PTY dialogue and interact handoff semantics"

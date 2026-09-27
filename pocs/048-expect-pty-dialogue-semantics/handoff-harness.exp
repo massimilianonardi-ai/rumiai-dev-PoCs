@@ -58,6 +58,52 @@ if {$outcome ne "matched"} {
     exit 125
 }
 
+send -- "__TESTLAB_RETURN__"
+
+set outcome none
+expect {
+    -exact "driver:resumed" {
+        set outcome matched
+    }
+    timeout {
+        set outcome timeout
+    }
+    eof {
+        set outcome eof
+    }
+}
+
+if {$outcome ne "matched"} {
+    if {$outcome eq "timeout"} {
+        puts stderr "handoff-harness.exp: timeout waiting for automation to resume"
+        exit 124
+    }
+    puts stderr "handoff-harness.exp: driver exited before automation resumed"
+    exit 125
+}
+
+set outcome none
+expect {
+    -exact "handoff-done" {
+        set outcome matched
+    }
+    timeout {
+        set outcome timeout
+    }
+    eof {
+        set outcome eof
+    }
+}
+
+if {$outcome ne "matched"} {
+    if {$outcome eq "timeout"} {
+        puts stderr "handoff-harness.exp: timeout waiting for post-handoff completion"
+        exit 124
+    }
+    puts stderr "handoff-harness.exp: driver exited before post-handoff completion"
+    exit 125
+}
+
 expect eof
 set result [wait]
 
