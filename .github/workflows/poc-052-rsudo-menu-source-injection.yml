@@ -1,0 +1,44 @@
+name: PoC 052 rsudo menu source injection
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'pocs/052-rsudo-menu-source-injection/**'
+      - '.github/workflows/poc-052-rsudo-menu-source-injection.yml'
+
+jobs:
+  verify:
+    runs-on: ubuntu-26.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-os
+          ref: 3bc5ff3d06b457eb63b599f28b363f1876e930b0
+          path: rumiai-os
+
+      - name: Install host prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman openssh-client openssl expect
+
+      - name: Make rootless Podman usable on hosted Ubuntu when needed
+        run: |
+          if ! podman info >/tmp/podman-info.log 2>&1; then
+            cat /tmp/podman-info.log
+            if sudo test -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns; then
+              sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+            fi
+          fi
+          podman info >/dev/null
+
+      - name: Exercise real rsudo menu source injection
+        shell: sh
+        run: |
+          set -eu
+          sh -n pocs/052-rsudo-menu-source-injection/run.sh
+          sh pocs/052-rsudo-menu-source-injection/run.sh \
+            pocs/047-testlab-rsudo-scenario-lifecycle/run.sh \
+            "$GITHUB_WORKSPACE/rumiai-os"
