@@ -27,6 +27,7 @@ log_user 1
 log_file -noappend $transcript
 
 spawn -noecho {*}$command
+close_on_eof 0
 
 set outcome none
 expect {
