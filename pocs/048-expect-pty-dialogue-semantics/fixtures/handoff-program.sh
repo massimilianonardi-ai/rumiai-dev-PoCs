@@ -10,14 +10,18 @@ IFS= read -r automatic || exit 31
 [ "$automatic" = automated ] || exit 31
 
 printf '%s\n' 'handoff-ready'
+
+IFS= read -r handoff_start || exit 34
+[ "$handoff_start" = handoff-start ] || exit 35
+
 printf 'human> '
-IFS= read -r operator || exit 32
-[ "$operator" = operator ] || exit 32
+IFS= read -r operator || exit 36
+[ "$operator" = operator ] || exit 38
 printf 'human-seen:%s\n' "$operator"
 
 printf 'resume> '
-IFS= read -r final || exit 33
-[ "$final" = automated-finish ] || exit 33
+IFS= read -r final || exit 39
+[ "$final" = automated-finish ] || exit 40
 
 printf '%s\n' 'handoff-done'
 exit 37

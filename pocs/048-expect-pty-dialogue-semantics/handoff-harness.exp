@@ -17,6 +17,30 @@ spawn -noecho $launcher $driver $transcript $status_file $status_wrapper -- $fix
 
 set outcome none
 expect {
+    -exact "driver:take-control> type takeover and press Enter: " {
+        set outcome matched
+    }
+    timeout {
+        set outcome timeout
+    }
+    eof {
+        set outcome eof
+    }
+}
+
+if {$outcome ne "matched"} {
+    if {$outcome eq "timeout"} {
+        puts stderr "handoff-harness.exp: timeout waiting for takeover prompt"
+        exit 124
+    }
+    puts stderr "handoff-harness.exp: driver exited before takeover prompt"
+    exit 125
+}
+
+send -- "takeover\r"
+
+set outcome none
+expect {
     -exact "driver:handoff" {
         set outcome matched
     }

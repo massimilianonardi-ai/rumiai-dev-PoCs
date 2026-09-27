@@ -204,3 +204,18 @@ The cause is at the handoff boundary: Expect's default user side is `user_spawn_
 The PoC therefore now binds the operator side of `interact` explicitly to `tty_spawn_id` and the child side explicitly to the saved child spawn id. If a controlling terminal is unavailable, the handoff driver reports an infrastructure error rather than silently treating stdin EOF as an operator return.
 
 This correction is still PoC-local. It does not promote a public adapter API or escape sequence.
+
+### Operator-acquisition synchronization
+
+The first physical Ubuntu retry after binding `interact` to `tty_spawn_id` still returned before the operator could type at the child prompt. This showed that choosing the controlling terminal alone did not make the direct-operator transition robust.
+
+The current PoC adds an explicit operator-acquisition barrier before the child accepts human input. The driver waits on `expect_tty` in cooked mode for the literal PoC-local word `takeover`. Any other complete line is ignored and the acquisition prompt is repeated. Only after `takeover` is observed does the driver send a private `handoff-start` token to the fixture, wait for the fixture's `human>` prompt, and enter `interact`.
+
+This serves two purposes:
+
+- terminal input left queued by a pasted shell command cannot accidentally become the child's first human response;
+- an actual `/dev/tty` EOF is now distinguishable from an invalid child response.
+
+The fixture now also uses distinct exit statuses for handoff-start EOF/mismatch, operator EOF/mismatch and post-handoff EOF/mismatch. These distinctions are diagnostic PoC mechanics, not public semantics.
+
+The takeover word, handoff-start token and escape sequence remain experimental and are not promoted product interfaces.
