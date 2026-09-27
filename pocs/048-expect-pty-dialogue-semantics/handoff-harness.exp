@@ -18,7 +18,7 @@ spawn -noecho $launcher $driver $transcript $status_file $status_wrapper -- $fix
 set outcome none
 set takeover_token ""
 expect {
-    -re {driver:take-control> type (takeover-[0-9]+) and press Enter: } {
+    -re {driver:take-control> type (takeover-[0-9]+) \(no Enter\): } {
         set takeover_token $expect_out(1,string)
         set outcome matched
     }
