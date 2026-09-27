@@ -46,7 +46,7 @@ jobs:
           set -eu
           export RUMIAI_TEST_RUMIAI_OS_ROOT="$GITHUB_WORKSPACE/rumiai-os"
           cd rumiai-tests
-          ./rumiai-test tests/rumiai-os/rsudo
+          ./rumiai-test rumiai-os/rsudo
 
       - name: Exercise current ssh-command implementation
         shell: sh
