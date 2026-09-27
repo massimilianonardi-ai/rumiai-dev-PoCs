@@ -123,7 +123,14 @@ if {$os_error != 0} {
 }
 
 if {$value != 37} {
-    puts stderr "handoff-harness.exp: handoff driver returned $value instead of child status 37"
+    set recorded unavailable
+    if {![catch {open $status_file r} sfh]} {
+        if {[gets $sfh recorded] < 0} {
+            set recorded empty
+        }
+        close $sfh
+    }
+    puts stderr "handoff-harness.exp: handoff driver returned $value; recorded child status=$recorded"
     exit 1
 }
 
