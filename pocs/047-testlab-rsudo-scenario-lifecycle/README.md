@@ -193,3 +193,28 @@ A failure should be classified as one of:
 - target rsudo defect.
 
 No PoC outcome silently becomes a permanent test or promoted RumiAI contract.
+
+
+## Observed results
+
+GitHub Actions run `36302160822` executed PoC revision `c2a7d6ca3628d3766b7f1819cc8b50e59429c837` on a GitHub-hosted Ubuntu 24.04.5 amd64 environment against `rumiai-os` revision `51d0cba5696a94caaf5ae39e2e476a31598a0ae1`.
+
+The shell-syntax job passed with the host POSIX shell.
+
+The real-scenario job used operational rootless Podman, materialized the Ubuntu 26.04 SSH/sudo container, and observed:
+
+```text
+PASS real rsudo -> real ssh -> real sshd -> real sudo
+```
+
+The run additionally verified mechanically that:
+
+- the scenario resource inventory contained an `owned podman-container` identity;
+- that owned container existed while the scenario was `ready`;
+- the rsudo probe executed remotely under real sudo and observed UID 0;
+- cleanup changed the persisted scenario status to `closed`;
+- the owned container no longer existed after cleanup;
+- repeating cleanup was successful;
+- the external `rumiai-os` checkout still existed and its working tree remained clean.
+
+This is auxiliary experimental evidence on Ubuntu 24.04 amd64, not reference-host validation. Physical/reference-host execution on macOS and Ubuntu 26.04 remains separate evidence.
