@@ -218,3 +218,22 @@ The run additionally verified mechanically that:
 - the external `rumiai-os` checkout still existed and its working tree remained clean.
 
 This is auxiliary experimental evidence on Ubuntu 24.04 amd64, not reference-host validation. Physical/reference-host execution on macOS and Ubuntu 26.04 remains separate evidence.
+
+### Current rerun
+
+GitHub Actions run `36312547115` exercised PoC revision `8bb77b43f0afbfb45f03cdb6f1875b92cce0ffe0` against current `rumiai-os@c1aa711645b39f36850d35abc02c31d8db916120`.
+
+Both jobs passed:
+
+```text
+shell-syntax    PASS
+real-scenario   PASS
+```
+
+The real scenario again observed:
+
+```text
+PASS real rsudo -> real ssh -> real sshd -> real sudo
+```
+
+This rerun confirms the PoC lifecycle and scenario-local real-SSH PATH adapter against the current product revision before reference-host execution. It remains auxiliary GitHub-hosted Ubuntu evidence, not physical/reference-host validation.

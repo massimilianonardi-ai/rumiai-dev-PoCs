@@ -163,3 +163,34 @@ That result mechanically exercised a TTY-requiring child, two exact prompt/respo
 This supports using Expect as the common stronger PTY/dialogue prerequisite rather than reducing the contract to the weaker pre-fed-input behavior currently used with `script(1)` on Linux.
 
 The run is CI evidence only. It does not replace execution on the physical/reference macOS host or Ubuntu 26.04 reference host. The original recorded run predates the added `interact` experiment; a new result is recorded only after the updated PoC has run successfully.
+
+### Interact handoff result
+
+GitHub Actions run `36312456161` exercised PoC revision `81c514d31980e42a775ba929dc506ea848ca6189` on both configured CI hosts.
+
+```text
+Ubuntu 24.04 amd64 / Expect 5.45.4    PASS
+macOS 15 / Expect 5.45               PASS
+```
+
+Both hosts observed:
+
+```text
+PASS expect PTY dialogue and interact handoff semantics
+```
+
+The final experiment mechanically proved the hybrid sequence:
+
+```text
+automated prompt/response
+-> real Expect interact
+-> caller-PTY input reaches the child
+-> child output returns through the handoff
+-> local return-control sequence
+-> deterministic automation resumes on the same live child
+-> target status 37 preserved independently from divergent post-interact Expect wait behavior
+```
+
+During development the PoC also exposed a real portability detail: after a spawn had passed through `interact`, Expect 5.45/macOS and Expect 5.45.4/Linux did not report the target exit status consistently through Expect's own process-status path. The final PoC therefore keeps PTY/dialogue responsibility in Expect and preserves target status through the minimal POSIX wrapper/launcher boundary described above.
+
+This remains hosted-CI evidence. Physical/reference-host execution on macOS and Ubuntu 26.04 ARM64 is still required before promoting a production adapter surface.
