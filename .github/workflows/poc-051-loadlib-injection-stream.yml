@@ -1,0 +1,32 @@
+name: PoC 051 explicit loadlib injection stream
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'pocs/051-loadlib-injection-stream/**'
+      - '.github/workflows/poc-051-loadlib-injection-stream.yml'
+
+jobs:
+  verify:
+    runs-on: ubuntu-26.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-os
+          ref: c33b39ded5020d85943ca826cedbe3ff6d2a4492
+          path: rumiai-os
+
+      - name: Install host prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y expect ncurses-bin
+
+      - name: Exercise explicit injection stream
+        shell: sh
+        run: |
+          set -eu
+          sh -n pocs/051-loadlib-injection-stream/run.sh
+          pocs/051-loadlib-injection-stream/run.sh "$GITHUB_WORKSPACE/rumiai-os"
