@@ -81,3 +81,34 @@ A failure must be classified as:
 - child/fixture defect.
 
 No result is a promoted RumiAI product contract by itself.
+
+
+## Observed results
+
+GitHub Actions run `36302392760` passed on both configured CI hosts.
+
+Observed host prerequisite/tool versions:
+
+```text
+Ubuntu 24.04 amd64
+    /usr/bin/expect
+    Expect 5.45.4
+    installed from the Ubuntu repository by the workflow
+
+macOS 15
+    /usr/bin/expect
+    Expect 5.45
+    already present on the host
+```
+
+Both hosts passed the same experiment:
+
+```text
+PASS expect PTY dialogue semantics
+```
+
+That result mechanically exercised a TTY-requiring child, two exact prompt/response synchronization points, transcript capture, child exit-status propagation (23), and a deliberate wrong-prompt timeout classified by the driver as status 124.
+
+This supports using Expect as the common stronger PTY/dialogue prerequisite rather than reducing the contract to the weaker pre-fed-input behavior currently used with `script(1)` on Linux.
+
+The run is CI evidence only. It does not replace execution on the physical/reference macOS host or Ubuntu 26.04 reference host, and it does not yet validate the future human-handoff surface built around Expect `interact`.
