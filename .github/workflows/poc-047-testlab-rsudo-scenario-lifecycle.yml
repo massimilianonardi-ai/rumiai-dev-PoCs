@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - 'pocs/047-testlab-rsudo-scenario-lifecycle/**'
+      - 'pocs/047-testlab-rsudo-scenario-lifecycle/run.sh'
       - '.github/workflows/poc-047-testlab-rsudo-scenario-lifecycle.yml'
 
 jobs:
@@ -52,12 +52,21 @@ jobs:
           trap cleanup EXIT HUP INT TERM
 
           [ "$("$poc" status "$instance")" = ready ]
+
+          tab=$(printf '\tX')
+          tab=${tab%X}
+          container=$(awk -F "$tab" '$1 == "owned" && $2 == "podman-container" { print $3; exit }' "$instance/resources")
+          [ -n "$container" ]
+          podman container exists "$container"
+
           "$poc" probe "$instance"
           "$poc" cleanup "$instance"
           [ "$("$poc" status "$instance")" = closed ]
+          ! podman container exists "$container"
 
-          # Cleanup must be idempotent and the external target must remain present.
+          # Cleanup must be idempotent and the external target must remain untouched.
           "$poc" cleanup "$instance"
           [ -x "$GITHUB_WORKSPACE/rumiai-os/m" ]
+          [ -z "$(git -C "$GITHUB_WORKSPACE/rumiai-os" status --porcelain --untracked-files=normal)" ]
 
           trap - EXIT HUP INT TERM
