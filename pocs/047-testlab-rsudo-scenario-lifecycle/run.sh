@@ -99,6 +99,7 @@ instance_require_ready()
 cleanup_resources()
 {
     instance=$1
+    command -v podman >/dev/null 2>&1 || return 1
     reverse="$instance/.resources.reverse.$$"
     result=0
     tab=$(printf '\tX')
@@ -157,7 +158,7 @@ prepare()
 {
     [ "$#" -eq 1 ] || die "usage: $0 prepare <rumiai-os-root>"
 
-    for tool in podman ssh ssh-keyscan openssl awk sed grep date sleep cat chmod mkdir rm
+    for tool in podman ssh ssh-keyscan openssl awk sed grep date sleep cat chmod mkdir mv rm
     do
         need "$tool"
     done
@@ -369,6 +370,10 @@ cleanup()
     [ "$#" -eq 1 ] || die "usage: $0 cleanup <instance-dir>"
     instance=$1
     instance_require "$instance"
+    need podman
+    need awk
+    need rm
+    need cat
 
     state=$(cat "$instance/status") || die "cannot read scenario status"
     case "$state" in
