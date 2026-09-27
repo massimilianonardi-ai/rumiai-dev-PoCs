@@ -35,6 +35,7 @@ root=$(resolve_dir) || die "cannot resolve PoC directory"
 driver="$root/driver.exp"
 fixture="$root/fixtures/prompt-program.sh"
 handoff_driver="$root/handoff-driver.exp"
+handoff_launcher="$root/handoff-launcher.sh"
 handoff_harness="$root/handoff-harness.exp"
 handoff_fixture="$root/fixtures/handoff-program.sh"
 status_wrapper="$root/status-wrapper.sh"
@@ -42,6 +43,7 @@ status_wrapper="$root/status-wrapper.sh"
 [ -x "$driver" ] || die "Expect driver is unavailable"
 [ -x "$fixture" ] || die "fixture program is unavailable"
 [ -x "$handoff_driver" ] || die "Expect handoff driver is unavailable"
+[ -x "$handoff_launcher" ] || die "handoff launcher is unavailable"
 [ -x "$handoff_harness" ] || die "Expect handoff harness is unavailable"
 [ -x "$handoff_fixture" ] || die "handoff fixture program is unavailable"
 [ -x "$status_wrapper" ] || die "status wrapper is unavailable"
@@ -95,7 +97,7 @@ unset TESTLAB_EXPECT_POC_TIMEOUT
 handoff_transcript="$work/handoff-transcript"
 handoff_status="$work/handoff-status"
 
-"$handoff_harness" "$handoff_driver" "$handoff_transcript" "$handoff_status" "$status_wrapper" "$handoff_fixture" ||
+"$handoff_harness" "$handoff_launcher" "$handoff_driver" "$handoff_transcript" "$handoff_status" "$status_wrapper" "$handoff_fixture" ||
     die "Expect interact handoff experiment failed"
 
 grep -F 'handoff-ready' "$handoff_transcript" >/dev/null 2>&1 ||

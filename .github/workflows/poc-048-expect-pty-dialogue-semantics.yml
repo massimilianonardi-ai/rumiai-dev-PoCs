@@ -35,7 +35,10 @@ jobs:
       - name: Validate shell syntax
         run: |
           sh -n pocs/048-expect-pty-dialogue-semantics/run.sh
+          sh -n pocs/048-expect-pty-dialogue-semantics/status-wrapper.sh
+          sh -n pocs/048-expect-pty-dialogue-semantics/handoff-launcher.sh
           sh -n pocs/048-expect-pty-dialogue-semantics/fixtures/prompt-program.sh
+          sh -n pocs/048-expect-pty-dialogue-semantics/fixtures/handoff-program.sh
 
       - name: Exercise PTY dialogue semantics
         run: pocs/048-expect-pty-dialogue-semantics/run.sh

@@ -1,18 +1,19 @@
 #!/usr/bin/expect -f
 
-if {$argc != 5} {
-    puts stderr "usage: handoff-harness.exp <handoff-driver> <transcript> <status-file> <status-wrapper> <fixture>"
+if {$argc != 6} {
+    puts stderr "usage: handoff-harness.exp <handoff-launcher> <handoff-driver> <transcript> <status-file> <status-wrapper> <fixture>"
     exit 2
 }
 
-set driver [lindex $argv 0]
-set transcript [lindex $argv 1]
-set status_file [lindex $argv 2]
-set status_wrapper [lindex $argv 3]
-set fixture [lindex $argv 4]
+set launcher [lindex $argv 0]
+set driver [lindex $argv 1]
+set transcript [lindex $argv 2]
+set status_file [lindex $argv 3]
+set status_wrapper [lindex $argv 4]
+set fixture [lindex $argv 5]
 
 set timeout 10
-spawn -noecho $driver $transcript $status_file $status_wrapper -- $fixture
+spawn -noecho $launcher $driver $transcript $status_file $status_wrapper -- $fixture
 
 set outcome none
 expect {
@@ -130,7 +131,7 @@ if {$value != 37} {
         }
         close $sfh
     }
-    puts stderr "handoff-harness.exp: handoff driver returned $value; recorded child status=$recorded"
+    puts stderr "handoff-harness.exp: handoff launcher returned $value; recorded child status=$recorded"
     exit 1
 }
 

@@ -81,7 +81,8 @@ The run verifies:
 - child output remains visible through the handoff path;
 - an experimental local escape returns control from `interact` to the driver without being forwarded to the child;
 - the driver can resume deterministic dialogue with the same live child;
-- after the child then exits normally, a minimal POSIX wrapper preserves status 37 independently of Expect's post-`interact` wait semantics and the driver propagates that status.
+- after the child then exits normally, a minimal POSIX target wrapper preserves status 37 independently of Expect's post-`interact` wait semantics;
+- a minimal POSIX launcher keeps driver/infrastructure status separate from target status and returns the target status only after the Expect driver completed successfully.
 
 ## Human handoff
 
@@ -93,7 +94,9 @@ The PoC uses the literal local sequence `__TESTLAB_RETURN__` only as an experime
 
 The exercised Expect implementations diverge in the status returned by `wait` after a spawn has passed through `interact`: Expect 5.45 on macOS preserved the fixture's status 37 in this experiment, while Expect 5.45.4 on Ubuntu returned 0 even though handoff, return to automation and child completion all succeeded. `close_on_eof 0` did not remove that divergence.
 
-The PoC therefore wraps only the spawned target with a minimal POSIX-sh status recorder. It executes the target unchanged, records its numeric status in a private PoC-owned file, and exits with the same status. Expect still owns the PTY/dialogue boundary; the status recorder prevents adapter semantics from depending on the divergent post-`interact` `wait` result. This is an internal experimental mechanism, not a proposed public file/API contract.
+The PoC therefore uses two tiny POSIX-sh boundaries around Expect. A target wrapper executes the target unchanged and records its numeric status in a private PoC-owned file. The Expect driver owns only PTY/dialogue/handoff semantics and returns success when that infrastructure completed correctly. An outer POSIX launcher returns any driver error unchanged; only after a successful driver run does it read and propagate the recorded target status.
+
+This keeps infrastructure failure distinct from command result and prevents the adapter contract from depending on the divergent post-`interact` `wait` result. The private status file and wrapper/launcher layout are experimental internal mechanics, not proposed public APIs.
 
 This nesting is intentionally test infrastructure, not a proposed product design. It lets CI mechanically establish the hybrid boundary:
 
@@ -106,6 +109,8 @@ automated Expect setup
     -> automation resumes
     -> child completes
     -> private POSIX status record
+    -> Expect driver success
+    -> POSIX launcher
     -> child status
 ```
 
