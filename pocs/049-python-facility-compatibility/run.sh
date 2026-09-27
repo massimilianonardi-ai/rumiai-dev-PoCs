@@ -1,5 +1,5 @@
 #!/bin/sh
-set -eu
+set -eux
 
 [ "$#" -eq 1 ] || { echo "usage: $0 /path/to/rumiai-os" >&2; exit 2; }
 source_root=$1
