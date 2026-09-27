@@ -95,6 +95,7 @@ export POC051_STREAM POC051_RESULT
 expect >"$transcript" 2>&1 <<'EOF_EXPECT'
 set timeout 15
 spawn -noecho sh $env(POC051_STREAM) one two > $env(POC051_RESULT)
+stty rows 24 columns 80
 after 300
 send "\r"
 expect eof
