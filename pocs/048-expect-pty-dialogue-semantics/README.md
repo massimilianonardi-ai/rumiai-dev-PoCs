@@ -235,3 +235,11 @@ A physical Ubuntu 26.04 ARM64 run with the correct runtime takeover token still 
 The relevant Expect boundary is now modeled directly: `expect_tty` reads from `/dev/tty` in cooked mode by default, while `interact` uses raw mode. The current PoC therefore changes the controlling terminal to raw mode *before* operator acquisition, matches the runtime token including its raw carriage return, disables local echo, and enters `interact` without a cooked-to-raw transition at the handoff boundary. The prior raw/echo state returned by Expect's `stty` command is restored explicitly when handoff returns or the handoff path reports an error.
 
 The `interact` mapping also has explicit EOF actions for the operator TTY and child PTY. This prevents a premature EOF from degrading into a later generic `send: spawn id ... not open` error and makes the failed side observable.
+
+### Single-interact operator acquisition
+
+Physical Ubuntu 26.04 ARM64 still reported child EOF when the runtime takeover token was acquired through `expect_tty` before entering `interact`, even after pre-switching the controlling terminal to raw mode. The separate acquisition phase is therefore removed.
+
+The current PoC uses one `interact` call for the entire operator phase. Before takeover, the operator TTY has no default output mapping, so unmatched input is discarded instead of reaching the child. A runtime token is matched locally inside `interact`; the operator types it without pressing Enter, so no line terminator exists to leak across the boundary. Once the exact token matches, the driver sends the private `handoff-start` control record to the child and marks the handoff active. From that point, a catch-all input pattern forwards operator characters to the child one by one, while child output is mapped to the operator TTY. The experimental `__TESTLAB_RETURN__` sequence remains locally consumed and returns control to automation.
+
+This design deliberately lets `interact` own raw-terminal mode for the complete human phase rather than switching between `expect_tty` and `interact` on the same `/dev/tty`.

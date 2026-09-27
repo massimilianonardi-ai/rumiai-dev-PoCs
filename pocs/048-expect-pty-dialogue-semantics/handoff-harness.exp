@@ -39,7 +39,7 @@ if {$outcome ne "matched"} {
     exit 125
 }
 
-send -- "$takeover_token\r"
+send -- "$takeover_token"
 
 set outcome none
 expect {

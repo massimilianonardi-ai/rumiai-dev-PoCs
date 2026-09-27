@@ -79,106 +79,57 @@ if {$outcome ne "matched"} {
     exit 125
 }
 
-set operator_tty_restore ""
-
-proc restore_operator_tty {} {
-    global operator_tty_restore
-
-    if {$operator_tty_restore ne ""} {
-        catch {eval stty $operator_tty_restore}
-        set operator_tty_restore ""
-    }
-}
-
-proc acquire_operator {takeover_token} {
-    global operator_tty_restore timeout
-
-    if {![info exists ::tty_spawn_id]} {
-        error "handoff-driver.exp: controlling terminal /dev/tty is unavailable"
-    }
-
-    set operator_tty_restore [stty raw echo]
-    set saved_timeout $timeout
-    set timeout -1
-
-    send_tty -- "driver:take-control> type $takeover_token and press Enter: "
-
-    expect_tty {
-        -exact "$takeover_token\r" {
-            set timeout $saved_timeout
-            stty raw -echo
-            send_tty -- "\r\n"
-            return
-        }
-        eof {
-            set timeout $saved_timeout
-            error "handoff-driver.exp: controlling terminal reached EOF before takeover"
-        }
-    }
-}
-
 set takeover_token "takeover-[pid]"
 
-if {[catch {acquire_operator $takeover_token} takeover_error]} {
-    restore_operator_tty
-    log_file
-    puts stderr $takeover_error
-    exit 127
-}
-
-send -- "handoff-start\r"
-
-set outcome none
-expect {
-    -exact "human> " {
-        set outcome matched
-    }
-    timeout {
-        set outcome timeout
-    }
-    eof {
-        set outcome eof
-    }
-}
-
-if {$outcome ne "matched"} {
-    log_file
-    if {$outcome eq "timeout"} {
-        puts stderr "handoff-driver.exp: timeout waiting for human prompt"
-        exit 124
-    }
-    puts stderr "handoff-driver.exp: child reached EOF before human prompt"
-    exit 125
-}
-
-puts "driver:handoff"
-flush stdout
-
-proc operator_handoff {child_spawn_id} {
+proc operator_handoff {child_spawn_id takeover_token} {
     global tty_spawn_id
 
     if {![info exists tty_spawn_id]} {
         error "handoff-driver.exp: controlling terminal /dev/tty is unavailable"
     }
 
+    set handoff_active 0
+
+    send_tty -- "driver:take-control> type $takeover_token (no Enter): "
+
     interact \
         -input $tty_spawn_id \
-            "__TESTLAB_RETURN__" { return } \
-            eof { error "handoff-driver.exp: controlling terminal reached EOF during handoff" } \
-            -output $child_spawn_id \
+            -echo $takeover_token {
+                if {!$handoff_active} {
+                    set handoff_active 1
+                    send_tty -- "\r\n"
+                    send -i $child_spawn_id -- "handoff-start\r"
+                    puts "driver:handoff"
+                    flush stdout
+                } else {
+                    send -i $child_spawn_id -- $takeover_token
+                }
+            } \
+            "__TESTLAB_RETURN__" {
+                if {$handoff_active} {
+                    return
+                }
+            } \
+            -re {(.|\n)} {
+                if {$handoff_active} {
+                    send -i $child_spawn_id -- $interact_out(0,string)
+                }
+            } \
+            eof {
+                error "handoff-driver.exp: controlling terminal reached EOF during handoff"
+            } \
         -input $child_spawn_id \
-            eof { error "handoff-driver.exp: child reached EOF during operator handoff" } \
-            -output $tty_spawn_id
+            -output $tty_spawn_id \
+            eof {
+                error "handoff-driver.exp: child reached EOF during operator handoff"
+            }
 }
 
-if {[catch {operator_handoff $child_spawn_id} handoff_error]} {
-    restore_operator_tty
+if {[catch {operator_handoff $child_spawn_id $takeover_token} handoff_error]} {
     log_file
     puts stderr $handoff_error
     exit 127
 }
-
-restore_operator_tty
 
 puts "driver:resumed"
 flush stdout
