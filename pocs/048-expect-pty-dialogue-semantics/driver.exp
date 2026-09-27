@@ -1,0 +1,89 @@
+#!/usr/bin/expect -f
+
+if {$argc < 4} {
+    puts stderr "usage: driver.exp <dialogue> <transcript> -- <command> ?arg ...?"
+    exit 2
+}
+
+set dialogue [lindex $argv 0]
+set transcript [lindex $argv 1]
+
+if {[lindex $argv 2] ne "--"} {
+    puts stderr "driver.exp: missing -- before child command"
+    exit 2
+}
+
+set command [lrange $argv 3 end]
+if {[llength $command] == 0} {
+    puts stderr "driver.exp: empty child command"
+    exit 2
+}
+
+set timeout 10
+if {[info exists env(TESTLAB_EXPECT_POC_TIMEOUT)]} {
+    set timeout $env(TESTLAB_EXPECT_POC_TIMEOUT)
+}
+
+log_user 1
+log_file -noappend $transcript
+
+spawn -noecho {*}$command
+
+set fh [open $dialogue r]
+while {[gets $fh line] >= 0} {
+    set tab [string first "\t" $line]
+    if {$tab < 0} {
+        close $fh
+        puts stderr "driver.exp: invalid dialogue record"
+        exit 2
+    }
+
+    set prompt [string range $line 0 [expr {$tab - 1}]]
+    set response [string range $line [expr {$tab + 1}] end]
+
+    set outcome none
+    expect {
+        -exact $prompt {
+            set outcome matched
+        }
+        timeout {
+            set outcome timeout
+        }
+        eof {
+            set outcome eof
+        }
+    }
+
+    if {$outcome ne "matched"} {
+        close $fh
+        if {$outcome eq "timeout"} {
+            puts stderr "driver.exp: timeout waiting for prompt: $prompt"
+            exit 124
+        }
+        puts stderr "driver.exp: child reached EOF waiting for prompt: $prompt"
+        exit 125
+    }
+
+    send -- "$response\r"
+}
+close $fh
+
+expect eof
+
+set result [wait]
+log_file
+
+if {[llength $result] < 4} {
+    puts stderr "driver.exp: invalid wait result"
+    exit 126
+}
+
+set os_error [lindex $result 2]
+set value [lindex $result 3]
+
+if {$os_error != 0} {
+    puts stderr "driver.exp: wait reported operating-system error: $value"
+    exit 126
+}
+
+exit $value

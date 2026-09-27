@@ -1,0 +1,41 @@
+name: PoC 048 Expect PTY dialogue semantics
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'pocs/048-expect-pty-dialogue-semantics/**'
+      - '.github/workflows/poc-048-expect-pty-dialogue-semantics.yml'
+
+jobs:
+  matrix:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-24.04
+          - macos-15
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Expect on Ubuntu
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y expect
+
+      - name: Verify host Expect prerequisite
+        run: |
+          command -v expect
+          expect -v
+
+      - name: Validate shell syntax
+        run: |
+          sh -n pocs/048-expect-pty-dialogue-semantics/run.sh
+          sh -n pocs/048-expect-pty-dialogue-semantics/fixtures/prompt-program.sh
+
+      - name: Exercise PTY dialogue semantics
+        run: pocs/048-expect-pty-dialogue-semantics/run.sh
