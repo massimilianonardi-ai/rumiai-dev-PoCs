@@ -29,6 +29,7 @@ log_user 1
 log_file -noappend $transcript
 
 spawn -noecho $status_wrapper $status_file -- {*}$command
+set child_spawn_id $spawn_id
 
 set outcome none
 expect {
@@ -81,13 +82,26 @@ if {$outcome ne "matched"} {
 puts "driver:handoff"
 flush stdout
 
-proc operator_handoff {} {
-    interact "__TESTLAB_RETURN__" {
-        return
+proc operator_handoff {child_spawn_id} {
+    global tty_spawn_id
+
+    if {![info exists tty_spawn_id]} {
+        error "handoff-driver.exp: controlling terminal /dev/tty is unavailable"
     }
+
+    interact \
+        -input $tty_spawn_id \
+            "__TESTLAB_RETURN__" { return } \
+            -output $child_spawn_id \
+        -input $child_spawn_id \
+            -output $tty_spawn_id
 }
 
-operator_handoff
+if {[catch {operator_handoff $child_spawn_id} handoff_error]} {
+    log_file
+    puts stderr $handoff_error
+    exit 127
+}
 
 puts "driver:resumed"
 flush stdout

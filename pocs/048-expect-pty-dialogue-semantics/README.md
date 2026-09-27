@@ -88,7 +88,7 @@ The run verifies:
 
 The PoC now exercises Expect's real `interact` primitive.
 
-The inner handoff driver performs one deterministic setup exchange, emits an experimental handoff marker, then calls `interact`. A second Expect process is used only as an automated laboratory harness: it provides a real controlling PTY to the inner driver and simulates operator input after observing the handoff marker.
+The inner handoff driver performs one deterministic setup exchange, emits an experimental handoff marker, then calls `interact`. The operator side is bound explicitly to Expect's `tty_spawn_id`, which represents the controlling `/dev/tty`, rather than relying on the default `user_spawn_id`/stdin mapping. A second Expect process is used only as an automated laboratory harness: it provides a real controlling PTY to the inner driver and simulates operator input after observing the handoff marker.
 
 The PoC uses the literal local sequence `__TESTLAB_RETURN__` only as an experimental escape from `interact`. Expect consumes that sequence locally, returns control to the driver, and does not forward it to the child. The driver then continues deterministic dialogue with the same child.
 
@@ -194,3 +194,13 @@ automated prompt/response
 During development the PoC also exposed a real portability detail: after a spawn had passed through `interact`, Expect 5.45/macOS and Expect 5.45.4/Linux did not report the target exit status consistently through Expect's own process-status path. The final PoC therefore keeps PTY/dialogue responsibility in Expect and preserves target status through the minimal POSIX wrapper/launcher boundary described above.
 
 This remains hosted-CI evidence. Physical/reference-host execution on macOS and Ubuntu 26.04 ARM64 is still required before promoting a production adapter surface.
+
+### Physical Ubuntu controlling-terminal correction
+
+Physical Ubuntu 26.04.1 ARM64 execution exposed a distinction that the hosted nested harness had not made visible. With the original default `interact` mapping, the direct operator run returned from `interact` immediately before the operator could enter the `human>` response. The driver then resumed automation after the child side had closed and reported `send: spawn id ... not open`.
+
+The cause is at the handoff boundary: Expect's default user side is `user_spawn_id`, which represents the process standard input, while Expect separately exposes `tty_spawn_id` for the controlling `/dev/tty`. The physical operator contract is specifically terminal control, not arbitrary inherited stdin.
+
+The PoC therefore now binds the operator side of `interact` explicitly to `tty_spawn_id` and the child side explicitly to the saved child spawn id. If a controlling terminal is unavailable, the handoff driver reports an infrastructure error rather than silently treating stdin EOF as an operator return.
+
+This correction is still PoC-local. It does not promote a public adapter API or escape sequence.
