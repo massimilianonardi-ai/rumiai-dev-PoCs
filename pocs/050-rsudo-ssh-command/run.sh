@@ -120,15 +120,18 @@ exec $(printf "'%s'" "$target_root/m") $(printf "'%s'" "$target_root/bin/sys/rsu
 EOF_WRAPPER
 chmod 700 "$wrapper" || exit 2
 
-expect <<EOF_EXPECT
+TESTLAB_POC_INTERACTIVE_WRAPPER=$wrapper
+export TESTLAB_POC_INTERACTIVE_WRAPPER
+expect <<'EOF_EXPECT'
 set timeout 45
 log_user 1
-spawn -noecho "$wrapper"
+spawn -noecho $env(TESTLAB_POC_INTERACTIVE_WRAPPER)
 expect eof
 set result [wait]
 set status [lindex $result 3]
 exit $status
 EOF_EXPECT
+unset TESTLAB_POC_INTERACTIVE_WRAPPER
 status=$?
 [ "$status" -eq 0 ] || {
     printf 'ERROR interactive --ssh-command case returned %s\n' "$status" >&2
