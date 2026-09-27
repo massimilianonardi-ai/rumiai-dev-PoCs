@@ -82,3 +82,43 @@ The provider-binding command may reject an incompatible selector immediately or 
 A PASS establishes that the existing facility/dependency compatibility primitives are expressive enough for the tested **CPython minor-version** compatibility classes.
 
 It does not choose the final public facility name, define the complete Python facility contract, solve cross-implementation compatibility, or prove that arbitrary Python package metadata can always be converted automatically into the correct facility constraint.
+
+## Observed result
+
+PASS on GitHub Actions run `36304011616` at PoC revision `e19c5109774760a8f9995b8123d76298c77ed04d`, on Ubuntu 24.04 and macOS 14.
+
+The revised single-facility model behaved identically on both hosts:
+
+```text
+pure-like consumer
+    >=3.12 <3.14
+    inherited 3.12         -> PASS
+    bound to 3.13          -> PASS
+    binding removed        -> back to 3.12
+
+abi3-like consumer
+    >=3.8 <3.14
+    inherited 3.12         -> PASS
+    bound to 3.13          -> PASS
+
+cp312-specific consumer
+    =3.12
+    inherited 3.12         -> PASS
+    bound to 3.13          -> rejected before consumer target execution
+
+facility default changed 3.12 -> 3.13
+    pure-like consumer     -> follows 3.13
+    abi3-like consumer     -> follows 3.13
+    cp312-specific         -> rejected before consumer target execution
+
+facility default restored 3.13 -> 3.12
+    cp312-specific         -> runs again without rewriting/reinstalling
+```
+
+The incompatible binding selector itself was accepted as mutable configuration, but the real package launch rejected it during dependency resolution before the consumer target executed. This matches the current separation between selector intent and effective provider compatibility.
+
+The initial two-facility revision is also useful evidence rather than discarded noise. Run `36303903347` failed consistently on Linux and macOS when a second independent facility default attempted to publish another global command named `python`. Together with the selector-coherence concern, that eliminates the naive "generic Python facility + independent CPython ABI facility" shape for the current `#!/usr/bin/env python` model.
+
+The strongest current compatibility shape is therefore one CPython-runtime facility whose numeric compatibility level tracks CPython major/minor for the tested cases. Pure-Python and stable-ABI consumers use ranges; ordinary CPython-minor wheels use exact constraints. Platform/osarch compatibility remains separate and wheel-tag validation must still occur before or during materialization as established by PoC 044.
+
+This remains task-local evidence. It does not yet promote the final facility name or contract.
