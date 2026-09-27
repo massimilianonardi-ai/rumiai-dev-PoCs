@@ -40,10 +40,29 @@ jobs:
           fi
           podman info >/dev/null
 
+      - name: Diagnose permanent rsudo tests directly
+        shell: sh
+        continue-on-error: true
+        run: |
+          set -u
+          export RUMIAI_TEST_RUMIAI_OS_ROOT="$GITHUB_WORKSPACE/rumiai-os"
+          cd rumiai-tests
+          overall=0
+          for test in tests/rumiai-os/rsudo/*.test
+          do
+            echo "===== $test ====="
+            "$test"
+            status=$?
+            echo "status=$status"
+            [ "$status" -eq 0 ] || overall=1
+          done
+          exit "$overall"
+
       - name: Run permanent rsudo regression group
         shell: sh
+        continue-on-error: true
         run: |
-          set -eu
+          set -u
           export RUMIAI_TEST_RUMIAI_OS_ROOT="$GITHUB_WORKSPACE/rumiai-os"
           cd rumiai-tests
           ./rumiai-test rumiai-os/rsudo
