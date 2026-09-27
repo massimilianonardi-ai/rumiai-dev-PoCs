@@ -27,6 +27,7 @@ log_user 1
 log_file -noappend $transcript
 
 spawn -noecho {*}$command
+set child_spawn_id $spawn_id
 
 set outcome none
 expect {
@@ -79,9 +80,9 @@ if {$outcome ne "matched"} {
 puts "driver:handoff"
 flush stdout
 
-interact
+interact -i $child_spawn_id
 
-set result [wait]
+set result [wait -i $child_spawn_id]
 log_file
 
 if {[llength $result] < 4} {
