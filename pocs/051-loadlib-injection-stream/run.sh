@@ -8,7 +8,7 @@ set -u
 
 target_root=$1
 
-for tool in cat expect mktemp sh
+for tool in cat mktemp script sh
 do
     command -v "$tool" >/dev/null 2>&1 || {
         printf 'ERROR missing prerequisite: %s\n' "$tool" >&2
@@ -88,20 +88,19 @@ sh -n "$stream" || {
     exit 1
 }
 
+wrapper=$tmp/menu-wrapper
+cat > "$wrapper" <<'EOF_WRAPPER'
+#!/bin/sh
+exec sh "$POC051_STREAM" one two > "$POC051_RESULT"
+EOF_WRAPPER
+chmod 700 "$wrapper" || exit 2
+
 POC051_STREAM=$stream
 POC051_RESULT=$result
 export POC051_STREAM POC051_RESULT
+export TERM=xterm-256color
 
-expect >"$transcript" 2>&1 <<'EOF_EXPECT'
-set timeout 15
-spawn -noecho sh $env(POC051_STREAM) one two > $env(POC051_RESULT)
-stty rows 24 columns 80
-after 300
-send "\r"
-expect eof
-set outcome [wait]
-exit [lindex $outcome 3]
-EOF_EXPECT
+printf '\n' | script -q -c "$wrapper" /dev/null >"$transcript" 2>&1
 status=$?
 
 [ "$status" -eq 0 ] || {
