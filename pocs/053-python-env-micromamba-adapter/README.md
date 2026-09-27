@@ -49,4 +49,21 @@ MICROMAMBA_SHA256=... \
 
 ## Observed result
 
-Pending hosted execution.
+PASS on GitHub Actions run `36350610261` at PoC revision `787801de705920ced1e3c18e411676a650f56929`, on Ubuntu 24.04 and macOS 14.
+
+Both hosts passed the complete candidate contract probe:
+
+```text
+existing-target-protection=PASS
+unrecognized-remove-protection=PASS
+create-python-pip=PASS
+argv-preservation=PASS
+stream-status-preservation=PASS
+caller-shell-isolation=PASS
+remove=PASS
+python-version-rebuild=PASS
+```
+
+The tested adapter created Python 3.12 with working `python -m pip`, preserved option-like, spaced, newline-containing and empty arguments through `run`, propagated stdin/stdout/stderr and child exit status 37, did not mutate the caller shell environment, removed only a recognized environment, and recreated the same path with Python 3.13.
+
+This is direct behavioral evidence for the proposed `python-env =1` create/run/remove contract on the tested Linux/macOS providers. It is not Windows evidence and does not validate requirements, plugin, GPU or channel policy.
