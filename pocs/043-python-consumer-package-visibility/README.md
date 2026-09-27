@@ -51,3 +51,42 @@ The PoC is designed to establish behavior, not to force a preferred answer.
 - `PYTHONUSERBASE` is expected to provide native site processing but may couple the materialized directory layout to interpreter/platform details; the exact relative user-site layout is recorded on each host.
 
 A PASS means the experiment observed those mechanisms consistently before and after relocation. It does not promote a consumer-environment contract.
+
+## Observed result
+
+PASS on GitHub Actions run `36303162645` at PoC revision `9187bb195831b8b62934a9db1fa584dd72407ab0`, on Ubuntu 24.04 and macOS 14.
+
+The three visibility mechanisms behaved consistently before and after moving the complete disposable RumiAI root:
+
+```text
+direct PYTHONPATH
+    consumer package import             -> PASS
+    consumer .pth import line           -> not processed
+    consumer .pth relative path         -> not added
+
+sitecustomize + site.addsitedir()
+    consumer package import             -> PASS
+    consumer .pth import line           -> processed
+    consumer .pth relative path         -> added
+
+PYTHONUSERBASE
+    consumer package import             -> PASS
+    consumer .pth import line           -> processed
+    consumer .pth relative path         -> added
+```
+
+All three mechanisms survived whole-root relocation and the relocated consumer concretes contained no reference to the old root.
+
+The `PYTHONUSERBASE` layout was interpreter/platform dependent in the hosted evidence:
+
+```text
+Ubuntu / CPython 3.12:
+    lib/python3.12/site-packages
+    minor-version component present
+
+macOS / CPython 3.14:
+    lib/python/site-packages
+    minor-version component absent
+```
+
+This makes bare `PYTHONPATH` insufficient when normal site-directory semantics are required. Both `site.addsitedir()` and `PYTHONUSERBASE` preserve the tested `.pth` behavior, but `PYTHONUSERBASE` delegates consumer layout to interpreter/platform-specific user-site rules. PoC 046 separately tests moving the `site.addsitedir()` bridge into the selected Python provider itself.

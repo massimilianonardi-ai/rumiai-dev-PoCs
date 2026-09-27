@@ -41,3 +41,23 @@ A PASS establishes the Python-native mechanics only.
 It does not adopt the PoC environment-variable name, does not define how `pkg` will expose a consumer-root-relative site path, and does not yet decide whether the final bridge belongs in the Python provider package, another trusted runtime component, or generated consumer integration.
 
 The important property is that the Python command remains provider-independent and location-independent while normal site-directory semantics are preserved.
+
+## Observed result
+
+PASS on GitHub Actions run `36272865870` at PoC revision `71d28ecdab8a2fe2c5107213de86e167dd54adfb`, on Ubuntu 24.04 and macOS 14, using the pinned `python-build-standalone` CPython 3.13.15 artifacts.
+
+On both hosts:
+
+```text
+direct provider python + consumer site  -> PASS
+#!/usr/bin/env python consumer command  -> PASS
+consumer .pth relative path             -> processed
+consumer .pth import side effect        -> processed
+child python process                    -> inherited same consumer site
+provider + consumer relocation          -> PASS
+old-path scan of static hook/command    -> clean
+```
+
+The provider-side hook itself contains no provider or consumer installation path. Runtime selection remains outside the installed command: the command resolves `python` through PATH and the selected provider's static startup hook reads only the live consumer-site projection.
+
+This establishes a materially stronger mechanism than bare `PYTHONPATH`: normal site semantics are preserved for the tested consumer while both provider and consumer remain movable. It still does not fix the final RumiAI environment-variable name or ownership boundary.
