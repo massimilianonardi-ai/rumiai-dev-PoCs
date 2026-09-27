@@ -9,7 +9,7 @@ set -u
 scenario_driver=$1
 target_root=$2
 
-for tool in awk cat chmod expect grep mkdir rm sh
+for tool in awk cat chmod grep mkdir rm script sh
 do
     command -v "$tool" >/dev/null 2>&1 || {
         printf 'ERROR missing prerequisite: %s\n' "$tool" >&2
@@ -120,16 +120,7 @@ POC052_WRAPPER=$wrapper
 export RSUDO_HOST RSUDO_USER RSUDO_PASSWORD m_LOG_LEVEL
 export POC052_STREAM POC052_M POC052_RSUDO POC052_SSH_COMMAND POC052_STATUS_FILE POC052_WRAPPER
 
-expect >"$transcript" 2>&1 <<'EOF_EXPECT'
-set timeout 90
-log_user 1
-spawn -noecho $env(POC052_WRAPPER)
-expect -timeout 90 -ex "POC052_MENU"
-send -- "\r"
-expect eof
-set outcome [wait]
-exit [lindex $outcome 3]
-EOF_EXPECT
+printf '\n' | script -q -c "$wrapper" /dev/null >"$transcript" 2>&1
 driver_status=$?
 
 [ "$driver_status" -eq 0 ] || {
