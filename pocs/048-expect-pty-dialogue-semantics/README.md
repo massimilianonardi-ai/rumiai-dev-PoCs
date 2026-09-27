@@ -15,7 +15,7 @@ This PoC tests only:
 - propagation of a normal child exit status;
 - handoff from automated dialogue to the operator through Expect `interact`;
 - explicit return of control from the operator to automation while the child remains live;
-- normal child exit-status propagation after automation resumes.
+- portable child exit-status preservation after automation resumes.
 
 It does not define a public RumiAI command name, final CLI, scenario API, activity DSL, assertion DSL or testlab integration.
 
@@ -81,7 +81,7 @@ The run verifies:
 - child output remains visible through the handoff path;
 - an experimental local escape returns control from `interact` to the driver without being forwarded to the child;
 - the driver can resume deterministic dialogue with the same live child;
-- after the child then exits normally, the driver propagates child status 37.
+- after the child then exits normally, a minimal POSIX wrapper preserves status 37 independently of Expect's post-`interact` wait semantics and the driver propagates that status.
 
 ## Human handoff
 
@@ -89,7 +89,11 @@ The PoC now exercises Expect's real `interact` primitive.
 
 The inner handoff driver performs one deterministic setup exchange, emits an experimental handoff marker, then calls `interact`. A second Expect process is used only as an automated laboratory harness: it provides a real controlling PTY to the inner driver and simulates operator input after observing the handoff marker.
 
-The PoC uses the literal local sequence `__TESTLAB_RETURN__` only as an experimental escape from `interact`. Expect consumes that sequence locally, returns control to the driver, and does not forward it to the child. The driver then continues deterministic dialogue with the same child and obtains the child status through the ordinary `expect eof` + `wait` path.
+The PoC uses the literal local sequence `__TESTLAB_RETURN__` only as an experimental escape from `interact`. Expect consumes that sequence locally, returns control to the driver, and does not forward it to the child. The driver then continues deterministic dialogue with the same child.
+
+The exercised Expect implementations diverge in the status returned by `wait` after a spawn has passed through `interact`: Expect 5.45 on macOS preserved the fixture's status 37 in this experiment, while Expect 5.45.4 on Ubuntu returned 0 even though handoff, return to automation and child completion all succeeded. `close_on_eof 0` did not remove that divergence.
+
+The PoC therefore wraps only the spawned target with a minimal POSIX-sh status recorder. It executes the target unchanged, records its numeric status in a private PoC-owned file, and exits with the same status. Expect still owns the PTY/dialogue boundary; the status recorder prevents adapter semantics from depending on the divergent post-`interact` `wait` result. This is an internal experimental mechanism, not a proposed public file/API contract.
 
 This nesting is intentionally test infrastructure, not a proposed product design. It lets CI mechanically establish the hybrid boundary:
 
@@ -101,11 +105,11 @@ automated Expect setup
     -> local return-control sequence
     -> automation resumes
     -> child completes
-    -> expect eof / wait
+    -> private POSIX status record
     -> child status
 ```
 
-Earlier PoC attempts also established an important portability warning: relying on child EOF during `interact` itself to recover the child exit status behaved differently between the exercised Expect 5.45/macOS and 5.45.4/Linux environments. The working design therefore does not make that mechanism part of the candidate adapter semantics.
+Earlier PoC attempts established the same portability warning both when the child reached EOF during `interact` and when the child exited only after control had returned to automation. The working design therefore does not make Expect's post-`interact` `wait` status part of the candidate cross-host semantics.
 
 The PoC still does not fix a public command, public escape sequence or higher-level handoff UI.
 

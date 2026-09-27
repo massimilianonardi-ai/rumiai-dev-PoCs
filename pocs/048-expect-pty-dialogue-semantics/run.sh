@@ -37,12 +37,14 @@ fixture="$root/fixtures/prompt-program.sh"
 handoff_driver="$root/handoff-driver.exp"
 handoff_harness="$root/handoff-harness.exp"
 handoff_fixture="$root/fixtures/handoff-program.sh"
+status_wrapper="$root/status-wrapper.sh"
 
 [ -x "$driver" ] || die "Expect driver is unavailable"
 [ -x "$fixture" ] || die "fixture program is unavailable"
 [ -x "$handoff_driver" ] || die "Expect handoff driver is unavailable"
 [ -x "$handoff_harness" ] || die "Expect handoff harness is unavailable"
 [ -x "$handoff_fixture" ] || die "handoff fixture program is unavailable"
+[ -x "$status_wrapper" ] || die "status wrapper is unavailable"
 
 work=$(mktemp -d "${TMPDIR:-/tmp}/expect-pty-poc.XXXXXX") || die "cannot create temporary directory"
 cleanup()
@@ -91,8 +93,9 @@ unset TESTLAB_EXPECT_POC_TIMEOUT
     die "dialogue timeout returned $bad_status instead of 124"
 
 handoff_transcript="$work/handoff-transcript"
+handoff_status="$work/handoff-status"
 
-"$handoff_harness" "$handoff_driver" "$handoff_transcript" "$handoff_fixture" ||
+"$handoff_harness" "$handoff_driver" "$handoff_transcript" "$handoff_status" "$status_wrapper" "$handoff_fixture" ||
     die "Expect interact handoff experiment failed"
 
 grep -F 'handoff-ready' "$handoff_transcript" >/dev/null 2>&1 ||
@@ -101,5 +104,7 @@ grep -F 'human-seen:operator' "$handoff_transcript" >/dev/null 2>&1 ||
     die "operator interaction missing from transcript"
 grep -F 'handoff-done' "$handoff_transcript" >/dev/null 2>&1 ||
     die "post-handoff automation completion missing from transcript"
+[ "$(cat "$handoff_status")" = 37 ] ||
+    die "status wrapper did not preserve child status 37"
 
 printf '%s\n' "PASS expect PTY dialogue and interact handoff semantics"

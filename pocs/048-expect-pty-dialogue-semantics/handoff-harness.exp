@@ -1,16 +1,18 @@
 #!/usr/bin/expect -f
 
-if {$argc != 3} {
-    puts stderr "usage: handoff-harness.exp <handoff-driver> <transcript> <fixture>"
+if {$argc != 5} {
+    puts stderr "usage: handoff-harness.exp <handoff-driver> <transcript> <status-file> <status-wrapper> <fixture>"
     exit 2
 }
 
 set driver [lindex $argv 0]
 set transcript [lindex $argv 1]
-set fixture [lindex $argv 2]
+set status_file [lindex $argv 2]
+set status_wrapper [lindex $argv 3]
+set fixture [lindex $argv 4]
 
 set timeout 10
-spawn -noecho $driver $transcript -- $fixture
+spawn -noecho $driver $transcript $status_file $status_wrapper -- $fixture
 
 set outcome none
 expect {

@@ -1,18 +1,20 @@
 #!/usr/bin/expect -f
 
-if {$argc < 3} {
-    puts stderr "usage: handoff-driver.exp <transcript> -- <command> ?arg ...?"
+if {$argc < 5} {
+    puts stderr "usage: handoff-driver.exp <transcript> <status-file> <status-wrapper> -- <command> ?arg ...?"
     exit 2
 }
 
 set transcript [lindex $argv 0]
+set status_file [lindex $argv 1]
+set status_wrapper [lindex $argv 2]
 
-if {[lindex $argv 1] ne "--"} {
+if {[lindex $argv 3] ne "--"} {
     puts stderr "handoff-driver.exp: missing -- before child command"
     exit 2
 }
 
-set command [lrange $argv 2 end]
+set command [lrange $argv 4 end]
 if {[llength $command] == 0} {
     puts stderr "handoff-driver.exp: empty child command"
     exit 2
@@ -26,8 +28,7 @@ if {[info exists env(TESTLAB_EXPECT_POC_TIMEOUT)]} {
 log_user 1
 log_file -noappend $transcript
 
-spawn -noecho {*}$command
-close_on_eof 0
+spawn -noecho $status_wrapper $status_file -- {*}$command
 
 set outcome none
 expect {
@@ -117,19 +118,19 @@ if {$outcome ne "matched"} {
 }
 
 expect eof
-set result [wait]
+catch {wait}
 log_file
 
-if {[llength $result] < 4} {
-    puts stderr "handoff-driver.exp: invalid wait result"
+if {[catch {open $status_file r} fh]} {
+    puts stderr "handoff-driver.exp: child status record is unavailable"
     exit 126
 }
 
-set os_error [lindex $result 2]
-set value [lindex $result 3]
+set count [gets $fh value]
+close $fh
 
-if {$os_error != 0} {
-    puts stderr "handoff-driver.exp: wait reported operating-system error: $value"
+if {$count < 1 || ![string is integer -strict $value] || $value < 0 || $value > 255} {
+    puts stderr "handoff-driver.exp: invalid child status record"
     exit 126
 }
 
