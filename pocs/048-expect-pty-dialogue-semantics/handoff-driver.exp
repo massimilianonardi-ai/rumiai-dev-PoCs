@@ -27,10 +27,9 @@ log_user 1
 log_file -noappend $transcript
 
 spawn -noecho {*}$command
-set child_spawn_id $spawn_id
 
 set outcome none
-expect -i $child_spawn_id {
+expect {
     -exact "auto> " {
         set outcome matched
     }
@@ -52,10 +51,10 @@ if {$outcome ne "matched"} {
     exit 125
 }
 
-send -i $child_spawn_id -- "automated\r"
+send -- "automated\r"
 
 set outcome none
-expect -i $child_spawn_id {
+expect {
     -exact "handoff-ready" {
         set outcome matched
     }
@@ -80,17 +79,21 @@ if {$outcome ne "matched"} {
 puts "driver:handoff"
 flush stdout
 
-interact -i $child_spawn_id "__TESTLAB_RETURN__" {
-    return
+proc operator_handoff {} {
+    interact "__TESTLAB_RETURN__" {
+        return
+    }
 }
+
+operator_handoff
 
 puts "driver:resumed"
 flush stdout
 
-send -i $child_spawn_id -- "automated-finish\r"
+send -- "automated-finish\r"
 
 set outcome none
-expect -i $child_spawn_id {
+expect {
     -exact "handoff-done" {
         set outcome matched
     }
@@ -112,8 +115,8 @@ if {$outcome ne "matched"} {
     exit 125
 }
 
-expect -i $child_spawn_id eof
-set result [wait -i $child_spawn_id]
+expect eof
+set result [wait]
 log_file
 
 if {[llength $result] < 4} {
