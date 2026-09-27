@@ -79,7 +79,7 @@ Consequently:
 - the SSH transport, sshd and sudo boundaries are real;
 - the operator's `~/.ssh/config` and system SSH configuration are not modified;
 - the PoC does **not** prove that current rsudo can natively address an arbitrary SSH port without an execution-environment adapter;
-- whether a future product interface should expose SSH connection configuration remains a separate decision.
+- rsudo remains intentionally unaware of scenario-specific SSH configuration; disposable scenario adaptation stays in the calling environment through the PATH wrapper, while persistent per-host SSH behavior belongs to OpenSSH configuration.
 
 ## Persistent experimental state
 

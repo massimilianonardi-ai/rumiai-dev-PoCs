@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - 'pocs/047-testlab-rsudo-scenario-lifecycle/run.sh'
+      - 'pocs/047-testlab-rsudo-scenario-lifecycle/**'
       - '.github/workflows/poc-047-testlab-rsudo-scenario-lifecycle.yml'
 
 jobs:
