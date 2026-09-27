@@ -1,0 +1,63 @@
+name: PoC 047 testlab rsudo scenario lifecycle
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'pocs/047-testlab-rsudo-scenario-lifecycle/**'
+      - '.github/workflows/poc-047-testlab-rsudo-scenario-lifecycle.yml'
+
+jobs:
+  shell-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate POSIX shell syntax
+        run: sh -n pocs/047-testlab-rsudo-scenario-lifecycle/run.sh
+
+  real-scenario:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-os
+          path: rumiai-os
+
+      - name: Install host prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman openssh-client openssl
+
+      - name: Make rootless Podman usable on hosted Ubuntu when path policy blocks it
+        run: |
+          if ! podman info >/tmp/podman-info.log 2>&1; then
+            cat /tmp/podman-info.log
+            if [ -w /proc/sys/kernel/apparmor_restrict_unprivileged_userns ] || sudo test -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns; then
+              sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+            fi
+          fi
+          podman info
+
+      - name: Exercise persistent real scenario lifecycle
+        shell: sh
+        run: |
+          set -eu
+          poc=pocs/047-testlab-rsudo-scenario-lifecycle/run.sh
+          instance=$("$poc" prepare "$GITHUB_WORKSPACE/rumiai-os")
+          cleanup()
+          {
+            "$poc" cleanup "$instance" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT HUP INT TERM
+
+          [ "$("$poc" status "$instance")" = ready ]
+          "$poc" probe "$instance"
+          "$poc" cleanup "$instance"
+          [ "$("$poc" status "$instance")" = closed ]
+
+          # Cleanup must be idempotent and the external target must remain present.
+          "$poc" cleanup "$instance"
+          [ -x "$GITHUB_WORKSPACE/rumiai-os/m" ]
+
+          trap - EXIT HUP INT TERM
