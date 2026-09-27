@@ -80,9 +80,14 @@ if {$outcome ne "matched"} {
 puts "driver:handoff"
 flush stdout
 
-interact -i $child_spawn_id
-
-set result [wait -i $child_spawn_id]
+set result {}
+interact -i $child_spawn_id eof {
+    if {[catch {wait -i $child_spawn_id} result]} {
+        puts stderr "handoff-driver.exp: wait failed after child EOF: $result"
+        set result {}
+    }
+    return
+}
 log_file
 
 if {[llength $result] < 4} {
