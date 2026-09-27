@@ -227,3 +227,11 @@ The physical Ubuntu diagnostic status record established that the child returned
 The fixed literal `takeover` barrier was therefore insufficient because that same literal could itself already be queued from prior/anticipated operator input. The PoC now generates a per-driver runtime token of the form `takeover-<pid>`. The token is unknown before the driver starts. `expect_tty` discards every complete line until the exact runtime token is entered, consuming its terminating newline before the driver exposes the child's `human>` prompt and enters `interact`.
 
 The automated outer harness discovers the runtime token from the acquisition prompt and echoes that exact value. A physical operator must type the displayed token after it appears. This keeps the experiment strict: the child still rejects unexpected human input instead of silently tolerating or masking queued input.
+
+### Raw-mode acquisition before interact
+
+A physical Ubuntu 26.04 ARM64 run with the correct runtime takeover token still produced fixture status 38 immediately after the handoff began. This disproved the remaining queued-pre-run-input explanation.
+
+The relevant Expect boundary is now modeled directly: `expect_tty` reads from `/dev/tty` in cooked mode by default, while `interact` uses raw mode. The current PoC therefore changes the controlling terminal to raw mode *before* operator acquisition, matches the runtime token including its raw carriage return, disables local echo, and enters `interact` without a cooked-to-raw transition at the handoff boundary. The prior raw/echo state returned by Expect's `stty` command is restored explicitly when handoff returns or the handoff path reports an error.
+
+The `interact` mapping also has explicit EOF actions for the operator TTY and child PTY. This prevents a premature EOF from degrading into a later generic `send: spawn id ... not open` error and makes the failed side observable.

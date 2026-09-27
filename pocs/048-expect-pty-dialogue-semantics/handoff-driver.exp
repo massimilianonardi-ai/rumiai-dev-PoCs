@@ -79,28 +79,40 @@ if {$outcome ne "matched"} {
     exit 125
 }
 
-proc acquire_operator {takeover_token} {
-    global timeout
+set operator_tty_restore ""
 
+proc restore_operator_tty {} {
+    global operator_tty_restore
+
+    if {$operator_tty_restore ne ""} {
+        catch {eval stty $operator_tty_restore}
+        set operator_tty_restore ""
+    }
+}
+
+proc acquire_operator {takeover_token} {
+    global operator_tty_restore timeout
+
+    if {![info exists ::tty_spawn_id]} {
+        error "handoff-driver.exp: controlling terminal /dev/tty is unavailable"
+    }
+
+    set operator_tty_restore [stty raw echo]
     set saved_timeout $timeout
     set timeout -1
 
-    while {1} {
-        send_tty -- "driver:take-control> type $takeover_token and press Enter: "
+    send_tty -- "driver:take-control> type $takeover_token and press Enter: "
 
-        expect_tty {
-            -re {([^\r\n]*)\r?\n} {
-                set line [string trim $expect_out(1,string)]
-                if {$line eq $takeover_token} {
-                    set timeout $saved_timeout
-                    return
-                }
-                send_tty -- "driver:ignored-input\n"
-            }
-            eof {
-                set timeout $saved_timeout
-                error "handoff-driver.exp: controlling terminal reached EOF before takeover"
-            }
+    expect_tty {
+        -exact "$takeover_token\r" {
+            set timeout $saved_timeout
+            stty raw -echo
+            send_tty -- "\r\n"
+            return
+        }
+        eof {
+            set timeout $saved_timeout
+            error "handoff-driver.exp: controlling terminal reached EOF before takeover"
         }
     }
 }
@@ -108,6 +120,7 @@ proc acquire_operator {takeover_token} {
 set takeover_token "takeover-[pid]"
 
 if {[catch {acquire_operator $takeover_token} takeover_error]} {
+    restore_operator_tty
     log_file
     puts stderr $takeover_error
     exit 127
@@ -151,16 +164,21 @@ proc operator_handoff {child_spawn_id} {
     interact \
         -input $tty_spawn_id \
             "__TESTLAB_RETURN__" { return } \
+            eof { error "handoff-driver.exp: controlling terminal reached EOF during handoff" } \
             -output $child_spawn_id \
         -input $child_spawn_id \
+            eof { error "handoff-driver.exp: child reached EOF during operator handoff" } \
             -output $tty_spawn_id
 }
 
 if {[catch {operator_handoff $child_spawn_id} handoff_error]} {
+    restore_operator_tty
     log_file
     puts stderr $handoff_error
     exit 127
 }
+
+restore_operator_tty
 
 puts "driver:resumed"
 flush stdout
