@@ -9,7 +9,7 @@ set -u
 scenario_driver=$1
 target_root=$2
 
-for tool in awk cat chmod grep mkdir rm script sh
+for tool in awk cat chmod grep mkdir rm script sh stty
 do
     command -v "$tool" >/dev/null 2>&1 || {
         printf 'ERROR missing prerequisite: %s\n' "$tool" >&2
@@ -98,6 +98,7 @@ sh -n "$stream" || {
 
 cat > "$wrapper" <<'EOF_WRAPPER'
 #!/bin/sh
+stty rows 24 columns 80 < /dev/tty || exit 91
 cat "$POC052_STREAM" |
     "$POC052_M" "$POC052_RSUDO" \
         --ssh-command "$POC052_SSH_COMMAND" --interactive --
@@ -117,7 +118,8 @@ POC052_RSUDO=$target_root/bin/sys/rsudo
 POC052_SSH_COMMAND="$real_ssh -F $ssh_config"
 POC052_STATUS_FILE=$status_file
 POC052_WRAPPER=$wrapper
-export RSUDO_HOST RSUDO_USER RSUDO_PASSWORD m_LOG_LEVEL
+TERM=xterm-256color
+export RSUDO_HOST RSUDO_USER RSUDO_PASSWORD m_LOG_LEVEL TERM
 export POC052_STREAM POC052_M POC052_RSUDO POC052_SSH_COMMAND POC052_STATUS_FILE POC052_WRAPPER
 
 printf '\n' | script -q -c "$wrapper" /dev/null >"$transcript" 2>&1
