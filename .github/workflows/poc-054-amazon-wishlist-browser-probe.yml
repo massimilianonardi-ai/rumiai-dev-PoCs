@@ -1,0 +1,60 @@
+name: PoC 054 Amazon wishlist browser probe
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - pocs/054-amazon-wishlist-browser-probe/**
+      - .github/workflows/poc-054-amazon-wishlist-browser-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright and Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Open Amazon wishlist in Chromium
+        shell: bash
+        env:
+          TARGET_URL: https://www.amazon.it/hz/wishlist/ls/33ZKBWLPZJJVO?
+          OUT_DIR: artifacts/amazon-wishlist-probe
+        run: |
+          set -euo pipefail
+          node pocs/054-amazon-wishlist-browser-probe/probe.mjs | tee probe.log
+
+      - name: Print summary
+        if: always()
+        shell: bash
+        run: |
+          if [ -f artifacts/amazon-wishlist-probe/summary.json ]; then
+            cat artifacts/amazon-wishlist-probe/summary.json
+          else
+            echo "summary.json not produced"
+          fi
+
+      - name: Upload diagnostic artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: amazon-wishlist-browser-probe
+          path: |
+            artifacts/amazon-wishlist-probe/
+            probe.log
+          if-no-files-found: warn
+          retention-days: 7
