@@ -53,12 +53,19 @@ extract_fresh() {
   local target=$1
   rm -rf "$target"
   mkdir -p "$target"
-  unzip -q "$ARTIFACT" -d "$target.unpack"
-  local top
-  top=$(find "$target.unpack" -mindepth 1 -maxdepth 1 -type d | head -n 1)
-  test -n "$top"
-  mv "$top" "$target"
-  rm -rf "$target.unpack"
+  unzip -q "$ARTIFACT" -d "$target"
+
+  if [ ! -f "$target/bin/startup.sh" ]; then
+    local top
+    top=$(find "$target" -mindepth 1 -maxdepth 1 -type d | head -n 1)
+    test -n "$top"
+    test -f "$top/bin/startup.sh"
+    local flattened="$target.flattened"
+    mv "$top" "$flattened"
+    rm -rf "$target"
+    mv "$flattened" "$target"
+  fi
+
   test -f "$target/bin/startup.sh"
   chmod +x "$target/bin/startup.sh" "$target/bin/shutdown.sh" || true
 }
