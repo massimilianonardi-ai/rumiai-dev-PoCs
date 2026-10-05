@@ -120,6 +120,11 @@ jobs:
           ref: afd4cf7c84096e3d55cf753ff9bf4807e5033493
           path: rumiai-os
 
+      - name: Normalize product origin
+        shell: bash
+        run: |
+          git -C rumiai-os remote set-url origin https://github.com/massimilianonardi-ai/rumiai-os.git
+
       - name: Run permanent Keycloak live test directly
         shell: bash
         run: |
