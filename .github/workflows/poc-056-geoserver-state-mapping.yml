@@ -1,0 +1,94 @@
+name: PoC 056 GeoServer state mapping
+
+on:
+  push:
+    paths:
+      - .github/workflows/poc-056-geoserver-state-mapping.yml
+      - pocs/056-geoserver-state-mapping/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout PoC
+        uses: actions/checkout@v4
+        with:
+          path: rumiai-dev-PoCs
+
+      - name: Checkout RumiAI OS
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-os
+          ref: 2693e5695e7b75c45b1cda0a490435480960534d
+          path: rumiai-os
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Download GeoServer 3.0.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact="$RUNNER_TEMP/geoserver-3.0.1-bin.zip"
+          curl -fL --retry 4 --retry-delay 3             -o "$artifact"             "https://sourceforge.net/projects/geoserver/files/GeoServer/3.0.1/geoserver-3.0.1-bin.zip/download"
+          test -s "$artifact"
+          sha256sum "$artifact" | tee "$GITHUB_WORKSPACE/geoserver-artifact.sha256"
+          printf '%s\n' "$artifact" > "$GITHUB_WORKSPACE/geoserver-artifact.txt"
+
+      - name: Run upstream GeoServer state probes
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x rumiai-dev-PoCs/pocs/056-geoserver-state-mapping/tests/run.sh
+          ROOT="$GITHUB_WORKSPACE/rumiai-os"           ARTIFACT="$(cat "$GITHUB_WORKSPACE/geoserver-artifact.txt")"           OUT="$GITHUB_WORKSPACE/evidence"             rumiai-dev-PoCs/pocs/056-geoserver-state-mapping/tests/run.sh
+
+      - name: Upload compact upstream evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-056-geoserver-upstream-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            evidence
+            !evidence/*/root/**
+          if-no-files-found: warn
+
+  integrated:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout PoC
+        uses: actions/checkout@v4
+        with:
+          path: rumiai-dev-PoCs
+
+      - name: Checkout current RumiAI OS revision
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-os
+          ref: 2693e5695e7b75c45b1cda0a490435480960534d
+          path: rumiai-os
+
+      - name: Validate composed GeoServer behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x rumiai-dev-PoCs/pocs/056-geoserver-state-mapping/tests/integrated.sh
+          ROOT="$GITHUB_WORKSPACE/rumiai-os"           OUT="$GITHUB_WORKSPACE/integrated-evidence"             rumiai-dev-PoCs/pocs/056-geoserver-state-mapping/tests/integrated.sh
+
+      - name: Upload integrated evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-056-geoserver-integrated-${{ github.run_id }}-${{ github.run_attempt }}
+          path: integrated-evidence
+          if-no-files-found: warn
