@@ -128,6 +128,21 @@ export GEOSERVER_HOME GEOSERVER_DATA_DIR GEOSERVER_LOG_LOCATION JETTY_OPTS JAVA_
 exec timeout --signal=TERM 35s ./bin/startup.sh
 EOF
       ;;
+    external-all)
+      mkdir -p "$external/data" "$external/log" "$external/tmp" "$external/cache"
+      cp -R "$target/data_dir/." "$external/data/"
+      cat > "$wrapper" <<EOF
+#!/bin/sh
+GEOSERVER_HOME='$target'
+GEOSERVER_DATA_DIR='$external/data'
+GEOSERVER_LOG_LOCATION='$external/log/geoserver.log'
+GEOWEBCACHE_CACHE_DIR='$external/cache'
+JETTY_OPTS='jetty.http.port=$port'
+JAVA_OPTS='-Djava.io.tmpdir=$external/tmp'
+export GEOSERVER_HOME GEOSERVER_DATA_DIR GEOSERVER_LOG_LOCATION GEOWEBCACHE_CACHE_DIR JETTY_OPTS JAVA_OPTS
+exec timeout --signal=TERM 35s ./bin/startup.sh
+EOF
+      ;;
     *)
       return 2
       ;;
@@ -197,3 +212,4 @@ run_case baseline 18300
 run_case external-data 18301
 run_case external-data-log 18302
 run_case external-data-log-tmp 18303
+run_case external-all 18304
