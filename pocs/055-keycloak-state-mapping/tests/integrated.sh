@@ -18,6 +18,9 @@ run_pkg install keycloak >"$OUT/install-keycloak.out" 2>"$OUT/install-keycloak.e
 
 identity=$(run_pkg default keycloak)
 printf '%s\n' "$identity" >"$OUT/identity.txt"
+case "$identity" in
+  *'!'*) echo "platform-independent Keycloak concrete unexpectedly carries osarch: $identity" >&2; exit 1 ;;
+esac
 concrete="$ROOT/pkg/$identity"
 package_root="$concrete/root"
 
