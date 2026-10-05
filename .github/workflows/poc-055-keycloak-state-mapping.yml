@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: massimilianonardi-ai/rumiai-os
-          ref: 6f8633f3cce9b9f4ebba9430622264d3fbe5031c
+          ref: afd4cf7c84096e3d55cf753ff9bf4807e5033493
           path: rumiai-os
 
       - name: Set up Java 25
@@ -81,7 +81,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: massimilianonardi-ai/rumiai-os
-          ref: 6f8633f3cce9b9f4ebba9430622264d3fbe5031c
+          ref: afd4cf7c84096e3d55cf753ff9bf4807e5033493
           path: rumiai-os
 
       - name: Validate integrated package state routing
@@ -101,34 +101,3 @@ jobs:
           path: integrated-evidence
           if-no-files-found: warn
 
-  permanent-keycloak-test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - name: Checkout permanent tests
-        uses: actions/checkout@v4
-        with:
-          repository: massimilianonardi-ai/rumiai-tests
-          ref: 1b1833ffb04719648a93a5394b8ea39ac4d5b4e6
-          path: rumiai-tests
-
-      - name: Checkout current RumiAI OS revision
-        uses: actions/checkout@v4
-        with:
-          repository: massimilianonardi-ai/rumiai-os
-          ref: afd4cf7c84096e3d55cf753ff9bf4807e5033493
-          path: rumiai-os
-
-      - name: Normalize product origin
-        shell: bash
-        run: |
-          git -C rumiai-os remote set-url origin https://github.com/massimilianonardi-ai/rumiai-os.git
-
-      - name: Run permanent Keycloak live test directly
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd rumiai-tests
-          RUMIAI_TEST_RUMIAI_OS_ROOT="$GITHUB_WORKSPACE/rumiai-os" \
-            ./tests/external/keycloak/install-live.test
