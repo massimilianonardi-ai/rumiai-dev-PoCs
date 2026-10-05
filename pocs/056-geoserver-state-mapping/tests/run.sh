@@ -59,7 +59,8 @@ extract_fresh() {
   test -n "$top"
   mv "$top" "$target"
   rm -rf "$target.unpack"
-  test -x "$target/bin/startup.sh"
+  test -f "$target/bin/startup.sh"
+  chmod +x "$target/bin/startup.sh" "$target/bin/shutdown.sh" || true
 }
 
 write_wrapper() {
