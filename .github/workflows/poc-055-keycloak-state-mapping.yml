@@ -1,0 +1,66 @@
+name: PoC 055 Keycloak state mapping
+
+on:
+  push:
+    paths:
+      - .github/workflows/poc-055-keycloak-state-mapping.yml
+      - pocs/055-keycloak-state-mapping/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout PoC
+        uses: actions/checkout@v4
+        with:
+          path: rumiai-dev-PoCs
+
+      - name: Checkout RumiAI OS
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-os
+          ref: ea2eb22917edca77a44566ee415301f69ca61ad8
+          path: rumiai-os
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Download and verify Keycloak 26.7.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact="$RUNNER_TEMP/keycloak-26.7.3.tar.gz"
+          curl -fL --retry 3 --retry-delay 2 \
+            -o "$artifact" \
+            https://github.com/keycloak/keycloak/releases/download/26.7.3/keycloak-26.7.3.tar.gz
+          printf '%s  %s\n' \
+            77657f30b7e90d70f727712ce1c967f430fd6a5e9f458d32d8c6df0635345f47 \
+            "$artifact" | sha256sum -c -
+          printf '%s\n' "$artifact" > "$GITHUB_WORKSPACE/keycloak-artifact.txt"
+
+      - name: Run Keycloak state probes
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x rumiai-dev-PoCs/pocs/055-keycloak-state-mapping/tests/run.sh
+          ROOT="$GITHUB_WORKSPACE/rumiai-os" \
+          ARTIFACT="$(cat "$GITHUB_WORKSPACE/keycloak-artifact.txt")" \
+          OUT="$GITHUB_WORKSPACE/evidence" \
+            rumiai-dev-PoCs/pocs/055-keycloak-state-mapping/tests/run.sh
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-055-keycloak-state-mapping-${{ github.run_id }}-${{ github.run_attempt }}
+          path: evidence
+          if-no-files-found: warn
