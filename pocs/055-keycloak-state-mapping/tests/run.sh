@@ -130,16 +130,23 @@ run_case() {
   local case_dir="$OUT/$case_name"
   local tree="$case_dir/root"
   local external="$case_dir/external"
+  local analyzer_home="$case_dir/analyzer-home"
 
-  mkdir -p "$case_dir" "$external"
+  mkdir -p "$case_dir" "$external" "$analyzer_home"
   extract_fresh "$tree"
   write_wrapper "$tree" "$case_name" "$port" "$external"
 
   export PATH="$ROOT:$ROOT/bin/sys:$PATH"
+  export HOME="$analyzer_home"
+  unset XDG_RUNTIME_DIR
 
-  printf '\n' | "$ROOT/bin/sys/pkg-analyze" "$tree"     > "$case_dir/discovery.txt"     2> "$case_dir/discovery.stderr"
+  printf '\n' | "$ROOT/bin/sys/pkg-analyze" "$tree" \
+    > "$case_dir/discovery.txt" \
+    2> "$case_dir/discovery.stderr"
 
-  candidate_id=$(awk -F '\t' -v wanted=".poc-keycloak-$case_name"     '$2 == "executable" && $3 == wanted { print $1; exit }'     "$case_dir/discovery.txt")
+  candidate_id=$(awk -F '\t' -v wanted=".poc-keycloak-$case_name" \
+    '$2 == "executable" && $3 == wanted { print $1; exit }' \
+    "$case_dir/discovery.txt")
   test -n "$candidate_id"
   printf '%s\n' "$candidate_id" > "$case_dir/candidate-id.txt"
 
@@ -148,7 +155,9 @@ run_case() {
 
   set +e
   printf '%s\ny\n\n' "$candidate_id" |
-    timeout 55s "$ROOT/bin/sys/pkg-analyze" "$tree"       > "$case_dir/probe.txt"       2> "$case_dir/probe.stderr"
+    timeout 55s "$ROOT/bin/sys/pkg-analyze" "$tree" \
+      > "$case_dir/probe.txt" \
+      2> "$case_dir/probe.stderr"
   probe_status=$?
   set -e
   printf '%s\n' "$probe_status" > "$case_dir/probe-status.txt"
