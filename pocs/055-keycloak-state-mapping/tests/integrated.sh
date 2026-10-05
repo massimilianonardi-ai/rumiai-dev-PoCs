@@ -13,7 +13,8 @@ export PATH="$ROOT/bin/sys:$PATH"
 
 "$ROOT/m" "$ROOT/bin/sys/osarch" update >"$OUT/osarch.out" 2>"$OUT/osarch.err"
 
-run_pkg install keycloak >"$OUT/install.out" 2>"$OUT/install.err"
+run_pkg install temurin >"$OUT/install-temurin.out" 2>"$OUT/install-temurin.err"
+run_pkg install keycloak >"$OUT/install-keycloak.out" 2>"$OUT/install-keycloak.err"
 
 identity=$(run_pkg default keycloak)
 printf '%s\n' "$identity" >"$OUT/identity.txt"
