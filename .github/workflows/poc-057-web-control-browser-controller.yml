@@ -1,0 +1,37 @@
+name: PoC 057 web-control browser controller
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - pocs/057-web-control-browser-controller/**
+      - .github/workflows/poc-057-web-control-browser-controller.yml
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install PoC dependencies
+        working-directory: pocs/057-web-control-browser-controller
+        run: npm install
+
+      - name: Install Playwright Chromium
+        working-directory: pocs/057-web-control-browser-controller
+        run: npx playwright install --with-deps chromium
+
+      - name: Run controller experiment
+        working-directory: pocs/057-web-control-browser-controller
+        env:
+          HEADLESS: '1'
+        run: npm test
