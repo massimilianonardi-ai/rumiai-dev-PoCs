@@ -1,0 +1,36 @@
+name: PoC 059 chaotic neuron noise screening
+
+on:
+  push:
+    branches:
+      - poc/059-chaotic-neuron-noise-screening
+    paths:
+      - "pocs/059-chaotic-neuron-noise-screening/**"
+      - ".github/workflows/poc-059-chaotic-neuron-noise-screening.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  screening:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: pocs/059-chaotic-neuron-noise-screening/requirements.txt
+      - name: Install dependencies
+        run: python -m pip install -r pocs/059-chaotic-neuron-noise-screening/requirements.txt
+      - name: Run full screening
+        run: |
+          OPENBLAS_NUM_THREADS=1 python pocs/059-chaotic-neuron-noise-screening/experiment.py --output "$RUNNER_TEMP/poc059-results"
+      - name: Upload run diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc059-chaotic-neuron-noise-screening
+          path: "$RUNNER_TEMP/poc059-results"
+          retention-days: 30
