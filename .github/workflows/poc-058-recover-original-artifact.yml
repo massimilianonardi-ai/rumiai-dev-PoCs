@@ -6,38 +6,34 @@ on:
       - .github/workflows/poc-058-recover-original-artifact.yml
 
 permissions:
-  contents: read
-  actions: read
+  contents: write
 
 jobs:
   recover:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 5
     steps:
-      - name: Recover original results.json without altering historical evidence
+      - name: Verify and promote exact recovered JSON to a Git blob (no ref update)
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh api -H "Accept: application/vnd.github+json" \
-            "repos/${{ github.repository }}/actions/artifacts/11539771228/zip" > original.zip
-          printf '%s  %s\n' \
-            '36dceff7e60c2ab446130b0a8fb07ccdbde4d9e8ecf152e382f146fcd89df999' \
-            original.zip | sha256sum --check
-          unzip -p original.zip results.json > original-results.json
+          gh api "repos/${{ github.repository }}/git/blobs/f112684c322cc3df178391e39e8c9128e9b6729c" > recovered-gzip-blob.json
           python3 - <<'PY'
-          import base64, gzip, hashlib, json, pathlib, textwrap
-          blob = pathlib.Path('original-results.json').read_bytes()
-          doc = json.loads(blob)
+          import base64, gzip, hashlib, json, pathlib
+          blob = json.loads(pathlib.Path('recovered-gzip-blob.json').read_text())
+          packed = base64.b64decode(blob['content'])
+          original = gzip.decompress(packed)
+          digest = hashlib.sha256(original).hexdigest()
+          assert digest == '319e4c1df7f23cb1f34c51b7a97d8f7ecb3d2d4a3326a4275c33f7bdecc74908'
+          doc = json.loads(original)
           assert doc['engine'] == 'ngspice'
-          assert doc['seeds'] == [11, 29, 47]
-          assert len(doc['results']) == 24
-          print('RESULTS_JSON_SHA256=' + hashlib.sha256(blob).hexdigest())
-          print('RESULTS_JSON_BYTES=' + str(len(blob)))
-          print('BEGIN_POC_058_JSON_GZIP_B64')
-          encoded = base64.b64encode(gzip.compress(blob, compresslevel=9, mtime=0)).decode()
-          for chunk in textwrap.wrap(encoded, 1000):
-              print(chunk)
-          print('END_POC_058_JSON_GZIP_B64')
+          assert doc['seeds'] == [11, 29, 47] and len(doc['results']) == 24
+          payload = {'content': base64.b64encode(original).decode(), 'encoding':'base64'}
+          pathlib.Path('original-blob-upload.json').write_text(json.dumps(payload))
+          print('VERIFIED_ORIGINAL_JSON_SHA256=' + digest)
+          print('VERIFIED_ORIGINAL_JSON_BYTES=' + str(len(original)))
           PY
+          sha="$(gh api -X POST "repos/${{ github.repository }}/git/blobs" --input original-blob-upload.json --jq '.sha')"
+          echo "ORIGINAL_PLAINTEXT_GIT_BLOB_SHA=${sha}"
