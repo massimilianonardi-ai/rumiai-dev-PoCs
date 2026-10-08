@@ -7,11 +7,11 @@
 - Invocation: `python pocs/058-physical-reservoir-simulation/experiment.py --engine ngspice --output results`, with one OpenBLAS/OMP thread.
 - Full default workload: seeds 11/29/47; 1200/500/700 train/validation/test samples plus 150 warmup symbols each; eight model variants.
 
-`report.md` is the report printed by the real experiment, extracted from the completed job log with timestamp prefixes removed. It is retained here as compact revision-specific evidence. The full results.json referred to by that report, all generated circuit netlists, logs, input arrays, predictions and raw circuit trajectories are in the workflow artifact:
+`report.md` is the report printed by the real experiment, extracted from the completed job log with timestamp prefixes removed. It is retained here as compact revision-specific evidence. The complete original `results.json` is now tracked alongside this report (53,626 bytes; SHA-256 `319e4c1df7f23cb1f34c51b7a97d8f7ecb3d2d4a3326a4275c33f7bdecc74908`). The file was extracted from the *original* 2026-10-08 artifact after verifying the 738 MB artifact's SHA-256, without rerunning the experiment. All generated circuit netlists, logs, input arrays, predictions and raw circuit trajectories from that run remain in the temporary workflow artifact:
 
 https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/37754200236/artifacts/11539771228
 
-Artifact ID: `11539771228`; ZIP size: 738061516 bytes; SHA-256: `36dceff7e60c2ab446130b0a8fb07ccdbde4d9e8ecf152e382f146fcd89df999`. Artifact expires on 2026-11-07 according to GitHub metadata. This repository retains the compact report after expiry; a rerun of the pinned source regenerates full evidence.
+Artifact ID: `11539771228`; ZIP size: 738061516 bytes; SHA-256: `36dceff7e60c2ab446130b0a8fb07ccdbde4d9e8ecf152e382f146fcd89df999`. Artifact expires on 2026-11-07 according to GitHub metadata. This repository retains the original full numerical JSON and compact report after expiry; a rerun of pinned source creates new evidence rather than replacing the original session.
 
 The maximum SPICE-versus-ODE voltage discrepancies in the 60-symbol probes were approximately 41.3 microvolts (RC) and 25.7 microvolts (coupled diodes). Halving SPICE's maximum timestep changed sampled voltages by at most 13.3 and 12.2 microvolts. The full benchmark agrees closely with the separate auxiliary SciPy session. These checks establish consistency of the specified simulators/models over this experiment, not calibration against physical devices.
 
