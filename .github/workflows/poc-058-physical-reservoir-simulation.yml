@@ -1,0 +1,102 @@
+name: PoC 058 physical reservoir simulation
+
+on:
+  workflow_dispatch:
+    inputs:
+      full_diagnostics:
+        description: Upload complete ngspice traces and netlists (large, temporary)
+        type: boolean
+        required: false
+        default: false
+  push:
+    paths:
+      - pocs/058-physical-reservoir-simulation/experiment.py
+      - pocs/058-physical-reservoir-simulation/requirements.txt
+      - .github/workflows/poc-058-physical-reservoir-simulation.yml
+
+permissions:
+  contents: read
+
+jobs:
+  simulate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install open-source numerical and circuit engines
+        shell: sh
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ngspice
+          python -m pip install -r pocs/058-physical-reservoir-simulation/requirements.txt
+      - name: Run identical experiment through real ngspice
+        shell: sh
+        env:
+          OPENBLAS_NUM_THREADS: '1'
+          OMP_NUM_THREADS: '1'
+        run: |
+          python pocs/058-physical-reservoir-simulation/experiment.py --engine ngspice --output results
+      - name: Record revision-specific run provenance
+        shell: sh
+        if: success()
+        env:
+          POC_COMMIT: ${{ github.sha }}
+          POC_RUN_ID: ${{ github.run_id }}
+          POC_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path('results')
+          digest = lambda path: hashlib.sha256(Path(path).read_bytes()).hexdigest()
+          provenance = {
+              'repository': os.environ['GITHUB_REPOSITORY'],
+              'commit': os.environ['POC_COMMIT'],
+              'workflow_run_id': os.environ['POC_RUN_ID'],
+              'workflow_attempt': os.environ['POC_RUN_ATTEMPT'],
+              'experiment_sha256': digest('pocs/058-physical-reservoir-simulation/experiment.py'),
+              'requirements_sha256': digest('pocs/058-physical-reservoir-simulation/requirements.txt'),
+              'results_sha256': digest(root / 'results.json')
+          }
+          (root / 'provenance.json').write_text(json.dumps(provenance, indent=2) + '\n')
+          PY
+      - name: Publish readable run summary
+        if: always()
+        shell: sh
+        run: |
+          if test -f results/report.md; then
+            cat results/report.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload compact reproducibility evidence
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: poc-058-compact-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            results/report.md
+            results/results.json
+            results/provenance.json
+            results/inputs-*.npz
+            results/predictions-*.csv
+            results/check-rc/circuit.cir
+            results/check-rc/ngspice.log
+            results/check-rc/states.dat
+            results/check-diodes/circuit.cir
+            results/check-diodes/ngspice.log
+            results/check-diodes/states.dat
+          retention-days: 30
+          if-no-files-found: error
+      - name: Upload complete diagnostic traces on explicit request
+        uses: actions/upload-artifact@v4
+        if: ${{ always() && inputs.full_diagnostics == true }}
+        with:
+          name: poc-058-full-${{ github.sha }}-${{ github.run_attempt }}
+          path: results/
+          retention-days: 30
+          if-no-files-found: error
