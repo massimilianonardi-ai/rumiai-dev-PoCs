@@ -327,7 +327,7 @@ const scrollExpression = String.raw`(() => {
   );
   const step = Math.max(Math.floor(window.innerHeight * 0.85), 600);
   const target = Math.min(window.scrollY + step, height);
-  window.scrollTo({ top: target, behavior: 'instant' });
+  window.scrollTo(0, target);
   return { target, height };
 })()`;
 
