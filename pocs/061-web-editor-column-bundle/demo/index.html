@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Browser column editor experiment</title>
+  <style>
+    body { margin: 2rem auto; max-width: 880px; padding: 0 1rem; font: 16px system-ui, sans-serif; }
+    button { margin-bottom: .75rem; padding: .55rem .8rem; }
+    #editor { height: 370px; border: 1px solid #aaa; border-radius: 5px; overflow: hidden; }
+    #editor:focus-within { outline: 2px solid #418bd3; }
+    p { color: #555; }
+  </style>
+</head>
+<body>
+  <h1>Single-file browser editor PoC</h1>
+  <p>By default, Alt+drag selects a rectangular block. Toggle column mode for ordinary mouse drag.</p>
+  <button id="column" aria-pressed="false">Enable column mode</button>
+  <div id="editor"></div>
+  <script src="../dist/editor.js"></script>
+  <script>
+    const editor = EditorPoC.createEditor(document.getElementById('editor'), {
+      value: 'alpha 0001 | x\nbeta  0002 | y\ngamma 0003 | z\n'
+    });
+    window.columnEditor = editor; // Test harness: only in this demo, not in the library.
+    document.getElementById('column').addEventListener('click', (event) => {
+      const next = !editor.isColumnMode();
+      editor.setColumnMode(next);
+      event.currentTarget.setAttribute('aria-pressed', String(next));
+      event.currentTarget.textContent = next ? 'Disable column mode' : 'Enable column mode';
+      editor.focus();
+    });
+  </script>
+</body>
+</html>

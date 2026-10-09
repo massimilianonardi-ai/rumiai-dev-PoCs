@@ -1,0 +1,58 @@
+{
+  "version": 2,
+  "collections": {
+    "sources": {
+      "type": "files",
+      "root": "src",
+      "suffixes": [
+        ".js"
+      ]
+    }
+  },
+  "goals": {
+    "build": [
+      "bundle"
+    ],
+    "check": [
+      "verify"
+    ]
+  },
+  "operations": {
+    "bundle": {
+      "inputs": {
+        "sources": {
+          "collection": "sources"
+        },
+        "manifest": {
+          "path": "package.json"
+        }
+      },
+      "outputs": {
+        "javascript": {
+          "path": "dist/editor.js"
+        }
+      },
+      "action": {
+        "type": "process",
+        "command": "npm",
+        "args": [
+          "run",
+          "build"
+        ]
+      }
+    },
+    "verify": {
+      "prerequisites": [
+        "bundle"
+      ],
+      "action": {
+        "type": "process",
+        "command": "npm",
+        "args": [
+          "run",
+          "test"
+        ]
+      }
+    }
+  }
+}

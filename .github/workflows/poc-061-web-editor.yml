@@ -1,0 +1,27 @@
+name: PoC 061 browser editor
+on:
+  push:
+    paths:
+      - 'pocs/061-web-editor-column-bundle/**'
+      - '.github/workflows/poc-061-web-editor.yml'
+  workflow_dispatch:
+jobs:
+  editor-browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install build and browser test dependencies
+        working-directory: pocs/061-web-editor-column-bundle
+        run: npm install --no-audit --no-fund
+      - name: Build the single-file browser library
+        working-directory: pocs/061-web-editor-column-bundle
+        run: npm run build
+      - name: Install Chromium
+        working-directory: pocs/061-web-editor-column-bundle
+        run: npx playwright install --with-deps chromium
+      - name: Verify bundle and browser column interaction
+        working-directory: pocs/061-web-editor-column-bundle
+        run: npm test

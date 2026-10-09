@@ -1,0 +1,20 @@
+{
+  "name": "web-editor-column-bundle-poc",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/editor.js --bundle --format=iife --global-name=EditorPoC --platform=browser --target=es2020 --legal-comments=inline --outfile=dist/editor.js",
+    "test": "node tests/verify-bundle.mjs && node tests/browser.mjs"
+  },
+  "dependencies": {
+    "@codemirror/commands": "^6.0.0",
+    "@codemirror/search": "^6.0.0",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.14"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "playwright": "^1.55.0"
+  }
+}
