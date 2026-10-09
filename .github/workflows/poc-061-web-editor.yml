@@ -25,3 +25,9 @@ jobs:
       - name: Verify bundle and browser column interaction
         working-directory: pocs/061-web-editor-column-bundle
         run: npm test
+      - name: Publish the standalone JavaScript bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: editor-single-js
+          path: pocs/061-web-editor-column-bundle/dist/editor.js
+          if-no-files-found: error
