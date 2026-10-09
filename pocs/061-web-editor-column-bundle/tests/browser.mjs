@@ -6,6 +6,10 @@ import { chromium } from 'playwright';
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1100, height: 800 } });
+  const externalRequests = [];
+  page.on('request', (request) => {
+    if (/^https?:\/\//i.test(request.url())) externalRequests.push(request.url());
+  });
   await page.goto(pathToFileURL(resolve('demo/index.html')).href);
   await page.waitForFunction(() => Boolean(window.columnEditor));
   const initial = await page.evaluate(() => window.columnEditor.getValue());
@@ -41,7 +45,8 @@ try {
     return value;
   });
   assert.equal(other, 'independent');
-  console.log('PASS: local-file browser load, rectangular editing, undo, independent instances');
+  assert.deepEqual(externalRequests, [], 'offline editor must not request network resources');
+  console.log('PASS: local-file browser load, rectangular editing, undo, independent instances, zero network requests');
 } finally {
   await browser.close();
 }

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild src/editor.js --bundle --format=iife --global-name=EditorPoC --platform=browser --target=es2020 --legal-comments=inline --outfile=dist/editor.js",
+    "build": "esbuild src/editor.js --bundle --format=iife --global-name=EditorPoC --platform=browser --target=es2020 --legal-comments=inline --minify --outfile=dist/editor.js",
     "test": "node tests/verify-bundle.mjs && node tests/browser.mjs"
   },
   "dependencies": {
