@@ -171,6 +171,23 @@ try{
   assert.equal(vanishedVote.ready,false,'closed peer cannot authorize migration');
   assert.deepEqual(vanishedVote.missing,[vanishedId]);
   assert.equal(await a.evalJs('demo.version'),'v1');
+  // Deliberately crash a third real Chrome renderer. An unresponsive/crashed peer is unknown, never ready.
+  const crashing=await tab(),crashingId=await crashing.evalJs('demo.tabId');
+  await crashing.call('Inspector.enable');
+  const crashEvent=new Promise(resolve=>{
+    crashing.socket.addEventListener('message',event=>{
+      const payload=JSON.parse(String(event.data));
+      if(payload.method==='Inspector.targetCrashed')resolve(true);
+    });
+    crashing.socket.addEventListener('close',()=>resolve(true),{once:true});
+  });
+  crashing.socket.send(JSON.stringify({id:900000,method:'Page.crash'}));
+  assert.equal(await Promise.race([crashEvent,delay(4500).then(()=>false)]),true,
+    'Chrome did not report renderer termination');
+  assert.equal(await a.evalJs('demo.version'),'v1','surviving tab must remain responsive after peer crash');
+  const crashVote=await a.evalJs('demo.plan(['+JSON.stringify(crashingId)+'])');
+  assert.equal(crashVote.ready,false,'crashed peer cannot authorize migration');
+  assert.deepEqual(crashVote.missing,[crashingId]);
   // Activate v1 SW while both v1 tabs are open, then test v2 waiting after release publication.
   assert.equal(await a.evalJs('navigator.serviceWorker.register("/sw.js",{updateViaCache:"none"}).then(()=>true)'),true);
   await a.evalJs('navigator.serviceWorker.ready.then(()=>true)');
