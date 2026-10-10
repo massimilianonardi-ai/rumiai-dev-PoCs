@@ -5,7 +5,7 @@ import {TextEditSelections} from '../src/text-edit-selections-probe.mjs';
 import {planColumnPaste} from '../src/column-edit-probe.mjs';
 
 const $=id=>document.getElementById(id);
-const initial='aa\nb\n\ttab\n漢字 e\u0301 e emoji 😀\nultima riga';
+const initial='aa\nb';
 const MAX_UNITS=256*1024;
 const graphemes=new Intl.Segmenter(undefined,{granularity:'grapheme'});
 let doc,edit,history=[],position=0,composing=false,armed=false,rendering=false;
