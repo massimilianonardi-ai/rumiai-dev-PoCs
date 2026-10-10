@@ -49,6 +49,23 @@ for(const Doc of [FlatDocument,AdaptiveRepackDocument]){
  assert.deepEqual(snapshot(editor),after);
  results.push({doc:Doc.name,rectangularPasteRows:3,undoAtomic:true,virtualColumns:true});
 }
+// Replacing selected nonempty spans must derive correct inverse post-edit offsets.
+for(const Doc of [FlatDocument,AdaptiveRepackDocument]){
+ const original='abc def ghi';
+ const selected={primary:1,ranges:[{anchor:3,head:1},{anchor:11,head:8}]};
+ const editor=new EditorCore(new Doc(original),selected),controller=new ActionController(editor);
+ controller.input({type:'text',text:'😀'});
+ assert.equal(editor.slice(0,editor.length),'a😀 def 😀');
+ const applied=snapshot(editor);
+ assert(controller.undo());assert.equal(editor.slice(0,editor.length),original);
+ assert.deepEqual(editor.getSelections(),selected);
+ assert(controller.redo());assert.deepEqual(snapshot(editor),applied);
+ editor.setSelections({primary:0,ranges:[caret(editor.length)]});
+ controller.input({type:'backspace'});
+ assert.equal(editor.slice(0,editor.length),'a😀 def ');
+ assert(controller.undo());assert.deepEqual(snapshot(editor).text,applied.text);
+ results.push({doc:Doc.name,replacedNonemptySelections:true,unicodeBackspace:true});
+}
 // Reject overlapping/duplicate carets before mutation or history registration.
 {
  const editor=new EditorCore(new FlatDocument('abcd'),{primary:0,ranges:[caret(1),caret(1)]});
