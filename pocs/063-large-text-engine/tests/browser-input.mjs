@@ -252,7 +252,7 @@ try{
   assert.equal(await demoText(),'aa\nb');
   console.log(JSON.stringify({pass:true,browser:'Chromium',
     handsOnDemo:true,realTyping:true,realPointerToolbar:true,
-    groupedColumnPaste:true,visibleMultipleCarets:true,
+    groupedColumnPaste:true,multipleCaretModel:true,
     realClipboardColumnPaste:true,oneActionUndoRedo:true}));
 }finally{
   cdp?.close();
