@@ -121,7 +121,8 @@ async function launch(){
    try{const result=await evaluate(expr);if(result)return result;}catch{}
    await delay(100);
   }
-  throw Error('Timed out: '+label+'; '+JSON.stringify(await evaluate('({url:location.href,html:document.documentElement.outerHTML.slice(0,700),controlled:!!navigator.serviceWorker?.controller})'))));
+  const diagnostics=await evaluate('JSON.stringify({url:location.href,html:document.documentElement.outerHTML.slice(0,700),controlled:!!navigator.serviceWorker?.controller})');
+  throw Error('Timed out: '+label+'; '+diagnostics);
  };
  return {child,socket,stop,call,evaluate,until};
 }
