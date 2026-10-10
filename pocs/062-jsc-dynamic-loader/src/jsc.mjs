@@ -67,10 +67,15 @@ async function main() {
   checkGraph(entries);
   const loader = await readFile(new URL('./loader.js', import.meta.url), 'utf8');
   let result = `/* jsc experimental classic single-file bundle */\n${loader}\n`;
+  // Publish the entire initial module graph in a single validated transaction.
+  // Forward references do not expose an intermediate registry.
+  result += 'globalThis.JscRuntime.installBatch([\n';
   for (const e of entries) {
-    result += `\n/* module ${e.id}; source ${e.path.replace(/\*\//g, '* /')} */\n`;
-    result += `globalThis.JscRuntime.install(${JSON.stringify(e.id)}, ${JSON.stringify(e.deps)}, function (require, module, exports) {\n'use strict';\n${e.source}\n});\n`;
+    result += '\n/* module ' + e.id + '; source ' + e.path.replace(/\*\//g, '* /') + ' */\n';
+    result += '{id:' + JSON.stringify(e.id) + ', deps:' + JSON.stringify(e.deps) +
+      ', factory:function (require, module, exports) {\n' + "'use strict';\n" + e.source + '\n}},\n';
   }
+  result += ']);\n';
   new Script(result, {filename: argv[3]});
   await writeFile(resolve(argv[3]), result);
   process.stdout.write(`jsc: ${entries.length} classic modules, ${Buffer.byteLength(result)} bytes\n`);
