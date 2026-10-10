@@ -75,6 +75,9 @@ jobs:
       - name: Measure fast one-range edits versus defensive multi-selection rollback
         working-directory: pocs/063-large-text-engine
         run: node --expose-gc tests/rollback-cost.mjs 12
+      - name: Measure rollback-free selection layer under multi-caret stress
+        working-directory: pocs/063-large-text-engine
+        run: node --expose-gc tests/selection-hotpath.mjs 9
       - name: Exploratory editing performance, no threshold claim
         working-directory: pocs/063-large-text-engine
         run: node --expose-gc benchmark.mjs 1 8

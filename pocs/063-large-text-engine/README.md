@@ -370,6 +370,16 @@ The updated `tests/text-edit-selections-probe.mjs` validates that (a) bad input/
 
 This change does not affect normal action granularity (a multi-selection paste remains one external user action on successful completion), nor add selection awareness to `TextEditBase`. Benchmarks are exploratory and do not imply a quantified speedup until the changed selection implementation itself is measured. Earlier rollback/failure tests in other additive PoC candidates continue to describe **those different candidates**, not the current `TextEditSelections`.
 
+## Selection-layer hot-path comparison (2026-10-10)
+
+`tests/selection-hotpath.mjs` measures the **current rollback-free `TextEditSelections.replace` end-to-end method** with 32–2048 disjoint selected one-character replacements, using the same real `FlatDocument`, `PieceDocument` and `AdaptiveRepackDocument` backends. Its control performs the same single-range replacements directly on the base after capturing overwritten data. The selected path additionally validates selection identities, orientation policies, text-to-selection mapping, builds result snapshots, and computes inverse coordinates. It deliberately uses **reverse user selection order** to exercise association mapping, not only naturally sorted offsets.
+
+Results are comparative exploratory medians after warmup, without a speed threshold; file size and target counts vary by backend. Document initialization and GC are excluded, but actual renderer, browser hit testing, keyboard/IME, and external undo persistence remain out of scope. Because the control does less semantic work than the selection layer, any extra time is not solely a rollback cost. The earlier benchmark includes a separate control with defensive rollback bookkeeping; that candidate is **not** the current hot path. Exact CI measurements should only be attributed to their tested revision.
+
+Run:
+
+    node --expose-gc tests/selection-hotpath.mjs 9
+
 ## Next measurements and semantic work
 
 1. Test real browser input and composition/IME through an editor-owned-selection plus outer-controller split, maintaining exact user-action undo granularity.
