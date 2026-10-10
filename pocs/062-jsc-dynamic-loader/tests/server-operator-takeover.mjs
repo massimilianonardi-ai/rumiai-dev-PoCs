@@ -147,8 +147,8 @@ async function main(){
     effects.set(params.id,next);reply(200,next);return;
    }
    const token=req.headers['x-operator-capability'],actor=known.get(token);
-   if(!actor){reply(403,{reason:'operator-not-registered'});return;}
    const alive=x=>x&&x.proc.exitCode===null&&x.proc.signalCode===null;
+   if(!actor||!alive(actor)){reply(403,{reason:'operator-not-live-or-registered'});return;}
    if(route.pathname==='/operator/begin'){
     if(state.owner&&alive(state.owner)){reply(423,{reason:'live-operator-owns-repair'});return;}
     if(!state.maintenance){state.maintenance=true;state.epoch+=1;}
@@ -167,7 +167,7 @@ async function main(){
   const url='http://127.0.0.1:'+server.address().port;
   const operator=(mode,dir,id)=>{
    const token=random(),task=child(mode,dir,id,url,token);
-   known.set(token,task);active.push(task);return task;
+   task.token=token;known.set(token,task);active.push(task);return task;
   };
   const runEffect=async(id,epoch=state.epoch,token=workerSecret)=>
    post(url+'/apply',{id,amount:7},{'X-Worker-Capability':token,'X-Epoch':String(epoch)});
@@ -199,6 +199,9 @@ async function main(){
    }
    await first.stop('SIGKILL');
    assert.equal(state.maintenance,true,'SIGKILL must not automatically resume effects');
+   assert.equal((await post(url+'/operator/begin',{id},
+    {'X-Operator-Capability':first.token})).status,403,
+    'a killed child capability must not be replayed to acquire operator ownership');
    const successor=operator('normal',dir,id);
    await successor.wait('FINISHED');
    await successor.stop('SIGTERM');
