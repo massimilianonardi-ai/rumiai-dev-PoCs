@@ -106,6 +106,9 @@ jobs:
             echo "A real browser is required; none is installed" >&2
             exit 1
           fi
+      - name: Real browser keyboard, mouse and IME-preview boundary
+        working-directory: pocs/063-large-text-engine
+        run: node tests/browser-input.mjs
       - name: Real IndexedDB persistent history across browser process restarts
         working-directory: pocs/063-large-text-engine
         run: node tests/browser-indexeddb.mjs
