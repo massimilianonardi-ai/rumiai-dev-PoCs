@@ -156,6 +156,32 @@ async function parent(){
    }
    await Promise.all(processes.map(p=>p.stop('SIGTERM')));processes=[];
   }
+  // Multiple independent HTTP workers racing on several distinct shared identifiers.
+  {
+   const dir=join(root,'stress-claim');await mkdir(dir);
+   const ports=await Promise.all(Array.from({length:4},()=>getPort()));
+   processes=ports.map(p=>child('claim',dir,p,origin));
+   await Promise.all(processes.map(p=>p.wait('READY')));
+   const urls=ports.map(p=>'http://127.0.0.1:'+p);
+   const warm={id:'stress-warmup',amount:1};
+   const warmRequests=urls.map(url=>post(url+'/effect',warm));
+   await Promise.all(processes.map(p=>p.wait('ARMED')));
+   processes.forEach(p=>p.go());
+   const warmResponses=await Promise.all(warmRequests);
+   assert.equal(warmResponses.filter(r=>r.status===200).length,1);
+   assert.equal(effects.get(warm.id).applied,1);
+   const ids=Array.from({length:24},(_,i)=>'stress-'+String(i).padStart(2,'0'));
+   const replies=await Promise.all(ids.flatMap(id=>urls.map(url=>post(url+'/effect',{id,amount:2}))));
+   assert.ok(replies.every(r=>r.status===200||r.status===503),'losing claim may only retry later');
+   for(const id of ids){
+    assert.deepEqual(effects.get(id),{id,amount:2,applied:1});
+    const check=await post(urls[3]+'/effect',{id,amount:2});
+    assert.equal(check.status,200);assert.equal((await check.json()).replayed,true);
+   }
+   assert.equal((await post(urls[1]+'/effect',{id:ids[0],amount:999})).status,409);
+   assert.equal(ids.reduce((n,id)=>n+effects.get(id).applied,0),24);
+   await Promise.all(processes.map(p=>p.stop('SIGTERM')));processes=[];
+  }
   for(const scenario of ['before-effect','after-effect','duplicate-external-effect']){
    const mode=scenario==='duplicate-external-effect'?'after-effect':scenario;
    const dir=join(root,scenario);await mkdir(dir);
@@ -186,7 +212,7 @@ async function parent(){
    assert.equal(effects.get(op.id)?.applied||0,count);
    await Promise.all(processes.map(p=>p.stop('SIGTERM')));processes=[];
   }
-  console.log('PASS MULTI-PROCESS + EXTERNAL: stale independent workers applied same key twice; shared exclusive claim applied once, stale/pending fail closed; real SIGKILL before/after external HTTP effect preserved ambiguity; inconsistent double-apply ledger blocks recovery; read-only reconciliation resolves only confirmed single effect');
+  console.log('PASS MULTI-PROCESS + EXTERNAL: stale independent workers applied same key twice; shared exclusive claim applied once, 4 workers x 24 IDs preserved single effects, stale/pending fail closed; real SIGKILL before/after external HTTP effect preserved ambiguity; inconsistent double-apply ledger blocks recovery; read-only reconciliation resolves only confirmed single effect');
  }finally{
   await Promise.all(processes.map(p=>p.stop()));
   if(device)await new Promise(ok=>device.close(ok));
