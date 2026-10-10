@@ -32,6 +32,10 @@ function checkGraph(entries) {
 }
 
 async function main() {
+  if (argv.length === 3 && (argv[2] === '--help' || argv[2] === '-h')) {
+    process.stdout.write('usage: node src/jsc.mjs manifest.json output.js\nCompiles a manifest of classic modules to registrations for the separate loader.js.\n');
+    return;
+  }
   if (argv.length !== 4) fail('usage: node src/jsc.mjs manifest.json output.js');
   const manifestPath = resolve(argv[2]);
   const manifestRoot = await realpath(dirname(manifestPath));
