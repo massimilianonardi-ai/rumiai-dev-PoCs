@@ -22,6 +22,7 @@ for(const version of ['v1','v2']){
   assets.set(url,bytes);releases.set(version,{version,url,sha});
 }
 let active='v1',staged=false,halfUploads=0,rejectedPublishes=0,earlyEvictions=0,workerRequests=0;
+let failNextPointer=0, interruptedReloads=0;
 const page=`<!doctype html><meta charset="utf-8"><pre id="result">LOADING</pre><script>
 (async()=>{
   const view=document.getElementById('result');
@@ -96,6 +97,7 @@ const server=http.createServer((req,res)=>{
   }else if(url.pathname==='/release.json'){
     res.setHeader('Cache-Control','no-cache');res.setHeader('Content-Type','application/json');
     if(url.searchParams.has('interrupt')){res.statusCode=503;res.end(JSON.stringify({error:'pointer temporarily unavailable'}));}
+    else if(failNextPointer>0){failNextPointer--;interruptedReloads++;res.statusCode=503;res.end(JSON.stringify({error:'simulated outage during migration reload'}));}
     else res.end(JSON.stringify(releases.get(active)));
   }else if(assets.has(url.pathname)){
     res.setHeader('Cache-Control','public, max-age=31536000, immutable');
@@ -149,13 +151,26 @@ try{
     const until=async(expression,truthy=true)=>{
       for(let n=0;n<160;n++){try{const value=await evalJs(expression);if(truthy?value:!value)return value;}catch{}await delay(100);}throw Error('Timeout waiting for '+expression);
     };
-    const ret={socket,call,evalJs,until};connections.push(ret);
+    const ret={targetId:target.id,socket,call,evalJs,until};connections.push(ret);
     await until('Boolean(window.demo)');
     return ret;
   }
   const a=await tab(),b=await tab();
   assert.equal(await a.evalJs('demo.version'),'v1');assert.equal(await b.evalJs('demo.version'),'v1');
   assert.notEqual(await a.evalJs('demo.tabId'),await b.evalJs('demo.tabId'),'distinct tabs must have distinct session IDs');
+  // Close a real third top-level tab; its former identity must not turn into implicit consent.
+  const vanished=await tab(), vanishedId=await vanished.evalJs('demo.tabId');
+  const closed=await fetch(`http://127.0.0.1:${debugPort}/json/close/${encodeURIComponent(vanished.targetId)}`);
+  assert.equal(closed.status,200,'Chrome target close request must succeed');
+  await new Promise((resolve,reject)=>{
+    if(vanished.socket.readyState===WebSocket.CLOSED)return resolve();
+    const timeout=setTimeout(()=>reject(Error('closed Chrome tab socket remained open')),5000);
+    vanished.socket.addEventListener('close',()=>{clearTimeout(timeout);resolve();},{once:true});
+  });
+  const vanishedVote=await a.evalJs('demo.plan(['+JSON.stringify(vanishedId)+'])');
+  assert.equal(vanishedVote.ready,false,'closed peer cannot authorize migration');
+  assert.deepEqual(vanishedVote.missing,[vanishedId]);
+  assert.equal(await a.evalJs('demo.version'),'v1');
   // Activate v1 SW while both v1 tabs are open, then test v2 waiting after release publication.
   assert.equal(await a.evalJs('navigator.serviceWorker.register("/sw.js",{updateViaCache:"none"}).then(()=>true)'),true);
   await a.evalJs('navigator.serviceWorker.ready.then(()=>true)');
@@ -193,9 +208,23 @@ try{
   assert.equal(await a.evalJs('navigator.serviceWorker.getRegistration().then(r=>r.active!==r.waiting)'),true);
   await b.evalJs('demo.dirty(false)');
   const ready=await a.evalJs('demo.plan(['+JSON.stringify(peerB)+'])');assert.equal(ready.ready,true);assert.deepEqual(ready.missing,[]);
+  // Fail the release-pointer fetch after migration snapshot but before the new app initializes.
+  // The old document is gone after reload; an explicit retry must recover the saved snapshot.
+  failNextPointer=1;
   await a.evalJs('demo.migrate()');
+  await a.until('document.getElementById("result")?.textContent?.includes("release pointer unavailable")');
+  assert.equal(await a.evalJs('window.demo===undefined'),true,'broken reload must not expose a ready application');
+  assert.equal(await a.evalJs('sessionStorage.getItem("jsc-migration")'),JSON.stringify({schema:1,count:3}),
+    'migration state must survive a failed release-pointer fetch');
+  assert.equal(await b.evalJs('demo.version'),'v1','other tab must retain working old release during failure');
+  assert.equal(await b.evalJs('navigator.serviceWorker.getRegistration().then(r=>Boolean(r.waiting))'),true,
+    'new service worker cannot activate just because a peer reload failed');
+  await a.call('Page.enable');
+  await a.call('Page.reload',{ignoreCache:true});
   await a.until('window.demo?.version==="v2"');
   assert.equal(await a.evalJs('demo.state.count'),3);
+  assert.equal(await a.evalJs('sessionStorage.getItem("jsc-migration")'),null,
+    'snapshot cleared only after successful restoration');
   assert.equal(await b.evalJs('demo.version'),'v1','second tab remains pinned until its own migration');
   // Incompatible snapshot is rejected *before* destroying the old page.
   await b.evalJs('demo.dirty(true)');
@@ -211,8 +240,9 @@ try{
   await a.until('navigator.serviceWorker.controller?.state==="activated"');
 
   assert.equal(halfUploads,1);assert.equal(rejectedPublishes,1);assert.equal(earlyEvictions,1);
+  assert.equal(interruptedReloads,1,'exactly one migration reload must receive the injected failure');
   assert.ok(workerRequests>=1);
-  console.log('PASS: two real top-level Chrome tabs, fail-closed missing peer/veto readiness, interrupted staging and pointer fetch, broken script, retained v1 assets, explicit v1->v2 state migration (3 and 5), coordinated SW v2 activation, independently pinned clients');
+  console.log('PASS: real Chrome target closure cannot authorize upgrade, missing/dirty peer vetoes, failed reload retains recoverable state, retry restores snapshots (3 and 5), staged deploy and old assets remain coherent, coordinated SW v2 activation');
 }finally{
   for(const connection of connections)try{connection.socket.close();}catch{}
   if(chrome){chrome.kill('SIGKILL');await new Promise(done=>{if(chrome.exitCode!==null||chrome.signalCode!==null)done();else chrome.once('close',done);});}
