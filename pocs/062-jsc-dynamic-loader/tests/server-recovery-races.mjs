@@ -122,13 +122,16 @@ async function main(){
  const dir=await mkdtemp(join(tmpdir(),'jsc-reconcile-races-'));
  let workers=[],external;
  const ledger=new Map(),lookups=new Map(),applications=new Map();
- let releaseFirst,firstStarted;const firstHeld=new Promise(ok=>firstStarted=ok),gate=new Promise(ok=>releaseFirst=ok);
+ let releaseFirst,firstStarted,releaseOperator,operatorStarted;
+ const firstHeld=new Promise(ok=>firstStarted=ok),gate=new Promise(ok=>releaseFirst=ok);
+ const operatorHeld=new Promise(ok=>operatorStarted=ok),operatorGate=new Promise(ok=>releaseOperator=ok);
  try{
   external=http.createServer(async(req,res)=>{
    const u=new URL(req.url,'http://authority.invalid');
    if(u.pathname==='/ledger'){
     const id=u.searchParams.get('id');lookups.set(id,(lookups.get(id)||0)+1);
     if(id==='race'&&lookups.get(id)===1){firstStarted();await gate;}
+    if(id==='race-hold'&&lookups.get(id)===1){operatorStarted();await operatorGate;}
     if(id==='offline'){res.statusCode=501;res.end('no authoritative lookup supported');return;}
     if(id==='absent'){res.statusCode=404;res.end('unknown, not necessarily unapplied');return;}
     const current=ledger.get(id);
@@ -167,6 +170,19 @@ async function main(){
   assert.equal(applications.get('race'),1,'reconciliation must not repeat actual external apply');
   assert.deepEqual(await readClaim(claimPath(shared,'race')),{id:'race',amount:7,status:'done',applied:1});
   assert.deepEqual(await readClaim(claimPath(shared,'fresh')),{id:'fresh',amount:2,status:'done',applied:1});
+  // Operator hold overlaps another worker's in-flight reconciliation: lock must exclude it.
+  const holdRace={id:'race-hold',amount:13};
+  await writeFile(claimPath(shared,holdRace.id),JSON.stringify({...holdRace,status:'pending'}));
+  assert.equal((await bodyPost(externalUrl+'/apply',holdRace)).status,200);
+  const completing=fetch(urls[0]+'/reconcile?id=race-hold');await operatorHeld;
+  const holds=await Promise.all(urls.map(u=>bodyPost(u+'/operator/hold',holdRace)));
+  assert.ok(holds.every(r=>r.status===503));
+  assert.equal((await bodyPost(urls[1]+'/operator/hold',{id:'race-hold',amount:99})).status,409);
+  releaseOperator();assert.equal((await completing).status,200);
+  const lateHold=await bodyPost(urls[3]+'/operator/hold',holdRace);
+  assert.equal(lateHold.status,200);assert.equal((await lateHold.json()).status,'done');
+  assert.deepEqual(await readClaim(claimPath(shared,'race-hold')),{...holdRace,status:'done',applied:1});
+  assert.equal(applications.get('race-hold'),1);
   await Promise.all(workers.map(w=>w.stop('SIGTERM')));workers=[];
 
   // An external system without authoritative lookup cannot supply proof for automatic retry.
@@ -184,12 +200,23 @@ async function main(){
   assert.equal((await bodyPost(u+'/effect',{id:'offline',amount:12})).status,409);
   assert.equal((await bodyPost(u+'/effect',{id:'new-after-hold',amount:3})).status,200);
   assert.equal(applications.get('offline')||0,0);
+  await writeFile(claimPath(heldDir,'absent'),JSON.stringify({id:'absent',amount:21,status:'pending'}));
+  assert.equal((await fetch(u+'/reconcile?id=absent')).status,503,'a 404 ledger is not negative proof');
+  assert.equal((await bodyPost(u+'/effect',{id:'absent',amount:21})).status,503);
   // Missing and corrupt claims must not be interpreted as evidence that work never occurred.
   assert.equal((await fetch(u+'/reconcile?id=missing')).status,503);
   await writeFile(claimPath(heldDir,'corrupt'),'\x00INVALID');
   assert.equal((await fetch(u+'/reconcile?id=corrupt')).status,500);
   assert.equal((await bodyPost(u+'/effect',{id:'corrupt',amount:5})).status,500);
   assert.equal(applications.get('corrupt')||0,0);
+  await workers[0].stop('SIGTERM');workers=[];
+  // Hold state must remain visible from a newly spawned worker, not just the previous heap.
+  const restartPort=await port();workers=[launch('normal',heldDir,restartPort,externalUrl)];
+  await workers[0].wait('READY');
+  const restarted='http://127.0.0.1:'+restartPort;
+  assert.equal((await fetch(restarted+'/reconcile?id=offline')).status,423);
+  assert.equal((await bodyPost(restarted+'/effect',{id:'offline',amount:11})).status,423);
+  assert.equal(applications.get('offline')||0,0);
   await workers[0].stop('SIGTERM');workers=[];
 
   // Crash after acquiring the recovery lock: no PID/timeout-based silent lock stealing.
@@ -207,9 +234,9 @@ async function main(){
   assert.equal((await bodyPost(crashUrl+'/effect',{id:'abandoned',amount:17})).status,503);
   assert.deepEqual(await readClaim(claimPath(crashDir,'abandoned')),{id:'abandoned',amount:17,status:'pending'});
   assert.equal(lookups.get('abandoned')||0,0);
-  console.log('PASS RECOVERY RACES: four HTTP workers, one authoritative lookup for 13 concurrent reconcile requests, conflict 409, pending 503, unrelated effect proceeds; no-ledger operator hold preserves uncertainty; SIGKILL lock remains blocked');
+  console.log('PASS RECOVERY RACES: four HTTP workers, one authoritative lookup for 13 concurrent reconcile requests; concurrent operator hold excluded during reconciliation; conflict 409, pending 503, unrelated effect proceeds; no-ledger hold survives restart; SIGKILL lock remains blocked');
  }finally{
-  if(releaseFirst)releaseFirst();
+  if(releaseFirst)releaseFirst();if(releaseOperator)releaseOperator();
   await Promise.all(workers.map(w=>w.stop()));
   if(external){external.closeAllConnections();await new Promise(ok=>external.close(ok));}
   await rm(dir,{recursive:true,force:true});
