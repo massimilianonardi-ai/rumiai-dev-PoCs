@@ -384,7 +384,14 @@ Run:
 
 `TextEditSelections` now caches a physical-order permutation **when its caller sets the selections** and refreshes it after a successful operation. This avoids sorting the same selections from scratch for every keystroke, including when the user-specified selection order is the reverse of document order. The permutation does **not** change the externally visible array-to-selection pairing: the original user selection IDs still identify corresponding payloads, results and orientation.
 
-A direction policy is still free to translate edit targets. Each operation checks that its cached execution order is monotonic for the **actual resulting primitive plans**; if a policy moved a target across another, it sorts the planned operations instead. That fallback is covered by an additional test with a backwards selection whose edit target jumps past a forward selection, followed by a second edit. Duplicate/overlapping target validation remains mandatory and happens before all writes. `TextEditBase` stays one-range-only; no rollback, history or persistent state is added. This is a PoC optimization; the effect on total time must be established by a separate measured run.
+A direction policy is still free to translate edit targets. Each operation checks that its cached execution order is monotonic for the **actual resulting primitive plans**; if a policy moved a target across another, it sorts the planned operations instead. That fallback is covered by an additional test with a backwards selection whose edit target jumps past a forward selection, followed by a second edit. Duplicate/overlapping target validation remains mandatory and happens before all writes. `TextEditBase` stays one-range-only; no rollback, history or persistent state is added. The new candidate passed both hosted jobs at exact PoC revision `28815b3697bbcd2c135ad1059b3403d8bb0d88f3`: [run 38079174120](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/38079174120). The new `test-core` regression passed, including a re-ordered backward target across a second selected range; the Chromium job covered existing browser behavior, not the new selection algorithm. The same 9-trial 4 MiB benchmark reported for **2,048 ranges**:
+
+| Backend | Previous revision: raw / selections (ms) | Cached revision: raw / selections (ms) |
+| --- | --- | --- |
+| PieceDocument | 1.7555 / 4.4414 | 1.3308 / 3.3188 |
+| AdaptiveRepackDocument | 4.4597 / 5.2864 | 2.5309 / 3.5836 |
+
+**These cross-run absolute timings cannot establish a speedup caused by caching**, because the raw backend baseline changed materially across hosted runs as well. The selection-layer overhead remains important, especially on a fast backend. The ordering cache is a low-level candidate to be further profiled on comparable within-run controls, not a final selected optimization.
 
 ## Next measurements and semantic work
 
