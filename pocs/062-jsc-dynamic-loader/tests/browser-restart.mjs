@@ -155,7 +155,13 @@ try{
  assert.ok(failedRequests>=2,'server must refuse actual restart navigation/asset requests');
  // Stronger offline test: Chrome itself blocks network traffic. Page.navigate is a top-level
  // document navigation (not an iframe and not merely an HTTP 503 response).
+ // Disconnect the real loopback origin as well: Chrome DevTools "offline" applies to the
+ // page target, while an independently running service worker might still reach the origin.
  down=false;
+ server.closeAllConnections();
+ await new Promise((resolve,reject)=>server.close(err=>err?reject(err):resolve()));
+ await assert.rejects(fetch(origin),/fetch failed|ECONNREFUSED|connect/i,
+   'the origin must actually be unreachable at TCP level');
  await current.call('Network.enable');
  await current.call('Network.emulateNetworkConditions',{
   offline:true,latency:0,downloadThroughput:0,uploadThroughput:0
@@ -167,6 +173,9 @@ try{
    'offline top-level navigation controlled by the service worker');
  assert.equal(await current.evaluate('window.demo.source'),'v1','release pointer must come from SW cache when network is unavailable');
  assert.equal(await current.evaluate('window.demo.count'),7,'committed application state must survive offline top-level navigation');
+ // Restore the actual HTTP origin before lifting Chrome's page-target network block.
+ await new Promise((resolve,reject)=>server.listen(Number(new URL(origin).port),'127.0.0.1',err=>err?reject(err):resolve()));
+ assert.equal((await fetch(origin)).status,200,'origin should be reachable again');
  await current.call('Network.emulateNetworkConditions',{
   offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1
  });
@@ -188,9 +197,9 @@ try{
  await current.evaluate('location.reload()');
  await current.until('window.demo?.version==="v1"','manual reset reload');
  assert.equal(await current.evaluate('window.demo.count'),0);
- console.log('PASS RESTART: Chrome SIGKILL/same-profile persisted=7 volatile=11, SW-cached restart, DevTools browser-offline top-level navigation and online reconnection, incompatible snapshot blocked/manual reset; backend refused '+failedRequests+' requests');
+ console.log('PASS RESTART: Chrome SIGKILL/same-profile persisted=7 volatile=11, SW-cached restart, DevTools page-offline + disconnected TCP origin, top-level SW navigation and reconnect, incompatible snapshot blocked/manual reset; backend refused '+failedRequests+' requests');
 }finally{
  if(current){await current.stop();current.socket.close();}
- await new Promise(done=>server.close(done));
+ if(server.listening)await new Promise(done=>server.close(done));
  await rm(dir,{recursive:true,force:true});
 }
