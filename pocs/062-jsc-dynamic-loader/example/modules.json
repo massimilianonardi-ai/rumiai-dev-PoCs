@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "modules": [
+    {"id": "counter", "file": "counter.js", "deps": []},
+    {"id": "application", "file": "application.js", "deps": ["counter"]}
+  ]
+}

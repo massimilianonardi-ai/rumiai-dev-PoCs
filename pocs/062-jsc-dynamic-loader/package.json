@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node src/jsc.mjs example/modules.json example/bundle.js",
+    "test": "node tests/run.mjs && node tests/boundaries.mjs && node --expose-gc tests/memory.mjs",
+    "test:browser": "node tests/browser.mjs"
+  }
+}

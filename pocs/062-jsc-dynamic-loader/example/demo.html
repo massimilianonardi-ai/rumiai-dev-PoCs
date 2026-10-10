@@ -1,0 +1,11 @@
+<!doctype html><meta charset="utf-8"><title>jsc PoC</title>
+<script src="./bundle.js"></script>
+<pre id="output"></pre>
+<script>
+  const first = JscRuntime.require('application').run();
+  const second = JscRuntime.require('application').run();
+  document.getElementById('output').textContent = JSON.stringify({
+    first, second, evaluations: globalThis.__pocCounterEvaluations,
+    registry: JscRuntime.state()
+  });
+</script>
