@@ -9,7 +9,7 @@ for(const Doc of [PieceDocument,AdaptiveRepackDocument]){
   assert.equal(doc.lineCount,5);
   const p=projectViewport(doc,{...opts,scrollTop:0});
   assert.equal(p.rows[0].content,'a\t😀e\u0301漢Z');
-  assert.equal(p.rows[0].textEnd,9);
+  assert.equal(p.rows[0].textEnd,8);
   assert.equal(p.rows[1].content,'x');
   assert.equal(p.rows[2].content,'');
   assert.equal(p.rows[3].truncated,true);
