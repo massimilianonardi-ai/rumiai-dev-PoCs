@@ -2,6 +2,7 @@
 // DOM-independent TextEditSelections. This wrapper is *test code*, not an API.
 import {PieceDocument} from '../src/documents.mjs';
 import {TextEditSelections} from '../src/text-edit-selections-probe.mjs';
+import {planColumnPaste} from '../src/column-edit-probe.mjs';
 
 const documentModel=new PieceDocument('ab');
 const editor=new TextEditSelections(documentModel);
@@ -10,6 +11,7 @@ const field=document.getElementById('capture');
 const history=[];
 const observed=[];
 let index=0,rendering=false,composing=false;
+let armedColumn=null,lastColumnPlan=null;
 const text=()=>documentModel.slice(0,documentModel.length);
 function render(){
   rendering=true;
@@ -54,7 +56,16 @@ field.addEventListener('paste',e=>{
   observed.push({event:'paste',text:pasted??null});
   if(typeof pasted!=='string')return;
   e.preventDefault();
-  input(pasted);
+  if(armedColumn){
+    const plan=planColumnPaste(documentModel,{
+      rectangle:armedColumn,clipboard:pasted,materializeRows:true,
+      tabSize:4,widthOf:()=>1
+    });
+    armedColumn=null;lastColumnPlan=plan;
+    if(plan.noop)return;
+    editor.setSelections(plan.selections);
+    input(plan.texts);
+  } else input(pasted);
 });
 field.addEventListener('beforeinput',e=>{
   observed.push({event:'beforeinput',type:e.inputType,data:e.data,composing:e.isComposing});
@@ -98,10 +109,22 @@ field.focus();
 window.__probe={
   snapshot:()=>({text:text(),selection:editor.getSelections(),
     historyLength:history.length,historyIndex:index,
+    lastColumnPlan:lastColumnPlan&&{
+      sourceRows:lastColumnPlan.sourceRows,
+      targetRows:lastColumnPlan.targetRows,
+      materializedRows:lastColumnPlan.materializedRows,
+      primitiveSelections:lastColumnPlan.selections.length
+    },
     nativeSelectionStart:field.selectionStart,nativeValue:field.value,
     events:observed.slice()}),
   focus:()=>field.focus(),
   setSelections:ranges=>{editor.setSelections(ranges);render();},
+  armColumn:rectangle=>{armedColumn={...rectangle};},
+  resetFixture:value=>{
+    documentModel.replace(0,documentModel.length,value);
+    history.length=0;index=0;armedColumn=null;lastColumnPlan=null;
+    editor.setSelections([{start:0,end:0,forward:true}]);render();
+  },
   rect:()=>{const r=field.getBoundingClientRect();return {x:r.x+3,y:r.y+12};}
 };
 document.getElementById('result').textContent='ready';

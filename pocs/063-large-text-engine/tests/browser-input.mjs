@@ -163,9 +163,36 @@ try{
   assert.equal(state.text,beforeCancel.text,'cancelled composition unchanged');
   assert.equal(state.historyLength,beforeCancel.historyLength,'cancelled composition does not create undo');
   assert.equal(state.nativeValue,state.text,'preview cancelled in browser view');
+
+  // A genuine OS clipboard Ctrl+V is now routed through the independent
+  // column planner. The rectangle is supplied explicitly by the test;
+  // native drag geometry for column selection is NOT being asserted here.
+  await evaluate("window.__probe.resetFixture('aa\\nb')");
+  await evaluate("window.__probe.armColumn({lineFrom:0,lineTo:1,columnFrom:2,columnTo:2})");
+  await evaluate("navigator.clipboard.writeText('X\\nY\\nZ\\nW')");
+  await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',...pasteKey});
+  await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',...pasteKey});
+  state=await snapshot();
+  assert.equal(state.text,'aaX\nb Y\n  Z\n  W');
+  assert.deepEqual(state.lastColumnPlan,{
+    sourceRows:4,targetRows:4,materializedRows:2,primitiveSelections:2
+  });
+  assert.equal(state.historyLength,1,'one native column paste is one undo action');
+  assert.equal(state.historyIndex,1);
+  assert.equal(state.nativeValue,state.text);
+  await chord(false);
+  state=await snapshot();
+  assert.equal(state.text,'aa\nb');
+  assert.deepEqual(state.selection,[
+    {start:2,end:2,forward:true},{start:4,end:4,forward:true}
+  ]);
+  await chord(true);
+  assert.equal((await snapshot()).text,'aaX\nb Y\n  Z\n  W');
+
   console.log(JSON.stringify({pass:true,browser:'Chromium',realBeforeInput:true,
     separateTypedActions:3,realPaste:true,pasteTargets:2,
-    pasteSingleUndo:true,imePreviews:2,imeCommitSingleUndo:true,
+    pasteSingleUndo:true,realColumnPasteBeyondEof:true,
+    columnPasteSingleUndo:true,imePreviews:2,imeCommitSingleUndo:true,
     immediateIdenticalInputIsSeparate:true,imeCancellationNoUndo:true,
     keyboardUndoRedo:true,mouseHitTest:true,
     browserEvents:state.events.filter(e=>e.event==='compositionend'||e.event==='paste'),
