@@ -445,6 +445,24 @@ try{
     modelEditing:true,undoRedo:true,visibleRows:projected.mounted,
     projectionReadUnits:projected.projectedReadUnits}));
 
+  await clickDemo('giant');
+  projected=await viewport();
+  assert.equal(projected.documentRows,3);
+  assert.ok(projected.documentUnits>2*1024*1024);
+  assert.equal(projected.visible[1].content.length,512);
+  assert.equal(projected.visible[1].truncated,true);
+  assert.ok(projected.projectedReadUnits<600,
+    'actual DOM model must not copy the 2 MiB giant line');
+  await clickBoundary(1,20);
+  projected=await viewport();
+  assert.equal(projected.selectedRow,null,
+    'clipped giant line is deliberately not pointer-editable');
+  assert.equal(await evaluate(
+    "document.getElementById('message').textContent.includes('troncata')"),true);
+  console.log(JSON.stringify({pass:true,browser:'Chromium',
+    selectedGiantLineBytes:2*1024*1024,boundedVisibleUnits:512,
+    clippedLinePointerEditRejected:true}));
+
   console.log(JSON.stringify({pass:true,browser:'Chromium',
     handsOnDemo:true,realTyping:true,realPointerToolbar:true,
     groupedColumnPaste:true,multipleCaretModel:true,
