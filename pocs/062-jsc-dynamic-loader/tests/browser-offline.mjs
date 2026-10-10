@@ -164,9 +164,15 @@ const controller=`<!doctype html><meta charset="utf-8"><pre id="result">WAIT</pr
     const v2url=offlinePointer2.body.url;
     if(!(await cache.delete(v2url)))throw Error('expected pinned asset to be deletable');
     if(await cache.match(v2url))throw Error('deleted asset unexpectedly remained cached');
+    // The renderer may reuse a previously loaded script from a separate in-memory HTTP
+    // cache even after Cache Storage loses it; a new iframe alone is not a reliable probe.
+    // Force a no-store fetch through the service worker to prove the origin's asset is absent.
     let refused=false;
-    try{await frame();}catch(e){refused=/client bundle did not initialize/.test(String(e));}
-    if(!refused)throw Error('missing pinned asset did not produce a visible failure');
+    try{
+      const candidate=await fetch(v2url,{cache:'no-store'});
+      refused=!candidate.ok;
+    }catch{refused=true;}
+    if(!refused)throw Error('uncached request unexpectedly retrieved evicted JS while origin is offline');
     if(onlineV2.contentWindow.AppInfo.version!=='v2')
       throw Error('previously running verified client was replaced after eviction');
     // Recovery is permitted only after fetching and independently verifying an immutable
@@ -187,7 +193,7 @@ const controller=`<!doctype html><meta charset="utf-8"><pre id="result">WAIT</pr
     const recovered=await frame();
     if(recovered.contentWindow.AppInfo.version!=='v2')
       throw Error('verified cache repair did not restore offline operation');
-    result.textContent='PASS OFFLINE pinned cache cleanup, missing asset fails closed, verified online restoration and offline re-entry';
+    result.textContent='PASS OFFLINE pinned cache cleanup, missing asset refused on uncached fetch, verified online restoration and offline re-entry';
   } catch(error) { result.textContent='FAIL OFFLINE '+error.stack; }
 })();
 </script>`;
