@@ -121,7 +121,7 @@ async function launch(){
    try{const result=await evaluate(expr);if(result)return result;}catch{}
    await delay(100);
   }
-  throw Error('Timed out: '+label+'; '+await evaluate('document.getElementById("result")?.textContent'));
+  throw Error('Timed out: '+label+'; '+JSON.stringify(await evaluate('({url:location.href,html:document.documentElement.outerHTML.slice(0,700),controlled:!!navigator.serviceWorker?.controller})'))));
  };
  return {child,socket,stop,call,evaluate,until};
 }
@@ -154,13 +154,13 @@ try{
  assert.ok(failedRequests>=2,'server must refuse actual restart navigation/asset requests');
  // Corrupt/incompatible saved state must never be deleted or silently initialized as a valid empty document.
  await current.evaluate('window.recovery.write({schema:99,count:100}).then(()=>true)');
- await current.call('Page.reload',{ignoreCache:true});
+ await current.evaluate('location.reload()');
  await current.until('document.getElementById("result")?.textContent?.includes("RECOVERY_REQUIRED")','explicit incompatible snapshot error');
  assert.equal(await current.evaluate('typeof window.demo'),'undefined');
  assert.equal(await current.evaluate('window.recovery.read().then(x=>x.schema)'),99);
  // User-authorized destructive recovery is explicit, not an automatic rollback by the loader.
  await current.evaluate('window.recovery.clear()');
- await current.call('Page.reload',{ignoreCache:true});
+ await current.evaluate('location.reload()');
  await current.until('window.demo?.version==="v1"','manual reset reload');
  assert.equal(await current.evaluate('window.demo.count'),0);
  console.log('PASS RESTART: complete Chrome SIGKILL and fresh process same profile, IndexedDB committed=7 vs volatile=11, SW cached offline boot, incompatible snapshot blocked, manual reset required; backend refused '+failedRequests+' requests');
