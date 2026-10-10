@@ -262,6 +262,68 @@ try{
   await clickDemo('undo');
   assert.equal(await demoText(),'aa\nb');
 
+  // Real drag gestures over the SAME user-facing textarea, in browser pixel
+  // coordinates. No synthetic PointerEvent or test-supplied rectangle state.
+  async function dragRect(startLine,startColumn,endLine,endColumn,modifiers=0){
+    const geometry=await evaluate(`(() => {
+      const f=document.getElementById('editor');
+      f.scrollIntoView({block:'center'});
+      const s=getComputedStyle(f),r=f.getBoundingClientRect();
+      const c=document.createElement('canvas').getContext('2d');
+      c.font=s.fontSize+' '+s.fontFamily;
+      return {x:r.left+parseFloat(s.borderLeftWidth)+parseFloat(s.paddingLeft)-f.scrollLeft,
+        y:r.top+parseFloat(s.borderTopWidth)+parseFloat(s.paddingTop)-f.scrollTop,
+        cell:c.measureText('0').width,lineHeight:parseFloat(s.lineHeight)};
+    })()`);
+    const point=(line,col)=>({x:geometry.x+col*geometry.cell,
+      y:geometry.y+(line+0.5)*geometry.lineHeight});
+    const a=point(startLine,startColumn),b=point(endLine,endColumn);
+    await cdp.send('Input.dispatchMouseEvent',{type:'mouseMoved',...a,modifiers});
+    await cdp.send('Input.dispatchMouseEvent',{type:'mousePressed',
+      button:'left',...a,modifiers,clickCount:1});
+    await cdp.send('Input.dispatchMouseEvent',{type:'mouseMoved',
+      button:'left',...b,modifiers});
+    await cdp.send('Input.dispatchMouseEvent',{type:'mouseReleased',
+      button:'left',...b,modifiers,clickCount:1});
+  }
+  const fields=()=>evaluate("(() => {const ids=['row-from','row-to','col-from','col-to'];return ids.map(id=>document.getElementById(id).value);})()");
+  const overlayCount=()=>evaluate("document.querySelectorAll('#rect-overlay .rect-band').length");
+  await clickDemo('sample');
+  await clickDemo('rect-mode');
+  await dragRect(0,2,1,2);
+  assert.deepEqual(await fields(),['1','2','2','2'],
+    'real pointer drag must project to existing rectangle planner controls');
+  assert.equal(await overlayCount(),2,'two actual overlay bands drawn');
+  assert.equal(await demoText(),'aa\nb','mouse-only selection never edits text');
+  await clickDemo('column-apply');
+  assert.equal(await demoText(),'aaX\nb Y\n  Z\n  W',
+    'native drag geometry must reach the real column planner');
+  await clickDemo('undo');
+  assert.equal(await demoText(),'aa\nb','native drag paste remains one undo action');
+  await clickDemo('sample');
+  await dragRect(1,2,0,0);
+  assert.deepEqual(await fields(),['2','1','2','0'],
+    'reverse row and column orientation must survive real pointer drag');
+  assert.equal(await overlayCount(),2);
+  await clickDemo('rect-mode'); // turn off explicit mode
+  await clickDemo('sample');
+  await dragRect(0,2,1,2,1); // physical Alt/Option-modified mouse drag
+  assert.deepEqual(await fields(),['1','2','2','2'],
+    'Alt + native pointer drag must work without mode toggle');
+  assert.equal(await overlayCount(),2);
+  await clickDemo('column-arm');
+  await evaluate("navigator.clipboard.writeText('X\\nY\\nZ\\nW')");
+  await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',...pasteKey});
+  await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',...pasteKey});
+  assert.equal(await demoText(),'aaX\nb Y\n  Z\n  W',
+    'Alt pointer selection must feed real OS clipboard paste');
+  await chord(false);
+  assert.equal(await demoText(),'aa\nb');
+  console.log(JSON.stringify({pass:true,browser:'Chromium',
+    physicalRectangleDrag:true,reverseDrag:true,altDrag:true,
+    rectangleOverlay:true,dragFeedsColumnPlanner:true,
+    realClipboardAfterDrag:true,oneUndoAfterDrag:true}));
+
   console.log(JSON.stringify({pass:true,browser:'Chromium',
     handsOnDemo:true,realTyping:true,realPointerToolbar:true,
     groupedColumnPaste:true,multipleCaretModel:true,
