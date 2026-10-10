@@ -357,6 +357,94 @@ try{
     rejectedTabInterior:true,rejectedUnverifiedUnicodePixels:true,
     scrollAwareRectangleDrag:true}));
 
+  // A second REAL browser page: only visible lines in DOM, actual browser
+  // Range layout for Unicode boundaries, real PieceDocument editing/undo.
+  await cdp.send('Page.navigate',{url:origin+'/demo/viewport.html'});
+  let viewportReady=false;
+  for(let n=0;n<100;n++){
+    viewportReady=await evaluate(
+      "document.documentElement.dataset.viewportReady === 'true'");
+    if(viewportReady)break;
+    await delay(50);
+  }
+  assert.equal(viewportReady,true,'viewport experiment failed to initialize');
+  const viewport=()=>evaluate("window.__viewportProbe.snapshot()");
+  async function clickBoundary(row,left,right=left){
+    const expression="(() => {"+
+      "const rowEl=document.querySelector('.v-row[data-row=\""+
+        String(row)+"\"]');"+
+      "if(!rowEl)throw Error('target line is not mounted');"+
+      "const node=rowEl.querySelector('.v-text').firstChild;"+
+      "const range=document.createRange();"+
+      "range.setStart(node,"+left+");range.collapse(true);"+
+      "const xa=range.getBoundingClientRect().left;"+
+      "range.setStart(node,"+right+");range.collapse(true);"+
+      "const xb=range.getBoundingClientRect().left;"+
+      "const r=rowEl.getBoundingClientRect();"+
+      "return {x:(xa+xb)/2,y:r.top+r.height/2};})()";
+    const point=await evaluate(expression);
+    await cdp.send('Input.dispatchMouseEvent',{type:'mouseMoved',...point});
+    await cdp.send('Input.dispatchMouseEvent',{type:'mousePressed',
+      button:'left',...point,clickCount:1});
+    await cdp.send('Input.dispatchMouseEvent',{type:'mouseReleased',
+      button:'left',...point,clickCount:1});
+  }
+  let projected=await viewport();
+  assert.equal(projected.documentRows,6);
+  assert.ok(projected.mounted<=30);
+  assert.equal(projected.visible[0].content,'a\t😀é漢Z');
+  await clickBoundary(0,4); // after emoji, before combining grapheme e+mark
+  projected=await viewport();
+  assert.equal(projected.lastHit.offset,4,'real browser measured UTF-16 emoji boundary');
+  assert.ok(projected.lastHit.graphemeBoundaries.includes(4));
+  assert.ok(!projected.lastHit.graphemeBoundaries.includes(3));
+  await clickDemo('insert');
+  projected=await viewport();
+  assert.equal(projected.visible[0].content,'a\t😀★é漢Z');
+  assert.equal(projected.historyIndex,1);
+  await clickDemo('undo');
+  assert.equal((await viewport()).visible[0].content,'a\t😀é漢Z');
+  await clickDemo('redo');
+  assert.equal((await viewport()).visible[0].content,'a\t😀★é漢Z');
+  await clickDemo('small');
+  await clickBoundary(0,4,6); // between combining grapheme boundaries
+  projected=await viewport();
+  assert.ok([4,6].includes(projected.lastHit.local),
+    'grapheme internal offset 5 must never be returned');
+  assert.ok(!projected.lastHit.graphemeBoundaries.includes(5));
+  await clickBoundary(1,0,11); // ZWJ family is one grapheme
+  projected=await viewport();
+  assert.ok([0,11].includes(projected.lastHit.local));
+  assert.ok(!projected.lastHit.graphemeBoundaries.includes(2));
+
+  await clickDemo('large');
+  projected=await viewport();
+  assert.equal(projected.documentRows,200000);
+  assert.ok(projected.mounted<=32,'large document mounts only near-screen lines');
+  assert.ok(projected.projectedReadUnits<20000);
+  await evaluate("document.getElementById('jump-row').value='150001'");
+  await clickDemo('jump');
+  projected=await viewport();
+  assert.ok(projected.first<=150000&&projected.last>150000,
+    'jump should navigate to a far-away indexed line');
+  assert.ok(projected.mounted<=32);
+  assert.ok(projected.projectedReadUnits<20000);
+  await clickBoundary(150000,0);
+  projected=await viewport();
+  assert.equal(projected.selectedRow,150000);
+  await clickDemo('insert');
+  projected=await viewport();
+  assert.ok(projected.visible.find(x=>x.row===150000).content.startsWith('★'));
+  assert.equal(projected.documentRows,200000);
+  assert.ok(projected.mounted<=32);
+  await clickDemo('undo');
+  assert.ok((await viewport()).visible.find(x=>x.row===150000).content.startsWith('line-'));
+  console.log(JSON.stringify({pass:true,browser:'Chromium',
+    viewportRows:200000,boundedDOM:true,farJump:true,
+    realGraphemePointer:true,combiningBoundary:true,zwjBoundary:true,
+    modelEditing:true,undoRedo:true,visibleRows:projected.mounted,
+    projectionReadUnits:projected.projectedReadUnits}));
+
   console.log(JSON.stringify({pass:true,browser:'Chromium',
     handsOnDemo:true,realTyping:true,realPointerToolbar:true,
     groupedColumnPaste:true,multipleCaretModel:true,
