@@ -169,7 +169,7 @@ try{
   assert.equal((await fetch(origin+'publish')).status,200);
   assert.equal((await(await fetch(origin+'release.json')).json()).version,'v2');
   assert.equal((await fetch(origin+'evict-v1')).status,409);
-  assert.equal((await fetch(origin+base.url)).status,200,'old immutable artifact still available');
+  assert.equal((await fetch(new URL(base.url,origin))).status,200,'old immutable artifact still available');
   assert.equal(await a.evalJs('demo.version'),'v1');assert.equal(await b.evalJs('demo.version'),'v1');
   // With two real controlled tabs, v2 worker must wait until BOTH clients are migrated.
   await a.evalJs('navigator.serviceWorker.getRegistration().then(r=>r.update()).then(()=>true)');
