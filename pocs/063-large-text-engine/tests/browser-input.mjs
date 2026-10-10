@@ -324,6 +324,39 @@ try{
     rectangleOverlay:true,dragFeedsColumnPlanner:true,
     realClipboardAfterDrag:true,oneUndoAfterDrag:true}));
 
+  // A tab cell must not be silently split by pixel hit testing.
+  await clickDemo('sample');
+  await evaluate("document.getElementById('editor').focus()");
+  await cdp.send('Input.insertText',{text:'a\tc'});
+  await dragRect(0,2,1,2,1);
+  assert.equal(await overlayCount(),0,'intra-tab column selection rejected');
+  assert.equal(await evaluate("document.getElementById('message').textContent.includes('tab')"),true);
+  // The prototype intentionally rejects Unicode pixel columns rather than
+  // asserting inaccurate glyph metrics. Numeric column inputs remain usable.
+  await clickDemo('sample');
+  await evaluate("document.getElementById('editor').focus()");
+  await cdp.send('Input.insertText',{text:'漢'});
+  await dragRect(0,0,1,0,1);
+  assert.equal(await overlayCount(),0,'Unicode pointer gesture rejected');
+  assert.equal(await evaluate("document.getElementById('message').textContent.includes('Unicode')"),true);
+  // Scroll is part of the geometry; do not mistake on-screen row zero for
+  // physical document row zero once the textarea viewport moves.
+  await clickDemo('sample');
+  await evaluate("document.getElementById('editor').focus()");
+  await cdp.send('Input.insertText',{
+    text:Array.from({length:65},(_,i)=>'line-'+String(i).padStart(2,'0')).join('\n')+'\n'
+  });
+  await evaluate("(() => {const f=document.getElementById('editor');const s=getComputedStyle(f);f.scrollTop=24*parseFloat(s.lineHeight);})()");
+  assert.ok(await evaluate("document.getElementById('editor').scrollTop")>0);
+  await dragRect(25,2,26,2,1);
+  assert.deepEqual(await fields(),['26','27','2','2'],
+    'pointer rectangle must use actual scrollTop for row mapping');
+  assert.equal(await overlayCount(),2);
+  await clickDemo('sample');
+  console.log(JSON.stringify({pass:true,browser:'Chromium',
+    rejectedTabInterior:true,rejectedUnverifiedUnicodePixels:true,
+    scrollAwareRectangleDrag:true}));
+
   console.log(JSON.stringify({pass:true,browser:'Chromium',
     handsOnDemo:true,realTyping:true,realPointerToolbar:true,
     groupedColumnPaste:true,multipleCaretModel:true,
