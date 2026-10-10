@@ -36,3 +36,22 @@ The workflow `.github/workflows/poc-063-m-class-benchmark.yml` downloads the pin
 - The retained heap delta covers objects and runtime allocation side effects, not total library file footprint. Source size is separately recorded.
 - RSS is process-wide and includes non-heap memory; do not interpret it as per-instance object size.
 - Experimental baseline never rewrites or updates original `m.Class`.
+
+## Measured results — 2026-10-10
+
+Both Node 22.23.3 and Node 24.21.0 jobs completed successfully. Complete individual sample values, memory deltas, exact source identity and diagnostics are preserved in `sessions/github-actions-20261010-node22.json` and `sessions/github-actions-20261010-node24.json`, independently from time-limited GitHub Actions artifacts.
+
+| Scenario | Node 22 native | Node 22 m.Class | Node 24 native | Node 24 m.Class |
+|---|---:|---:|---:|---:|
+| Basic construction, 130k objects (median ms) | 3.788 | 14.779 | 1.540 | 15.649 |
+| Method invocation, 6m calls (median ms) | 8.592 | 8.955 | 9.766 | 9.542 |
+| Direct field read, 6m reads (median ms) | 6.795 | 6.842 | 7.823 | 7.563 |
+| Inherited construction, 130k (median ms) | 3.275 | 91.583 | 2.461 | 78.171 |
+| Retained heap, inherited 650k objects (bytes/object) | 38.167 | 268.927 | 38.172 | 268.940 |
+| Stress, 1m inherited objects (live heap MiB, approximate) | 37.0 | 260.2 | 37.0 | 260.2 |
+
+V8 intrinsic diagnostics (`%HasFastProperties`) show that `m.Class` inherited instances have dictionary/slow properties. An independently implemented native constructor using the same temporary-property add/delete pattern also produces slow properties and nearly identical per-object heap use. Both copy-style and dynamic-style `m.Class` inheritance exhibited this behavior. The transient `_instanceof` property, set during base constructor invocation and deleted inside `_construct`, is the relevant mechanism in the original source. The result is observational, not a modification or repair of the library.
+
+Semantic difference: native `Child extends Base` satisfies `child instanceof Base`; the tested `m.Class().inherit(Base)` implementation does not, despite invoking the base constructor and exposing methods. This distinction matters when treating the benchmarks as semantically comparable.
+
+The observed-property and trigger scenarios include interface/wrapper overhead as well as equivalent callback work; the raw results quantify those operations but do not establish that the APIs are behaviorally interchangeable.
