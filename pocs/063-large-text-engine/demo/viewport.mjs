@@ -50,6 +50,10 @@ function large(){
   reset(lines.join('\n'));
   message('200.000 righe nel PieceDocument. Solo il viewport è nel DOM.');
 }
+function giant(){
+  reset('header\\n'.replace('\\n','\n')+'x'.repeat(2*1024*1024)+'\nlast');
+  message('Riga da 2 MiB: il modello conserva il testo, il DOM mostra solo un prefisso di 512 unità.');
+}
 function measuredOffsets(textElement,content){
   const textNode=textElement.firstChild;
   const segments=Array.from(segmenter.segment(content));
@@ -220,6 +224,7 @@ $('vrows').addEventListener('click',clickRow);
 $('vscroll').addEventListener('scroll',render,{passive:true});
 $('small').addEventListener('click',sample);
 $('large').addEventListener('click',large);
+$('giant').addEventListener('click',giant);
 $('jump').addEventListener('click',()=>safely(()=>{
   const str=$('jump-row').value,n=Number(str);
   if(!str.trim()||!Number.isSafeInteger(n)||n<1||n>doc.lineCount)
