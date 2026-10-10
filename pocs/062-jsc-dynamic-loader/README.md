@@ -10,6 +10,18 @@ Choose separate runtime and compiled scripts for development/patching, or packag
 
 ES Modules remain an entirely separate authoring/runtime path. This experiment never interprets them as `jsc` modules.
 
+## Practical end-to-end workflow
+
+The runnable [consumer example](example/workflow/README.md) exercises the **independent compiler and loader** in a small browser app: first-time network loading of an optional module, a compiled v1-to-v2 patch with `onDispose` cleanup, and a one-file assembled module distribution. The rest of this README records earlier experimental research; the example is the shortest path for someone evaluating `jsc` and the dynamic loader.
+
+```sh
+npm run demo:workflow   # builds, then serves dev.html and release.html at localhost:8787
+npm run test:core       # focused compiler and loader checks
+npm run test:workflow   # Node + real Chrome end-to-end checks
+```
+
+The release's `bundle-all.js` embeds the loader and the optional module's **definition**, with deferred execution but not deferred download. The development view downloads `optional.js` on demand. This is still an exploratory PoC, not an installed or versioned production API.
+
 ## Run
 
 ```sh
