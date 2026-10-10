@@ -51,7 +51,7 @@ function large(){
   message('200.000 righe nel PieceDocument. Solo il viewport è nel DOM.');
 }
 function giant(){
-  reset('header\\n'.replace('\\n','\n')+'x'.repeat(2*1024*1024)+'\nlast');
+  reset('header\n'+'x'.repeat(2*1024*1024)+'\nlast');
   message('Riga da 2 MiB: il modello conserva il testo, il DOM mostra solo un prefisso di 512 unità.');
 }
 function measuredOffsets(textElement,content){
