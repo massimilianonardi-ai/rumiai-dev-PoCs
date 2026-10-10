@@ -345,7 +345,18 @@ This is an **exploratory cost measurement**, not a requirement to keep defensive
 
 `tests/rollback-cost.mjs` compares three approaches on the same prepared edits and the **real** `FlatDocument`, `PieceDocument`, `AdaptiveRepackDocument`: (a) direct descending one-range replacements; (b) pre-reading each replaced span (normal information a separate undo controller may need), then descending replacements with no rollback; (c) the same old-text capture plus a `try/catch`, one inverse descriptor per successful edit and a rollback path that is inactive in the ordinary case. Backends and select counts vary, with 12 median samples after warmup and alternate strategy order. Timing excludes document construction, input setup, clipboard decoding, selection interpretation, UI rendering, GC runs outside timing, and keyboard/IME; percentages are observational, not universal.
 
-The exact hosted results are obtainable from the `test-core` job in the workflow associated with this PoC revision. They should be recorded here or in the handoff only **after** that job completes. No extra atomic batch method is introduced in `TextEditBase` and no product implementation changes.
+The exact hosted run at revision `2e41017f2ff9eff94e18a6c8eabda9963a135f40` passed both CI jobs: [run 38074844243](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/38074844243). Its Node v22.23.3 Linux x64 core job produced the following medians (milliseconds, 12 samples after warmup; 32/256 disjoint one-character replacements):
+
+| Backend | KiB | Edits | Direct | Capture old | Capture + guard | Guard / capture |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| FlatDocument | 256 | 32 | 4.375 | 4.416 | 4.454 | +0.9% |
+| FlatDocument | 256 | 256 | 41.809 | 42.661 | 43.184 | +1.2% |
+| PieceDocument | 1024 | 32 | 0.086 | 0.109 | 0.142 | +30.3% |
+| PieceDocument | 1024 | 256 | 0.309 | 0.311 | 0.380 | +22.2% |
+| AdaptiveRepackDocument | 1024 | 32 | 0.135 | 0.147 | 0.161 | +9.5% |
+| AdaptiveRepackDocument | 1024 | 256 | 0.537 | 0.561 | 0.648 | +15.5% |
+
+The guard adds a per-completed-edit inverse object/allocation plus exception handling. The difference is measurable on the faster tree backends, though **absolute deltas are sub-millisecond**; small microbenchmarks and runner variance do not imply stable production ratios. Capturing overwritten spans is a **different operation**, useful for optional external undo even when no rollback is attempted. FlatDocument's entire-string replacement cost dominates this comparison. The experiment does *not* establish what happens on an exceptional backend failure; its `try/catch` cannot guarantee recovery from mutate-then-throw or out-of-memory. No mandatory rollback or extra atomic batch method should be introduced in `TextEditBase` on the basis of this result. No product implementation changes.
 
 Run from the PoC root:
 
