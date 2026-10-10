@@ -1,0 +1,25 @@
+name: PoC 060 synthetic wishlist control
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - pocs/060-amazon-wishlist-web-control/**
+      - .github/workflows/poc-060-wishlist-logic.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Syntax check
+        run: node --check pocs/060-amazon-wishlist-web-control/probe.mjs
+      - name: Exercise synthetic CLI contract
+        run: node pocs/060-amazon-wishlist-web-control/test-probe.mjs
