@@ -72,6 +72,9 @@ jobs:
       - name: Structural TextEditBase and oriented TextEditSelections layering
         working-directory: pocs/063-large-text-engine
         run: node tests/text-edit-selections-probe.mjs
+      - name: External column editing via TextEditSelections
+        working-directory: pocs/063-large-text-engine
+        run: node tests/column-edit-probe.mjs
       - name: Measure fast one-range edits versus defensive multi-selection rollback
         working-directory: pocs/063-large-text-engine
         run: node --expose-gc tests/rollback-cost.mjs 12

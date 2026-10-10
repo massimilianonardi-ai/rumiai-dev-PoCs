@@ -384,7 +384,24 @@ Run:
 
 The user requested a comparison against **plain native JavaScript strings**, not only wrappers around document data structures. The existing `tests/selection-hotpath.mjs` now also benchmarks `NativeJavaScriptString` at 256 KiB (32/256 selections) and 4 MiB (32/256 selections). Its **direct** variant operates on one local JavaScript string using `value = value.slice(0,start) + insert + value.slice(end)` for each replacement, with prior content captured by native `slice`. Its **selection** variant passes a thin single-interval string-store adapter to the unmodified `TextEditSelections` candidate, so the selection layer is included without adding a new text storage implementation. Other backends and workloads remain unchanged. All cases run within the same hosted CI invocation with alternating measured order; constructor/setup, explicit GC and input generation are excluded from timed regions. For native strings, V8 may optimize ropes/concatenations and defer flattening; selected samples do not establish a general memory/copying bound. This adds a fair explicit native-language reference, not a new editor architecture.
 
-**Results are recorded only after the exact CI job has completed.** Execute with:
+The added native-string benchmark completed successfully at exact PoC revision `86ee3a0e8673d18129c34625cea236b2374da7d3`, [CI run 38079896501](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/38079896501), Node v22.23.3 linux/x64, 9 measured samples after warmup. In the same hosted run:
+
+| Store | Document | Ranges | Direct + old text (ms) | TextEditSelections (ms) |
+| --- | ---: | ---: | ---: | ---: |
+| Native JavaScript string | 256 KiB | 256 | 28.7970 | 29.8669 |
+| FlatDocument | 256 KiB | 256 | 29.2496 | 29.3894 |
+| Native JavaScript string | 4 MiB | 32 | 22.1306 | 22.9183 |
+| Native JavaScript string | 4 MiB | 256 | 200.6925 | 204.7192 |
+| PieceDocument | 4 MiB | 32 | 0.1239 | 0.1621 |
+| PieceDocument | 4 MiB | 256 | 0.2642 | 0.3977 |
+| PieceDocument | 4 MiB | 2048 | 1.2551 | 2.8798 |
+| AdaptiveRepackDocument | 4 MiB | 32 | 0.1217 | 0.1534 |
+| AdaptiveRepackDocument | 4 MiB | 256 | 0.4442 | 0.6544 |
+| AdaptiveRepackDocument | 4 MiB | 2048 | 2.4594 | 3.4728 |
+
+At 4 MiB and 256 ranges, native-string editing through the selection layer was approximately 515× the PieceDocument elapsed time **for this very specific dispersed single-character replacement workload**. Native string and FlatDocument are close at 256 KiB. These are *not* comprehensive text-engine benchmarks: V8 may defer string flattening, GC and memory retention are not measured here, and repeated insertion/other patterns could change the ranking. This should not be generalized into an absolute product speedup claim. Both CI jobs passed, although the browser job exercises earlier behavior, not this new benchmark.
+
+Execute with:
 
     node --expose-gc tests/selection-hotpath.mjs 9
 
@@ -400,6 +417,16 @@ A direction policy is still free to translate edit targets. Each operation check
 | AdaptiveRepackDocument | 4.4597 / 5.2864 | 2.5309 / 3.5836 |
 
 **These cross-run absolute timings cannot establish a speedup caused by caching**, because the raw backend baseline changed materially across hosted runs as well. The selection-layer overhead remains important, especially on a fast backend. The ordering cache is a low-level candidate to be further profiled on comparable within-run controls, not a final selected optimization.
+
+## External column-edit preparation on existing selection primitives (2026-10-10)
+
+The new exploratory `src/column-edit-probe.mjs` takes a *single rectangular user selection* and an explicit clipboard data input. It uses the **existing** `probeRectangles` view-width/grapheme/virtual-EOL translator, computes a list of oriented selections and **one string per selection**, and returns them to the existing `TextEditSelections.setSelections` / `replace` calls. It does **not** call `TextEditBase.replace`, manage history, or implement a second selection-edit engine. The core remains unaware of columns/clipboard.
+
+The small policy matrix includes plain text line splitting (trailing LF produces an empty data row), CRLF normalization, a reference form for MadEdit-Mod's native clipboard format with **explicit row count**, selected-row cyclic fill when requested, source-shorter-than-target behavior without fill, and **source overflow extending into already existing target document rows** (never silently clipping source lines). This planner deliberately rejects overflow that requires *creating previously nonexistent document rows*, because whole-document row materialization and the newlines around it must be specified separately. The planner rejects unresolved grapheme/tab column boundaries instead of silently snapping. It preserves user traversal in reverse-row selection and backward column-selection orientation. The column-mode name and modes remain **outside** `TextEditSelections`, and the data inputs are explicit model fixtures, not access to the OS clipboard.
+
+`tests/column-edit-probe.mjs` exercises the planner plus **real** `FlatDocument`, `PieceDocument` and `AdaptiveRepackDocument`, with one success returning an inverse patch replayed externally to restore text and oriented selections. This is **source-behavior-inspired work, not native MadEdit-Mod GUI validation or full clipboard parity**. No product contract was promoted. Run:
+
+    node tests/column-edit-probe.mjs
 
 ## Next measurements and semantic work
 
