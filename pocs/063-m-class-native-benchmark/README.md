@@ -27,7 +27,7 @@ Checkout original `m` at the exact pinned SHA next to this PoC and run:
 node --expose-gc tests/benchmark.mjs --class-file /path/to/m/js/lib/js/m/Class.js --output benchmark-results.json
 ```
 
-The workflow `.github/workflows/poc-063-m-class-benchmark.yml` checks out the pinned upstream commit and executes on GitHub-hosted Ubuntu with Node 22 and 24. It prints `@@RESULT@@` lines and uploads the complete `benchmark-results.json` artifacts. There are no thresholds that would confuse a speed difference with a functional test failure.
+The workflow `.github/workflows/poc-063-m-class-benchmark.yml` downloads the pinned upstream file and verifies its exact Git blob SHA-1 before execution and executes on GitHub-hosted Ubuntu with Node 22 and 24. It prints `@@RESULT@@` and `@@DIAG@@` lines and uploads the complete `benchmark-results.json` artifacts. There are no thresholds that would confuse a speed difference with a functional test failure.
 
 ## Limitations
 
