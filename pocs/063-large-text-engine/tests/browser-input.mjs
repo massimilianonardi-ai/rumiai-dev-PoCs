@@ -197,6 +197,63 @@ try{
     keyboardUndoRedo:true,mouseHitTest:true,
     browserEvents:state.events.filter(e=>e.event==='compositionend'||e.event==='paste'),
     node:process.version}));
+
+  // Exercise the new human-facing HTML page through real Chrome events and
+  // pointer clicks, not just the original test-only textarea bridge.
+  await cdp.send('Page.navigate',{url:origin+'/demo/index.html'});
+  let demoReady=false;
+  for(let n=0;n<100;n++){
+    demoReady=await evaluate(
+      "document.documentElement.dataset.demoReady === 'true'");
+    if(demoReady)break;
+    await delay(50);
+  }
+  assert.equal(demoReady,true,'interactive demo failed to load its real modules');
+  const demoText=()=>evaluate("document.getElementById('editor').value");
+  async function clickDemo(id){
+    const pt=await evaluate("(() => {const r=document.getElementById("+
+      JSON.stringify(id)+").getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()");
+    await cdp.send('Input.dispatchMouseEvent',{type:'mousePressed',
+      button:'left',x:pt.x,y:pt.y,clickCount:1});
+    await cdp.send('Input.dispatchMouseEvent',{type:'mouseReleased',
+      button:'left',x:pt.x,y:pt.y,clickCount:1});
+  }
+  assert.equal(await demoText(),'aa\nb');
+  await evaluate("document.getElementById('editor').focus()");
+  await cdp.send('Input.insertText',{text:'Q'});
+  assert.equal(await demoText(),'Qaa\nb');
+  await chord(false);
+  assert.equal(await demoText(),'aa\nb');
+  await chord(true);
+  assert.equal(await demoText(),'Qaa\nb');
+  await clickDemo('sample');
+  assert.equal(await demoText(),'aa\nb');
+  await clickDemo('column-apply');
+  assert.equal(await demoText(),'aaX\nb Y\n  Z\n  W');
+  await clickDemo('undo');
+  assert.equal(await demoText(),'aa\nb','one UI undo must restore all four pasted rows');
+  await clickDemo('redo');
+  assert.equal(await demoText(),'aaX\nb Y\n  Z\n  W');
+  await clickDemo('sample');
+  await clickDemo('add-cursor');
+  await cdp.send('Input.insertText',{text:'Q'});
+  assert.equal(await demoText(),'Qaa\nbQ','two actual editor selections must edit together');
+  await clickDemo('undo');
+  assert.equal(await demoText(),'aa\nb','one UI undo removes both inserted carets');
+
+  await clickDemo('sample');
+  await clickDemo('column-arm');
+  await evaluate("navigator.clipboard.writeText('X\\nY\\nZ\\nW')");
+  await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',...pasteKey});
+  await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',...pasteKey});
+  assert.equal(await demoText(),'aaX\nb Y\n  Z\n  W',
+    'real Ctrl+V clipboard must work on user-facing demo');
+  await chord(false);
+  assert.equal(await demoText(),'aa\nb');
+  console.log(JSON.stringify({pass:true,browser:'Chromium',
+    handsOnDemo:true,realTyping:true,realPointerToolbar:true,
+    groupedColumnPaste:true,visibleMultipleCarets:true,
+    realClipboardColumnPaste:true,oneActionUndoRedo:true}));
 }finally{
   cdp?.close();
   if(processHandle){
