@@ -33,7 +33,7 @@ if (args[0] === 'page' && args[1] === 'new') {
         asin: 'B012345678',
         title: 'Synthetic product',
         url: 'https://www.amazon.it/dp/B012345678',
-        priceCandidates: [{ text: '10,99 €', priority: 10, selector: '.a-price' }]
+        priceCandidates: [{ text: '10,99 €', priority: 10, selector: '[id^="itemPrice_"].a-price > .a-offscreen' }]
       }] : [],
       documentHeight: 100, scrollY: 100, viewportHeight: 100,
       atBottom: true, visibleLoading: [], trace: []
