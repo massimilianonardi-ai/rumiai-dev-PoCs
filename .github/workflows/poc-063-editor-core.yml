@@ -84,6 +84,9 @@ jobs:
       - name: Paired native-string and text-engine EOF column extension
         working-directory: pocs/063-large-text-engine
         run: node --expose-gc tests/column-extend-hotpath.mjs 9
+      - name: Isolated selected giant-line memory and geometry stress
+        working-directory: pocs/063-large-text-engine
+        run: node --expose-gc tests/selected-long-line-stress.mjs 5
       - name: Exploratory editing performance, no threshold claim
         working-directory: pocs/063-large-text-engine
         run: node --expose-gc benchmark.mjs 1 8
