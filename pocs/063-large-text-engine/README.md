@@ -190,6 +190,41 @@ Run from this PoC directory:
 
 The new async port is deliberately additive: older synchronous `CompactHistory` / `NodeFileJournal` benchmark paths remain usable for comparisons. Moving actual browser UI editing to Promise-based commit calls and designing latency-aware execution are future experiments, not yet validated public behavior.
 
+## Browser IndexedDB adapter and asynchronous latency experiment (2026-10-10)
+
+The **generic Promise-based history journal remains the persistence boundary**. Browser, file and service-specific APIs are never imported by the text/history core. These are PoC-only candidate interfaces, not a product API selection.
+
+- adapters/indexeddb-journal.mjs implements the existing count/read/appendAt/readSession/writeSession port using real browser IndexedDB, integer-keyed records and a cached scalar record count. Redo branching deletes future records through a key range. Single-writer assumption.
+- tests/browser-idb.html, tests/browser-idb-scenario.mjs and tests/browser-indexeddb.mjs implement an HTTP-origin real-Chromium test. 800 grouped two-range transactions are written, then three *new Chromium processes* on the same user profile verify complete text/selection, 60 undo/redo, reopened undone cursor, redo-branch replacement, and a final new-process reopen. The test measures browser commit and open latency if it can execute.
+- tests/reopen-cost.mjs measures ordinary clean-session replay using the actual asynchronous Node file adapter; tests/storage-latency.mjs models an artificial delayed provider to isolate the cost of storage roundtrips, not real network latency.
+
+### Auxiliary Linux measurements
+
+Node v22.16.0, Linux x86_64, small initial two-line text repeated 80 times, separate single runs; GC explicitly called before heap samples. Normal clean-session reopen *requires N individual journal reads and N text edits* from a caller-supplied original document; no checkpoint replay acceleration is implemented.
+
+| Journal entries | Real Node file-adapter reopening | V8 heap after reopen + GC |
+| ---: | ---: | ---: |
+| 250 | 47.41 ms | 4.437 MiB |
+| 1,000 | 98.71 ms | 4.503 MiB |
+| 2,500 | 737.82 ms | 4.607 MiB |
+
+These timing samples are noisy, not statistically sampled, and are *not* browser/IndexedDB results. Absolute V8 heap on these small texts is not a RAM guarantee for huge files.
+
+In the separately simulated service adapter, 100 serial commits took 4.35 ms with zero artificial latency and 888.55 ms when each callback introduced 4 ms delay. The existing AsyncHistory awaits *two storage writes per commit* (append and session update) and reads every record on reopen; 101 records with the 4-ms delayed simulated service took 586.16 ms to reopen. Concurrent commits are rejected, not queued. This is a real limitation for a responsive foreground editor and motivates testing foreground edit decoupling, batching/backpressure and normal-session checkpoints, without tying the text core to any particular persistence backend.
+
+**Browser verification:** the local auxiliary container's Chromium launches, but its administrative policy blocks navigation to loopback URLs (net::ERR_BLOCKED_BY_ADMINISTRATOR), so no local actual-IndexedDB PASS is claimed. A dedicated GitHub Actions job runs the checked-in real-browser test on an independent Ubuntu/Chrome runner; hosted status must be inspected before claiming the browser integration worked. All applicable local Node core/file-adapter tests and new replay/latency tests passed.
+
+Run from this directory:
+
+    node tests/async-adapter.mjs
+    node --expose-gc tests/reopen-cost.mjs 250
+    node --expose-gc tests/reopen-cost.mjs 1000
+    node --expose-gc tests/reopen-cost.mjs 2500
+    node tests/storage-latency.mjs 4 100
+    CHROMIUM_BIN=/usr/bin/chromium node tests/browser-indexeddb.mjs
+
+Browser run requires working loopback navigation and an installed Chromium. By explicit user instruction, **crash resistance, interrupted-write recovery and storage atomicity are not current goals**. Browser GUI/IME, huge-document lazy I/O, history retention limits, and exact native MadEdit-Mod paste semantics remain unverified.
+
 ## Next measurements and semantic work
 
 1. Characterize source-to-destination row mapping by reading upstream code and using actual MadEdit-Mod GUI whenever practical, including one/two/many clipboard lines, zero-width selections, long/short target rows, trailing newline, source rows exceeding targets, Unicode and tabs.

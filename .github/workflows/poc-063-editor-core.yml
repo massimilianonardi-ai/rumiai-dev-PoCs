@@ -48,6 +48,33 @@ jobs:
       - name: Generic async history with service and Node file adapters
         working-directory: pocs/063-large-text-engine
         run: node tests/async-adapter.mjs
+      - name: Async journal replay cost and service latency
+        working-directory: pocs/063-large-text-engine
+        run: |
+          node --expose-gc tests/reopen-cost.mjs 1000
+          node tests/storage-latency.mjs 4 40
       - name: Exploratory editing performance, no threshold claim
         working-directory: pocs/063-large-text-engine
         run: node --expose-gc benchmark.mjs 1 8
+
+  test-browser-indexeddb:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Locate Chrome or Chromium
+        run: |
+          if command -v google-chrome >/dev/null 2>&1; then
+            echo "CHROMIUM_BIN=$(command -v google-chrome)" >> "$GITHUB_ENV"
+          elif command -v chromium >/dev/null 2>&1; then
+            echo "CHROMIUM_BIN=$(command -v chromium)" >> "$GITHUB_ENV"
+          else
+            echo "A real browser is required; none is installed" >&2
+            exit 1
+          fi
+      - name: Real IndexedDB persistent history across browser process restarts
+        working-directory: pocs/063-large-text-engine
+        run: node tests/browser-indexeddb.mjs
