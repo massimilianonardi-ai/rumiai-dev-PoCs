@@ -253,6 +253,45 @@ try {
     assert.ok(oldAssetGets>=1,'old immutable asset must be fetched for offline pre-cache');
     assert.ok(outageHits>=3,'backend must actually refuse navigation/asset requests');
     assert.ok(workerUpdates>=2,'service worker must actually update');
+    // CDP overrides this origin's QuotaManager limit. The browser, not our pruning loop,
+    // now decides whether Cache Storage writes succeed, fail or evict existing entries.
+    // This is quota pressure, NOT an assertion that the browser never evicts a pinned release.
+    const origin=new URL(url).origin;
+    const initialQuota=await call('Storage.getUsageAndQuota',{origin});
+    const limitedQuota=Math.ceil(initialQuota.usage)+1024*1024;
+    await call('Storage.overrideQuotaForOrigin',{origin,quotaSize:limitedQuota});
+    const underLimit=await call('Storage.getUsageAndQuota',{origin});
+    assert.equal(underLimit.overrideActive,true,'CDP quota override must be active');
+    assert.ok(underLimit.quota<=limitedQuota+1,'CDP quota override was not applied');
+    const pressureExpr=`(async()=>{
+      let writes=0,error=null;
+      try{
+        const cache=await caches.open('jsc-pressure-experiment');
+        const bytes=new Uint8Array(256*1024);
+        for(let i=0;i<64;i++){
+          await cache.put('/pressure-'+i,new Response(bytes));
+          writes++;
+        }
+      }catch(e){error=e.name+': '+e.message;}
+      const names=await caches.keys();
+      const pinned=names.includes('jsc-pinned-v2') &&
+         !!(await (await caches.open('jsc-pinned-v2')).match('/client'));
+      return {writes,error,pinned};
+    })()`;
+    const pressureResult=await call('Runtime.evaluate',{
+      expression:pressureExpr,awaitPromise:true,returnByValue:true
+    });
+    assert.ok(!pressureResult.exceptionDetails,'quota experiment script crashed: '+
+      JSON.stringify(pressureResult.exceptionDetails));
+    const pressure=pressureResult.result.value;
+    assert.equal(typeof pressure.writes,'number');
+    assert.equal(typeof pressure.pinned,'boolean');
+    assert.ok(pressure.writes>0||pressure.error,'quota experiment made no observable progress');
+    await call('Storage.overrideQuotaForOrigin',{origin});
+    console.log('QUOTA PRESSURE: '+JSON.stringify({
+      requestedQuota:limitedQuota,initialUsage:initialQuota.usage,
+      writes:pressure.writes,error:pressure.error,pinnedReleaseStillCached:pressure.pinned
+    }));
     console.log(observed+'; backend refused '+outageHits+' requests');
   } finally {
     socket?.close();
