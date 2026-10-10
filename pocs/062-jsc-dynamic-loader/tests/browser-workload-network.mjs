@@ -131,12 +131,21 @@ try{
  }
  await call('Runtime.enable');await call('Page.enable');await call('Network.enable');
  await call('Network.setCacheDisabled',{cacheDisabled:true});
- const latency=90,download=192*1024;
- await call('Network.emulateNetworkConditions',{offline:false,latency,downloadThroughput:download,uploadThroughput:download});
+ const profiles=[
+  {name:'constrained',latencyMs:90,downloadBytesPerSecond:192*1024},
+  {name:'fast',latencyMs:8,downloadBytesPerSecond:8*1024*1024}
+ ];
+ const summaries={};
+ for(const profile of profiles){
+ await call('Network.emulateNetworkConditions',{
+  offline:false,latency:profile.latencyMs,
+  downloadThroughput:profile.downloadBytesPerSecond,
+  uploadThroughput:profile.downloadBytesPerSecond
+ });
  const samples=[];
  // Interleave modes to lessen renderer warming and scheduling drift.
  for(const [index,mode] of ['split','combined','combined','split','split','combined'].entries()){
-  const serial='sample-'+index+'-'+mode;
+  const serial=profile.name+'-sample-'+index+'-'+mode;
   await call('Page.navigate',{url:origin+'/'+mode+'?run='+serial});
   await ready(mode,serial);
   const boot=await js('window.bench.startupMs');
@@ -163,7 +172,10 @@ try{
    heapBefore:before.usedSize,heapMounted:after.usedSize,heapDisposed:disposed.usedSize});
  }
  const median=arr=>{const a=arr.slice().sort((a,b)=>a-b);return a[Math.floor(a.length/2)];};
- const summary={latencyMs:latency,downloadBytesPerSecond:download,usedOptionalCount:used.length,optionalTotal:optionalCount};
+ const summary={
+  latencyMs:profile.latencyMs,downloadBytesPerSecond:profile.downloadBytesPerSecond,
+  usedOptionalCount:used.length,optionalTotal:optionalCount
+ };
  for(const mode of ['split','combined']){
   const ss=samples.filter(s=>s.mode===mode);
   summary[mode]={sampleCount:ss.length,medianBootMs:median(ss.map(x=>x.bootMs)),
@@ -173,9 +185,12 @@ try{
    medianDisposedHeapBytes:median(ss.map(x=>x.heapDisposed))};
   assert.equal(new Set(ss.map(x=>x.scriptGets)).size,1);
  }
- assert.equal(totalScriptGets,18,'expected 3*(five split + one combined) actual script requests');
  assert.ok(summary.split.gzipScriptBytes<summary.combined.gzipScriptBytes);
- console.log('PASS CHROME WORKLOAD: real gzip HTTP responses, CDP latency/bandwidth, DOM listeners disposed, 3 runs per mode; '+JSON.stringify(summary));
+ assert.ok(summary.split.medianBootMs>0&&summary.combined.medianBootMs>0);
+ summaries[profile.name]=summary;
+ }
+ assert.equal(totalScriptGets,36,'expected six split and six combined browser navigations, each with actual JS GETs');
+ console.log('PASS CHROME WORKLOAD: two real CDP network profiles, gzip HTTP response counts, DOM/listener cleanup, 3 runs per mode and profile; '+JSON.stringify(summaries));
 }finally{
  socket?.close();
  if(chrome){chrome.kill('SIGKILL');await new Promise(ok=>{if(chrome.exitCode!==null||chrome.signalCode!==null)ok();else chrome.once('close',ok);});}
