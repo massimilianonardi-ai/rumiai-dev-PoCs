@@ -16,6 +16,6 @@ Reproduce from the PoC root with Python and NumPy:
 
 SHA-256:
 
-- run-regime-gates.py: 836ad3b327
+- run-regime-gates.py: 4486f16ac7f9e0f78aa39bdd5cd0c3b45f5f806b413782c5e6051c51d73b4eb4
 - results.json: 9f0416f2ddbb7830aec51f221f6cc07f8c96fcc38e1423a817020f8ba3f1073c
 - report.md: 7b5d86b15b13308abeed82ac2c00dc7aa2b12d0c273a17c168ac5f219463aa4d
