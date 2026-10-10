@@ -1,0 +1,253 @@
+// PoC 063 hands-on browser adapter. No framework, persistence, product API or
+// DOM data model. Limited textarea projection is deliberately NOT a large-file renderer.
+import {PieceDocument} from '../src/documents.mjs';
+import {TextEditSelections} from '../src/text-edit-selections-probe.mjs';
+import {planColumnPaste} from '../src/column-edit-probe.mjs';
+
+const $=id=>document.getElementById(id);
+const initial='aa\nb\n\ttab\n漢字 e\u0301 e emoji 😀\nultima riga';
+const MAX_UNITS=256*1024;
+const graphemes=new Intl.Segmenter(undefined,{granularity:'grapheme'});
+let doc,edit,history=[],position=0,composing=false,armed=false,rendering=false;
+const text=()=>doc.slice(0,doc.length);
+
+function notice(message,error=false){
+  $('message').textContent=message;
+  $('message').style.color=error?'#a42227':'#1c5876';
+}
+function guard(fn){
+  try{fn();}
+  catch(error){notice(error?.message||String(error),true);render();}
+}
+function render(){
+  rendering=true;
+  const oldScrollTop=$('editor').scrollTop,oldScrollLeft=$('editor').scrollLeft;
+  $('editor').value=text();
+  const primary=edit.getSelections()[0];
+  if(primary)$('editor').setSelectionRange(primary.start,primary.end,
+    primary.forward?'forward':'backward');
+  $('editor').scrollTop=oldScrollTop;$('editor').scrollLeft=oldScrollLeft;
+  $('undo').disabled=position===0;$('redo').disabled=position===history.length;
+  $('stats').textContent=doc.lineCount+' righe · '+doc.length+
+    ' unità UTF-16 · '+edit.getSelections().length+' selezione/i · storico '+position+'/'+history.length;
+  $('selection-details').textContent=edit.getSelections().map((s,i)=>
+    (i+1)+'. '+s.start+' … '+s.end+(s.forward?' →':' ←')).join('\n');
+  rendering=false;
+}
+function reset(value=initial){
+  if(value.length>MAX_UNITS)throw Error('Documento oltre il limite della demo (256 KiB).');
+  doc=new PieceDocument(value);edit=new TextEditSelections(doc);
+  edit.setSelections([{start:0,end:0,forward:true}]);
+  history=[];position=0;armed=false;$('column-arm').textContent='Arma incolla da clipboard';
+  render();notice('Esempio pronto. Tutte le modifiche restano locali in memoria.');
+}
+function chooseNative(){
+  if(rendering||composing)return;
+  const f=$('editor');
+  edit.setSelections([{start:f.selectionStart,end:f.selectionEnd,
+    forward:f.selectionDirection!=='backward'}]);
+  renderStatusOnly();
+}
+function renderStatusOnly(){
+  $('stats').textContent=doc.lineCount+' righe · '+doc.length+
+    ' unità UTF-16 · '+edit.getSelections().length+' selezione/i · storico '+position+'/'+history.length;
+  $('selection-details').textContent=edit.getSelections().map((s,i)=>
+    (i+1)+'. '+s.start+' … '+s.end+(s.forward?' →':' ←')).join('\n');
+}
+function command(value,prepared=null){
+  const previous=edit.getSelections();
+  try{
+    if(prepared)edit.setSelections(prepared);
+    const change=edit.replace(value);
+    if(doc.length>MAX_UNITS){
+      // The demo refuses oversized edits before this stage through preflight.
+      throw Error('Modifica oltre il limite della demo.');
+    }
+    if(position<history.length)history.length=position;
+    history.push({value,change,previous});position++;
+    render();notice('Azione '+position+' registrata (undo separato).');
+  }catch(error){
+    // Selection validation must not leave the former canonical cursors lost.
+    // A valid base-store mutation is not transactionally rolled back here.
+    if(edit.length===doc.length)edit.setSelections(previous);
+    throw error;
+  }
+}
+function checkSize(valueOrTexts,prepared=null){
+  const ranges=prepared||edit.getSelections();
+  const values=typeof valueOrTexts==='string'?
+    Array.from({length:ranges.length},()=>valueOrTexts):valueOrTexts;
+  const predicted=doc.length+ranges.reduce((n,r,i)=>
+    n+values[i].length-(r.end-r.start),0);
+  if(predicted>MAX_UNITS)throw Error('Oltre 256 KiB: modifica non eseguita nella demo.');
+}
+function submit(value,prepared=null){
+  checkSize(value,prepared);
+  command(value,prepared);
+}
+function undo(){
+  if(!position)return;
+  const entry=history[--position];
+  for(let i=entry.change.changes.length-1;i>=0;i--){
+    const c=entry.change.changes[i];
+    doc.replace(c.inverseStart,c.inverseEnd,c.removed);
+  }
+  edit.setSelections(entry.previous);
+  render();notice('Annullata una sola azione.');
+}
+function redo(){
+  if(position===history.length)return;
+  const entry=history[position];
+  edit.setSelections(entry.change.before);
+  const same=edit.replace(entry.value);
+  if(same.changes.length!==entry.change.changes.length)throw Error('Redo non coerente.');
+  position++;render();notice('Ripristinata una sola azione.');
+}
+function previousBoundary(at){
+  if(at===0)return 0;
+  let boundary=0;
+  for(const g of graphemes.segment(doc.slice(0,at)))boundary=g.index;
+  return boundary;
+}
+function nextBoundary(at){
+  if(at===doc.length)return at;
+  const first=graphemes.segment(doc.slice(at,doc.length))[Symbol.iterator]().next().value;
+  return at+first.segment.length;
+}
+function remove(forward){
+  const previous=edit.getSelections();
+  const ranges=previous.map(s=>{
+    if(s.start!==s.end)return s;
+    return forward?{...s,end:nextBoundary(s.end)}:{...s,start:previousBoundary(s.start)};
+  });
+  if(ranges.every(r=>r.start===r.end))return;
+  submit('',ranges);
+}
+function widthOf(g){
+  // View-supplied experiment; not a normative pixel/font width algorithm.
+  return /[\u3400-\u9fff\uf900-\ufaff]/u.test(g)||/\p{Extended_Pictographic}/u.test(g)?2:1;
+}
+function rectangle(){
+  const num=(id,min)=>{const s=$(id).value;const n=Number(s);
+    if(!s.trim()||!Number.isSafeInteger(n)||n<min)throw Error('Numero non valido: '+id);
+    return n;};
+  return {lineFrom:num('row-from',1)-1,lineTo:num('row-to',1)-1,
+    columnFrom:num('col-from',0),columnTo:num('col-to',0)};
+}
+function columnInsert(data){
+  const plan=planColumnPaste(doc,{rectangle:rectangle(),clipboard:data,
+    materializeRows:true,tabSize:4,widthOf});
+  if(plan.noop){notice('Nessun testo da inserire.');return;}
+  submit(plan.texts,plan.selections);
+  notice('Incolla a colonne: '+plan.sourceRows+' righe sorgente, '+
+    plan.materializedRows+' righe aggiunte oltre EOF; una sola azione.');
+}
+function offsetOf(row,column){
+  if(row<0||row>=doc.lineCount)throw Error('Riga fuori documento.');
+  const begin=doc.lineStart(row);
+  const end=row+1<doc.lineCount?doc.lineStart(row+1):doc.length;
+  const visible=doc.slice(begin,end).replace(/\r?\n$/,'');
+  if(column>visible.length)throw Error('Colonna oltre la lunghezza della riga.');
+  return begin+column;
+}
+
+$('editor').addEventListener('mousedown',()=>{armed=false;
+  $('column-arm').textContent='Arma incolla da clipboard';});
+$('editor').addEventListener('mouseup',()=>{chooseNative();});
+$('editor').addEventListener('keyup',event=>{
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Home','End',
+      'PageUp','PageDown'].includes(event.key) ||
+     ((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='a'))
+    chooseNative();
+});
+$('editor').addEventListener('beforeinput',event=>{
+  if(composing||event.isComposing)return;
+  // Do not permit unhandled browser edits to diverge from the model.
+  event.preventDefault();
+  guard(()=>{
+    switch(event.inputType){
+      case 'insertText':
+      case 'insertReplacementText':
+        if(typeof event.data==='string'&&event.data.length)submit(event.data);
+        break;
+      case 'insertLineBreak':
+      case 'insertParagraph':submit('\n');break;
+      case 'deleteContentBackward':remove(false);break;
+      case 'deleteContentForward':remove(true);break;
+      case 'insertFromPaste':break; // handled by the real ClipboardEvent
+      default:notice('Input non ancora supportato: '+event.inputType,true);
+    }
+  });
+});
+$('editor').addEventListener('paste',event=>{
+  const data=event.clipboardData?.getData('text/plain');
+  if(typeof data!=='string')return;
+  event.preventDefault();
+  guard(()=>{
+    if(armed){armed=false;$('column-arm').textContent='Arma incolla da clipboard';
+      columnInsert(data);
+    }else submit(data);
+  });
+});
+$('editor').addEventListener('compositionstart',()=>{composing=true;});
+$('editor').addEventListener('compositionend',event=>{
+  composing=false;
+  // This follows the single real-Chromium commit path verified by the PoC.
+  guard(()=>{
+    if(event.data)submit(event.data);
+    else render();
+  });
+});
+$('editor').addEventListener('keydown',event=>{
+  const key=event.key.toLowerCase();
+  if((event.metaKey||event.ctrlKey)&&key==='z'){
+    event.preventDefault();guard(()=>event.shiftKey?redo():undo());
+  }else if((event.metaKey||event.ctrlKey)&&key==='y'){
+    event.preventDefault();guard(redo);
+  }else if(event.key==='Tab'&&!event.metaKey&&!event.ctrlKey&&!event.altKey){
+    event.preventDefault();guard(()=>submit('\t'));
+  }
+});
+$('undo').addEventListener('click',()=>guard(undo));
+$('redo').addEventListener('click',()=>guard(redo));
+$('sample').addEventListener('click',()=>guard(()=>reset()));
+$('add-cursor').addEventListener('click',()=>guard(()=>{
+  const row=Number($('cursor-row').value),col=Number($('cursor-col').value);
+  if(!Number.isSafeInteger(row)||!Number.isSafeInteger(col)||row<1||col<0)
+    throw Error('Inserisci riga e colonna valide.');
+  const at=offsetOf(row-1,col);
+  const old=edit.getSelections();
+  if(old.some(s=>at>=s.start&&at<=s.end))throw Error('Posizione già selezionata.');
+  edit.setSelections([...old,{start:at,end:at,forward:true}]);render();
+  $('editor').focus();notice('Cursore aggiunto; la prossima digitazione interessa tutti.');
+}));
+$('single-cursor').addEventListener('click',()=>guard(()=>{
+  edit.setSelections([edit.getSelections()[0]]);render();$('editor').focus();
+}));
+$('column-apply').addEventListener('click',()=>guard(()=>columnInsert($('column-text').value)));
+$('column-arm').addEventListener('click',()=>{
+  armed=true;$('column-arm').textContent='Pronto: premi ⌘V/Ctrl+V';
+  $('editor').focus();notice('Incolla dalla clipboard nel documento.');
+});
+$('open-file').addEventListener('click',()=>$('file').click());
+$('file').addEventListener('change',async()=>{
+  const f=$('file').files?.[0];
+  if(!f)return;
+  try{
+    if(f.size>MAX_UNITS)throw Error('Il file supera 256 KiB: non caricato.');
+    const data=await f.text();
+    reset(data);notice('File locale caricato: '+f.name);
+  }catch(error){notice(error?.message||String(error),true);}
+  finally{$('file').value='';}
+});
+$('save-file').addEventListener('click',()=>{
+  const blob=new Blob([text()],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='poc063-test.txt';
+  document.body.append(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  notice('Salvataggio richiesto al browser; il PoC non salva automaticamente.');
+});
+reset();
+$('editor').focus();
+document.documentElement.dataset.demoReady='true';
