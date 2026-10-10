@@ -5,6 +5,7 @@ import {spawnSync} from 'node:child_process';
 import {join, resolve} from 'node:path';
 import {tmpdir} from 'node:os';
 import {argv} from 'node:process';
+import {fileURLToPath} from 'node:url';
 import {Script} from 'node:vm';
 
 if (argv.length !== 4) {
@@ -14,7 +15,7 @@ if (argv.length !== 4) {
   const tmp=await mkdtemp(join(tmpdir(),'jsc-pack-'));
   try {
     const compiled=join(tmp,'compiled.js');
-    const compiler=spawnSync(process.execPath,[new URL('./jsc.mjs',import.meta.url).pathname,argv[2],compiled],{encoding:'utf8'});
+    const compiler=spawnSync(process.execPath,[fileURLToPath(new URL('./jsc.mjs',import.meta.url)),argv[2],compiled],{encoding:'utf8'});
     if(compiler.status!==0)throw Error('compiler failed: '+compiler.stderr.trim());
     const [runtime,source]=await Promise.all([
       readFile(new URL('./loader.js',import.meta.url),'utf8'),

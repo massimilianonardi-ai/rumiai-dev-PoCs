@@ -1,6 +1,6 @@
 // The compiler and loader are separate units; distribution assembly is optional.
 import assert from 'node:assert/strict';
-import {readFile,mkdtemp,rm} from 'node:fs/promises';
+import {readFile,mkdtemp,rm,copyFile,mkdir} from 'node:fs/promises';
 import {spawnSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
@@ -34,5 +34,16 @@ try {
   const standalone=vm.createContext({});
   vm.runInContext(bundle,standalone);
   assert.equal(standalone.JscRuntime.require('application').run(),1);
-  console.log('PASS: compiler-only output, independent loader runtime, manual definitions and optional self-contained assembly');
+  // Paths containing spaces must not break file:// URLs used to locate the compiler.
+  const nested=join(tmp,'tools with spaces');
+  await mkdir(nested);
+  for(const file of ['jsc.mjs','assemble.mjs','loader.js'])
+    await copyFile(join(root,'src',file),join(nested,file));
+  const byPath=join(tmp,'spaced bundle.js');
+  const spaceResult=spawnSync(process.execPath,[join(nested,'assemble.mjs'),...args,byPath],{encoding:'utf8'});
+  assert.equal(spaceResult.status,0,spaceResult.stderr);
+  const spaceContext=vm.createContext({});
+  vm.runInContext(await readFile(byPath,'utf8'),spaceContext);
+  assert.equal(spaceContext.JscRuntime.require('application').run(),1);
+  console.log('PASS: compiler-only output, independent loader, manual definitions, one-file assembly and whitespace-safe tool paths');
 } finally {await rm(tmp,{recursive:true,force:true});}
