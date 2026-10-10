@@ -16,6 +16,13 @@ let total=0,ledgerAvailable=true,droppedAfter=0,droppedBefore=0,conflicts=0,appl
 const dropAfter=new Set(['applied-then-disconnected','reconcile-after-reload']);
 const dropBefore=new Set(['disconnected-before-apply']);
 const server=http.createServer(async(req,res)=>{
+  function truncateAcknowledgment(){
+   // Headers and a partial response have reached Chrome; there is no complete receipt.
+   // Explicit content-length guarantees the browser cannot interpret an early EOF as success.
+   res.writeHead(200,{'Content-Type':'application/json','Content-Length':'1024'});
+   res.write('{"incomplete":');
+   setTimeout(()=>res.destroy(),15);
+  }
  const route=new URL(req.url,'http://local.invalid'),path=route.pathname;
  res.setHeader('Cache-Control','no-store');
  res.setHeader('Content-Security-Policy',"default-src 'self';script-src 'self' 'unsafe-inline';connect-src 'self'");
@@ -38,7 +45,7 @@ const server=http.createServer(async(req,res)=>{
   }
   const count=(attempts.get(op.id)||0)+1;attempts.set(op.id,count);
   if(dropBefore.has(op.id)&&count===1){
-   droppedBefore++;req.socket.destroy();return; // no operation was applied
+   droppedBefore++;truncateAcknowledgment();return; // no operation was applied
   }
   const prior=records.get(op.id);
   if(prior&&prior.amount!==op.amount){
@@ -52,7 +59,7 @@ const server=http.createServer(async(req,res)=>{
    records.set(op.id,receipt);
   }
   if(dropAfter.has(op.id)&&count===1){
-   droppedAfter++;req.socket.destroy();return; // irreversible effect; no HTTP acknowledgment
+   droppedAfter++;truncateAcknowledgment();return; // effect applied, receipt truncated
   }
   res.setHeader('Content-Type','application/json');res.end(JSON.stringify(receipt));
   return;
