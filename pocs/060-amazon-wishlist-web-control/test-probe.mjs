@@ -33,7 +33,8 @@ if (args[0] === 'page' && args[1] === 'new') {
         asin: 'B012345678',
         title: 'Synthetic product',
         url: 'https://www.amazon.it/dp/B012345678',
-        priceCandidates: [{ text: '10,99 €', priority: 10, selector: '[id^="itemPrice_"].a-price > .a-offscreen' }]
+        priceCandidates: [{ text: '10,99 €', priority: 10, selector: '[id^="itemPrice_"].a-price > .a-offscreen' }],
+        purchaseAction: process.env.MOCK_ACTION || 'add-to-cart'
       }] : [],
       documentHeight: 100, scrollY: 100, viewportHeight: 100,
       atBottom: true, visibleLoading: [], trace: []
@@ -77,6 +78,13 @@ try {
   assert.equal(valid.itemCount, 1);
   assert.equal(valid.items[0].asin, 'B012345678');
   assert.equal(valid.items[0].price.cents, 1099);
+
+  assert.equal(valid.items[0].purchaseAction, 'add-to-cart');
+
+  const options = run({ MOCK_ACTION: 'view-all-options' }, 0);
+  assert.equal(options.items[0].purchaseAction, 'view-all-options');
+  const unknown = run({ MOCK_ACTION: 'unknown' }, 0);
+  assert.equal(unknown.items[0].purchaseAction, 'unknown');
 
   const failedHttp = run({ MOCK_STATUS: '503' }, 1);
   assert.equal(failedHttp.blockSignals.httpError, true);
