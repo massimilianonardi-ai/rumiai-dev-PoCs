@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 import vm from 'node:vm';
 
 const context = vm.createContext({});
-vm.runInContext(await readFile(resolve(import.meta.dirname, '../../jsc-next/src/loader.js'), 'utf8'), context);
+vm.runInContext(await readFile(resolve(import.meta.dirname, '../src/loader.js'), 'utf8'), context);
 const runtime = context.JscRuntime;
 let disposals = 0;
 runtime.install('document', [], (_r, module) => {
