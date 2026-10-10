@@ -23,6 +23,15 @@ jobs:
         run: |
           npm run build
           node --check example/bundle.js
+      - name: Build independent private compiler and loader tarballs
+        working-directory: pocs/062-jsc-dynamic-loader
+        run: npm run build:packages
+      - name: Upload independently consumable PoC packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: jsc-loader-independent-private-tarballs-062
+          path: pocs/062-jsc-dynamic-loader/distribution/dist/*.tgz
+          if-no-files-found: error
       - name: Exercise the real browser hot-reload and HTTP cache policy
         working-directory: pocs/062-jsc-dynamic-loader
         shell: bash
