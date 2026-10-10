@@ -380,6 +380,14 @@ Run:
 
     node --expose-gc tests/selection-hotpath.mjs 9
 
+## Native JavaScript string as a direct benchmark reference (2026-10-10)
+
+The user requested a comparison against **plain native JavaScript strings**, not only wrappers around document data structures. The existing `tests/selection-hotpath.mjs` now also benchmarks `NativeJavaScriptString` at 256 KiB (32/256 selections) and 4 MiB (32/256 selections). Its **direct** variant operates on one local JavaScript string using `value = value.slice(0,start) + insert + value.slice(end)` for each replacement, with prior content captured by native `slice`. Its **selection** variant passes a thin single-interval string-store adapter to the unmodified `TextEditSelections` candidate, so the selection layer is included without adding a new text storage implementation. Other backends and workloads remain unchanged. All cases run within the same hosted CI invocation with alternating measured order; constructor/setup, explicit GC and input generation are excluded from timed regions. For native strings, V8 may optimize ropes/concatenations and defer flattening; selected samples do not establish a general memory/copying bound. This adds a fair explicit native-language reference, not a new editor architecture.
+
+**Results are recorded only after the exact CI job has completed.** Execute with:
+
+    node --expose-gc tests/selection-hotpath.mjs 9
+
 ## Cached execution order for repeated selection edits (2026-10-10)
 
 `TextEditSelections` now caches a physical-order permutation **when its caller sets the selections** and refreshes it after a successful operation. This avoids sorting the same selections from scratch for every keystroke, including when the user-specified selection order is the reverse of document order. The permutation does **not** change the externally visible array-to-selection pairing: the original user selection IDs still identify corresponding payloads, results and orientation.
