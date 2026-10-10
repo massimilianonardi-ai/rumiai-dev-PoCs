@@ -10,6 +10,12 @@ Choose separate runtime and compiled scripts for development/patching, or packag
 
 ES Modules remain an entirely separate authoring/runtime path. This experiment never interprets them as `jsc` modules.
 
+## Independent local compiler and loader packages
+
+The PoC now has **two separate, private versioned archives** (not published or promoted as official package names): `rumiai-poc-jsc@0.0.0-poc.1` and `rumiai-poc-dynamic-loader@0.0.0-poc.1`. Build with `npm run build:packages`, then use `npm run test:distribution` to verify a fully offline installation and use from a project **outside** this checkout. The compiler package contains no loader; the loader package contains no compiler. An optional `jsc-assemble` command can combine generated registrations with an **explicitly supplied independent loader path**.
+
+See [distribution/README.md](distribution/README.md) for local tarball install commands and API/compatibility limitations. This is an experimental artifact-consumption boundary, **not** a public release or registry publication.
+
 ## Practical end-to-end workflow
 
 The runnable [consumer example](example/workflow/README.md) exercises the **independent compiler and loader** in a small browser app: first-time network loading of an optional module, a compiled v1-to-v2 patch with `onDispose` cleanup, and a one-file assembled module distribution. The rest of this README records earlier experimental research; the example is the shortest path for someone evaluating `jsc` and the dynamic loader.
