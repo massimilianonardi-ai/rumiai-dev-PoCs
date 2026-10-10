@@ -116,6 +116,8 @@ Node.js 22.16.0 on Linux x86_64, 2 MiB initial ASCII text, 36,000 one-transactio
 | Distributed mixed edits / original pieces + compact history | 41.859 MiB | 71,308 | 35,966 | 355.47 ms |
 | Distributed mixed edits / chunked pieces + compact history | 34.334 MiB | 71,308 | 15 | 441.25 ms |
 
+**Repeatability check:** three additional isolated processes per pair, same 36k/2-MiB input and explicit GC, reported retained-heap medians: original/original append **45.670 MiB**, chunked/original append **34.973 MiB**, original/compact append **31.109 MiB**, chunked/compact append **20.402 MiB**, original/compact distributed **41.865 MiB**, chunked/compact distributed **34.332 MiB**. The heap samples varied by less than 0.03 MiB within each scenario, while operation-time samples varied considerably; therefore use these figures only as *this Node/V8 workload's* memory comparison, not a general latency ranking. Peak RSS also reflects allocator/platform behavior and is not proportional to retained heap.
+
 For the append workload the combined approach reduced retained heap by about 55% relative to the original pair, and live nodes by 99.96%. **Neither result generalizes to dispersed edits**: the distributed workload still contains 71k nodes and the added boundary checks increased editing time in that isolated run. Long-lived history also grows with the number of transactions, even in the compact journal. The two history implementations preserve selection snapshots in the tested cases; this does not prove safe persistence, failure-atomic updates or memory-bounded unlimited undo.
 
 Run independent comparisons (avoid comparing heap of multiple variants within one process):
