@@ -19,8 +19,11 @@ function child(mode,dir,port,external){
  }});
  proc.stderr.on('data',b=>errors+=b.toString());
  return {proc,go(){proc.stdin.write('GO\n');},
-  wait(mark){return Promise.race([new Promise(ok=>{if(output.includes(mark))ok();else watchers.push({mark,ok});}),
-   delay(12000).then(()=>{throw Error('child timeout '+mode+' '+mark+' output='+output+' errors='+errors);})]);},
+  wait(mark){if(output.includes(mark))return Promise.resolve();
+   return new Promise((ok,fail)=>{
+    const timer=setTimeout(()=>fail(Error('child timeout '+mode+' '+mark+' output='+output+' errors='+errors)),12000);
+    timer.unref();watchers.push({mark,ok:()=>{clearTimeout(timer);ok();}});
+   });},
   async stop(signal='SIGKILL'){if(proc.exitCode===null&&proc.signalCode===null)proc.kill(signal);
    await new Promise(ok=>{if(proc.exitCode!==null||proc.signalCode!==null)ok();else proc.once('close',ok);});}
  };
