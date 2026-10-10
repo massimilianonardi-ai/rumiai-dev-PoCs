@@ -171,6 +171,25 @@ The file journal is **not crash-atomic**: redo truncation, append and document m
 
 Adaptive repacking reduces piece count under this dispersed workload but may retain underused ranges of shared source chunks. It does not solve huge-file lazy I/O, memory accounting of fully retained undo/selection history, visual Unicode geometry, actual native MadEdit-Mod paste, or browser viewport/IME performance. No product/runtime repository was modified.
 
+## Generic asynchronous history persistence (user-fixed direction, 2026-10-10)
+
+**Fixed task-local boundary:** Persistent history is essential, but its storage medium is external to the text engine and selected through an adapter. A local file, a browser persistence API (e.g. IndexedDB or OPFS), an application host bridge and a remote persistence service are possible providers. The text core must not import Node filesystem or browser persistence APIs. **Crash resistance, atomic durable transactions, recovery of interrupted writes and storage-corruption handling are explicitly out of scope now**; do not make them the next blocking work item.
+
+New experimental modules:
+
+- `src/async-history.mjs`: a separate Promise-based `AsyncHistory` candidate with injected storage operations `count()`, `read(index)`, `appendAt(index, record)`, `readSession()`, `writeSession({initial, cursor})`. These are PoC names, not yet product APIs. It preserves complete recorded caret/selection snapshots and grouped edit transactions.
+- `adapters/callback-journal.mjs`: generic callback adapter for an application-supplied asynchronous persistence service; has no Node or browser dependencies. A provider may implement those callbacks using browser storage or network services.
+- `adapters/node-async-file-journal.mjs`: genuine asynchronous Node filesystem implementation of the **same port**, separate from the engine. Existing synchronous `NodeFileJournal` remains historical benchmarking evidence and is not required by the new candidate.
+- `tests/async-adapter.mjs`: exercises 160 two-range transactions on both FlatDocument and AdaptiveRepackDocument via a simulated asynchronous external service. It recreates a new editor against the original base text, restores journal and cursor state, checks every undo/redo and selection, persists an undone cursor, reopens, replaces a redo branch, and verifies a rejected append leaves the active editor unchanged. It also verifies clean close/reopen using the real asynchronous Node file adapter.
+
+Run from this PoC directory:
+
+    node tests/async-adapter.mjs
+
+**Limits of demonstrated persistence:** A normal reopen currently replays every journal entry from a caller-provided *original/base document*, so startup cost grows with the history size. No persisted document checkpoint or browser-native/HTTP provider has yet been tested. The service adapter test uses an in-memory *simulation of an external service*, not evidence of real network or browser storage behavior. On-disk tests use Node's real filesystem; they do not claim crash recovery. Journal records are stored externally and are not all loaded into the core heap for normal undo/redo; replay still traverses all prior entries on reopen. Persistence service choice and buffering/backpressure policies remain to be measured for large histories.
+
+The new async port is deliberately additive: older synchronous `CompactHistory` / `NodeFileJournal` benchmark paths remain usable for comparisons. Moving actual browser UI editing to Promise-based commit calls and designing latency-aware execution are future experiments, not yet validated public behavior.
+
 ## Next measurements and semantic work
 
 1. Characterize source-to-destination row mapping by reading upstream code and using actual MadEdit-Mod GUI whenever practical, including one/two/many clipboard lines, zero-width selections, long/short target rows, trailing newline, source rows exceeding targets, Unicode and tabs.

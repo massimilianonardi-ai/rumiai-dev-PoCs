@@ -45,6 +45,9 @@ jobs:
           node --expose-gc tests/repack-memory.mjs chunked array mixed 3000 2
           node --expose-gc tests/repack-memory.mjs adaptive array mixed 3000 2
           node --expose-gc tests/repack-memory.mjs adaptive disk mixed 3000 2
+      - name: Generic async history with service and Node file adapters
+        working-directory: pocs/063-large-text-engine
+        run: node tests/async-adapter.mjs
       - name: Exploratory editing performance, no threshold claim
         working-directory: pocs/063-large-text-engine
         run: node --expose-gc benchmark.mjs 1 8
