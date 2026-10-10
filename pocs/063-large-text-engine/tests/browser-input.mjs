@@ -137,9 +137,36 @@ try{
   await chord(true);
   state=await snapshot();
   assert.equal(state.text,'愛'+beforeComposition.text);
+  // A new, independent text input identical to the IME commit MUST NOT be
+  // mistaken for a browser echo or merged with that committed action.
+  await cdp.send('Input.insertText',{text:'愛'});
+  state=await snapshot();
+  assert.equal(state.text,'愛愛'+beforeComposition.text);
+  assert.equal(state.historyLength,6);
+  assert.equal(state.historyIndex,6);
+  await chord(false);
+  assert.equal((await snapshot()).text,'愛'+beforeComposition.text);
+  await chord(false);
+  assert.equal((await snapshot()).text,beforeComposition.text);
+  await chord(true);
+  await chord(true);
+  assert.equal((await snapshot()).text,'愛愛'+beforeComposition.text);
+
+  // Cancellation only drops the native composition preview. It must not
+  // create a journal item or change the canonical document.
+  await evaluate("window.__probe.setSelections([{start:0,end:0,forward:true}])");
+  const beforeCancel=await snapshot();
+  await cdp.send('Input.imeSetComposition',{text:'仮',selectionStart:1,selectionEnd:1});
+  assert.equal((await snapshot()).historyLength,beforeCancel.historyLength);
+  await cdp.send('Input.imeSetComposition',{text:'',selectionStart:0,selectionEnd:0});
+  state=await snapshot();
+  assert.equal(state.text,beforeCancel.text,'cancelled composition unchanged');
+  assert.equal(state.historyLength,beforeCancel.historyLength,'cancelled composition does not create undo');
+  assert.equal(state.nativeValue,state.text,'preview cancelled in browser view');
   console.log(JSON.stringify({pass:true,browser:'Chromium',realBeforeInput:true,
     separateTypedActions:3,realPaste:true,pasteTargets:2,
     pasteSingleUndo:true,imePreviews:2,imeCommitSingleUndo:true,
+    immediateIdenticalInputIsSeparate:true,imeCancellationNoUndo:true,
     keyboardUndoRedo:true,mouseHitTest:true,
     browserEvents:state.events.filter(e=>e.event==='compositionend'||e.event==='paste'),
     node:process.version}));

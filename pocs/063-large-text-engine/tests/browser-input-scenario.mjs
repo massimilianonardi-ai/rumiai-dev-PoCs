@@ -10,7 +10,6 @@ const field=document.getElementById('capture');
 const history=[];
 const observed=[];
 let index=0,rendering=false,composing=false;
-let committedComposition=null;
 const text=()=>documentModel.slice(0,documentModel.length);
 function render(){
   rendering=true;
@@ -59,13 +58,8 @@ field.addEventListener('paste',e=>{
 });
 field.addEventListener('beforeinput',e=>{
   observed.push({event:'beforeinput',type:e.inputType,data:e.data,composing:e.isComposing});
-  // Native composition previews can change the textarea without changing the
-  // document. A final browser echo is suppressed if compositionend committed.
-  if(committedComposition!==null && e.inputType==='insertText' &&
-     e.data===committedComposition){
-    e.preventDefault();observed.push({event:'composition-echo-suppressed'});
-    committedComposition=null;render();return;
-  }
+  // Chromium's confirmed composition path is handled at compositionend;
+  // do not suppress the next independent input even if its text is identical.
   if(e.inputType==='insertText'&&!e.isComposing&&!composing&&typeof e.data==='string'&&e.data.length){
     e.preventDefault();
     input(e.data);
@@ -86,7 +80,7 @@ field.addEventListener('keyup',e=>{
       'Home','End','PageUp','PageDown'].includes(e.key))selectFromNative();
 });
 field.addEventListener('compositionstart',()=>{
-  composing=true;committedComposition=null;
+  composing=true;
   observed.push({event:'compositionstart'});
 });
 field.addEventListener('compositionupdate',e=>observed.push({event:'compositionupdate',data:e.data}));
@@ -97,7 +91,6 @@ field.addEventListener('compositionend',e=>{
   // This deliberately tests the browser event boundary, not every host IME.
   if(typeof e.data==='string' && e.data.length){
     input(e.data);
-    committedComposition=e.data;
   } else render();
 });
 render();
