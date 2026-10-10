@@ -13,7 +13,9 @@ const root=resolve(fileURLToPath(new URL('../',import.meta.url)));
 const allowed=new Map([['.mjs','text/javascript'],['.html','text/html']]);
 const browser=process.env.CHROMIUM_BIN||['/usr/bin/chromium','/usr/bin/chromium-browser','/usr/bin/google-chrome','/usr/bin/google-chrome-stable'].find(x=>{try{accessSync(x);return true;}catch{return false;}});
 if(!browser)throw Error('Chromium/Chrome executable missing; set CHROMIUM_BIN');
+const requests=[];
 const server=createServer((req,res)=>{
+ requests.push(req.url);
  const file=resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));
  if(!file.startsWith(root+'/')||!allowed.has(extname(file))){res.writeHead(404);res.end('not found');return;}
  try{res.setHeader('Content-Type',allowed.get(extname(file)));res.end(readFileSync(file));}
@@ -24,9 +26,9 @@ try{
  await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
  const address=server.address();const base='http://127.0.0.1:'+address.port+'/tests/browser-idb.html';
  for(const stage of ['write','reopen','branch','verify']){
-  const {stdout}=await exec(browser,['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--disable-background-networking','--no-first-run','--disable-extensions','--user-data-dir='+profile,'--virtual-time-budget=20000','--dump-dom',base+'?stage='+stage],{maxBuffer:4*1048576,timeout:45000});
+  const {stdout,stderr}=await exec(browser,['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--disable-background-networking','--no-first-run','--disable-extensions','--user-data-dir='+profile,'--virtual-time-budget=20000','--dump-dom',base+'?stage='+stage],{maxBuffer:4*1048576,timeout:45000});
   const match=stdout.match(/<pre id="result">([^<]*)<\/pre>/);
-  if(!match)throw Error(stage+': no result element: '+stdout.slice(-1000));
+  if(!match || match[1]==='pending')throw Error(stage+': browser never reported result. URLs='+JSON.stringify(requests)+' STDERR='+stderr.slice(-2200)+' DOM='+stdout.slice(-1200));
   const result=JSON.parse(match[1].replaceAll('&quot;','"').replaceAll('&amp;','&'));
   assert.equal(result.pass,true,JSON.stringify(result));
   console.log(JSON.stringify(result));
