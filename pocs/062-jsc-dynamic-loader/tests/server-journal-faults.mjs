@@ -42,8 +42,12 @@ function worker(phase,path,p){
  }});
  child.stderr.on('data',b=>stderr+=b.toString());
  return {child,async wait(mark){
-  await Promise.race([new Promise(resolve=>{if(stdout.includes(mark))resolve();else listeners.push({mark,resolve});}),
-   pause(10000).then(()=>{throw Error('worker timeout '+mark+' '+stdout+' '+stderr);})]);
+  if(stdout.includes(mark))return;
+  await new Promise((resolve,reject)=>{
+   const timer=setTimeout(()=>reject(Error('worker timeout '+mark+' '+stdout+' '+stderr)),10000);
+   timer.unref();
+   listeners.push({mark,resolve:()=>{clearTimeout(timer);resolve();}});
+  });
  },async stop(signal='SIGKILL'){
   if(child.exitCode===null&&child.signalCode===null)child.kill(signal);
   await new Promise(ok=>{if(child.exitCode!==null||child.signalCode!==null)ok();else child.once('close',ok);});
