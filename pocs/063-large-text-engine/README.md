@@ -380,6 +380,12 @@ Run:
 
     node --expose-gc tests/selection-hotpath.mjs 9
 
+## Cached execution order for repeated selection edits (2026-10-10)
+
+`TextEditSelections` now caches a physical-order permutation **when its caller sets the selections** and refreshes it after a successful operation. This avoids sorting the same selections from scratch for every keystroke, including when the user-specified selection order is the reverse of document order. The permutation does **not** change the externally visible array-to-selection pairing: the original user selection IDs still identify corresponding payloads, results and orientation.
+
+A direction policy is still free to translate edit targets. Each operation checks that its cached execution order is monotonic for the **actual resulting primitive plans**; if a policy moved a target across another, it sorts the planned operations instead. That fallback is covered by an additional test with a backwards selection whose edit target jumps past a forward selection, followed by a second edit. Duplicate/overlapping target validation remains mandatory and happens before all writes. `TextEditBase` stays one-range-only; no rollback, history or persistent state is added. This is a PoC optimization; the effect on total time must be established by a separate measured run.
+
 ## Next measurements and semantic work
 
 1. Test real browser input and composition/IME through an editor-owned-selection plus outer-controller split, maintaining exact user-action undo granularity.

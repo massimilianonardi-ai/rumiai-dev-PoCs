@@ -64,7 +64,24 @@ for(const Store of [FlatDocument,PieceDocument,AdaptiveRepackDocument]){
   assert.deepEqual(shiftEdit.getSelections(),[caret(5,false)]);
   assert.equal('onBackward' in toRight,false);
 
-  // Duplicate, overlapping and malformed selections/behavior rejected.
+  // A direction policy can move a backwards target past another selection.
+// Cached physical order must detect this and re-sort, while preserving
+// array-to-user-selection association and both selection orientations.
+{
+  const document=new FlatDocument('abcdefghi');
+  const edit=new TextEditSelections(document,{
+    onBackward:({text})=>({start:7,end:7,insert:text})
+  });
+  edit.setSelections([caret(1,false),caret(4)]);
+  const applied=edit.replace(['X','Y']);
+  assert.equal(textOf(document),'abcdYefgXhi');
+  assert.deepEqual(applied.changes.map(change=>change.selectionId),[1,0]);
+  assert.deepEqual(edit.getSelections(),[caret(9,false),caret(5)]);
+  // The execution-order cache remains usable on subsequent edits.
+  edit.replace(['Z','W']);
+  assert.equal(textOf(document),'abcdYWefZgXhi');
+}
+// Duplicate, overlapping and malformed selections/behavior rejected.
   const collision=new Store('abcdef'),invalid=new TextEditSelections(collision);
   invalid.setSelections([caret(2),caret(2)]);
   assert.throws(()=>invalid.replace('!'),/overlapping\/duplicate/);
