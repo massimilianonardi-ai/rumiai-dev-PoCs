@@ -158,7 +158,36 @@ const controller=`<!doctype html><meta charset="utf-8"><pre id="result">WAIT</pr
     if((await caches.keys()).includes('jsc-pinned-v1'))throw Error('released v1 cache not removed');
     const v2check=await frame();
     if(v2check.contentWindow.AppInfo.version!=='v2')throw Error('pruning broke current offline navigation');
-    result.textContent='PASS OFFLINE real SW navigation v1/v2, pinned v1 protection, 20 retired caches removed, active/unrelated cache retained';
+    // Controlled *loss* of a pinned asset models the consequence of user/browser eviction.
+    // We do NOT claim this deletion was initiated by Chromium's quota manager.
+    const cache=await caches.open('jsc-pinned-v2');
+    const v2url=offlinePointer2.body.url;
+    if(!(await cache.delete(v2url)))throw Error('expected pinned asset to be deletable');
+    if(await cache.match(v2url))throw Error('deleted asset unexpectedly remained cached');
+    let refused=false;
+    try{await frame();}catch(e){refused=/client bundle did not initialize/.test(String(e));}
+    if(!refused)throw Error('missing pinned asset did not produce a visible failure');
+    if(onlineV2.contentWindow.AppInfo.version!=='v2')
+      throw Error('previously running verified client was replaced after eviction');
+    // Recovery is permitted only after fetching and independently verifying an immutable
+    // asset from the restored origin. An unverified response must not be re-cached/executed.
+    await serverRequest('/outage?mode=off');
+    const restored=await serverRequest('/release.json');
+    if(restored.body.version!=='v2'||restored.body.url!==v2url)
+      throw Error('recovery pointer changed unexpectedly');
+    const response=await fetch(v2url,{cache:'no-store'});
+    if(!response.ok)throw Error('recovery asset unavailable');
+    const buffer=await response.arrayBuffer();
+    const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',buffer)))
+      .map(v=>v.toString(16).padStart(2,'0')).join('');
+    if(!digest.startsWith(restored.body.digest)||!v2url.includes(restored.body.digest))
+      throw Error('recovery asset failed integrity');
+    await cache.put(v2url,new Response(buffer,{headers:{'Content-Type':'text/javascript'}}));
+    await serverRequest('/outage?mode=on');
+    const recovered=await frame();
+    if(recovered.contentWindow.AppInfo.version!=='v2')
+      throw Error('verified cache repair did not restore offline operation');
+    result.textContent='PASS OFFLINE pinned cache cleanup, missing asset fails closed, verified online restoration and offline re-entry';
   } catch(error) { result.textContent='FAIL OFFLINE '+error.stack; }
 })();
 </script>`;
