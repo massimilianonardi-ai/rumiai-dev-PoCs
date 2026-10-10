@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PoC 063 · Viewport e Unicode</title>
+<style>
+*{box-sizing:border-box}
+body{font:15px/1.5 system-ui,-apple-system,sans-serif;max-width:1180px;margin:auto;padding:20px;color:#183046;background:#f3f6fa}
+h1{font-size:1.6rem;margin:0 0 5px}h2{font-size:1.05rem;margin:0 0 10px}
+p{margin:5px 0 14px}
+a{color:#165680}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px}
+section,aside{background:white;padding:16px;border:1px solid #d5e0e9;border-radius:12px}
+.controls{display:flex;gap:9px;align-items:end;flex-wrap:wrap;margin:10px 0 15px}
+button,input{font:inherit;border:1px solid #aebfd0;border-radius:6px;padding:7px 9px}
+button{background:#eaf2fa;cursor:pointer}
+button.primary{background:#175a8e;border-color:#175a8e;color:white}
+button:disabled{opacity:.45}
+label{display:flex;flex-direction:column;font-size:.85rem;gap:3px}
+input[type=number]{width:125px}
+input[type=text]{max-width:180px}
+#vscroll{position:relative;overflow:auto;height:440px;width:100%;border:1px solid #bdcddd;border-radius:7px;background:#fbfdff;outline-offset:2px}
+#vspace{position:relative;min-width:100%;width:max-content}
+#vrows{position:absolute;left:0;right:0;top:0;min-width:100%}
+.v-row{display:flex;align-items:stretch;height:24px;line-height:24px;white-space:pre;cursor:text;font:16px/24px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;tab-size:4}
+.v-row:nth-child(2n){background:#f3f7fb}
+.v-gutter{flex:0 0 78px;width:78px;text-align:right;padding-right:12px;background:#eaf0f6;color:#53677a;user-select:none}
+.v-text{position:relative;display:block;flex:none;min-width:12px;white-space:pre;tab-size:4}
+.v-row.selected{background:#deecfa}
+.v-caret{position:absolute;border-left:2px solid #1669b1;top:0;height:24px;pointer-events:none}
+.v-truncated{color:#96701e;opacity:.8}
+#metrics,#caret,#message{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.88rem;margin:12px 0;color:#31566c}
+#message{min-height:1.7em}
+.info{padding:11px;border-left:3px solid #d19a41;background:#fff8ed;color:#62460e}
+@media(max-width:800px){.layout{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<h1>RumiAI · PoC 063 · Viewport e Unicode</h1>
+<p>Prova isolata: solo le righe visibili sono nel DOM. Il documento rimane nel vero <code>PieceDocument</code>. <a href="./index.html">Torna all’editor interattivo</a>.</p>
+</header>
+<main class="layout">
+<section>
+<div class="controls">
+ <button id="small">Esempio Unicode</button>
+ <button id="large" class="primary">Carica 200.000 righe</button>
+ <label>Vai alla riga (1-based)<input id="jump-row" type="number" min="1" value="1"></label>
+ <button id="jump">Vai</button>
+</div>
+<div id="vscroll" tabindex="0" aria-label="Documento virtualizzato; clicca un punto del testo per scegliere un grafema">
+ <div id="vspace"><div id="vrows"></div></div>
+</div>
+<p id="metrics"></p>
+<p id="message" role="status"></p>
+</section>
+<aside>
+<h2>Modifica tramite modello</h2>
+<p>Fai clic su una riga: il cursore si posiziona su un confine di grafema misurato dal layout reale del browser.</p>
+<p id="caret">Nessun cursore selezionato.</p>
+<div class="controls">
+ <label>Testo da inserire<input id="insert-text" type="text" value="★"></label>
+ <button id="insert" class="primary">Inserisci</button>
+ <button id="erase">Cancella grafema precedente</button>
+ <button id="undo">Annulla</button>
+ <button id="redo">Ripristina</button>
+</div>
+<p class="info">Non è ancora un editor completo: il punto di inserimento si sceglie col mouse e la scrittura si attiva col pulsante, non con un IME integrato. Le righe oltre 512 unità UTF-16 sono mostrate solo parzialmente e non sono modificabili tramite click. Il layout non va a capo, i testi bidirezionali ambigui vengono rifiutati. Undo soltanto in RAM.</p>
+</aside>
+</main>
+<script type="module" src="./viewport.mjs"></script>
+</body>
+</html>
