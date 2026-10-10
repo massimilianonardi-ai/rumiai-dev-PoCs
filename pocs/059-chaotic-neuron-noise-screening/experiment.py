@@ -87,10 +87,11 @@ def lyapunov_estimate(dt=DT):
     p = q + delta
 
     def advance(s):
+        # Use the requested integration step consistently in every RK4 stage.
         k1 = single_rhs(s)
-        k2 = single_rhs(s + DT*k1/2)
-        k3 = single_rhs(s + DT*k2/2)
-        k4 = single_rhs(s + DT*k3)
+        k2 = single_rhs(s + 0.5*dt*k1)
+        k3 = single_rhs(s + 0.5*dt*k2)
+        k4 = single_rhs(s + dt*k3)
         return s + dt*(k1+2*k2+2*k3+k4)/6
 
     for _ in range(round(100/dt)):
