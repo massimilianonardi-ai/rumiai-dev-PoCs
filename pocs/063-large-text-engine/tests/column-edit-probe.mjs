@@ -112,10 +112,94 @@ for(const Store of [FlatDocument,PieceDocument,AdaptiveRepackDocument]){
     rectangle:{lineFrom:0,lineTo:0,columnFrom:0,columnTo:0},
     clipboard:{kind:'madedit-column',text:'A\nB',rowCount:1},...geometry
   }),/native column row count/);
+
+  // Opt-in beyond-EOF continuation: no extra method on TextEditBase.
+  // At EOF the last physical row edit and all new rows fuse into ONE target.
+  const eof=run('a\nb',
+    {lineFrom:0,lineTo:1,columnFrom:1,columnTo:1},
+    'X\nY\nZ\nW',{options:{materializeRows:true}});
+  assert.equal(textOf(eof.document),'aX\nbY\n Z\n W');
+  assert.equal(eof.plan.targetRows,4);
+  assert.equal(eof.plan.materializedRows,2);
+  assert.equal(eof.plan.selections.length,2);
+  assert.equal(eof.result.changes.length,2);
+  for(let i=eof.result.changes.length-1;i>=0;i--){
+    const c=eof.result.changes[i];
+    eof.document.replace(c.inverseStart,c.inverseEnd,c.removed);
+  }
+  eof.selections.setSelections(eof.result.before);
+  assert.equal(textOf(eof.document),eof.oldText);
+
+  // A document already ending in a newline has an existing empty last row.
+  // Reusing its EOF caret must not introduce duplicate edit positions.
+  const trailingEof=run('a\nb\n',
+    {lineFrom:0,lineTo:1,columnFrom:1,columnTo:1},
+    'X\nY\nZ\nW',{options:{materializeRows:true}});
+  assert.equal(textOf(trailingEof.document),'aX\nbY\n Z\n W');
+  assert.equal(trailingEof.plan.materializedRows,1);
+  assert.equal(trailingEof.plan.selections.length,3);
+
+  // A non-EOF target on the last line gets a separate EOF insertion; it
+  // preserves the existing text following the selected column.
+  const suffix=run('a\nbbbb',
+    {lineFrom:0,lineTo:1,columnFrom:1,columnTo:1},
+    'X\nY\nZ',{options:{materializeRows:true}});
+  assert.equal(textOf(suffix.document),'aX\nbYbbb\n Z');
+  assert.equal(suffix.plan.selections.length,3);
+  assert.deepEqual(suffix.plan.texts,['X','Y','\n Z']);
+
+  // Inherit CRLF from the final existing line terminator, or use a caller-
+  // selected newline. A native rowCount does not create an empty extra row.
+  const crlfEof=run('a\r\nb',
+    {lineFrom:0,lineTo:1,columnFrom:1,columnTo:1},
+    'X\nY\nZ',{options:{materializeRows:true}});
+  assert.equal(textOf(crlfEof.document),'aX\r\nbY\r\n Z');
+  const explicitLf=run('a\r\nb',
+    {lineFrom:0,lineTo:1,columnFrom:1,columnTo:1},
+    'X\nY\nZ',{options:{materializeRows:true,lineEnding:'\n'}});
+  assert.equal(textOf(explicitLf.document),'aX\r\nbY\n Z');
+  const nativeEof=run('a\nb',
+    {lineFrom:0,lineTo:1,columnFrom:1,columnTo:1},
+    {kind:'madedit-column',text:'X\nY\nZ\n',rowCount:3},
+    {options:{materializeRows:true}});
+  assert.equal(textOf(nativeEof.document),'aX\nbY\n Z');
+  assert.equal(nativeEof.plan.sourceRows,3);
+
+  // Visual columns of synthesized empty rows are all virtual spaces;
+  // existing rows continue to be measured by the actual grapheme geometry.
+  const wideEof=run('猫\nb',
+    {lineFrom:0,lineTo:1,columnFrom:2,columnTo:2},
+    'X\nY\nZ',{options:{materializeRows:true}});
+  assert.equal(textOf(wideEof.document),'猫X\nb Y\n  Z');
+
+  // Unsupported orientations are explicit. No write happens in a planner.
+  const untouched=new Store('a\nb');
+  for(const rectangle of [
+    {lineFrom:1,lineTo:0,columnFrom:1,columnTo:1},
+    {lineFrom:0,lineTo:1,columnFrom:1,columnTo:0}
+  ]){
+    assert.throws(()=>planColumnPaste(untouched,{
+      rectangle,clipboard:'X\nY\nZ',
+      materializeRows:true,...geometry
+    }),/materialization/);
+  }
+  assert.equal(textOf(untouched),'a\nb');
+  const ambiguous=new Store('a\tb\nc');
+  assert.throws(()=>planColumnPaste(ambiguous,{
+    rectangle:{lineFrom:0,lineTo:1,columnFrom:2,columnTo:2},
+    clipboard:'X\nY\nZ',materializeRows:true,...geometry
+  }),/inside a grapheme or tab/);
+  assert.equal(textOf(ambiguous),'a\tb\nc');
+  assert.throws(()=>planColumnPaste(untouched,{
+    rectangle:{lineFrom:0,lineTo:1,columnFrom:1,columnTo:1},
+    clipboard:'X\nY\nZ',materializeRows:true,lineEnding:'\r',...geometry
+  }),/lineEnding/);
   scenarios.push({backend:Store.name,autofill:true,trailingNewline:true,
     nativeRowCount:true,overflowExistingRows:true,reverseRowOrder:true,
     reverseColumnOrientation:true,crlf:true,virtualPadding:true,
-    rejectUnmaterializedRows:true,rejectAmbiguousGrapheme:true});
+    rejectUnmaterializedRows:true,rejectAmbiguousGrapheme:true,
+    materializeEofRows:true,undoAfterOverflow:true,crlfContinuation:true,
+    rejectUnsupportedOverflowOrientation:true});
 }
 console.log(JSON.stringify({pass:true,scenarios,sourceBehaviorNotNativeGUI:true,
   noHistoryInCore:true,baseSingleRange:true}));
