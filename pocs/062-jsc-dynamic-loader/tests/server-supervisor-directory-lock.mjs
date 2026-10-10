@@ -113,6 +113,10 @@ async function supervisor(){const [dir,portString,device,workerToken,operatorTok
  await new Promise(ok=>server.listen(Number(portString),'127.0.0.1',ok));process.stdout.write('READY\n');
 }
 async function main(){
+ if(process.platform!=='linux'){
+  console.log('SKIP SUPERVISOR DIRECTORY FILE LOCK: requires Linux util-linux flock -F; no cross-platform claim');
+  return;
+ }
  const have=spawnSync('flock',['--version'],{encoding:'utf8'});
  assert.equal(have.status,0,'requires util-linux flock on this Linux test host');
  const root=await mkdtemp(join(tmpdir(),'poc062-directory-lock-'));
