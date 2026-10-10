@@ -1,6 +1,8 @@
 // Runs inside a real Chromium page, served over loopback HTTP.
 // A later invocation launches a NEW Chromium process on the same browser profile.
 import {AsyncHistory} from '../src/async-history.mjs';
+import {ForegroundHistory} from '../src/foreground-history.mjs';
+import {BackgroundPersistence} from '../adapters/background-persistence.mjs';
 import {FlatDocument, AdaptiveRepackDocument} from '../src/documents.mjs';
 import {IndexedDBJournal} from '../adapters/indexeddb-journal.mjs';
 
@@ -69,6 +71,38 @@ async function run(stage){
   throw Error('unknown stage '+stage);
  } finally {storage.close();}
 }
+// Same provider-neutral background bridge, now with genuine browser IndexedDB.
+async function runBackground(stage) {
+ const storage=await IndexedDBJournal.open('rumiai-poc-063-background-idb');
+ try {
+  const doc=new AdaptiveRepackDocument(base);
+  if(stage==='background-write') {
+   const h=new ForegroundHistory(doc,initial);
+   const bg=new BackgroundPersistence(h,storage);
+   const start=t();
+   for(let i=0;i<320;i++)h.commit(makeEdits(doc,i),makeSelection(i));
+   const foregroundMs=t()-start;
+   assert(bg.pending>0,'storage remains asynchronous');
+   equal(doc.toString(),expected(320).text,'foreground text');
+   await bg.flush();
+   assert(bg.pending===0,'all background writes complete');
+   equal(h.selection,expected(320).selection,'foreground selection');
+   bg.detach();
+   return {pass:true,stage,edits:320,foregroundMs,persisted:await storage.count(),explicitFlush:true};
+  }
+  if(stage==='background-reopen'){
+   const h=await AsyncHistory.open(doc,storage,initial);
+   assert(h.index===320,'background reopened history count');
+   equal(doc.toString(),expected(320).text,'background reopened text');
+   equal(h.selection,expected(320).selection,'background reopened selection');
+   for(let i=0;i<25;i++)assert(await h.undo(),'background undo');
+   for(let i=0;i<25;i++)assert(await h.redo(),'background redo');
+   equal(doc.toString(),expected(320).text,'background replayed text');
+   return {pass:true,stage,entries:await storage.count(),undoRedo:25};
+  }
+  throw Error('unknown background stage');
+ } finally {storage.close();}
+}
 const stage=new URL(location.href).searchParams.get('stage');
-try {document.getElementById('result').textContent=JSON.stringify(await run(stage));}
+try {document.getElementById('result').textContent=JSON.stringify(await (stage.startsWith('background-')?runBackground(stage):run(stage)));}
 catch(error){document.getElementById('result').textContent=JSON.stringify({pass:false,stage,error:String(error),stack:String(error?.stack??'')});}

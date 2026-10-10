@@ -225,6 +225,32 @@ Run from this directory:
 
 Browser run requires working loopback navigation and an installed Chromium. By explicit user instruction, **crash resistance, interrupted-write recovery and storage atomicity are not current goals**. Browser GUI/IME, huge-document lazy I/O, history retention limits, and exact native MadEdit-Mod paste semantics remain unverified.
 
+## Optional foreground history + external background persistence (2026-10-10)
+
+**User-fixed behavior:** Persistence is optional. Editor text changes and undo/redo must never wait for ordinary persistence; file, IndexedDB, remote or service storage is implemented **outside** the editor. An explicit external synchronization request may await completed writes. The editor should only expose a very small generic interface, not own filesystem, IndexedDB, or service policy. Crash recovery and journal atomicity remain out of scope.
+
+This checkpoint adds **candidate-only** modules without changing the previous `AsyncHistory` research baseline:
+
+- `src/foreground-history.mjs`: `ForegroundHistory`, a synchronous reference history with a single optional `subscribe(listener)` notification interface. Each change emits either an append record with the cursor position or a cursor movement; text, grouped edits, undo/redo and complete selection snapshots are applied immediately.
+- `adapters/background-persistence.mjs`: external `BackgroundPersistence` controller that consumes changes in order and passes them to the existing generic asynchronous journal provider. It owns a serialized queue, a readable `status` (pending/errors), an optional `detach()`, and an **external** `await flush()` call that waits only for changes issued at invocation time. It does not belong in the editor core and has no Node, DOM, network, or filesystem imports.
+- `tests/background-persistence.mjs`: covers no-adapter editing, 160 fast foreground edits while a simulated provider is slow, cursor/selection undo/redo, explicit flush, ordered branch writes, reopen through existing `AsyncHistory`, a real asynchronous file adapter, and a failed persistence operation that does not cancel a user edit.
+- Extended the real Chromium/IndexedDB test to add two further **independent Chrome processes** testing foreground edits plus external IndexedDB background persistence and normal reopen. The existing four-process IndexedDB integration test remains.
+
+### Local benchmark scope
+
+On this auxiliary Linux/Node v22.16.0 process, 160 sequential foreground edits finished in **7.87 ms** while the simulated external provider inserted a nominal **5 ms per storage call**. The explicit `flush()` subsequently took about **1709 ms**. This is a single scenario and a simulated slow service, *not a UI frame-rate measurement or a real network timing guarantee*. The foreground text and selections remained immediately available; after flush, an independent history reader reconstructed the exact text/state. Undo/redo and redo-branch replacement were verified. A storage failure was reported by `flush()` and `status.error`; the active text edit still completed.
+
+### Known restrictions
+
+This is a PoC **separation-of-responsibility probe**, not a complete potentially-unlimited low-RAM undo design. `ForegroundHistory` currently retains its entire undo journal in memory, independent of whether an external provider is attached. The external queue also has no memory/length cap, retry mechanism, checkpoint or recovery protocol: prolonged slow/unavailable storage can grow the backlog, and a failed write is visible but not recovered. A provider listener that performs heavy synchronous work can still block the caller; adapters must only enqueue synchronously and perform I/O asynchronously. The test controller currently attaches to an **empty** foreground history and empty provider. Background persistence of an already-running session and offloaded old undo entries remain to be investigated.
+
+Do not silently turn an opt-in provider into an editor requirement, conflate ordinary background saving with explicit flush, or change the text core to wait for I/O. **No product implementation, crash-resistance work, or architectural selection is implied.**
+
+Run from the PoC directory:
+
+    node tests/background-persistence.mjs
+    node tests/browser-indexeddb.mjs
+
 ## Next measurements and semantic work
 
 1. Characterize source-to-destination row mapping by reading upstream code and using actual MadEdit-Mod GUI whenever practical, including one/two/many clipboard lines, zero-width selections, long/short target rows, trailing newline, source rows exceeding targets, Unicode and tabs.

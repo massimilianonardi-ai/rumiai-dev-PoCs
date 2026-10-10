@@ -53,6 +53,9 @@ jobs:
         run: |
           node --expose-gc tests/reopen-cost.mjs 1000
           node tests/storage-latency.mjs 4 40
+      - name: Optional background persistence and slow-provider tests
+        working-directory: pocs/063-large-text-engine
+        run: node tests/background-persistence.mjs
       - name: Exploratory editing performance, no threshold claim
         working-directory: pocs/063-large-text-engine
         run: node --expose-gc benchmark.mjs 1 8
