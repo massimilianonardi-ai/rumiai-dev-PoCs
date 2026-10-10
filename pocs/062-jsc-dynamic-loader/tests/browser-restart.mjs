@@ -18,7 +18,7 @@ assert.equal(built.status,0,built.stderr);
 const bytes=await readFile(output);
 const hash=createHash('sha256').update(bytes).digest('hex').slice(0,16);
 const release={version:'v1',url:'/assets/v1-'+hash+'.js'};
-const page="<!doctype html><meta charset=\"utf-8\"><pre id=\"result\">STARTING</pre>\n<script>\n(async()=>{\n const view=document.getElementById('result');\n try{\n  const releaseResponse=await fetch('/release.json',{cache:'no-store'});\n  if(!releaseResponse.ok)throw Error('release unavailable');\n  const release=await releaseResponse.json();\n  await new Promise((resolve,reject)=>{\n    const script=document.createElement('script');\n    script.src=release.url;\n    script.onload=resolve;script.onerror=()=>reject(Error('bundle unavailable'));\n    document.head.appendChild(script);\n  });\n  const app=JscRuntime.require('app');\n  if(app.version!==release.version)throw Error('mixed release');\n  const key='jsc-crash-durable';\n  const raw=localStorage.getItem(key);\n  let count=0;\n  if(raw!==null){\n   let snapshot;\n   try{snapshot=JSON.parse(raw);}catch{throw Error('RECOVERY_REQUIRED: malformed snapshot');}\n   if(!snapshot||snapshot.schema!==1||!Number.isSafeInteger(snapshot.count)||snapshot.count<0){\n     throw Error('RECOVERY_REQUIRED: incompatible snapshot');\n   }\n   count=snapshot.count;\n  }\n  let transient=0;\n  const boot=crypto.randomUUID();\n  window.demo={\n   version:app.version,boot,source:releaseResponse.headers.get('x-poc-cached-release'),\n   get count(){return count;},get transient(){return transient;},\n   add(n){count+=n;transient+=n;return count;},\n   save(){localStorage.setItem(key,JSON.stringify({schema:1,count}));return count;},\n   stored(){return localStorage.getItem(key);}\n  };\n  view.textContent='READY '+app.version;\n }catch(error){view.textContent='ERROR '+error.message;}\n})();\n</script>";
+const page="<!doctype html><meta charset=\"utf-8\"><pre id=\"result\">STARTING</pre>\n<script>\n(async()=>{\n const view=document.getElementById('result');\n try{\n  const releaseResponse=await fetch('/release.json',{cache:'no-store'});\n  if(!releaseResponse.ok)throw Error('release unavailable');\n  const release=await releaseResponse.json();\n  await new Promise((resolve,reject)=>{\n    const script=document.createElement('script');\n    script.src=release.url;\n    script.onload=resolve;script.onerror=()=>reject(Error('bundle unavailable'));\n    document.head.appendChild(script);\n  });\n  const app=JscRuntime.require('app');\n  if(app.version!==release.version)throw Error('mixed release');\n  // IndexedDB transaction completion is a stronger explicit durable-save boundary than a\n  // just-returned localStorage.setItem() for this forced whole-process crash experiment.\n  const db=await new Promise((resolve,reject)=>{\n    const req=indexedDB.open('jsc-restart-durable',1);\n    req.onupgradeneeded=()=>req.result.createObjectStore('snapshots');\n    req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);\n  });\n  const read=()=>new Promise((resolve,reject)=>{\n    const request=db.transaction('snapshots','readonly').objectStore('snapshots').get('current');\n    request.onsuccess=()=>resolve(request.result??null);request.onerror=()=>reject(request.error);\n  });\n  const write=value=>new Promise((resolve,reject)=>{\n    const tx=db.transaction('snapshots','readwrite',{durability:'strict'});\n    tx.objectStore('snapshots').put(value,'current');\n    tx.oncomplete=()=>resolve(value);tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);\n  });\n  const clear=()=>new Promise((resolve,reject)=>{\n    const tx=db.transaction('snapshots','readwrite',{durability:'strict'});\n    tx.objectStore('snapshots').delete('current');\n    tx.oncomplete=()=>resolve(true);tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);\n  });\n  window.recovery={read,write,clear};\n  const snapshot=await read();\n  let count=0;\n  if(snapshot!==null){\n   if(!snapshot||snapshot.schema!==1||!Number.isSafeInteger(snapshot.count)||snapshot.count<0){\n     throw Error('RECOVERY_REQUIRED: incompatible snapshot');\n   }\n   count=snapshot.count;\n  }\n  let transient=0;\n  const boot=crypto.randomUUID();\n  window.demo={\n   version:app.version,boot,source:releaseResponse.headers.get('x-poc-cached-release'),\n   get count(){return count;},get transient(){return transient;},\n   add(n){count+=n;transient+=n;return count;},\n   async save(){const value=count;await write({schema:1,count:value});return value;},\n   stored(){return read();}\n  };\n  view.textContent='READY '+app.version;\n }catch(error){view.textContent='ERROR '+error.message;}\n})();\n</script>";
 const worker=[
  "const RELEASE="+JSON.stringify(release)+";",
  "const CACHE='jsc-restart-'+RELEASE.version;",
@@ -136,10 +136,10 @@ try{
  assert.equal(await current.evaluate('window.demo.add(7)'),7);
  assert.equal(await current.evaluate('window.demo.save()'),7);
  assert.equal(await current.evaluate('window.demo.add(4)'),11);
- assert.equal(await current.evaluate('JSON.parse(window.demo.stored()).count'),7);
+ assert.equal(await current.evaluate('window.demo.stored().then(x=>x.count)'),7);
  assert.equal(await current.evaluate('window.demo.transient'),11);
- // Give the real browser an interval to persist localStorage to its profile before crashing it.
- await delay(1400);
+ // The storage transaction has completed; the forced crash must not be a graceful browser shutdown.
+ await delay(250);
  await current.stop();current.socket.close();current=null;
  down=true;
  // A fresh whole-browser process, not a tab reload, uses exactly the same on-disk Chrome profile.
@@ -150,20 +150,20 @@ try{
  assert.equal(await current.evaluate('window.demo.transient'),0,'volatile in-memory edits must NOT be invented after crash');
  assert.notEqual(await current.evaluate('window.demo.boot'),firstBoot,'restarted process must run a fresh app instance');
  assert.equal(await current.evaluate('window.demo.source'),'v1','release pointer should use actual Service Worker cached response');
- assert.equal(await current.evaluate('window.demo.stored()'),JSON.stringify({schema:1,count:7}));
+ assert.equal(await current.evaluate('window.demo.stored().then(x=>x.count)'),7);
  assert.ok(failedRequests>=2,'server must refuse actual restart navigation/asset requests');
  // Corrupt/incompatible saved state must never be deleted or silently initialized as a valid empty document.
- await current.evaluate('localStorage.setItem("jsc-crash-durable",JSON.stringify({schema:99,count:100}))');
+ await current.evaluate('window.recovery.write({schema:99,count:100}).then(()=>true)');
  await current.call('Page.reload',{ignoreCache:true});
  await current.until('document.getElementById("result")?.textContent?.includes("RECOVERY_REQUIRED")','explicit incompatible snapshot error');
  assert.equal(await current.evaluate('typeof window.demo'),'undefined');
- assert.equal(await current.evaluate('JSON.parse(localStorage.getItem("jsc-crash-durable")).schema'),99);
+ assert.equal(await current.evaluate('window.recovery.read().then(x=>x.schema)'),99);
  // User-authorized destructive recovery is explicit, not an automatic rollback by the loader.
- await current.evaluate('localStorage.removeItem("jsc-crash-durable")');
+ await current.evaluate('window.recovery.clear()');
  await current.call('Page.reload',{ignoreCache:true});
  await current.until('window.demo?.version==="v1"','manual reset reload');
  assert.equal(await current.evaluate('window.demo.count'),0);
- console.log('PASS RESTART: complete Chrome SIGKILL and fresh process same profile, persisted=7 vs volatile=11, SW cached offline boot, incompatible snapshot blocked, manual reset required; backend refused '+failedRequests+' requests');
+ console.log('PASS RESTART: complete Chrome SIGKILL and fresh process same profile, IndexedDB committed=7 vs volatile=11, SW cached offline boot, incompatible snapshot blocked, manual reset required; backend refused '+failedRequests+' requests');
 }finally{
  if(current){await current.stop();current.socket.close();}
  await new Promise(done=>server.close(done));
