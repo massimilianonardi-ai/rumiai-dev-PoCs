@@ -283,6 +283,25 @@ To reproduce from the PoC root:
 
 **Important limits:** While the provider is slow or unavailable, the background queue and unacknowledged in-memory entries can grow; this PoC cannot guarantee a fixed RAM ceiling without changing policy. Once evicted, deep undo needs the external record reader and can be slower. No automatic retry, batching, service-lifetime cleanup, checkpoint acceleration, huge-file lazy loading or crash recovery is implied. No permanent test or production editor implementation was changed.
 
+## Visual column / 2D geometry experiment (2026-10-10)
+
+The undo/redo **model** has sufficient experimental evidence to move on: grouped edits, full selection/caret snapshots, branching, optional external persistence, and hot/cold archive navigation have passed appropriate tests. This does **not** select a final implementation, nor validate action grouping and IME-level behavior in a real GUI. As explicitly requested, an external storage provider's sustained throughput is **not an editor problem**: asynchronous buffering absorbs bursts but cannot make a slower provider as fast as memory. Do not spend the editor workstream pursuing a false sustained-RAM/storage speed equivalence.
+
+A separate candidate `src/visual-column-probe.mjs` explores 2D geometry without integrating storage policy or a view engine:
+
+- Text positions are **UTF-16 offsets**, distinct from **visual cell columns** and extended grapheme clusters. `Intl.Segmenter` identifies graphemes; the **caller injects `widthOf(grapheme, column, row)`** rather than baking font, locale, emoji or East Asian width assumptions into the document. Tabs advance to the next configurable tab stop.
+- `probeLine` measures a single logical line, handling CRLF as a line terminator and returning cell intervals; `locateColumn` returns an exact offset, an explicit EOL virtual-space count, or an **unresolved inside-grapheme** result with its two offset boundaries.
+- `probeRectangles` translates multiple possibly disjoint rectangles into sorted text targets and reports unresolved glyph boundaries and overlapping/colliding selections separately. It **does not invent** snap-to-glyph, merge, virtual-selection or MadEdit-Mod paste policy. Ambiguous rows must not be applied silently.
+- `tests/visual-column-probe.mjs` passed on `FlatDocument` and `AdaptiveRepackDocument`: tab spans, emoji surrogate pairs, combining marks, wide characters under an explicit injected width rule, CRLF, empty lines, virtual columns, collisions including nested overlaps, and one grouped 2D insertion with exact undo/redo selection restoration using existing `ForegroundHistory`.
+- `tests/visual-column-scale.mjs` passed against a 32 MiB document with a massive intervening unselected line: two independent short selected rows caused **six slice calls totaling 13 UTF-16 units**, without reading that unrelated long line. This is **not** a benchmark for a selected huge single line or a full renderer.
+
+Run:
+
+    node tests/visual-column-probe.mjs
+    node tests/visual-column-scale.mjs 32
+
+**Open semantic decisions:** How a real view measures grapheme width and proportional-font/pixel geometry, handling caret placement inside tabs/wide cells, visual/virtual selection extension, overlapping multicursor ranges and clipboard-source overflow require observed behavior and explicit policy. A single selected extremely long line is currently segmented/materialized entirely: this candidate alone does not satisfy the huge-line performance target. MadEdit-Mod native GUI behavior remains unverified; the pre-existing `columnPastePlan` is still intentionally provisional and must not be labeled compatible for excess source rows. No editor product code or permanent tests were changed.
+
 ## Next measurements and semantic work
 
 1. Characterize source-to-destination row mapping by reading upstream code and using actual MadEdit-Mod GUI whenever practical, including one/two/many clipboard lines, zero-width selections, long/short target rows, trailing newline, source rows exceeding targets, Unicode and tabs.

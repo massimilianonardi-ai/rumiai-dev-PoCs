@@ -61,6 +61,11 @@ jobs:
         run: |
           node tests/spill-history.mjs
           node --expose-gc tests/spill-memory.mjs file 2000
+      - name: Visual 2D columns and atomic multicursor regression
+        working-directory: pocs/063-large-text-engine
+        run: |
+          node tests/visual-column-probe.mjs
+          node tests/visual-column-scale.mjs 8
       - name: Exploratory editing performance, no threshold claim
         working-directory: pocs/063-large-text-engine
         run: node --expose-gc benchmark.mjs 1 8
