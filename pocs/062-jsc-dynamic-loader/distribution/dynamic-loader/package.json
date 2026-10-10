@@ -1,0 +1,13 @@
+{
+  "name": "rumiai-poc-dynamic-loader",
+  "version": "0.0.0-poc.1",
+  "private": true,
+  "description": "Experimental independent classic JavaScript dynamic loader (local tarball only)",
+  "main": "loader.js",
+  "browser": "loader.js",
+  "files": [
+    "loader.js",
+    "README.md"
+  ],
+  "license": "UNLICENSED"
+}
