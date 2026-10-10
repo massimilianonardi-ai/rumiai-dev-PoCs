@@ -1,8 +1,10 @@
 # PoC 059 — task-level preregistration
 
 Status: **preregistered design; no task-level outcomes inspected**  
-Protocol version: 1  
-Protocol date: 2026-10-10  
+Protocol version: 2 (amends v1 before task-level execution)  
+Protocol date: 2026-10-10
+
+Version 2 amendment: corrected the Lyapunov timestep-refinement requirement after finding that PoC 059's existing half-step estimator used the base `DT` in its RK4 intermediate stages. No task-level scores have been inspected. Version 1 is retained in Git history; this version supersedes it.  
 Scope: simulation only; this file is committed before implementation/execution of the task-level comparison.
 
 ## Question
@@ -24,7 +26,7 @@ This tests task utility of a candidate dynamical mechanism. It does not test bra
 - 16 HR units, shared scalar input, observed feature is x from each unit at the end of each symbol (16 readout features).
 - Use PoC 059 equations and parameters, with two operating regimes fixed before results: candidate regular HR with I=2.90 and candidate chaotic HR with I=3.25; other parameters remain a=1, b=3, c=1, d=5, r=0.005, s=4, x_r=-1.618. Input drive amplitude 0.3, dt=0.02, 8 RK4 substeps per symbol.
 - Coupling k in {0, 0.05, 0.2, 0.5}, all-to-mean diffusive coupling on x.
-- Classify regimes on isolated unforced dynamics before task fitting. Estimate the largest Lyapunov exponent using the existing PoC 059 procedure, across the 10 initial seeds and dt 0.02/0.01. Chaotic gate: positive estimate at both steps for at least 8/10 seeds. Regular gate: non-positive estimate at both steps for at least 8/10 seeds. If either candidate fails its gate, mark the chaotic-vs-regular comparison **inconclusive**; do not search new I values in this protocol or use task-test performance to choose the regime. A revised regime requires a new protocol version before running it.
+- Classify regimes on isolated unforced dynamics before task fitting. Estimate the largest Lyapunov exponent using a two-trajectory Benettin-style finite-time estimator, across the 10 preregistered seeds, with coherent RK4 steps h=0.02 and h=0.01. Every RK4 intermediate stage and final update must use the same h; in particular, the h=0.01 run must use 0.01 in all four stages. Burn in for 100 model-time units, then accumulate 1,000 renormalized intervals of 0.2 model-time units; initial separation 1e-7, renormalized after every interval. Use initial state [-1.3078,-7.3218,3.3530] plus independent N(0,0.01) perturbation per seed. Record the per-seed estimates and code revision. Chaotic gate: positive estimate at both steps for at least 8/10 seeds. Regular gate: non-positive estimate at both steps for at least 8/10 seeds. If either candidate fails its gate, mark the chaotic-vs-regular comparison **inconclusive**; do not search new I values in this protocol or use task-test performance to choose the regime. A revised regime requires a new protocol version before running it.
 - Use identical initialization, input stream and readout fitting grid across paired conditions. The same unit-identity/initialization seed is paired between regular and chaotic conditions.
 
 ## Readout and baselines
@@ -42,7 +44,7 @@ Evaluate each frozen clean-trained readout on clean test data and four separate 
 3. Readout: independent additive Gaussian noise on the 16 standardized observed features; sigma = 1% of each feature's train SD before standardization (equivalently 0.01 after scaling).
 4. Static mismatch: fixed independent uniform ±1% variation of external current I per unit, drawn once per seed and held through the entire test sequence. This is a model-level mismatch proxy, not a component calibration.
 
-Do not combine channels in the primary report. Do not retrain the readout under perturbed test conditions. Also report the clean-trained model on clean test as the reference. If an implementation cannot apply a perturbation without changing another condition, document and stop before looking at task scores.
+Do not combine channels in the primary report. Do not retrain the readout under perturbed test conditions. Also report the clean-trained model on clean test as the reference. The digital ESN baseline is fixed to PoC 058's update: 16 states, x0=0, W drawn iid standard normal with the data seed and scaled to spectral radius 0.8, Win iid uniform [-1,1], bias iid uniform [-0.3,0.3], and x[k+1]=0.5*x[k]+0.5*tanh(W@x[k]+Win*u[k]+bias). Use its x states at each symbol boundary as 16 features. If an implementation cannot apply a perturbation without changing another condition, document and stop before looking at task scores.
 
 ## Decision and reporting rules
 
