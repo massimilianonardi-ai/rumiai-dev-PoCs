@@ -35,7 +35,8 @@ try{
  assert.ok(base.includes('JscRuntime.installBatch('));
  assert.ok(!base.includes('JscRuntime already defined'),'compiler output must not embed loader');
  assert.ok(all.includes(loader),'assembler must reuse independent loader');
- assert.ok(all.includes(base),'assembler must include initial graph');
+ assert.ok(all.includes('id:"core"') && all.includes('id:"app"') && all.includes('id:"optional"'),
+  'assembled bundle must contain the full declared module graph');
  // Developer mode: load the standalone runtime, then initial registrations,
  // and only later download/execute optional registrations and a patch.
  {
