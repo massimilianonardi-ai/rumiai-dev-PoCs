@@ -251,6 +251,38 @@ Run from the PoC directory:
     node tests/background-persistence.mjs
     node tests/browser-indexeddb.mjs
 
+## Optional archived undo with a small hot window (2026-10-10)
+
+**User-fixed boundaries:** Persistence is optional and externally managed. Normal text editing and commits must never await routine storage. Explicit external synchronization may wait. Crash recovery, interrupted-write atomicity and corruption handling remain out of scope.
+
+This is an additive **candidate experiment**, not a chosen engine. The new source module *src/spill-history.mjs* keeps a configurable recent window of undo records after an external component has acknowledged their storage. It has no Node, browser, file or networking APIs. An external persistence bridge supplies a generic archived-record reader and receives history-change notifications; *adapters/background-persistence.mjs* gained backward-compatible optional confirmation/reader hooks. Foreground text commits are synchronous. **Deep undo/redo of an evicted record can await an asynchronous cold read**, unlike routine background persistence.
+
+The behavioral test *tests/spill-history.mjs* verified: with no provider, unlimited logical undo/redo remains entirely in RAM; with real Node async file storage and 16 hot records, all 900 records are archived and complete 900 undo + 900 redo preserve exact text and full selection snapshots, including multi-range transactions, a branch created after deep undo, and clean new-session reopening. Under failed storage writes, unacknowledged records remain resident and can still be undone or redone; errors remain visible to the external caller.
+
+### Auxiliary Linux Node v22.16 measurements
+
+Each 12k-edit case ran in a separate process on a 2-MiB initial document, with identical deterministic distributed edits, two ranges per selection, two explicit garbage collections before heap measurement:
+
+| History mode | V8 heap after GC | Resident undo records | External journal | Peak process RSS |
+| --- | ---: | ---: | ---: | ---: |
+| Original foreground, no provider | 15.56 MiB | 12,000 | none | 68.13 MiB |
+| Spill-aware, no provider | 15.84 MiB | 12,000 | none | 61.00 MiB |
+| Spill-aware, async Node file, recent 128 | 10.76 MiB | 128 | 2.112 MiB | 79.12 MiB |
+
+V8 heap decreased by about **30.9%**, while RSS did **not** decrease; the file case had higher observed peak RSS. Twelve explicitly awaited 1k-edit storage flushes took about **16.6 seconds cumulatively**, separate from approximately **243 ms of foreground commit processing** in that same single run. Timing is noisy and host dependent; none of these figures is a browser responsiveness or physical-host memory guarantee. The full text/document tree remains in RAM, only old history records are offloaded.
+
+The real Chromium/IndexedDB workflow now has two additional process stages for 420 foreground edits with 12 resident records, complete deep undo/redo through genuine IndexedDB cold reads, and clean-process reopening. Check the exact hosted workflow result before claiming browser success.
+
+To reproduce from the PoC root:
+
+    node tests/spill-history.mjs
+    node --expose-gc tests/spill-memory.mjs foreground 12000
+    node --expose-gc tests/spill-memory.mjs no-provider 12000
+    node --expose-gc tests/spill-memory.mjs file 12000
+    node tests/browser-indexeddb.mjs
+
+**Important limits:** While the provider is slow or unavailable, the background queue and unacknowledged in-memory entries can grow; this PoC cannot guarantee a fixed RAM ceiling without changing policy. Once evicted, deep undo needs the external record reader and can be slower. No automatic retry, batching, service-lifetime cleanup, checkpoint acceleration, huge-file lazy loading or crash recovery is implied. No permanent test or production editor implementation was changed.
+
 ## Next measurements and semantic work
 
 1. Characterize source-to-destination row mapping by reading upstream code and using actual MadEdit-Mod GUI whenever practical, including one/two/many clipboard lines, zero-width selections, long/short target rows, trailing newline, source rows exceeding targets, Unicode and tabs.

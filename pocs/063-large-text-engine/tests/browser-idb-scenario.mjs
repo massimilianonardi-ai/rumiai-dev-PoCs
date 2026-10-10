@@ -2,6 +2,7 @@
 // A later invocation launches a NEW Chromium process on the same browser profile.
 import {AsyncHistory} from '../src/async-history.mjs';
 import {ForegroundHistory} from '../src/foreground-history.mjs';
+import {SpillHistory} from '../src/spill-history.mjs';
 import {BackgroundPersistence} from '../adapters/background-persistence.mjs';
 import {FlatDocument, AdaptiveRepackDocument} from '../src/documents.mjs';
 import {IndexedDBJournal} from '../adapters/indexeddb-journal.mjs';
@@ -103,6 +104,42 @@ async function runBackground(stage) {
   throw Error('unknown background stage');
  } finally {storage.close();}
 }
+// Cold undo/redo integration with real IndexedDB and an optional spill cache.
+async function runSpill(stage) {
+ const storage=await IndexedDBJournal.open('rumiai-poc-063-spill-idb');
+ try {
+  const doc=new AdaptiveRepackDocument(base);
+  if(stage==='spill-write') {
+   const history=new SpillHistory(doc,initial,{hotLimit:12});
+   const bridge=new BackgroundPersistence(history,storage);
+   const start=t();
+   for(let i=0;i<420;i++)history.commit(makeEdits(doc,i),makeSelection(i));
+   const foregroundMs=t()-start;
+   assert(bridge.pending>0,'no waiting for persistence during foreground edits');
+   await bridge.flush();
+   assert(history.status.archivedEntries===420,'all history archived');
+   assert(history.status.residentRecords<=12,'bounded foreground resident entries');
+   equal(doc.toString(),expected(420).text,'spill document');
+   for(let i=0;i<420;i++)assert(await history.undo(),'cold undo '+i);
+   equal(doc.toString(),base,'complete undo');
+   equal(history.selection,initial,'initial selection');
+   for(let i=0;i<420;i++)assert(await history.redo(),'cold redo '+i);
+   equal(doc.toString(),expected(420).text,'complete redo');
+   await bridge.flush();
+   bridge.detach();
+   return {pass:true,stage,entries:420,hotLimit:12,resident:history.status.residentRecords,foregroundMs,coldUndoRedoEach:420};
+  }
+  if(stage==='spill-reopen') {
+   const restored=await AsyncHistory.open(doc,storage,initial);
+   equal(doc.toString(),expected(420).text,'spill new process reopen');
+   equal(restored.selection,expected(420).selection,'spill saved selection');
+   assert(await restored.undo(),'spill restart undo');
+   assert(await restored.redo(),'spill restart redo');
+   return {pass:true,stage,index:restored.index,entries:await storage.count(),reopened:true};
+  }
+  throw Error('unknown spill stage');
+ }finally{storage.close();}
+}
 const stage=new URL(location.href).searchParams.get('stage');
-try {document.getElementById('result').textContent=JSON.stringify(await (stage.startsWith('background-')?runBackground(stage):run(stage)));}
+try {document.getElementById('result').textContent=JSON.stringify(await (stage.startsWith('spill-')?runSpill(stage):stage.startsWith('background-')?runBackground(stage):run(stage)));}
 catch(error){document.getElementById('result').textContent=JSON.stringify({pass:false,stage,error:String(error),stack:String(error?.stack??'')});}

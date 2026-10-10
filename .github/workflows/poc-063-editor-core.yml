@@ -56,6 +56,11 @@ jobs:
       - name: Optional background persistence and slow-provider tests
         working-directory: pocs/063-large-text-engine
         run: node tests/background-persistence.mjs
+      - name: Verify external archive spill and cold undo
+        working-directory: pocs/063-large-text-engine
+        run: |
+          node tests/spill-history.mjs
+          node --expose-gc tests/spill-memory.mjs file 2000
       - name: Exploratory editing performance, no threshold claim
         working-directory: pocs/063-large-text-engine
         run: node --expose-gc benchmark.mjs 1 8

@@ -7,6 +7,10 @@ export class BackgroundPersistence {
     for(const key of ['count','appendAt','readSession','writeSession'])
       if(typeof storage?.[key]!=='function')throw new TypeError('storage: '+key);
     if(history.length!==0||history.index!==0)throw new Error('attach before first edit');
+    if(typeof history.setArchiveReader==='function'){
+      if(typeof storage.read!=='function')throw new TypeError('storage: read');
+      history.setArchiveReader(index=>storage.read(index));
+    }
     this.history=history;
     this.storage=storage;
     this.queue=[];
@@ -48,6 +52,7 @@ export class BackgroundPersistence {
         }else if(event.kind==='append'){
           await this.storage.appendAt(event.at,event.record);
           await this.storage.writeSession({initial:this.history.initial,cursor:event.cursor});
+          this.history.confirmArchived?.(event.at,event.record);
         }else if(event.kind==='cursor'){
           await this.storage.writeSession({initial:this.history.initial,cursor:event.cursor});
         }else throw new Error('unknown history change');

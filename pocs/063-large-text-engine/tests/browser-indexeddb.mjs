@@ -65,8 +65,8 @@ async function stageRun(stage,url){
 try{
  await new Promise((yes,no)=>{server.once('error',no);server.listen(0,'127.0.0.1',yes);});
  const origin='http://127.0.0.1:'+server.address().port+'/tests/browser-idb.html?stage=';
- for(const stage of ['write','reopen','branch','verify','background-write','background-reopen']){
+ for(const stage of ['write','reopen','branch','verify','background-write','background-reopen','spill-write','spill-reopen']){
   const result=await stageRun(stage,origin+stage);console.log(JSON.stringify(result));
  }
- console.log(JSON.stringify({pass:true,browser:'Chromium',provider:'real IndexedDB',freshBrowserProcesses:6}));
+ console.log(JSON.stringify({pass:true,browser:'Chromium',provider:'real IndexedDB',freshBrowserProcesses:8}));
 } finally{await new Promise(r=>server.close(r));try { rmSync(profile,{recursive:true,force:true,maxRetries:2,retryDelay:100}); } catch(error) { console.warn('Chromium profile cleanup incomplete (non-test failure): '+error.code); }}
