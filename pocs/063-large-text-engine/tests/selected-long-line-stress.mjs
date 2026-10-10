@@ -9,6 +9,7 @@ import {performance} from 'node:perf_hooks';
 import {FlatDocument,PieceDocument,AdaptiveRepackDocument} from '../src/documents.mjs';
 import {TextEditSelections} from '../src/text-edit-selections-probe.mjs';
 import {probeLine,locateColumn} from '../src/visual-column-probe.mjs';
+import {locateColumnsAsciiCandidate} from '../src/visual-column-ascii-probe.mjs';
 
 const backends={
   native:null,flat:FlatDocument,piece:PieceDocument,adaptive:AdaptiveRepackDocument
@@ -103,26 +104,37 @@ function childEdit(name,miB,count,mode,trials){
     heapDeltaMiB:+(post.heapUsedMiB-pre.heapUsedMiB).toFixed(3),
     rssDeltaMiB:+(post.rssMiB-pre.rssMiB).toFixed(3),elapsedMs};
 }
-function childVisual(name,miB){
+function childVisual(name,miB,mode){
+  assert.ok(mode==='geometry'||mode==='ascii');
   const f=fixture(name,miB,1);
   gc();const pre=memory();
   const started=performance.now();
-  // The current candidate materializes one cell per grapheme on the entire
-  // SELECTED huge line, even when locating column 2 near its beginning.
-  const geometry=probeLine(f.doc,0,{widthOf:()=>1});
+  let retained,readUnits=null;
+  if(mode==='ascii'){
+    const fast=locateColumnsAsciiCandidate(f.doc,0,[2],{widthOf:()=>1});
+    assert.equal(fast.fallback,false);
+    assert.deepEqual(fast.matches,[{kind:'exact',offset:2,virtualSpaces:0}]);
+    assert.ok(fast.readUnits<8192);
+    readUnits=fast.readUnits;retained=fast;
+  }else{
+    const geometry=probeLine(f.doc,0,{widthOf:()=>1});
+    assert.equal(geometry.columns,f.bytes);
+    assert.equal(geometry.cells.length,f.bytes);
+    assert.deepEqual(locateColumn(geometry,2),{
+      kind:'exact',offset:2,virtualSpaces:0
+    });
+    retained=geometry;
+  }
   const elapsedMs=+(performance.now()-started).toFixed(3);
-  assert.equal(geometry.columns,f.bytes);
-  assert.equal(geometry.cells.length,f.bytes);
-  assert.deepEqual(locateColumn(geometry,2),{
-    kind:'exact',offset:2,virtualSpaces:0
-  });
   gc();const post=memory();
-  assert.equal(geometry.cells[geometry.cells.length-1].end,f.bytes);
+  assert.ok(retained);
   return {kind:'visual-geometry',backend:name,selectedMiB:miB,
-    cells:geometry.cells.length,pre,post,elapsedMs,
+    mode,cells:mode==='geometry'?retained.cells.length:null,
+    readUnits,pre,post,elapsedMs,
     heapDeltaMiB:+(post.heapUsedMiB-pre.heapUsedMiB).toFixed(3),
     rssDeltaMiB:+(post.rssMiB-pre.rssMiB).toFixed(3)};
 }
+
 if(process.argv[2]==='--child'){
   const [kind,backend,sizeStr,countStr,mode,trialsStr]=process.argv.slice(3);
   const miB=Number(sizeStr),count=Number(countStr),trials=Number(trialsStr);
@@ -130,7 +142,7 @@ if(process.argv[2]==='--child'){
   assert.ok(Number.isSafeInteger(count)&&count>=1&&count<=1024);
   let result;
   if(kind==='edit')result=childEdit(backend,miB,count,mode,trials);
-  else if(kind==='visual')result=childVisual(backend,miB);
+  else if(kind==='visual')result=childVisual(backend,miB,mode);
   else throw RangeError('kind');
   console.log(JSON.stringify({pass:true,...result,node:process.version,
     platform:process.platform+'/'+process.arch}));
@@ -172,12 +184,20 @@ if(process.argv[2]==='--child'){
   for(const backend of ['flat','adaptive']){
     for(const size of [1,2]){
       // Full grapheme geometry creates size*1048576 retained cell objects.
-      console.log(JSON.stringify(run('visual',backend,size,1,'geometry')));
+      const full=run('visual',backend,size,1,'geometry');
+      const fast=run('visual',backend,size,1,'ascii');
+      console.log(JSON.stringify({pass:true,kind:'visual-comparison',
+        backend,selectedMiB:size,
+        full:{elapsedMs:full.elapsedMs,heapDeltaMiB:full.heapDeltaMiB,
+          rssDeltaMiB:full.rssDeltaMiB,peakRssMiB:full.post.peakRssMiB},
+        ascii:{elapsedMs:fast.elapsedMs,heapDeltaMiB:fast.heapDeltaMiB,
+          rssDeltaMiB:fast.rssDeltaMiB,peakRssMiB:fast.post.peakRssMiB,
+          readUnits:fast.readUnits},exactColumnParity:true}));
     }
   }
   console.log(JSON.stringify({pass:true,scope:'exploratory selected-line stress',
     trials,execution:'isolated child processes for memory, paired alternating timing',
-    evidence:'real store implementations and actual Intl.Segmenter geometry',
+    evidence:'real stores, actual Intl.Segmenter, ASCII candidate with Unicode fallback',
     memory:'MiB, sampled after explicit GC; maxRSS is lifetime high-water (Linux)',
     excludes:'browser viewport and DOM, native GUI, undo storage/persistence',
     limitation:'different child RSS measurements are not perfectly matched peaks'}));
