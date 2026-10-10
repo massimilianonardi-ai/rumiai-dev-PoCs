@@ -3,6 +3,7 @@
   'use strict';
   const definitions = new Map();
   const instances = new Map();
+  let changing = false;
 
   function identifier(value) {
     if (typeof value !== 'string' || !/^[a-zA-Z][a-zA-Z0-9._/-]*$/.test(value) || value.includes('..')) {
@@ -23,30 +24,32 @@
     return { deps: deps.slice(), factory };
   }
 
-  function checkReplacement(id, next) {
-    if (!definitions.has(id)) return; // Forward references may be registered during initial bundle setup.
-    for (const dep of next.deps) {
-      if (!definitions.has(dep)) throw new Error(`${id}: replacement has unavailable dependency ${dep}`);
-    }
-    const visited = new Set();
-    function walk(current) {
-      if (current === id) throw new Error(`${id}: replacement would create circular module dependencies`);
-      if (visited.has(current)) return;
-      visited.add(current);
-      const entry = definitions.get(current);
-      if (entry) for (const dep of entry.deps) walk(dep);
-    }
-    for (const dep of next.deps) walk(dep);
-  }
 
-  function activeConsumers(id) {
-    const affected = new Set([id]);
+  function unlocked() {
+    if (changing) throw new Error('module runtime is updating; reentrant operations are forbidden');
+  }
+  function graphCheck(graph) {
+    const visiting = new Set(), done = new Set();
+    function visit(id) {
+      if (visiting.has(id)) throw new Error(id + ': circular module dependencies');
+      if (done.has(id)) return;
+      visiting.add(id);
+      for (const dep of graph.get(id).deps) {
+        if (!graph.has(dep)) throw new Error(id + ': unavailable dependency ' + dep);
+        visit(dep);
+      }
+      visiting.delete(id);
+      done.add(id);
+    }
+    for (const id of graph.keys()) visit(id);
+  }
+  function affectedBy(ids) {
+    const affected = new Set(ids);
     let changed = true;
     while (changed) {
       changed = false;
-      for (const [name] of instances) {
-        const entry = definitions.get(name);
-        if (!affected.has(name) && entry.deps.some(dep => affected.has(dep))) {
+      for (const [name, definition] of definitions) {
+        if (!affected.has(name) && definition.deps.some(dep => affected.has(dep))) {
           affected.add(name);
           changed = true;
         }
@@ -54,51 +57,92 @@
     }
     return affected;
   }
-
-  function invalidate(id) {
-    identifier(id);
-    const affected = activeConsumers(id);
-    const order = [];
-    const visited = new Set();
-    function visit(current) {
-      if (visited.has(current)) return;
-      visited.add(current);
-      for (const name of affected) {
-        if (name !== current && definitions.get(name)?.deps.includes(current)) visit(name);
+  function disposeAffected(affected) {
+    const order = [], seen = new Set(), errors = [];
+    function visit(name) {
+      if (seen.has(name)) return;
+      seen.add(name);
+      for (const [consumer, definition] of definitions) {
+        if (affected.has(consumer) && definition.deps.includes(name)) visit(consumer);
       }
-      order.push(current);
+      order.push(name);
     }
-    visit(id);
-    const errors = [];
+    for (const name of affected) visit(name);
     for (const name of order) {
       const instance = instances.get(name);
-      if (instance) {
-        instances.delete(name);
-        for (const dispose of instance.dispose.reverse()) {
-          try { dispose(); } catch (error) { errors.push(error); }
-        }
+      if (!instance) continue;
+      instances.delete(name);
+      for (const dispose of instance.dispose.reverse()) {
+        try { dispose(); } catch (error) { errors.push(error); }
       }
     }
-    if (errors.length) throw new AggregateError(errors, 'module disposal failed');
-    return order;
+    return { order, errors };
   }
-
+  function invalidate(id) {
+    unlocked();
+    identifier(id);
+    changing = true;
+    try {
+      const result = disposeAffected(affectedBy([id]));
+      if (result.errors.length) throw new AggregateError(result.errors, 'module disposal failed');
+      return result.order;
+    } finally { changing = false; }
+  }
+  // Invalid or stale updates are rejected before touching working instances.
+  // External disposal effects cannot be rolled back after cleanup starts.
+  function installBatch(changes, { expectedRevisions } = {}) {
+    unlocked();
+    if (!Array.isArray(changes) || changes.length === 0) throw new TypeError('installBatch requires a nonempty array');
+    const staged = new Map();
+    for (const change of changes) {
+      if (!change || Array.isArray(change) || typeof change !== 'object' ||
+          Object.keys(change).some(key => !['id','deps','factory'].includes(key))) {
+        throw new TypeError('invalid batch record');
+      }
+      const def = validDefinition(change.id, change.deps, change.factory);
+      if (staged.has(change.id)) throw new Error('duplicate batch module: ' + change.id);
+      staged.set(change.id, def);
+    }
+    if (expectedRevisions !== undefined) {
+      if (!expectedRevisions || typeof expectedRevisions !== 'object' || Array.isArray(expectedRevisions) ||
+          Object.keys(expectedRevisions).length !== staged.size) {
+        throw new TypeError('expectedRevisions must specify every batch module');
+      }
+      for (const id of staged.keys()) {
+        if (!Object.prototype.hasOwnProperty.call(expectedRevisions,id) ||
+            !Number.isSafeInteger(expectedRevisions[id]) || expectedRevisions[id] < 0) {
+          throw new TypeError('missing or invalid expected revision: ' + id);
+        }
+        if ((definitions.get(id)?.revision ?? 0) !== expectedRevisions[id]) throw new Error('stale module revision: ' + id);
+      }
+    }
+    const candidate = new Map(definitions);
+    for (const [id, entry] of staged) {
+      const previous = definitions.get(id);
+      candidate.set(id, { ...entry, revision: previous ? previous.revision + 1 : 1 });
+    }
+    graphCheck(candidate);
+    const affected = affectedBy(staged.keys());
+    changing = true;
+    try {
+      const cleanup = disposeAffected(affected);
+      for (const id of staged.keys()) definitions.set(id, candidate.get(id));
+      if (cleanup.errors.length) throw new AggregateError(cleanup.errors,
+        'module cleanup failed; batch definitions committed; full reload may be necessary');
+      return Array.from(staged.keys());
+    } finally { changing = false; }
+  }
   function install(id, deps, factory) {
-    const next = validDefinition(id, deps, factory);
-    checkReplacement(id, next); // Never discard working instances on malformed dependency changes.
-    const previous = definitions.get(id);
-    if (previous) invalidate(id);
-    next.revision = previous ? previous.revision + 1 : 1;
-    definitions.set(id, next);
+    installBatch([{ id, deps, factory }]);
     return id;
   }
-
   function remove(id) {
+    unlocked();
     identifier(id);
     if (!definitions.has(id)) return false;
-    const consumers = activeConsumers(id);
-    const registered = Array.from(definitions).filter(([name, def]) => name !== id && def.deps.includes(id));
-    if (registered.length || consumers.size > 1) throw new Error('cannot remove module with registered dependents: ' + id);
+    for (const [name, definition] of definitions) {
+      if (name !== id && definition.deps.includes(id)) throw new Error('cannot remove module with registered dependents: ' + id);
+    }
     invalidate(id);
     definitions.delete(id);
     return true;
