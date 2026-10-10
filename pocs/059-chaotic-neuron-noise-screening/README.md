@@ -45,7 +45,7 @@ For the process-noise cases, the standard deviation is 5% of the clean populatio
 - Total trajectory shift: RMS noisy-vs-clean difference across cells and time, on the same scale.
 - Clean effective rank: entropy-based rank of the covariance of the 16 x traces.
 
-The positive Lyapunov estimate verifies a chaotic regime for the isolated, unforced cell under the selected parameters. The shared input and coupling change the network dynamics; this estimate does not certify chaos in the driven network. Irregular output alone is not the chaos gate.
+The corrected positive Lyapunov estimates verify the isolated, unforced cell's operating regime for the stated finite-time estimator. The shared input and coupling change the network dynamics; this estimate does not certify chaos in the driven network. Irregular output alone is not the chaos gate. The 2026-10-08 session's dt=0.01 estimate is invalid because its RK4 intermediate stages used dt=0.02; retain that original record, but use the corrected rerun below for step-refinement evidence.
 
 This screening deliberately has no trained readout and no AI task score. It only tests how coupling redistributes model-level perturbations and state diversity. A later task-level comparison needs matched non-chaotic and digital baselines, train/validation/test separation, and fixed noise assumptions before reading any AI advantage into these dynamics.
 
@@ -61,7 +61,7 @@ Three seeds gave the following descriptive means (SD is across seeds, not a conf
 
 Interpretation: stronger coupling can suppress differences between cells under independent perturbations, while not suppressing the error of the network's shared trajectory. It also reduces diversity. In this screening the stronger coupling increased, rather than decreased, the overall trajectory shift. This is a mechanism-level tradeoff, not evidence that synchronization improves a useful AI computation.
 
-The full per-seed evidence and parameters are in sessions/2026-10-08-noise-screening/results.json; its accompanying report.md is the generated result table.
+The original full per-seed evidence is preserved in sessions/2026-10-08-noise-screening/. Its dt=0.01 Lyapunov field is not a valid refinement estimate. The corrected full rerun, with each RK4 stage using the requested timestep, is in [sessions/2026-10-10-lyapunov-rk4-correction/](sessions/2026-10-10-lyapunov-rk4-correction/). It reports 0.01879 at dt=0.02 and 0.01879 at dt=0.01, per model time unit; this only validates the isolated-cell indicator at two timesteps, not the coupled driven network.
 
 ## References
 
