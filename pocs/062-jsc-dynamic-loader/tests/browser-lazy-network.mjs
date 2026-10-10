@@ -12,7 +12,7 @@ const dir=await mkdtemp(join(tmpdir(),'jsc-network-lazy-'));
 const modules=[['entry','entry'],['optional','optional']];
 for(const [id,value] of modules)await writeFile(join(dir,id+'.js'),'module.exports.value='+JSON.stringify(value)+';');
 const run=(compiler,ids,destination)=>{
-  const manifest=join(dir,destination+'.json'),output=join(dir,destination+'.js');
+  const manifest=join(dir,destination+'.json'),output=join(dir,destination+'.compiled.js');
   return {manifest,output,ids,compiler};
 };
 const results={};
