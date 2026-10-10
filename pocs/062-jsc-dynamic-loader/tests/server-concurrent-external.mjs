@@ -156,32 +156,37 @@ async function parent(){
    }
    await Promise.all(processes.map(p=>p.stop('SIGTERM')));processes=[];
   }
-  for(const mode of ['before-effect','after-effect']){
+  for(const scenario of ['before-effect','after-effect','duplicate-external-effect']){
+   const mode=scenario==='duplicate-external-effect'?'after-effect':scenario;
    const dir=join(root,mode);await mkdir(dir);
    const port=await getPort(),url='http://127.0.0.1:'+port;
-   const op={id:'crash-'+mode,amount:11};
+   const op={id:'crash-'+scenario,amount:11};
    processes=[child(mode,dir,port,origin)];await processes[0].wait('READY');
    const pending=post(url+'/effect',op).then(()=> 'unexpected-success',()=> 'ambiguous');
    await processes[0].wait(mode==='before-effect'?'CLAIMED_BEFORE_EFFECT':'APPLIED_BEFORE_RECEIPT');
    await processes[0].stop('SIGKILL');processes=[];
    assert.equal(await Promise.race([pending,delay(8000).then(()=> 'timeout')]),'ambiguous');
+   if(scenario==='duplicate-external-effect'){
+    const extra=await post(origin+'/apply',op);
+    assert.equal(extra.status,200,'external system actually applied a second effect');
+   }
    const count=effects.get(op.id)?.applied||0;
-   assert.equal(count,mode==='after-effect'?1:0);
+   assert.equal(count,scenario==='before-effect'?0:scenario==='after-effect'?1:2);
    processes=[child('restart',dir,port,origin)];await processes[0].wait('READY');
    assert.equal((await post(url+'/effect',op)).status,503,'restarted server must not blindly repeat external effect');
    lookupAvailable=false;
    assert.equal((await fetch(url+'/reconcile?id='+op.id)).status,503);
    lookupAvailable=true;
    const recovery=await fetch(url+'/reconcile?id='+op.id);
-   assert.equal(recovery.status,mode==='after-effect'?200:503);
-   if(mode==='after-effect'){
+   assert.equal(recovery.status,scenario==='after-effect'?200:503);
+   if(scenario==='after-effect'){
     assert.equal((await recovery.json()).explicitReconciliation,true);
     const retry=await post(url+'/effect',op);assert.equal(retry.status,200);assert.equal((await retry.json()).replayed,true);
-   }else assert.equal((await post(url+'/effect',op)).status,503,'unknown state requires explicit intervention');
+   }else assert.equal((await post(url+'/effect',op)).status,503,'unknown or conflicting state requires explicit intervention');
    assert.equal(effects.get(op.id)?.applied||0,count);
    await Promise.all(processes.map(p=>p.stop('SIGTERM')));processes=[];
   }
-  console.log('PASS MULTI-PROCESS + EXTERNAL: stale independent workers applied same key twice; shared exclusive claim applied once, stale/pending fail closed; real SIGKILL before/after distinct external HTTP effect preserved ambiguity; authoritative read-only reconciliation resolves only confirmed effect');
+  console.log('PASS MULTI-PROCESS + EXTERNAL: stale independent workers applied same key twice; shared exclusive claim applied once, stale/pending fail closed; real SIGKILL before/after external HTTP effect preserved ambiguity; inconsistent double-apply ledger blocks recovery; read-only reconciliation resolves only confirmed single effect');
  }finally{
   await Promise.all(processes.map(p=>p.stop()));
   if(device)await new Promise(ok=>device.close(ok));
