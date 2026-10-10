@@ -149,6 +149,7 @@
   }
 
   function requireModule(id) {
+    unlocked();
     identifier(id);
     const cached = instances.get(id);
     if (cached) {
@@ -191,19 +192,22 @@
 
   // Browser transport uses ordinary classic scripts, subject to actual server HTTP cache headers.
   // Expected module revision prevents a syntactically loaded but ineffective patch from reporting success.
+  // Revision checks verify delivery, not rollback of arbitrary patch script side effects.
   function loadScript(url, { nonce, expect } = {}) {
     if (typeof document === 'undefined') return Promise.reject(new Error('document unavailable'));
-    if (expect !== undefined) identifier(expect);
-    const prior = expect === undefined ? 0 : revision(expect);
+    const expected = expect === undefined ? [] : Array.isArray(expect) ? expect.slice() : [expect];
+    expected.forEach(identifier);
+    if (new Set(expected).size !== expected.length) return Promise.reject(new TypeError('duplicate expected modules'));
+    const prior = new Map(expected.map(id => [id, revision(id)]));
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
       script.async = true;
       if (nonce) script.nonce = nonce;
       script.onload = () => {
         script.remove();
-        if (expect !== undefined && revision(expect) <= prior) {
-          reject(new Error('script loaded without installing expected module: ' + expect));
-        } else resolve();
+        const missing = expected.filter(id => revision(id) <= prior.get(id));
+        if (missing.length) reject(new Error('script loaded without updating expected modules: ' + missing.join(', ')));
+        else resolve();
       };
       script.onerror = () => { script.remove(); reject(new Error('script load failed: ' + url)); };
       script.src = url;
@@ -211,7 +215,7 @@
     });
   }
 
-  const runtime = Object.freeze({ install, require: requireModule, invalidate, remove, state, revision, loadScript });
+  const runtime = Object.freeze({ install, installBatch, require: requireModule, invalidate, remove, state, revision, loadScript });
   if (host.JscRuntime !== undefined) throw new Error('JscRuntime already defined');
   Object.defineProperty(host, 'JscRuntime', { value: runtime, configurable: false, writable: false });
 })(globalThis);
