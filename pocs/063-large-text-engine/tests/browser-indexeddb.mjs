@@ -69,4 +69,4 @@ try{
   const result=await stageRun(stage,origin+stage);console.log(JSON.stringify(result));
  }
  console.log(JSON.stringify({pass:true,browser:'Chromium',provider:'real IndexedDB',freshBrowserProcesses:6}));
-} finally{await new Promise(r=>server.close(r));rmSync(profile,{recursive:true,force:true});}
+} finally{await new Promise(r=>server.close(r));rmSync(profile,{recursive:true,force:true,maxRetries:20,retryDelay:250});}
