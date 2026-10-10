@@ -101,10 +101,10 @@ try{
   await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',...pasteKey});
   await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',...pasteKey});
   state=await snapshot();
-  assert.equal(state.text,'r\\nsQabXYr\\ns','paste replicated onto two unordered caret selections');
+  assert.equal(state.text,'r\nsQabXYr\ns','paste replicated onto two unordered caret selections');
   assert.equal(state.historyLength,4,'one paste is one history action for both caret targets');
   assert.equal(state.historyIndex,4);
-  assert.ok(state.events.some(e=>e.event==='paste' && e.text==='r\\ns'),
+  assert.ok(state.events.some(e=>e.event==='paste' && e.text==='r\ns'),
     'Chrome must deliver the real clipboard paste event');
   assert.equal(state.nativeValue,state.text,'native textarea view follows document');
   await chord(false);
@@ -113,7 +113,7 @@ try{
   assert.deepEqual(state.selection,
     [{start:5,end:5,forward:true},{start:0,end:0,forward:true}]);
   await chord(true);
-  assert.equal((await snapshot()).text,'r\\nsQabXYr\\ns');
+  assert.equal((await snapshot()).text,'r\nsQabXYr\ns');
 
   // A real Chrome IME preview may mutate DOM, but not the model or history.
   await evaluate("window.__probe.setSelections([{start:0,end:0,forward:true}])");
