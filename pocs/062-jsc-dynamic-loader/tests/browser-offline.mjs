@@ -33,7 +33,7 @@ function workerSource(version) { return [
  " const cache=await caches.open(CACHE);await cache.addAll(['/', '/client', '/release.json',RELEASE.url]);",
  "})()));",
  "self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));",
- "self.addEventListener('message',e=>{if(e.data?.type==='activate')self.skipWaiting();});",
+ "self.addEventListener('message',e=>{if(e.data?.type==='activate')self.skipWaiting();if(e.data?.type==='version')e.ports[0]?.postMessage(RELEASE.version);});",
  "self.addEventListener('fetch',e=>{",
  " const url=new URL(e.request.url);",
  " if(e.request.method!=='GET'||url.origin!==self.location.origin)return;",
