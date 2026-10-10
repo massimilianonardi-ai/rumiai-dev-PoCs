@@ -16,7 +16,7 @@ for (const version of ['v1','v2']) {
   const output=join(dir,version+'.bundle.js');
   await writeFile(source,`module.exports = {version: ${JSON.stringify(version)}};`);
   await writeFile(manifest, JSON.stringify({version:1,modules:[{id:'app',deps:[],file:version+'.js'}]}));
-  const built=spawnSync(process.execPath,[join(root,'src/jsc.mjs'),manifest,output],{encoding:'utf8'});
+  const built=spawnSync(process.execPath,[join(root,'src/assemble.mjs'),manifest,output],{encoding:'utf8'});
   assert.equal(built.status,0,built.stderr);
   const bytes=await readFile(output);
   const digest=createHash('sha256').update(bytes).digest('hex').slice(0,16);

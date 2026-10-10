@@ -15,7 +15,7 @@ for(const version of ['v1','v2']){
   const source=join(dir,version+'.js'),manifest=join(dir,version+'.json'),out=join(dir,version+'.bundle.js');
   await writeFile(source,`module.exports = {version:${JSON.stringify(version)}};`);
   await writeFile(manifest,JSON.stringify({version:1,modules:[{id:'app',deps:[],file:version+'.js'}]}));
-  const result=spawnSync(process.execPath,[join(root,'src/jsc.mjs'),manifest,out],{encoding:'utf8'});
+  const result=spawnSync(process.execPath,[join(root,'src/assemble.mjs'),manifest,out],{encoding:'utf8'});
   assert.equal(result.status,0,result.stderr);
   const bytes=await readFile(out),sha=createHash('sha256').update(bytes).digest('hex').slice(0,16);
   const url=`/assets/${version}-${sha}.js`;
@@ -48,9 +48,10 @@ const page=`<!doctype html><meta charset="utf-8"><pre id="result">LOADING</pre><
     sessionStorage.setItem('jsc-tab-id',tabId);
     const channel=new BroadcastChannel('jsc-migration-poc');
     const votes=new Map();
+    let responding=true;
     channel.onmessage=e=>{
       const data=e.data;
-      if(data.type==='prepare' && data.from!==tabId){
+      if(responding && data.type==='prepare' && data.from!==tabId){
         channel.postMessage({type:'vote',token:data.token,from:tabId,ready:!state.dirty,version:app.version});
       }
       if(data.type==='vote' && votes.has(data.token))votes.get(data.token).push(data);
@@ -59,6 +60,14 @@ const page=`<!doctype html><meta charset="utf-8"><pre id="result">LOADING</pre><
       get version(){return app.version;},get state(){return {...state};},get tabId(){return tabId;},
       add(n){state.count+=n;return state.count;},
       dirty(flag){state.dirty=!!flag;},
+      responding(flag){responding=!!flag;},
+      async plan(peers){
+        // Test-only fail-closed vote policy: known peers must all acknowledge readiness.
+        const replies=await this.prepare();
+        const missing=peers.filter(id=>!replies.some(v=>v.from===id));
+        const vetoed=replies.filter(v=>peers.includes(v.from)&&!v.ready).map(v=>v.from);
+        return {ready:!state.dirty&&missing.length===0&&vetoed.length===0,missing,vetoed};
+      },
       async poll(){try{const r=await fetch('/release.json?interrupt=1',{cache:'no-store'});if(!r.ok)throw Error('http '+r.status);return 'unexpected-success';}catch(e){return 'recoverable-network-failure';}},
       async brokenPatch(){const before=JscRuntime.revision('app');try{await JscRuntime.loadScript('/broken-patch.js',{expect:'app'});return false;}catch(e){return JscRuntime.revision('app')===before;}},
       async prepare(){const token=tabId+'-'+Math.random();votes.set(token,[]);
@@ -154,9 +163,16 @@ try{
   await b.until('Boolean(navigator.serviceWorker.controller)');
   assert.equal(await a.evalJs('demo.add(3)'),3);assert.equal(await b.evalJs('demo.add(5)'),5);
   await b.evalJs('demo.dirty(true)');
+  // A temporarily unresponsive peer is NOT an implicit affirmative vote.
+  const peerB=await b.evalJs('demo.tabId');
+  await b.evalJs('demo.responding(false)');
+  const missing=await a.evalJs('demo.plan(['+JSON.stringify(peerB)+'])');
+  assert.equal(missing.ready,false,'missing peer acknowledgement must block');
+  assert.deepEqual(missing.missing,[peerB]);
+  await b.evalJs('demo.responding(true)');
   // Two actual top-level tabs, no frame simulation: one dirty tab vetoes a proposed migration.
-  const blocked=await a.evalJs('demo.prepare()');
-  assert.equal(blocked.length,1);assert.equal(blocked[0].ready,false);
+  const blocked=await a.evalJs('demo.plan(['+JSON.stringify(peerB)+'])');
+  assert.equal(blocked.ready,false);assert.deepEqual(blocked.vetoed,[peerB]);
   assert.equal(await a.evalJs('demo.poll()'),'recoverable-network-failure');
   assert.equal(await a.evalJs('demo.brokenPatch()'),true);
   assert.equal(await a.evalJs('demo.state.count'),3);
@@ -176,7 +192,7 @@ try{
   await a.until('navigator.serviceWorker.getRegistration().then(r=>Boolean(r?.waiting))');
   assert.equal(await a.evalJs('navigator.serviceWorker.getRegistration().then(r=>r.active!==r.waiting)'),true);
   await b.evalJs('demo.dirty(false)');
-  const ready=await a.evalJs('demo.prepare()');assert.equal(ready.length,1);assert.equal(ready[0].ready,true);
+  const ready=await a.evalJs('demo.plan(['+JSON.stringify(peerB)+'])');assert.equal(ready.ready,true);assert.deepEqual(ready.missing,[]);
   await a.evalJs('demo.migrate()');
   await a.until('window.demo?.version==="v2"');
   assert.equal(await a.evalJs('demo.state.count'),3);
@@ -196,7 +212,7 @@ try{
 
   assert.equal(halfUploads,1);assert.equal(rejectedPublishes,1);assert.equal(earlyEvictions,1);
   assert.ok(workerRequests>=1);
-  console.log('PASS: two real top-level Chrome tabs, BroadcastChannel dirty-veto/ready votes, interrupted staging and pointer fetch, broken script, retained v1 assets, explicit v1->v2 state migration (3 and 5), coordinated SW v2 activation, independently pinned clients');
+  console.log('PASS: two real top-level Chrome tabs, fail-closed missing peer/veto readiness, interrupted staging and pointer fetch, broken script, retained v1 assets, explicit v1->v2 state migration (3 and 5), coordinated SW v2 activation, independently pinned clients');
 }finally{
   for(const connection of connections)try{connection.socket.close();}catch{}
   if(chrome){chrome.kill('SIGKILL');await new Promise(done=>{if(chrome.exitCode!==null||chrome.signalCode!==null)done();else chrome.once('close',done);});}

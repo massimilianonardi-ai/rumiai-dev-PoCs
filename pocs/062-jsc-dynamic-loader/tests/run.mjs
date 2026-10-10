@@ -10,7 +10,7 @@ const root = resolve(import.meta.dirname, '..');
 const tmp = await mkdtemp(join(tmpdir(), 'jsc-poc-'));
 const build = join(tmp, 'bundle.js');
 try {
-  const result = spawnSync(process.execPath, [join(root, 'src/jsc.mjs'), join(root, 'example/modules.json'), build], {encoding:'utf8'});
+  const result = spawnSync(process.execPath, [join(root, 'src/assemble.mjs'), join(root, 'example/modules.json'), build], {encoding:'utf8'});
   assert.equal(result.status, 0, result.stderr);
   const code = await readFile(build, 'utf8');
   assert.ok(code.includes('globalThis.JscRuntime.install'));

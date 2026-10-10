@@ -8,7 +8,7 @@ import http from 'node:http';
 const root = resolve(import.meta.dirname, '..');
 const dir = await mkdtemp(join(tmpdir(), 'jsc-chromium-'));
 const out = join(dir, 'bundle.js');
-const compiler = spawnSync(process.execPath, [join(root,'src/jsc.mjs'), join(root,'example/modules.json'), out], {encoding:'utf8'});
+const compiler = spawnSync(process.execPath, [join(root,'src/assemble.mjs'), join(root,'example/modules.json'), out], {encoding:'utf8'});
 assert.equal(compiler.status, 0, compiler.stderr);
 const compiled = await readFile(out, 'utf8');
 let revision = 0;

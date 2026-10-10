@@ -65,8 +65,8 @@ async function main() {
     entries.push({ id, deps, source, path: rel });
   }
   checkGraph(entries);
-  const loader = await readFile(new URL('./loader.js', import.meta.url), 'utf8');
-  let result = `/* jsc experimental classic single-file bundle */\n${loader}\n`;
+  // Compiler only: no runtime library is embedded in compiled module registrations.
+  let result = '/* jsc experimental classic compiled module registrations; load a compatible independent runtime first */\n';
   // Publish the entire initial module graph in a single validated transaction.
   // Forward references do not expose an intermediate registry.
   result += 'globalThis.JscRuntime.installBatch([\n';

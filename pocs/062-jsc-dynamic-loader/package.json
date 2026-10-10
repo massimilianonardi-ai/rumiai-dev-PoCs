@@ -2,8 +2,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node src/jsc.mjs example/modules.json example/bundle.js",
-    "test": "node tests/run.mjs && node tests/boundaries.mjs && node tests/transactions.mjs && node --expose-gc tests/memory.mjs && node tests/migration.mjs",
-    "test:browser": "node tests/browser.mjs && node tests/browser-lifecycle.mjs && node tests/browser-releases.mjs && node tests/browser-multitab.mjs"
+    "build": "node src/assemble.mjs example/modules.json example/bundle.js",
+    "test": "node tests/run.mjs && node tests/boundaries.mjs && node tests/transactions.mjs && node --expose-gc tests/memory.mjs && node tests/migration.mjs && node tests/separation.mjs",
+    "test:browser": "node tests/browser.mjs && node tests/browser-lifecycle.mjs && node tests/browser-releases.mjs && node tests/browser-multitab.mjs",
+    "build:compiled": "node src/jsc.mjs example/modules.json example/compiled.js"
   }
 }

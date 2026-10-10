@@ -61,7 +61,7 @@ try{
     {id:'a',file:'a.js',deps:['b']},{id:'b',file:'b.js',deps:[]}
   ]}));
   const output=join(tmp,'out.js');
-  const build=spawnSync(process.execPath,[join(root,'src/jsc.mjs'),join(tmp,'manifest.json'),output],{encoding:'utf8'});
+  const build=spawnSync(process.execPath,[join(root,'src/assemble.mjs'),join(tmp,'manifest.json'),output],{encoding:'utf8'});
   assert.equal(build.status,0,build.stderr);
   const bundle=await readFile(output,'utf8');
   assert.equal((bundle.match(/globalThis\.JscRuntime\.installBatch\(/g)||[]).length,1);
