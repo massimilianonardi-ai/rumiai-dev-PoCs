@@ -64,6 +64,8 @@ const origin='http://127.0.0.1:'+server.address().port+'/';
 const executable=process.env.CHROMIUM||'/usr/bin/chromium';
 let current=null;
 async function launch(){
+ // The previous process may leave the DevToolsActivePort marker behind after SIGKILL.
+ await rm(join(profile,'DevToolsActivePort'),{force:true});
  const child=spawn(executable,[
   '--headless','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--no-first-run',
   '--user-data-dir='+profile,'--remote-debugging-port=0','--remote-allow-origins=*',origin
