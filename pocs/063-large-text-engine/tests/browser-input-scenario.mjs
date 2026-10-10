@@ -10,6 +10,7 @@ const field=document.getElementById('capture');
 const history=[];
 const observed=[];
 let index=0,rendering=false,composing=false;
+let committedComposition=null;
 const text=()=>documentModel.slice(0,documentModel.length);
 function render(){
   rendering=true;
@@ -48,8 +49,23 @@ function redo(){
   editor.replace(value);
   render();
 }
+// Browser owns the source event; the outer controller owns exactly one action.
+field.addEventListener('paste',e=>{
+  const pasted=e.clipboardData?.getData('text/plain');
+  observed.push({event:'paste',text:pasted??null});
+  if(typeof pasted!=='string')return;
+  e.preventDefault();
+  input(pasted);
+});
 field.addEventListener('beforeinput',e=>{
   observed.push({event:'beforeinput',type:e.inputType,data:e.data,composing:e.isComposing});
+  // Native composition previews can change the textarea without changing the
+  // document. A final browser echo is suppressed if compositionend committed.
+  if(committedComposition!==null && e.inputType==='insertText' &&
+     e.data===committedComposition){
+    e.preventDefault();observed.push({event:'composition-echo-suppressed'});
+    committedComposition=null;render();return;
+  }
   if(e.inputType==='insertText'&&!e.isComposing&&!composing&&typeof e.data==='string'&&e.data.length){
     e.preventDefault();
     input(e.data);
@@ -64,22 +80,30 @@ field.addEventListener('keydown',e=>{
 });
 field.addEventListener('mouseup',selectFromNative);
 field.addEventListener('keyup',selectFromNative);
-field.addEventListener('compositionstart',()=>{composing=true;observed.push({event:'compositionstart'});});
+field.addEventListener('compositionstart',()=>{
+  composing=true;committedComposition=null;
+  observed.push({event:'compositionstart'});
+});
 field.addEventListener('compositionupdate',e=>observed.push({event:'compositionupdate',data:e.data}));
 field.addEventListener('compositionend',e=>{
   composing=false;observed.push({event:'compositionend',data:e.data});
-  // Preview/cancellation is not a committed editor action. The final IME
-  // commit policy is *not* claimed as solved by this browser boundary probe.
-  render();
+  // Native preview is never journaled. One completed composition is one
+  // logical input action, even if several preview updates preceded it.
+  // This deliberately tests the browser event boundary, not every host IME.
+  if(typeof e.data==='string' && e.data.length){
+    input(e.data);
+    committedComposition=e.data;
+  } else render();
 });
 render();
 field.focus();
 window.__probe={
   snapshot:()=>({text:text(),selection:editor.getSelections(),
     historyLength:history.length,historyIndex:index,
-    nativeSelectionStart:field.selectionStart,
+    nativeSelectionStart:field.selectionStart,nativeValue:field.value,
     events:observed.slice()}),
   focus:()=>field.focus(),
+  setSelections:ranges=>{editor.setSelections(ranges);render();},
   rect:()=>{const r=field.getBoundingClientRect();return {x:r.x+3,y:r.y+12};}
 };
 document.getElementById('result').textContent='ready';

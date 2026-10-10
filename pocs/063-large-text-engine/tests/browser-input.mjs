@@ -46,7 +46,11 @@ try{
   const page=targets.find(t=>t.type==='page');if(!page)throw Error('No Chrome page');
   cdp=await connect(page.webSocketDebuggerUrl);
   await cdp.send('Page.enable');await cdp.send('Runtime.enable');
-  await cdp.send('Page.navigate',{url:'http://127.0.0.1:'+server.address().port+'/tests/browser-input.html'});
+  const origin='http://127.0.0.1:'+server.address().port;
+  await cdp.send('Browser.grantPermissions',{
+    origin,permissions:['clipboardReadWrite','clipboardSanitizedWrite']
+  });
+  await cdp.send('Page.navigate',{url:origin+'/tests/browser-input.html'});
   async function evaluate(expression){
     const result=await cdp.send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});
     if(result.exceptionDetails)throw Error(JSON.stringify(result.exceptionDetails));
@@ -90,18 +94,55 @@ try{
   assert.equal(state.historyLength,3);
   assert.equal(state.historyIndex,3);
   assert.ok(state.events.filter(e=>e.event==='beforeinput'&&e.type==='insertText').length>=3);
-  // Observe a genuine CDP IME preview without claiming completed composition
-  // or one-undo IME correctness; it is a separate later integration step.
-  let imePreview='unsupported';
-  try{
-    await cdp.send('Input.imeSetComposition',{text:'あ',selectionStart:1,selectionEnd:1});
-    const preview=await snapshot();
-    imePreview=preview.events.some(e=>e.event==='compositionstart')?'composition-observed':'no-composition-event';
-    await cdp.send('Input.imeSetComposition',{text:'',selectionStart:0,selectionEnd:0});
-  }catch(error){imePreview='unsupported: '+String(error).slice(0,120);}
+  // Real OS/browser clipboard path, not a synthetic ClipboardEvent.
+  await evaluate("navigator.clipboard.writeText('r\\ns')");
+  await evaluate("window.__probe.setSelections([{start:5,end:5,forward:true},{start:0,end:0,forward:true}])");
+  const pasteKey={key:'v',code:'KeyV',windowsVirtualKeyCode:86,modifiers:2};
+  await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',...pasteKey});
+  await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',...pasteKey});
+  state=await snapshot();
+  assert.equal(state.text,'r\\nsQabXYr\\ns','paste replicated onto two unordered caret selections');
+  assert.equal(state.historyLength,4,'one paste is one history action for both caret targets');
+  assert.equal(state.historyIndex,4);
+  assert.ok(state.events.some(e=>e.event==='paste' && e.text==='r\\ns'),
+    'Chrome must deliver the real clipboard paste event');
+  assert.equal(state.nativeValue,state.text,'native textarea view follows document');
+  await chord(false);
+  state=await snapshot();
+  assert.equal(state.text,'QabXY','single undo removes both pasted regions');
+  assert.deepEqual(state.selection,
+    [{start:5,end:5,forward:true},{start:0,end:0,forward:true}]);
+  await chord(true);
+  assert.equal((await snapshot()).text,'r\\nsQabXYr\\ns');
+
+  // A real Chrome IME preview may mutate DOM, but not the model or history.
+  await evaluate("window.__probe.setSelections([{start:0,end:0,forward:true}])");
+  const beforeComposition=await snapshot();
+  await cdp.send('Input.imeSetComposition',{text:'あ',selectionStart:1,selectionEnd:1});
+  await cdp.send('Input.imeSetComposition',{text:'あい',selectionStart:2,selectionEnd:2});
+  state=await snapshot();
+  assert.equal(state.text,beforeComposition.text,'composition previews do not mutate the model');
+  assert.equal(state.historyIndex,beforeComposition.historyIndex,
+    'composition previews do not create undo entries');
+  await cdp.send('Input.insertText',{text:'愛'});
+  state=await snapshot();
+  assert.equal(state.text,'愛'+beforeComposition.text,'committed IME changes model once');
+  assert.equal(state.historyLength,5,'one composition commit is one undo record');
+  assert.equal(state.historyIndex,5);
+  assert.ok(state.events.some(e=>e.event==='compositionend'),
+    'real IME commit must finish composition');
+  await chord(false);
+  assert.equal((await snapshot()).text,beforeComposition.text,
+    'one undo removes the entire committed composition');
+  await chord(true);
+  state=await snapshot();
+  assert.equal(state.text,'愛'+beforeComposition.text);
   console.log(JSON.stringify({pass:true,browser:'Chromium',realBeforeInput:true,
-    individualActions:3,keyboardUndoRedo:true,mouseHitTest:true,
-    imePreview,imeCommitValidated:false,node:process.version}));
+    separateTypedActions:3,realPaste:true,pasteTargets:2,
+    pasteSingleUndo:true,imePreviews:2,imeCommitSingleUndo:true,
+    keyboardUndoRedo:true,mouseHitTest:true,
+    browserEvents:state.events.filter(e=>e.event==='compositionend'||e.event==='paste'),
+    node:process.version}));
 }finally{
   cdp?.close();
   if(processHandle){
