@@ -469,11 +469,30 @@ Hosted CI evidence (Node 22.23.3 on Ubuntu Linux x64, real Google Chrome):
 
 This remains a small test page that mirrors the entire **tiny** document into a textarea. It does not establish viewport-limited rendering, accessibility, native rectangle hit testing, real spreadsheet applications, MadEdit-Mod GUI equivalence, host IMEs beyond the tested Chrome/CDP path, or performance/memory figures for large document browser use.
 
+## Truly selected giant lines: process-isolated memory and ASCII geometry candidate (2026-10-10)
+
+The previous EOF-column benchmark left its 4 MiB giant line **unselected**. This new workload actually selects entire 4/16 MiB lines or partitions a single selected 4 MiB line across 64 non-overlapping selections. `tests/selected-long-line-stress.mjs` compares direct document replacements that capture all overwritten text against `TextEditSelections.replace` on genuine native-string/Flat/Piece/Adaptive implementations. Each timed path is paired and alternates order across five trials (plus warm-ups); document creation, selection setup and explicit GC are excluded. Independent child processes measure post-GC retained heap/RSS and the Linux lifetime RSS high-water. Neither editing path writes history to storage. **A one-range deletion can remain nearly constant-time through shared string/backing storage without proving that later inspection, copying or serialization of the removed 16 MiB is free.**
+
+At PoC revision `080350bc1fc0a5ab99216ec3c4e6e13a053608c5`, [Actions run 38087866071](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/38087866071) passed both jobs on Node v22.23.3 Linux x64. The 4 MiB line partitioned into **64 selected ranges** gave the following medians (milliseconds, direct / selection path):
+
+| Backend | Direct with overwritten text captured | `TextEditSelections` |
+|---|---:|---:|
+| Native JavaScript string adapter | 42.7 | 44.0 |
+| FlatDocument | 43.2 | 43.1 |
+| PieceDocument | 0.178 | 0.222 |
+| AdaptiveRepackDocument | 0.333 | 0.379 |
+
+The more serious discovery is in the original `probeLine` visualization candidate: selecting the **first few columns** on one 2 MiB ASCII row still creates 2,097,152 grapheme cell objects. In independent Node children with FlatDocument, complete geometry took **915.982 ms** and retained an additional **150.430 MiB heap** (post-GC; process peak RSS **274.625 MiB**). With AdaptiveRepackDocument, complete geometry took **916.209 ms** and similarly retained **150.432 MiB heap**. This is the *geometry* cost and should not be confused with core replacement throughput or browser DOM memory.
+
+`src/visual-column-ascii-probe.mjs` is a **separate, experimental alternative**, not a new editor API. For known ASCII runs it advances only to the requested visual columns using small document slices, validates a character beyond the desired boundary to avoid misclassifying an adjacent Unicode combining sequence, and **falls back to the unchanged full `Intl.Segmenter` geometry** when a non-ASCII code unit is encountered before the target is resolved. It does not invent Unicode chunk-boundary semantics. `tests/visual-column-ascii-probe.mjs` checks exact parity with the full geometry across 1,600 deterministic mixed Unicode/document fixtures and eight chunk sizes, including tabs, CRLF, wide glyphs, emoji, composed graphemes, Unicode fallback, end-of-line virtual positions and a 2 MiB actual selected line.
+
+For that same 2 MiB ASCII line with target column 2, the isolated FlatDocument candidate measured **1.266 ms**, **0.033 MiB retained heap delta**, and **4,096 UTF-16 units** read; the AdaptiveRepackDocument candidate measured **1.129 ms**, **0.035 MiB retained heap delta** and the same bounded read. These are contrasting *workloads on a deliberately favorable ASCII prefix*: memory samples are subject to Node/V8 GC and process high-water effects; they do not establish the same improvement for general Unicode, far-right columns, tabs with custom view widths, pixel geometry, document rendering or clipboard interactions. The fallback can still materialize the entire line. Genuine browser UI, MadEdit-Mod native GUI, viewport virtualization and physical-host validation remain open. No current RumiAI specification, product runtime, lower-level edit interface or permanent tests were modified.
+
 ## Next measurements and semantic work
 
 1. Extend the now-tested Chromium clipboard/IME input path to native visual rectangle creation, real spreadsheet TSV/CSV semantics, selection directions and cross-browser composition behaviors; keep the browser-to-model projection outside the text engine.
 2. Characterize MadEdit-Mod source-to-destination mapping through actual native GUI and source evidence, including overflow **above** the document, reverse direction, bare-CR newline, autofill, CSV/TSV, tabs, Unicode and virtual columns.
-3. Compare native strings and document structures within one run, including fragmentation, isolated-process memory/RSS and **very long selected lines**; history persistence is outside the editor.
+3. Extend now-measured selected-line memory/latency to realistic mixed Unicode, fragmented backing storage, far-right visual positions, repeated edits and viewport-limited rendering; keep capture/undo persistence external.
 4. Continue visual selection and viewport-limited DOM rendering experiments without confusing display geometry with text storage.
 
 The JavaScript toolchain remains independently owned by handoff/javascript-build-and-runtime-loading.md. Never treat PoC 061's CodeMirror use as permission to adopt it as our editor engine.
