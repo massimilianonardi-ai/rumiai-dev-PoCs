@@ -126,7 +126,7 @@ try {
     child.on('close',status=>{clearTimeout(timeout);resolve({status,stdout,stderr});});
   });
   assert.equal(out.status,0,out.stderr.slice(-900));
-  assert.match(out.stdout,/PASS LIFECYCLE mounted=/,out.stdout.slice(-1800));
-  const report=out.stdout.match(/PASS LIFECYCLE[^<]*/)?.[0];
+  const report=out.stdout.match(/<pre id="result">([^<]*)<\/pre>/)?.[1];
+  assert.ok(report?.startsWith('PASS LIFECYCLE mounted='),report || out.stdout.slice(-2200));
   console.log(report);
 } finally {await new Promise(r=>server.close(r));await rm(dir,{recursive:true,force:true});}

@@ -99,9 +99,10 @@ try {
     child.on('close', status => {clearTimeout(timeout);resolve({status,stdout,stderr});});
   });
   assert.equal(cmd.status,0,(cmd.stderr||'').slice(-1200));
-  assert.match(cmd.stdout,/PASS: CHROMIUM RELOAD/);
-  assert.match(cmd.stdout,/BROWSER_HEAP_MIB/);
-  const reported = cmd.stdout.match(/BROWSER_HEAP_MIB ([0-9.,]+) GROWTH_MIB (-?[0-9.]+)/);
+  const shown = cmd.stdout.match(/<pre id="result">([^<]*)<\/pre>/)?.[1];
+  assert.ok(shown?.startsWith('PASS: CHROMIUM RELOAD'),shown || cmd.stdout.slice(-1800));
+  assert.match(shown,/BROWSER_HEAP_MIB/);
+  const reported = shown.match(/BROWSER_HEAP_MIB ([0-9.,]+) GROWTH_MIB (-?[0-9.]+)/);
   assert.ok(reported, 'browser heap measurements missing');
   console.log('Browser post-GC heap MiB:',reported[1],'growth MiB:',reported[2]);
   assert.equal(patchGets,2,`expected 2 real GET requests but received ${patchGets}`);
