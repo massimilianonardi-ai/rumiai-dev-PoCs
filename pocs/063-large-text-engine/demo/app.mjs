@@ -148,11 +148,14 @@ function offsetOf(row,column){
   const end=row+1<doc.lineCount?doc.lineStart(row+1):doc.length;
   const visible=doc.slice(begin,end).replace(/\r?\n$/,'');
   if(column>visible.length)throw Error('Colonna oltre la lunghezza della riga.');
+  if(column!==visible.length && column!==0 &&
+     !Array.from(graphemes.segment(visible)).some(g=>g.index===column))
+    throw Error('Il cursore cadrebbe all’interno di un grafema Unicode.');
   return begin+column;
 }
 
-$('editor').addEventListener('mousedown',()=>{armed=false;
-  $('column-arm').textContent='Arma incolla da clipboard';});
+// The armed clipboard action survives clicking the editor to place the caret.
+// A second click on the arm button cancels the one-shot mode.
 $('editor').addEventListener('mouseup',()=>{chooseNative();});
 $('editor').addEventListener('keyup',event=>{
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Home','End',
@@ -226,8 +229,10 @@ $('single-cursor').addEventListener('click',()=>guard(()=>{
 }));
 $('column-apply').addEventListener('click',()=>guard(()=>columnInsert($('column-text').value)));
 $('column-arm').addEventListener('click',()=>{
-  armed=true;$('column-arm').textContent='Pronto: premi ⌘V/Ctrl+V';
-  $('editor').focus();notice('Incolla dalla clipboard nel documento.');
+  armed=!armed;
+  $('column-arm').textContent=armed?'Pronto: premi ⌘V/Ctrl+V':'Arma incolla da clipboard';
+  if(armed)$('editor').focus();
+  notice(armed?'Incolla dalla clipboard nel documento.':'Incolla rettangolare disarmato.');
 });
 $('open-file').addEventListener('click',()=>$('file').click());
 $('file').addEventListener('change',async()=>{
