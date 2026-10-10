@@ -211,8 +211,8 @@ try{
   assert.equal(demoReady,true,'interactive demo failed to load its real modules');
   const demoText=()=>evaluate("document.getElementById('editor').value");
   async function clickDemo(id){
-    const pt=await evaluate("(() => {const r=document.getElementById("+
-      JSON.stringify(id)+").getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()");
+    const pt=await evaluate("(() => {const element=document.getElementById("+
+      JSON.stringify(id)+");element.scrollIntoView({block:'center'});const r=element.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()");
     await cdp.send('Input.dispatchMouseEvent',{type:'mousePressed',
       button:'left',x:pt.x,y:pt.y,clickCount:1});
     await cdp.send('Input.dispatchMouseEvent',{type:'mouseReleased',
