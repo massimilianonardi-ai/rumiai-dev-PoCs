@@ -1,0 +1,45 @@
+[
+  {
+    "id":"documented-autofill-single-line",
+    "evidence":"MadEdit-Mod README v0.2.9 plus MadEdit.cpp GetColumnDataFromClipboard()",
+    "status":"verified-conditional-autofill",
+    "clipboard":"A",
+    "targets":[{"start":0,"end":0},{"start":2,"end":2},{"start":4,"end":4}],
+    "fill":"cycle",
+    "expected":["A","A","A"]
+  },
+  {
+    "id":"source-autofill-cycles-two-rows",
+    "evidence":"MadEdit.cpp GetColumnDataFromClipboard() cycles original text when target rows exceed source count",
+    "status":"verified-code-path-only-not-gui",
+    "clipboard":"A\nB",
+    "targets":[{"start":0,"end":0},{"start":2,"end":2},{"start":4,"end":4},{"start":6,"end":6}],
+    "fill":"cycle",
+    "expected":["A","B","A","B"]
+  },
+  {
+    "id":"virtual-column-padding",
+    "evidence":"MadEdit.cpp InsertColumnString() materializes virtual space using spaces",
+    "status":"partial-source-evidence-geometry-unverified",
+    "clipboard":"K\nL",
+    "targets":[{"start":0,"end":0,"virtualSpaces":3},{"start":2,"end":2,"virtualSpaces":1}],
+    "fill":"cycle",
+    "expected":["   K"," L"]
+  },
+  {
+    "id":"source-more-than-target",
+    "status":"hypothesis-not-madedit-verified",
+    "clipboard":"A\nB\nC",
+    "targets":[{"start":0,"end":0},{"start":2,"end":2}],
+    "fill":"once",
+    "expected":["A","B"]
+  },
+  {
+    "id":"blank-fill-option",
+    "status":"hypothesis-not-madedit-verified",
+    "clipboard":"A\nB",
+    "targets":[{"start":0,"end":0},{"start":2,"end":2},{"start":4,"end":4}],
+    "fill":"blank",
+    "expected":["A","B",""]
+  }
+]

@@ -1,0 +1,24 @@
+name: PoC 063 - large text engine
+
+on:
+  push:
+    paths:
+      - 'pocs/063-large-text-engine/**'
+      - '.github/workflows/poc-063-editor-core.yml'
+  workflow_dispatch:
+
+jobs:
+  test-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Real isolated document and transaction checks
+        working-directory: pocs/063-large-text-engine
+        run: node tests/run.mjs
+      - name: Exploratory editing performance, no threshold claim
+        working-directory: pocs/063-large-text-engine
+        run: node --expose-gc benchmark.mjs 1 8
