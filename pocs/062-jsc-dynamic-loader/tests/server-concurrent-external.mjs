@@ -158,7 +158,7 @@ async function parent(){
   }
   for(const scenario of ['before-effect','after-effect','duplicate-external-effect']){
    const mode=scenario==='duplicate-external-effect'?'after-effect':scenario;
-   const dir=join(root,mode);await mkdir(dir);
+   const dir=join(root,scenario);await mkdir(dir);
    const port=await getPort(),url='http://127.0.0.1:'+port;
    const op={id:'crash-'+scenario,amount:11};
    processes=[child(mode,dir,port,origin)];await processes[0].wait('READY');
