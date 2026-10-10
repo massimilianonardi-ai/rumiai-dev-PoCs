@@ -24,6 +24,13 @@ button:disabled {opacity:.5;cursor:not-allowed}
 #editor {display:block;width:100%;height:min(65vh,650px);min-height:350px;resize:vertical;overflow:auto;
  font:16px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre;tab-size:4;
  padding:14px;border-radius:8px;border:1px solid #bacbd9;background:#fcfefe;color:#172b3d}
+
+.editor-wrap {position:relative}
+#rect-overlay {position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:8px}
+#rect-overlay .rect-band {position:absolute;background:rgba(49,123,201,.27);border:1px solid rgba(25,85,160,.64);box-sizing:border-box}
+#editor.rect-pick {cursor:crosshair}
+#rect-mode[aria-pressed="true"] {background:#144b77;color:#fff;border-color:#144b77}
+#rect-status {font-size:.85rem;min-height:1.7em;color:#23577a}
 .status {font-size:.92rem;padding:8px 0 0}
 #message {min-height:2em;color:#1c5876}
 fieldset {border:1px solid #dee5eb;padding:10px;margin:0 0 12px;border-radius:8px}
@@ -55,7 +62,10 @@ label input {padding:7px;width:100%;font:inherit;border:1px solid #b8c7d6;border
   <button id="redo">↷ Ripristina</button>
  </div>
  <label for="editor"><strong>Documento modificabile</strong> <small>Clic, selezione, scrittura, Invio, Canc/Backspace e incolla con ⌘V o Ctrl+V.</small></label>
- <textarea id="editor" spellcheck="false" wrap="off" autocorrect="off" autocomplete="off" autocapitalize="off" aria-label="Documento PoC 063"></textarea>
+ <div class="editor-wrap">
+  <textarea id="editor" spellcheck="false" wrap="off" autocorrect="off" autocomplete="off" autocapitalize="off" aria-label="Documento PoC 063"></textarea>
+  <div id="rect-overlay" aria-hidden="true"></div>
+ </div>
  <div id="stats" class="status"></div>
  <p id="message" role="status" aria-live="polite"></p>
 </section>
@@ -75,6 +85,11 @@ label input {padding:7px;width:100%;font:inherit;border:1px solid #b8c7d6;border
  </fieldset>
  <fieldset>
   <legend>Incolla rettangolare sperimentale</legend>
+  <div class="actions">
+   <button id="rect-mode" type="button" aria-pressed="false">Seleziona rettangolo col mouse</button>
+  </div>
+  <p id="rect-status" role="status">Modalità mouse disattivata.</p>
+  <small>Attiva il pulsante e trascina nell'editor, oppure trascina tenendo premuto Alt/Option. Il rettangolo evidenziato aggiorna i campi sottostanti. Il gesto è limitato ad ASCII e tab monospaziati; per Unicode usa i campi.</small>
   <div class="fields">
    <label>Riga iniziale (1-based)<input id="row-from" type="number" min="1" step="1" value="1"></label>
    <label>Riga finale (1-based)<input id="row-to" type="number" min="1" step="1" value="2"></label>
@@ -90,7 +105,7 @@ W</textarea>
    <button class="primary" id="column-apply">Inserisci a colonne</button>
    <button id="column-arm">Arma incolla da clipboard</button>
   </div>
-  <small>Il secondo pulsante attende un vero ⌘V/Ctrl+V nel documento. Le righe oltre EOF sono create solo verso il basso. Rettangolo impostato tramite campi, non col mouse.</small>
+  <small>Il secondo pulsante attende un vero ⌘V/Ctrl+V nel documento. Le righe oltre EOF sono create solo verso il basso. Il rettangolo può essere trascinato nel documento oppure impostato tramite i campi.</small>
  </fieldset>
  <h2>Selezioni del modello</h2>
  <pre id="selection-details"></pre>
