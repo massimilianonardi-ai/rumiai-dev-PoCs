@@ -22,13 +22,14 @@ jobs:
     steps:
       - name: Checkout experimental benchmark
         uses: actions/checkout@v4
-      - name: Checkout pinned upstream m.Class source
-        uses: actions/checkout@v4
-        with:
-          repository: massimilianonardi-ai/m
-          ref: 2a57a29880c2d7a32e18782122062c695fcb1a3a
-          path: upstream-m
-          persist-credentials: false
+      - name: Fetch and verify pinned upstream Class.js
+        shell: sh
+        run: |
+          mkdir -p upstream-m/js/lib/js/m
+          curl --fail --location --retry 3 --silent --show-error \
+            https://raw.githubusercontent.com/massimilianonardi-ai/m/2a57a29880c2d7a32e18782122062c695fcb1a3a/js/lib/js/m/Class.js \
+            --output upstream-m/js/lib/js/m/Class.js
+          test "$(git hash-object upstream-m/js/lib/js/m/Class.js)" = 1ecebdd88adb7b420f0d9cdfd2f752d3df510e92
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -38,7 +39,7 @@ jobs:
         run: |
           node --version
           node --print "process.versions.v8"
-          git -C upstream-m rev-parse HEAD
+          git hash-object upstream-m/js/lib/js/m/Class.js
           wc -c upstream-m/js/lib/js/m/Class.js
       - name: Run actual benchmark and memory stress
         shell: sh
