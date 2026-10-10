@@ -132,6 +132,45 @@ Run independent comparisons (avoid comparing heap of multiple variants within on
 
 Future validation needs repeated samples, additional Node/browser versions, large deletions, arbitrary multi-range stress, Unicode geometry, streaming I/O, incremental compaction for dispersed edits, compact selection and history encoding, memory caps and potentially disk-backed history. Source-chunk counts exclude chunks referenced only by journal copies; this PoC's undo data holds JavaScript strings, not references to original source slices. Performance timings here are illustrative and have no pass thresholds.
 
+
+## Bounded distributed-edit repacking and external journal (2026-10-10)
+
+This is experimental work; the original text/history controls remain available.
+
+- LocalRepackDocument rebuilds only a bounded region near each edit; it reduces nodes but retains too much copied text in some workloads.
+- AdaptiveRepackDocument repacks a small neighborhood (default 256 UTF-16 units each side) only when it contains ten or more pieces. This is a *local candidate* rather than an accepted editing model; untouched faraway text is not materialized by repacking.
+- CompactHistory now accepts a journal-storage port (length/read/appendAt). ArrayJournal is the default in-memory implementation; the external adapter is independent.
+- adapters/node-file-journal.mjs is a Node-only PoC adapter with UTF-8 journal payloads and fixed 16-byte disk index records. It holds no resident JS array of history entries/offsets and supports redo-branch truncation, random reads, close and reopening existing files.
+
+Real headless checks: tests/repack-journal.mjs passed 9,000 random text edits per repack variant, including Unicode, newlines, arbitrary slices/line starts and a large deletion; 750 grouped two-range transactions with every undo/redo and full selection snapshot; branch truncation, journal reopen/read and a simulated failed append preserving document/selection. tests/repack-memory.mjs checks SHA-256 of the entire resulting document and selection after 1,000 undo/redo operations per workload.
+
+### Linux Node v22.16.0 isolated-process comparison
+
+Input: 2 MiB ASCII document, 36,000 deterministic *dispersed* edits; three independent processes per scenario, two explicit GCs before each post-edit heap sample. Medians:
+
+| Text / history | V8 heap after GC | Live pieces | Peak RSS | Editing time |
+| --- | ---: | ---: | ---: | ---: |
+| Chunked / RAM | 34.716 MiB | 71,308 | 93.133 MiB | 529.97 ms |
+| Adaptive / RAM | 28.947 MiB | 19,780 | 94.957 MiB | 551.91 ms |
+| Chunked / file | 19.440 MiB | 71,308 | 93.258 MiB | 619.70 ms |
+| Adaptive / file | 13.672 MiB | 19,780 | 93.258 MiB | 732.98 ms |
+
+The file journal retained all 36,000 edit records in 6.324 MiB on disk. The combination reduced **retained V8 heap by about 60.6%**, and live document piece count by **72.3%**, compared with the chunked/RAM case on this workload. It **did not** proportionally reduce peak process RSS; the file-journal path also has noticeable I/O cost. No latency or memory guarantee for browsers or other hosts follows. Full per-run data and machine identity are in sessions/repack-journal-20261010.json.
+
+Run from the PoC directory:
+
+    node tests/repack-journal.mjs
+    node --expose-gc tests/repack-memory.mjs chunked array mixed 36000 2
+    node --expose-gc tests/repack-memory.mjs adaptive array mixed 36000 2
+    node --expose-gc tests/repack-memory.mjs chunked disk mixed 36000 2
+    node --expose-gc tests/repack-memory.mjs adaptive disk mixed 36000 2
+
+### Limitations — explicit non-completion boundaries
+
+The file journal is **not crash-atomic**: redo truncation, append and document mutation are not one durable transaction. File synchronization is explicit, not automatic; the journal alone cannot reconstruct a restarted document/session. No corruption recovery, concurrency locking, disk quota/eviction, checkpoints, browser IndexedDB/OPFS adapter, or async transaction protocol is implemented. The per-record 32-MiB limit is a PoC guardrail rather than an accepted specification. Synchronous Node I/O belongs solely to this test adapter, not to a future browser core.
+
+Adaptive repacking reduces piece count under this dispersed workload but may retain underused ranges of shared source chunks. It does not solve huge-file lazy I/O, memory accounting of fully retained undo/selection history, visual Unicode geometry, actual native MadEdit-Mod paste, or browser viewport/IME performance. No product/runtime repository was modified.
+
 ## Next measurements and semantic work
 
 1. Characterize source-to-destination row mapping by reading upstream code and using actual MadEdit-Mod GUI whenever practical, including one/two/many clipboard lines, zero-width selections, long/short target rows, trailing newline, source rows exceeding targets, Unicode and tabs.

@@ -1,0 +1,172 @@
+{
+  "date": "2026-10-10",
+  "host": "Linux x86_64, kernel 6.18.44, Node.js v22.16.0 (auxiliary Linux container)",
+  "poc": "063",
+  "experiment": "repack-memory",
+  "input": {
+    "initialDocumentMiB": 2,
+    "initialContent": "Q repeated",
+    "pattern": "mixed",
+    "operations": 36000,
+    "seed": "0xabcd1234",
+    "selectionRanges": 2
+  },
+  "method": "Three independent processes per variant, --expose-gc; double gc at post-edit checkpoint; SHA-256 text and selection replay checked. File adapter syncs after replay, not once per commit.",
+  "units": {
+    "heapMiB": "absolute V8 heap after GC",
+    "rssMiB": "process RSS after GC",
+    "peakRssMiB": "process peak resident set",
+    "editMs": "time for 36000 commit operations",
+    "replayMs": "time for 1000 undo+1000 redo"
+  },
+  "cases": [
+    {
+      "document": "chunked",
+      "history": "array",
+      "nodes": 71308,
+      "sources": 15,
+      "diskJournalMiB": 0,
+      "runs": [
+        {
+          "heapMiB": 34.72,
+          "rssMiB": 95.199,
+          "peakRssMiB": 95.441,
+          "editMs": 476.15,
+          "replayMs": 49.34
+        },
+        {
+          "heapMiB": 34.716,
+          "rssMiB": 92.414,
+          "peakRssMiB": 93.133,
+          "editMs": 766.13,
+          "replayMs": 37.51
+        },
+        {
+          "heapMiB": 34.712,
+          "rssMiB": 92.688,
+          "peakRssMiB": 93.133,
+          "editMs": 529.97,
+          "replayMs": 29.45
+        }
+      ],
+      "median": {
+        "heapMiB": 34.716,
+        "rssMiB": 92.688,
+        "peakRssMiB": 93.133,
+        "editMs": 529.97,
+        "replayMs": 37.51
+      }
+    },
+    {
+      "document": "adaptive",
+      "history": "array",
+      "nodes": 19780,
+      "sources": 920,
+      "diskJournalMiB": 0,
+      "runs": [
+        {
+          "heapMiB": 28.954,
+          "rssMiB": 94.586,
+          "peakRssMiB": 94.797,
+          "editMs": 517.22,
+          "replayMs": 34.17
+        },
+        {
+          "heapMiB": 28.946,
+          "rssMiB": 96.27,
+          "peakRssMiB": 96.27,
+          "editMs": 563.18,
+          "replayMs": 39.43
+        },
+        {
+          "heapMiB": 28.947,
+          "rssMiB": 94.773,
+          "peakRssMiB": 94.957,
+          "editMs": 551.91,
+          "replayMs": 35.04
+        }
+      ],
+      "median": {
+        "heapMiB": 28.947,
+        "rssMiB": 94.773,
+        "peakRssMiB": 94.957,
+        "editMs": 551.91,
+        "replayMs": 35.04
+      }
+    },
+    {
+      "document": "chunked",
+      "history": "disk",
+      "nodes": 71308,
+      "sources": 15,
+      "diskJournalMiB": 6.324,
+      "runs": [
+        {
+          "heapMiB": 19.44,
+          "rssMiB": 83.66,
+          "peakRssMiB": 93.258,
+          "editMs": 619.7,
+          "replayMs": 53.19
+        },
+        {
+          "heapMiB": 19.44,
+          "rssMiB": 82.855,
+          "peakRssMiB": 93.258,
+          "editMs": 647.14,
+          "replayMs": 54.11
+        },
+        {
+          "heapMiB": 19.44,
+          "rssMiB": 83.313,
+          "peakRssMiB": 93.258,
+          "editMs": 552.11,
+          "replayMs": 50.56
+        }
+      ],
+      "median": {
+        "heapMiB": 19.44,
+        "rssMiB": 83.313,
+        "peakRssMiB": 93.258,
+        "editMs": 619.7,
+        "replayMs": 53.19
+      }
+    },
+    {
+      "document": "adaptive",
+      "history": "disk",
+      "nodes": 19780,
+      "sources": 920,
+      "diskJournalMiB": 6.324,
+      "runs": [
+        {
+          "heapMiB": 13.673,
+          "rssMiB": 89.699,
+          "peakRssMiB": 93.258,
+          "editMs": 724.21,
+          "replayMs": 53.68
+        },
+        {
+          "heapMiB": 13.672,
+          "rssMiB": 90.367,
+          "peakRssMiB": 93.258,
+          "editMs": 732.98,
+          "replayMs": 57.13
+        },
+        {
+          "heapMiB": 13.672,
+          "rssMiB": 92.391,
+          "peakRssMiB": 93.258,
+          "editMs": 745.5,
+          "replayMs": 42.18
+        }
+      ],
+      "median": {
+        "heapMiB": 13.672,
+        "rssMiB": 90.367,
+        "peakRssMiB": 93.258,
+        "editMs": 732.98,
+        "replayMs": 53.68
+      }
+    }
+  ]
+}

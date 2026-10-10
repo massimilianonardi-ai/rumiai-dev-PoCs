@@ -156,3 +156,78 @@ export class ChunkedPieceDocument extends PieceDocument {
     this.root=joinCoalesced(joinCoalesced(a,item),b);
   }
 }
+
+// PoC: repair distributed-edit fragmentation by copying at most a fixed
+// neighborhood on either side of the changed range, never the entire document.
+// The replaced range itself can be arbitrarily large and is discarded by split.
+export class LocalRepackDocument extends ChunkedPieceDocument {
+  constructor(s = '', radius = 256) {
+    super(s);
+    if (!Number.isSafeInteger(radius) || radius < 16 || radius > 65536)
+      throw new RangeError('radius must be 16..65536');
+    this.radius = radius;
+    this.repackedUnits = 0;
+    this.repackCount = 0;
+  }
+  replace(start, end, insert) {
+    check(this, start, end);
+    if (typeof insert !== 'string') throw new TypeError('insert must be a string');
+    if (start === end && insert.length === 0) return;
+    const lo = Math.max(0, start - this.radius);
+    const hi = Math.min(this.length, end + this.radius);
+    // Only read the immediate neighboring text; huge deleted spans are never
+    // materialized in this operation. Splitting discards the intervening tree.
+    const before = this.slice(lo, start);
+    const after = this.slice(end, hi);
+    const replacement = before + insert + after;
+    const [left, remainder] = split(this.root, lo);
+    const [, right] = split(remainder, hi - lo);
+    this.root = merge(merge(left, this.newPiece(replacement)), right);
+    this.repackedUnits += before.length + after.length;
+    this.repackCount++;
+  }
+  stats() { return {...super.stats(), repackCount: this.repackCount, repackedUnits: this.repackedUnits}; }
+}
+
+// PoC: only compact a small edited neighborhood once it contains enough
+// separate pieces to justify the additional copying and source retention.
+function countPiecesInRange(root, start, end, stopAt) {
+  let count = 0;
+  function walk(n, s, e) {
+    if (!n || count >= stopAt || e <= 0 || s >= size(n)) return;
+    const leftSize = size(n.left);
+    if (s < leftSize) walk(n.left, s, Math.min(e, leftSize));
+    if (s < leftSize + n.length && e > leftSize) count++;
+    if (e > leftSize + n.length)
+      walk(n.right, s - leftSize - n.length, e - leftSize - n.length);
+  }
+  walk(root, start, end);
+  return count;
+}
+export class AdaptiveRepackDocument extends ChunkedPieceDocument {
+  constructor(s = '', radius = 256, threshold = 10) {
+    super(s);
+    if (!Number.isSafeInteger(radius) || radius < 16 || radius > 65536)
+      throw new RangeError('radius must be 16..65536');
+    if (!Number.isSafeInteger(threshold) || threshold < 2 || threshold > 1024)
+      throw new RangeError('threshold must be 2..1024');
+    this.radius = radius;
+    this.threshold = threshold;
+    this.repackCount = 0;
+    this.repackedUnits = 0;
+  }
+  replace(start, end, insert) {
+    super.replace(start, end, insert);
+    if (start === end && insert.length === 0) return;
+    const lo = Math.max(0, start - this.radius);
+    const hi = Math.min(this.length, start + insert.length + this.radius);
+    if (countPiecesInRange(this.root, lo, hi, this.threshold) < this.threshold) return;
+    const text = this.slice(lo, hi);
+    const [left, rest] = split(this.root, lo);
+    const [, right] = split(rest, hi - lo);
+    this.root = merge(merge(left, this.newPiece(text)), right);
+    this.repackCount++;
+    this.repackedUnits += text.length;
+  }
+  stats() {return {...super.stats(), repackCount:this.repackCount, repackedUnits:this.repackedUnits};}
+}

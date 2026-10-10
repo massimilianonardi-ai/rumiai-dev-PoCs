@@ -36,6 +36,15 @@ jobs:
           node --expose-gc tests/compare-memory.mjs piece original append 3000 2
           node --expose-gc tests/compare-memory.mjs chunked compact append 3000 2
           node --expose-gc tests/compare-memory.mjs chunked compact mixed 3000 2
+      - name: Adaptive distributed-edit and file journal behavioral checks
+        working-directory: pocs/063-large-text-engine
+        run: node tests/repack-journal.mjs
+      - name: Bounded memory/journal smoke comparison
+        working-directory: pocs/063-large-text-engine
+        run: |
+          node --expose-gc tests/repack-memory.mjs chunked array mixed 3000 2
+          node --expose-gc tests/repack-memory.mjs adaptive array mixed 3000 2
+          node --expose-gc tests/repack-memory.mjs adaptive disk mixed 3000 2
       - name: Exploratory editing performance, no threshold claim
         working-directory: pocs/063-large-text-engine
         run: node --expose-gc benchmark.mjs 1 8
