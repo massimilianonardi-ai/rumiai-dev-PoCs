@@ -72,6 +72,9 @@ jobs:
       - name: Structural TextEditBase and oriented TextEditSelections layering
         working-directory: pocs/063-large-text-engine
         run: node tests/text-edit-selections-probe.mjs
+      - name: Measure fast one-range edits versus defensive multi-selection rollback
+        working-directory: pocs/063-large-text-engine
+        run: node --expose-gc tests/rollback-cost.mjs 12
       - name: Exploratory editing performance, no threshold claim
         working-directory: pocs/063-large-text-engine
         run: node --expose-gc benchmark.mjs 1 8

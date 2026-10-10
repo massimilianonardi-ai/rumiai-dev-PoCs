@@ -339,6 +339,18 @@ Run from this PoC directory:
 
 No permanent test or product change. The old combined `EditorCore` PoC and previous history experiments remain comparison references; these names/methods are not yet a canonical API.
 
+## Defensive rollback overhead versus fast single-range editing (2026-10-10)
+
+This is an **exploratory cost measurement**, not a requirement to keep defensive rollback or a pass/fail performance threshold. The user's primary constraint is extremely fast editing of large documents; a normal in-memory `TextEditBase.replace(start,end,text)` should not fail for valid arguments. Invalid input/ranges should be rejected before document mutation. Remaining failure modes include implementation bugs and resource exhaustion, where a second mutation during rollback can itself fail and strong atomicity is unproven. The base has **no** multi-selection/transaction/undo knowledge.
+
+`tests/rollback-cost.mjs` compares three approaches on the same prepared edits and the **real** `FlatDocument`, `PieceDocument`, `AdaptiveRepackDocument`: (a) direct descending one-range replacements; (b) pre-reading each replaced span (normal information a separate undo controller may need), then descending replacements with no rollback; (c) the same old-text capture plus a `try/catch`, one inverse descriptor per successful edit and a rollback path that is inactive in the ordinary case. Backends and select counts vary, with 12 median samples after warmup and alternate strategy order. Timing excludes document construction, input setup, clipboard decoding, selection interpretation, UI rendering, GC runs outside timing, and keyboard/IME; percentages are observational, not universal.
+
+The exact hosted results are obtainable from the `test-core` job in the workflow associated with this PoC revision. They should be recorded here or in the handoff only **after** that job completes. No extra atomic batch method is introduced in `TextEditBase` and no product implementation changes.
+
+Run from the PoC root:
+
+    node --expose-gc tests/rollback-cost.mjs 12
+
 ## Next measurements and semantic work
 
 1. Test real browser input and composition/IME through an editor-owned-selection plus outer-controller split, maintaining exact user-action undo granularity.
