@@ -455,7 +455,7 @@ MadEdit-Mod reference source pinned for this investigation: [MadEdit.cpp at 97cf
 
 ## Next measurements and semantic work
 
-1. Extend already tested real Chromium keyboard/mouse/\`beforeinput\` boundary to actual paste and **committed** IME input, preserving one undo per semantic user action; do not confuse the observed composition preview with completion.
+1. Extend already tested real Chromium keyboard/mouse/`beforeinput` boundary to actual paste and **committed** IME input, preserving one undo per semantic user action; do not confuse the observed composition preview with completion.
 2. Characterize MadEdit-Mod source-to-destination mapping through actual native GUI and source evidence, including overflow **above** the document, reverse direction, bare-CR newline, autofill, CSV/TSV, tabs, Unicode and virtual columns.
 3. Compare native strings and document structures within one run, including fragmentation, isolated-process memory/RSS and **very long selected lines**; history persistence is outside the editor.
 4. Continue visual selection and viewport-limited DOM rendering experiments without confusing display geometry with text storage.
