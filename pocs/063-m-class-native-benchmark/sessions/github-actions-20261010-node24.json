@@ -1,0 +1,615 @@
+{
+  "kind": "experimental",
+  "purpose": "m.Class versus native JS performance and stress",
+  "date": "2026-10-10",
+  "target": {
+    "repository": "massimilianonardi-ai/m",
+    "commit": "2a57a29880c2d7a32e18782122062c695fcb1a3a",
+    "path": "js/lib/js/m/Class.js",
+    "gitBlob": "1ecebdd88adb7b420f0d9cdfd2f752d3df510e92"
+  },
+  "harness": {
+    "repository": "massimilianonardi-ai/rumiai-dev-PoCs",
+    "sourceHead": "1fbe36ca3bcda5f3b9136fffb993ef333be9cc65",
+    "script": "pocs/063-m-class-native-benchmark/tests/benchmark.mjs",
+    "diagnosis": "pocs/063-m-class-native-benchmark/tests/diagnose.mjs",
+    "githubActionsRun": 38055149618,
+    "jobId": 114221968503,
+    "job": "Node 24",
+    "jobConclusion": "success"
+  },
+  "environment": {
+    "runner": "GitHub Actions ubuntu-latest (auxiliary)",
+    "node": "24.21.0",
+    "arch": "x86_64",
+    "garbageCollector": "Node --expose-gc",
+    "diagnosisFlags": "--allow-natives-syntax",
+    "timing": "hrtime bigint, 7 measured and 2 warm-up samples, worker-per-variant"
+  },
+  "results": [
+    {
+      "scenario": "construction-basic",
+      "variant": "native",
+      "iterations": 130000,
+      "samples_ms": [
+        2.574,
+        0.839,
+        1.064,
+        2.482,
+        0.849,
+        3.089,
+        1.168
+      ],
+      "median_ms": 1.168,
+      "minimum_ms": 0.839,
+      "maximum_ms": 3.089,
+      "checksum": 260001
+    },
+    {
+      "scenario": "construction-basic",
+      "variant": "prototype",
+      "iterations": 130000,
+      "samples_ms": [
+        1.091,
+        4.96,
+        1.17,
+        3.659,
+        1.316,
+        3.413,
+        1.127
+      ],
+      "median_ms": 1.316,
+      "minimum_ms": 1.091,
+      "maximum_ms": 4.96,
+      "checksum": 260001
+    },
+    {
+      "scenario": "construction-basic",
+      "variant": "m.Class",
+      "iterations": 130000,
+      "samples_ms": [
+        16.746,
+        16.111,
+        16.656,
+        13.24,
+        13.834,
+        13.111,
+        11.369
+      ],
+      "median_ms": 13.834,
+      "minimum_ms": 11.369,
+      "maximum_ms": 16.746,
+      "checksum": 260001
+    },
+    {
+      "scenario": "call-method",
+      "variant": "native",
+      "iterations": 6000000,
+      "samples_ms": [
+        9.63,
+        9.792,
+        9.781,
+        9.759,
+        9.731,
+        9.9,
+        9.632
+      ],
+      "median_ms": 9.759,
+      "minimum_ms": 9.63,
+      "maximum_ms": 9.9,
+      "checksum": 770991808
+    },
+    {
+      "scenario": "call-method",
+      "variant": "prototype",
+      "iterations": 6000000,
+      "samples_ms": [
+        10.146,
+        10.122,
+        10.191,
+        9.885,
+        9.464,
+        9.753,
+        9.436
+      ],
+      "median_ms": 9.885,
+      "minimum_ms": 9.436,
+      "maximum_ms": 10.191,
+      "checksum": 770991808
+    },
+    {
+      "scenario": "call-method",
+      "variant": "m.Class",
+      "iterations": 6000000,
+      "samples_ms": [
+        9.492,
+        9.484,
+        9.914,
+        9.858,
+        10.03,
+        10.04,
+        10.091
+      ],
+      "median_ms": 9.914,
+      "minimum_ms": 9.484,
+      "maximum_ms": 10.091,
+      "checksum": 770991808
+    },
+    {
+      "scenario": "read-field",
+      "variant": "native",
+      "iterations": 6000000,
+      "samples_ms": [
+        7.936,
+        8.047,
+        7.693,
+        7.962,
+        7.9,
+        7.931,
+        7.812
+      ],
+      "median_ms": 7.931,
+      "minimum_ms": 7.693,
+      "maximum_ms": 8.047,
+      "checksum": 764991808
+    },
+    {
+      "scenario": "read-field",
+      "variant": "prototype",
+      "iterations": 6000000,
+      "samples_ms": [
+        7.738,
+        7.699,
+        7.474,
+        7.775,
+        7.803,
+        7.531,
+        7.484
+      ],
+      "median_ms": 7.699,
+      "minimum_ms": 7.474,
+      "maximum_ms": 7.803,
+      "checksum": 764991808
+    },
+    {
+      "scenario": "read-field",
+      "variant": "m.Class",
+      "iterations": 6000000,
+      "samples_ms": [
+        8.032,
+        8.083,
+        13.081,
+        11.467,
+        7.519,
+        8.071,
+        7.846
+      ],
+      "median_ms": 8.071,
+      "minimum_ms": 7.519,
+      "maximum_ms": 13.081,
+      "checksum": 764991808
+    },
+    {
+      "scenario": "definition",
+      "variant": "native",
+      "iterations": 3500,
+      "samples_ms": [
+        2.048,
+        1.799,
+        2.864,
+        1.828,
+        1.805,
+        2.159,
+        2.06
+      ],
+      "median_ms": 2.048,
+      "minimum_ms": 1.799,
+      "maximum_ms": 2.864,
+      "checksum": 3509
+    },
+    {
+      "scenario": "definition",
+      "variant": "m.Class",
+      "iterations": 3500,
+      "samples_ms": [
+        5.982,
+        5.46,
+        8.88,
+        4.682,
+        5.438,
+        5.745,
+        4.641
+      ],
+      "median_ms": 5.46,
+      "minimum_ms": 4.641,
+      "maximum_ms": 8.88,
+      "checksum": 3509
+    },
+    {
+      "scenario": "construction-composed",
+      "variant": "native",
+      "iterations": 130000,
+      "samples_ms": [
+        2.704,
+        1.525,
+        3.344,
+        1.562,
+        3.262,
+        1.542,
+        3.099
+      ],
+      "median_ms": 2.704,
+      "minimum_ms": 1.525,
+      "maximum_ms": 3.344,
+      "checksum": 260001
+    },
+    {
+      "scenario": "construction-composed",
+      "variant": "m.Class",
+      "iterations": 130000,
+      "samples_ms": [
+        28.205,
+        25.506,
+        38.364,
+        24.614,
+        25.033,
+        24.887,
+        23.828
+      ],
+      "median_ms": 25.033,
+      "minimum_ms": 23.828,
+      "maximum_ms": 38.364,
+      "checksum": 260001
+    },
+    {
+      "scenario": "construction-inherited",
+      "variant": "native",
+      "iterations": 130000,
+      "samples_ms": [
+        3.076,
+        2.47,
+        1.945,
+        4.569,
+        3.751,
+        2.523,
+        1.04
+      ],
+      "median_ms": 2.523,
+      "minimum_ms": 1.04,
+      "maximum_ms": 4.569,
+      "checksum": 260021
+    },
+    {
+      "scenario": "construction-inherited",
+      "variant": "m.Class",
+      "iterations": 130000,
+      "samples_ms": [
+        84.169,
+        81.065,
+        78.633,
+        78.965,
+        76.62,
+        77.914,
+        78.787
+      ],
+      "median_ms": 78.787,
+      "minimum_ms": 76.62,
+      "maximum_ms": 84.169,
+      "checksum": 260021
+    },
+    {
+      "scenario": "observed-property",
+      "variant": "native",
+      "iterations": 400000,
+      "samples_ms": [
+        2.865,
+        2.756,
+        2.52,
+        2.791,
+        2.692,
+        2.721,
+        2.666
+      ],
+      "median_ms": 2.721,
+      "minimum_ms": 2.52,
+      "maximum_ms": 2.865,
+      "checksum": 80000200000
+    },
+    {
+      "scenario": "observed-property",
+      "variant": "m.Class",
+      "iterations": 400000,
+      "samples_ms": [
+        51.539,
+        51.565,
+        49.762,
+        49.888,
+        49.797,
+        50.214,
+        49.875
+      ],
+      "median_ms": 49.888,
+      "minimum_ms": 49.762,
+      "maximum_ms": 51.565,
+      "checksum": 80000200000
+    },
+    {
+      "scenario": "method-trigger",
+      "variant": "native",
+      "iterations": 1200000,
+      "samples_ms": [
+        3.935,
+        3.334,
+        3.928,
+        3.088,
+        3.341,
+        3.83,
+        3.252
+      ],
+      "median_ms": 3.341,
+      "minimum_ms": 3.088,
+      "maximum_ms": 3.935,
+      "checksum": 4200000
+    },
+    {
+      "scenario": "method-trigger",
+      "variant": "m.Class",
+      "iterations": 1200000,
+      "samples_ms": [
+        14.198,
+        14.145,
+        14.786,
+        13.873,
+        14.051,
+        14.083,
+        14.88
+      ],
+      "median_ms": 14.145,
+      "minimum_ms": 13.873,
+      "maximum_ms": 14.88,
+      "checksum": 4200000
+    },
+    {
+      "scenario": "memory-basic",
+      "variant": "native",
+      "count": 650000,
+      "construction_ms": 37.761,
+      "live_heap_delta_bytes": 24811656,
+      "per_instance_heap_bytes": 38.172,
+      "live_rss_delta_bytes": 40230912,
+      "post_release_heap_bytes": 4725432,
+      "retained_heap_bytes": 35925128,
+      "own_properties": [
+        "x",
+        "y"
+      ],
+      "churn_ms": null,
+      "churn_gc_ms": null,
+      "churn_post_gc_heap_bytes": null
+    },
+    {
+      "scenario": "memory-basic",
+      "variant": "prototype",
+      "count": 650000,
+      "construction_ms": 40.455,
+      "live_heap_delta_bytes": 24811656,
+      "per_instance_heap_bytes": 38.172,
+      "live_rss_delta_bytes": 39583744,
+      "post_release_heap_bytes": 4725232,
+      "retained_heap_bytes": 35924928,
+      "own_properties": [
+        "x",
+        "y"
+      ],
+      "churn_ms": null,
+      "churn_gc_ms": null,
+      "churn_post_gc_heap_bytes": null
+    },
+    {
+      "scenario": "memory-basic",
+      "variant": "m.Class",
+      "count": 650000,
+      "construction_ms": 118.213,
+      "live_heap_delta_bytes": 29807832,
+      "per_instance_heap_bytes": 45.858,
+      "live_rss_delta_bytes": 71323648,
+      "post_release_heap_bytes": 4746936,
+      "retained_heap_bytes": 41146600,
+      "own_properties": [
+        "_new",
+        "x",
+        "y"
+      ],
+      "churn_ms": null,
+      "churn_gc_ms": null,
+      "churn_post_gc_heap_bytes": null
+    },
+    {
+      "scenario": "memory-composed",
+      "variant": "native",
+      "count": 650000,
+      "construction_ms": 65.572,
+      "live_heap_delta_bytes": 54812424,
+      "per_instance_heap_bytes": 84.327,
+      "live_rss_delta_bytes": 79572992,
+      "post_release_heap_bytes": 4727192,
+      "retained_heap_bytes": 67126840,
+      "own_properties": [
+        "options",
+        "x"
+      ],
+      "churn_ms": null,
+      "churn_gc_ms": null,
+      "churn_post_gc_heap_bytes": null
+    },
+    {
+      "scenario": "memory-composed",
+      "variant": "m.Class",
+      "count": 650000,
+      "construction_ms": 181.62,
+      "live_heap_delta_bytes": 64809856,
+      "per_instance_heap_bytes": 99.707,
+      "live_rss_delta_bytes": 137543680,
+      "post_release_heap_bytes": 4761232,
+      "retained_heap_bytes": 77560840,
+      "own_properties": [
+        "_new",
+        "options",
+        "x"
+      ],
+      "churn_ms": null,
+      "churn_gc_ms": null,
+      "churn_post_gc_heap_bytes": null
+    },
+    {
+      "scenario": "memory-inherited",
+      "variant": "native",
+      "count": 650000,
+      "construction_ms": 40.582,
+      "live_heap_delta_bytes": 24812072,
+      "per_instance_heap_bytes": 38.172,
+      "live_rss_delta_bytes": 41930752,
+      "post_release_heap_bytes": 4728448,
+      "retained_heap_bytes": 35928144,
+      "own_properties": [
+        "base",
+        "x"
+      ],
+      "churn_ms": null,
+      "churn_gc_ms": null,
+      "churn_post_gc_heap_bytes": null
+    },
+    {
+      "scenario": "memory-inherited",
+      "variant": "m.Class",
+      "count": 650000,
+      "construction_ms": 554.367,
+      "live_heap_delta_bytes": 174810856,
+      "per_instance_heap_bytes": 268.94,
+      "live_rss_delta_bytes": 298618880,
+      "post_release_heap_bytes": 4744368,
+      "retained_heap_bytes": 191943904,
+      "own_properties": [
+        "_new",
+        "base",
+        "x"
+      ],
+      "churn_ms": null,
+      "churn_gc_ms": null,
+      "churn_post_gc_heap_bytes": null
+    },
+    {
+      "scenario": "stress-1m",
+      "variant": "native",
+      "count": 1000000,
+      "construction_ms": 76.108,
+      "live_heap_delta_bytes": 38812072,
+      "per_instance_heap_bytes": 38.812,
+      "live_rss_delta_bytes": 74878976,
+      "post_release_heap_bytes": 4727256,
+      "retained_heap_bytes": 52728144,
+      "own_properties": [
+        "base",
+        "x"
+      ],
+      "churn_ms": 16.093,
+      "churn_gc_ms": 39.927,
+      "churn_post_gc_heap_bytes": 52729984
+    },
+    {
+      "scenario": "stress-1m",
+      "variant": "m.Class",
+      "count": 1000000,
+      "construction_ms": 804.938,
+      "live_heap_delta_bytes": 272810856,
+      "per_instance_heap_bytes": 272.811,
+      "live_rss_delta_bytes": 379703296,
+      "post_release_heap_bytes": 4746616,
+      "retained_heap_bytes": 292743904,
+      "own_properties": [
+        "_new",
+        "base",
+        "x"
+      ],
+      "churn_ms": 420.385,
+      "churn_gc_ms": 137.07,
+      "churn_post_gc_heap_bytes": 292746816
+    }
+  ],
+  "diagnostic": [
+    {
+      "label": "native-inherited",
+      "n": 650000,
+      "bytes_per_instance": 39.262,
+      "heap_delta": 25520272,
+      "fast_properties": true,
+      "own_properties": [
+        "base",
+        "x"
+      ],
+      "instance_of_base": false,
+      "instance_of_native_base": true,
+      "prototype_parent_is_class_base": false
+    },
+    {
+      "label": "native-transient-delete",
+      "n": 650000,
+      "bytes_per_instance": 275.569,
+      "heap_delta": 179119712,
+      "fast_properties": false,
+      "own_properties": [
+        "_new",
+        "base",
+        "x"
+      ],
+      "instance_of_base": false,
+      "instance_of_native_base": false,
+      "prototype_parent_is_class_base": false
+    },
+    {
+      "label": "m.Class-dynamic",
+      "n": 650000,
+      "bytes_per_instance": 280.02,
+      "heap_delta": 182013112,
+      "fast_properties": false,
+      "own_properties": [
+        "_new",
+        "base",
+        "x"
+      ],
+      "instance_of_base": false,
+      "instance_of_native_base": false,
+      "prototype_parent_is_class_base": false
+    },
+    {
+      "label": "m.Class-copy",
+      "n": 650000,
+      "bytes_per_instance": 275.597,
+      "heap_delta": 179138360,
+      "fast_properties": false,
+      "own_properties": [
+        "_new",
+        "base",
+        "x"
+      ],
+      "instance_of_base": false,
+      "instance_of_native_base": false,
+      "prototype_parent_is_class_base": false
+    },
+    {
+      "label": "m.Class-empty-base",
+      "n": 650000,
+      "bytes_per_instance": 275.607,
+      "heap_delta": 179144560,
+      "fast_properties": false,
+      "own_properties": [
+        "_new",
+        "x"
+      ],
+      "instance_of_base": false,
+      "instance_of_native_base": false,
+      "prototype_parent_is_class_base": false
+    }
+  ],
+  "errors": []
+}
