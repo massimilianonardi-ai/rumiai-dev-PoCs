@@ -79,7 +79,12 @@ field.addEventListener('keydown',e=>{
   }
 });
 field.addEventListener('mouseup',selectFromNative);
-field.addEventListener('keyup',selectFromNative);
+// Undo/redo hotkeys are commands, NOT new native selection geometry. In
+// particular a textarea can display only one of the editor's many carets.
+field.addEventListener('keyup',e=>{
+  if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',
+      'Home','End','PageUp','PageDown'].includes(e.key))selectFromNative();
+});
 field.addEventListener('compositionstart',()=>{
   composing=true;committedComposition=null;
   observed.push({event:'compositionstart'});
