@@ -1,7 +1,7 @@
 // PoC 063: structural TextEditBase contract + selection editing, not a product API.
 // TextEditBase is a SINGLE-INTERVAL text store: length, slice(from,to),
 // replace(from,to,text). It has no selection, batch, undo or observer concepts.
-// This layer alone owns selections; operation direction is injected by the caller.
+// TextEditSelections alone owns selections; direction is injected by the caller.
 
 function validIndex(n) { return Number.isSafeInteger(n) && n >= 0; }
 function copySelection(r, length) {
@@ -67,24 +67,13 @@ export class TextEditSelections {
     // Every original span is captured before mutation; the wrapper can build
     // inversion records from the result without subscribing to the base.
     const originals=ordered.map(op=>this.#store.slice(op.start,op.end));
-    const applied=[];
-    try {
-      // High-to-low coordinates preserve the single-range TextEditBase offsets.
-      for(let i=ordered.length-1;i>=0;i--){
-        const op=ordered[i];
-        this.#store.replace(op.start,op.end,op.insert);
-        applied.push({start:op.start,end:op.start+op.insert.length,insert:originals[i]});
-      }
-    }catch(error){
-      // Valid for primitives that reject without mutating. Mutate-then-throw
-      // and OOM are NOT covered by this experimental rollback.
-      try { for(let i=applied.length-1;i>=0;i--){
-        const inverse=applied[i];
-        this.#store.replace(inverse.start,inverse.end,inverse.insert);
-      }}catch(rollbackError){
-        throw new AggregateError([error,rollbackError],'primitive failure and rollback failure');
-      }
-      throw error;
+    // One call per selected range; avoid rollback bookkeeping in the hot path.
+    // Every user-input conflict has already been rejected before writes.
+    // Exceptional failures from a valid base replace propagate directly;
+    // previously completed replacements may remain in the document.
+    for(let i=ordered.length-1;i>=0;i--){
+      const op=ordered[i];
+      this.#store.replace(op.start,op.end,op.insert);
     }
     const after=new Array(count);
     const changes=[];

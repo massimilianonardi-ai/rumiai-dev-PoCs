@@ -331,7 +331,7 @@ The current user correction establishes a **strict layering boundary**. The cand
 
 Column geometry remains another external step. The existing `probeRectangles` converts requested visual positions into target offsets and EOL virtual padding; the upper caller materializes spaces and per-target texts before invoking the selection layer. No `columnMode`, MadEdit autofill rules or clipboard format logic is embedded in either lower level.
 
-`tests/text-edit-selections-probe.mjs` runs this candidate against the **actual three PoC document representations** in GitHub Actions: unsorted user selection order, string replication, array one-to-one mapping, backward direction policies, exact grapheme reversal (emoji and combining character), zero-length carets, 3-row column-style insertion with externally prepared EOL spaces, external inverse replay, invalid array count and duplicate/overlapping range rejection. A fault-injected backend that rejects before mutation checks reverse-offset execution and best-effort rollback. **This is not a general atomicity proof:** a backend that mutates and then throws or fails out-of-memory may not roll back. No browser DOM, real IME, real MadEdit-Mod clipboard, collaborative editing or persistence is validated by this new test.
+`tests/text-edit-selections-probe.mjs` runs this candidate against the **actual three PoC document representations** in GitHub Actions: unsorted user selection order, string replication, array one-to-one mapping, backward direction policies, exact grapheme reversal (emoji and combining character), zero-length carets, 3-row column-style insertion with externally prepared EOL spaces, external inverse replay, invalid array count and duplicate/overlapping range rejection. Inputs are completely validated before the first write. A fault-injected backend that rejects the second single-range call demonstrates **no exceptional-failure rollback**: the first valid replacement remains, the exception reaches the caller, and no successful edit result or new selection state is returned. **This is intentionally not all-or-nothing failure atomicity**; a backend defect or memory exhaustion can leave an incomplete action, and any caller must treat the failed action as exceptional rather than record a completed undo. No browser DOM, real IME, real MadEdit-Mod clipboard, collaborative editing or persistence is validated by this new test.
 
 Run from this PoC directory:
 
@@ -361,6 +361,14 @@ The guard adds a per-completed-edit inverse object/allocation plus exception han
 Run from the PoC root:
 
     node --expose-gc tests/rollback-cost.mjs 12
+
+## Speed-first selection editing, no exceptional rollback (2026-10-10)
+
+Current experimental choice, after the measured cost comparison above: `TextEditSelections.replace` validates payload count/types, oriented direction plans, and all duplicate/overlapping/out-of-range intervals **before modifying the underlying document**. It captures old spans needed for an explicit result and potential externally owned undo, then invokes only one `TextEditBase.replace` per target, highest offset first. It does **not** allocate a per-completed-operation recovery journal or run rollback code when an otherwise valid base operation throws.
+
+The updated `tests/text-edit-selections-probe.mjs` validates that (a) bad input/direction detected after another valid plan performs zero base writes, and (b) a backend fault during the second edit is propagated after exactly one earlier edit has succeeded, with no rollback attempt. The latter is an **exceptional, partially applied action**, not a completed transaction; a higher controller must not record it as successfully undoable and must decide how to recover/reinitialize if the backing store becomes unreliable. This policy deliberately favors a smaller, faster normal path over incomplete best-effort recovery from severe backend faults.
+
+This change does not affect normal action granularity (a multi-selection paste remains one external user action on successful completion), nor add selection awareness to `TextEditBase`. Benchmarks are exploratory and do not imply a quantified speedup until the changed selection implementation itself is measured. Earlier rollback/failure tests in other additive PoC candidates continue to describe **those different candidates**, not the current `TextEditSelections`.
 
 ## Next measurements and semantic work
 
