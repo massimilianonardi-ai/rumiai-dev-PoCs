@@ -254,18 +254,19 @@ const snapshotExpression = String.raw`(() => {
     if (!title) title = (productLink.textContent || '').trim().replace(/\s+/g, ' ');
 
     const priceSelectors = [
-      ['.a-price:not(.a-text-price) .a-offscreen', 10],
-      ['[id^="itemPrice_"] .a-offscreen', 20],
-      ['[id^="itemPrice_"]', 30],
-      ['.a-price .a-offscreen', 40],
-      ['.price', 50]
+      ['[id^="itemPrice_"].a-price > .a-offscreen', 10],
+      ['[id^="itemPrice_"].a-price .a-offscreen', 20]
     ];
     const priceCandidates = [];
     const seenPrices = new Set();
 
     for (const [selector, priority] of priceSelectors) {
       for (const priceNode of node.querySelectorAll(selector)) {
-        if (!visible(priceNode)) continue;
+        // Amazon's .a-offscreen is intentionally visually hidden: it is the
+        // accessible single-price value, while its sibling repeats the amount.
+        // Verify the parent price widget rather than rejecting .a-offscreen.
+        const widget = priceNode.closest('[id^="itemPrice_"].a-price');
+        if (!widget || !visible(widget)) continue;
         const text = (priceNode.textContent || '').trim().replace(/\s+/g, ' ');
         if (!text || !(/[€]|EUR/i.test(text))) continue;
         const key = priority + '|' + text;
