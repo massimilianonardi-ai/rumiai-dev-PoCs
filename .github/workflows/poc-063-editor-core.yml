@@ -19,6 +19,14 @@ jobs:
       - name: Real isolated document and transaction checks
         working-directory: pocs/063-large-text-engine
         run: node tests/run.mjs
+      - name: Source-path clipboard characterization (not native GUI)
+        working-directory: pocs/063-large-text-engine
+        run: node tests/clipboard-paths.mjs
+      - name: Short real heap and compaction smoke tests (no performance assertions)
+        working-directory: pocs/063-large-text-engine
+        run: |
+          node --expose-gc tests/history-memory.mjs piece history 2000 2 mixed
+          node --expose-gc tests/compaction.mjs 2000 history
       - name: Exploratory editing performance, no threshold claim
         working-directory: pocs/063-large-text-engine
         run: node --expose-gc benchmark.mjs 1 8

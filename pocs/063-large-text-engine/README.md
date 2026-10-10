@@ -48,6 +48,52 @@ Node v22.16.0, Linux x86_64, 5.8 GiB reported RAM. 4,000-edit parity test **PASS
 
 A second process run at 1/8 MiB measured 254.86/3379.06 ms for FlatDocument and 8.13/3.61 ms for PieceDocument. These numbers are **illustrative only**: no statistical sampling, unequal initialization costs, different internal string representations, no forced full flattening after each edit, no history retention under the benchmark, and no cross-browser validation. In particular the reported near-zero heap/RSS deltas are **not** credible evidence that a 32 MiB document uses negligible RAM. The robust qualitative observation is that the tested sequence shows a steep size dependency for whole-string replacement whereas the piece implementation's local writes remained small; future fairer benchmarks must test both under long sessions and memory pressure.
 
+## Second local Linux experiment — history and fragmentation (2026-10-10)
+
+This is a repeatable experiment on the existing PoC 063 document and transaction implementations: Node.js v22.16.0 on Linux x86_64, independent processes per scenario, two explicit GCs per checkpoint, initial 2 MiB ASCII document. Values below are **absolute V8 process heap after GC**, not cumulative allocation or browser guarantees.
+
+| Scenario | Operations | Heap after GC | Live tree nodes |
+| --- | ---: | ---: | ---: |
+| Mixed edits, no history | 12,000 | 12.919 MiB | 23,902 |
+| Mixed edits, with history | 12,000 | 24.445 MiB | 23,902 |
+| Append-only, no history | 36,000 | 17.973 MiB | 36,001 |
+| Append-only, with history | 36,000 | 45.611 MiB | 36,001 |
+| Mixed edits, with history | 24,000 | 42.623 MiB | 47,577 |
+
+The implementation retains many pieces, source chunks and per-operation history objects. Even append-only inserts accumulate one new node/source each time. History includes separate forward/backward arrays and complete selection value snapshots per edit. The gap for 36k append-only operations was 27.638 MiB with history enabled (not a precise isolated allocation measure). This demonstrates **per-edit growth of these prototypes**, not a general theorem about piece trees.
+
+**Probe: rebuilding the entire text as one piece after 16,000 dispersed edits.**
+
+| Scenario | Heap before | Heap after | Live nodes |
+| --- | ---: | ---: | ---: |
+| No history | 15.165 MiB | 6.201 MiB | 31,848 → 1 |
+| With 16,000 history entries | 27.818 MiB | 18.842 MiB | 31,848 → 1 |
+
+300 undo and 300 redo steps after rebuilding passed the exact text-equality check. RSS did not shrink proportionally: V8 can retain reserved pages. **Whole-document rebuilding is only a diagnostic probe**, not an acceptable enormous-file compaction solution because it materializes the entire document. Any durable strategy needs incremental compaction, retention accounting and history-storage analysis.
+
+Run from this PoC directory, with no external packages:
+
+    node --expose-gc tests/history-memory.mjs piece no-history 12000 2 mixed
+    node --expose-gc tests/history-memory.mjs piece history 12000 2 mixed
+    node --expose-gc tests/history-memory.mjs piece no-history 36000 2 append
+    node --expose-gc tests/history-memory.mjs piece history 36000 2 append
+    node --expose-gc tests/compaction.mjs 16000 history
+    node --expose-gc tests/compaction.mjs 16000 no-history
+    node tests/clipboard-paths.mjs
+
+The memory scripts emit JSON-line samples of heap, RSS, peak resident set, node/source counts and undo state. No browser, real disk-backed history or arbitrary-size file input has been tested by these measurements.
+
+### Upstream clipboard-path findings
+
+Reading MadEdit-Mod MadEdit.cpp (TranslateText, GetTextFromClipboard, GetColumnDataFromClipboard, InsertColumnString) reveals different semantics from the PoC's simple source-line mapping:
+
+- Ordinary plain text counts one row when nonempty plus each CR/LF/CRLF terminator, and appends a terminal line break on the column-paste path; a trailing newline is an extra *empty source row*.
+- MadEdit-Mod's dedicated column clipboard format stores its own line count; it must not be conflated with plain text and is not exercised by the tests.
+- Auto-fill requires a selected destination, enabled option and strictly more destination rows than source rows; without that combination it does not repeat.
+- The upstream insertion path can continue after the selected destination rows. The PoC columnPastePlan currently clips excess source rows to explicit targets. This is a **known semantic mismatch**, not validated MadEdit-Mod parity.
+
+The new source-path characterization exercise is a *simplified model derived from source*, not a native GUI test. Full behavior, clipboard types, TSV/CSV parsing, virtual columns, Unicode and visual selection still need comparison against the real application.
+
 ## Next measurements and semantic work
 
 1. Characterize source-to-destination row mapping by reading upstream code and using actual MadEdit-Mod GUI whenever practical, including one/two/many clipboard lines, zero-width selections, long/short target rows, trailing newline, source rows exceeding targets, Unicode and tabs.
