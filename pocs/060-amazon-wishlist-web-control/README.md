@@ -76,3 +76,21 @@ The rendered-page/scroll result is the reference path. The recorded requests are
 ## Purchase-action interpretation
 
 The per-item `purchaseAction` reflects the visible wishlist action, not global inventory status. `add-to-cart` means direct wishlist cart action; `view-all-options` means the item directs the user to alternative offers instead. `ambiguous` and `unknown` explicitly avoid inferring availability. The current experiment recognizes Italian and English visible button labels, scoped to each wishlist item. Price verification remains independent of this classification; selectors/labels require physical DOM validation if Amazon changes its interface.
+
+## Reusable JavaScript API (experimental)
+
+Import `extract` from `amazon-wishlist-extract.mjs`. The existing PoC CLI remains the single extraction engine; the API delegates to it and does not duplicate browser/DOM logic.
+
+```js
+import { extract } from './amazon-wishlist-extract.mjs';
+
+const observation = await extract(
+  'https://www.amazon.it/hz/wishlist/ls/33ZKBWLPZJJVO',
+  { webControlCommand: '/path/to/web-control', timeoutMs: 300000 }
+);
+if (!observation.complete || observation.blocked) {
+  // Preserve evidence; do not interpret this as a complete wishlist.
+}
+```
+
+Options: `webControlCommand`, `scrollWaitMs`, `stableRounds`, `maxRounds`, `timeoutMs`. All optional. Returns the same structured observation as the CLI, including `items[].price` and `items[].purchaseAction`. Incomplete/blocked observations are returned as data; transport/process failures throw. This API is currently an experimental subprocess adapter, not a promoted RumiAI library, package, or stable runtime contract. JSON/CSV/HTML/PDF report generation, monitoring history, presentation, and delivery belong downstream.
