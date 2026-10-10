@@ -1,8 +1,8 @@
 // PoC 063: full selected-line cost; NOT a product performance contract.
 // Each memory experiment runs in its own Node child process. RSS is a process
 // high-water mark; retained heap is GC-sampled and may differ with V8/host.
-// Time trials compare raw (with old text capture) and TextEditSelections in
-// one process, with alternating order; no history/persistence/DOM measured.
+// Time trials compare direct TextEditBase replacements (with old text capture)
+// and TextEditSelections in one process, alternating order; no DOM measured.
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {performance} from 'node:perf_hooks';
@@ -46,10 +46,8 @@ function fixture(name,miB,count){
   });
   return {doc,ranges,bytes,count,getNative:()=>native,setNative:v=>{native=v;}};
 }
-function perform(f,selected){
-  if(selected){
-    const editor=new TextEditSelections(f.doc);
-    editor.setSelections(f.ranges);
+function perform(f,editor){
+  if(editor){
     const change=editor.replace('q');
     assert.equal(change.changes.length,f.count);
     assert.equal(change.changes.reduce((n,x)=>n+x.removed.length,0),f.bytes);
@@ -57,11 +55,7 @@ function perform(f,selected){
   }
   // All old spans are captured before edits, as in the selection layer.
   const old=f.ranges.map(r=>f.doc.slice(r.start,r.end));
-  for(const r of f.ranges){
-    if(f.getNative().length===f.doc.length && !Object.keys(backends).length)
-      throw Error('unreachable');
-    f.doc.replace(r.start,r.end,'q');
-  }
+  for(const r of f.ranges)f.doc.replace(r.start,r.end,'q');
   assert.equal(old.reduce((n,s)=>n+s.length,0),f.bytes);
   return old;
 }
@@ -77,10 +71,12 @@ function childEdit(name,miB,count,mode,trials){
       for(const method of (i%2?['selected','direct']:['direct','selected'])){
         gc();
         const f=fixture(name,miB,count);
-        // Selection construction belongs to measured replace semantics only;
-        // raw timing includes old-text capture, but excludes fixture setup.
+        const editor=method==='selected'?new TextEditSelections(f.doc):null;
+        editor?.setSelections(f.ranges);
+        // Both paths exclude document and selection setup. Raw includes
+        // old text capture; selected includes inverse capture and mapping.
         const started=performance.now();
-        const keep=perform(f,method==='selected');
+        const keep=perform(f,editor);
         const elapsed=performance.now()-started;
         validate(f);
         assert.ok(keep);
@@ -93,9 +89,11 @@ function childEdit(name,miB,count,mode,trials){
   }
   assert.ok(mode==='direct'||mode==='selected');
   const f=fixture(name,miB,count);
+  const editor=mode==='selected'?new TextEditSelections(f.doc):null;
+  editor?.setSelections(f.ranges);
   gc();const pre=memory();
   const started=performance.now();
-  const keep=perform(f,mode==='selected');
+  const keep=perform(f,editor);
   const elapsedMs=+(performance.now()-started).toFixed(3);
   validate(f);
   gc();const post=memory();
