@@ -18,7 +18,7 @@ for(let i=0;i<n;i++){
  if(h)h.commit([e],{primary:0,ranges:[{anchor:p,head:p,virtualColumn:i%8}]});else d.replace(e.start,e.end,e.insert);
 }
 sample('fragmented');
-const before=d.toString(),t=performance.now();const rebuilt=new PieceDocument(before);
+const t=performance.now(),before=d.toString();const rebuilt=new PieceDocument(before);
 d=rebuilt;if(h)h.document=d;
 assert.equal(d.toString(),before);
 const ms=performance.now()-t;sample('rebuilt');
