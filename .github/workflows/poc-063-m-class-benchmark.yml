@@ -1,0 +1,56 @@
+name: PoC 063 m.Class benchmark
+
+on:
+  pull_request:
+    paths:
+      - 'pocs/063-m-class-native-benchmark/**'
+      - '.github/workflows/poc-063-m-class-benchmark.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    name: Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - name: Checkout experimental benchmark
+        uses: actions/checkout@v4
+      - name: Checkout pinned upstream m.Class source
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/m
+          ref: 2a57a29880c2d7a32e18782122062c695fcb1a3a
+          path: upstream-m
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Record environment and upstream revision
+        shell: sh
+        run: |
+          node --version
+          node --print "process.versions.v8"
+          git -C upstream-m rev-parse HEAD
+          wc -c upstream-m/js/lib/js/m/Class.js
+      - name: Run actual benchmark and memory stress
+        shell: sh
+        run: |
+          node --expose-gc pocs/063-m-class-native-benchmark/tests/benchmark.mjs \
+            --class-file upstream-m/js/lib/js/m/Class.js \
+            --output benchmark-results-node-${{ matrix.node }}.json
+      - name: Save benchmark measurements
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-063-benchmark-node-${{ matrix.node }}
+          path: benchmark-results-node-${{ matrix.node }}.json
+          if-no-files-found: warn
+          retention-days: 30
