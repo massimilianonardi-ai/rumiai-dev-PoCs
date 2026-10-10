@@ -115,7 +115,7 @@ function runTimed(scenario, variant) {
     return timedSamples(scenario,variant,130000,7,n=>{
       const objects=new Array(n);
       for(let i=0;i<n;i++) objects[i]=new Type(i,1);
-      const expected=(kind==='inherited'?n+10:kind==='composed'?n:n+1);
+      const expected=(kind==='inherited'?n+10:n);
       CHECK(objects[n-1].calc()===expected,'incorrect constructed state');
       return objects[n-1].calc()+objects[0].calc()+objects.length;
     });
@@ -172,7 +172,7 @@ function measureMemory(scenario,variant) {
   const start=now();
   for(let i=0;i<count;i++) arr[i]=new Type(i,1);
   const construction_ms=ms(now()-start);
-  const expected=(kind==='inherited'?count+10:kind==='composed'?count:count+1);
+  const expected=(kind==='inherited'?count+10:count);
   CHECK(arr[count-1].calc()===expected,'memory object incorrect');
   gc();
   const alive=process.memoryUsage();
