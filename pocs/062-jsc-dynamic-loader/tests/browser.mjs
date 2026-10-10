@@ -13,6 +13,8 @@ assert.equal(compiler.status, 0, compiler.stderr);
 const compiled = await readFile(out, 'utf8');
 let revision = 0;
 let patchGets = 0;
+let batchGets = 0;
+let badBatchGets = 0;
 const source = `<!doctype html><meta charset="utf-8"><script src="/bundle.js"></script><pre id="result">WAIT</pre>
 <script>
 (async () => {
@@ -25,6 +27,16 @@ const source = `<!doctype html><meta charset="utf-8"><script src="/bundle.js"></
   await runtime.loadScript('/patch.js', {expect:'counter'});
   if(runtime.require('application').run() !== 102) throw Error('patch2');
   if(runtime.state().registered !== 2 || runtime.state().active !== 2) throw Error('unexpected registry');
+  await runtime.loadScript('/batch.js', {expect:['counter','application']});
+  if(runtime.require('application').run()!==777) throw Error('batch patch');
+  const priorCounter=runtime.revision('counter');
+  const priorApp=runtime.revision('application');
+  let rejected=false;
+  try { await runtime.loadScript('/bad-batch.js',{expect:['counter','application']}); }
+  catch(error){rejected=/without updating expected modules/.test(String(error));}
+  if(!rejected) throw Error('invalid batch reported success');
+  if(runtime.revision('counter')!==priorCounter || runtime.revision('application')!==priorApp ||
+     runtime.require('application').run()!==777) throw Error('invalid batch changed running modules');
   // Real browser heap experiment after repeated module factory replacements.
   // This requires the browser flags below; GC readings are an experimental plateau check.
   if (typeof gc !== 'function' || !performance.memory || !performance.memory.usedJSHeapSize) {
@@ -63,6 +75,14 @@ const server = http.createServer((req,res) => {
     revision++;
     res.setHeader('Content-Type','text/javascript');
     res.end(`JscRuntime.install('counter',[],function(require,module){module.exports.next=()=>${100+revision};});`);
+  } else if(req.url==='/batch.js') {
+    batchGets++;
+    res.setHeader('Content-Type','text/javascript');
+    res.end("JscRuntime.installBatch([{id:'counter',deps:[],factory:function(_r,m){m.exports.next=()=>777;}},{id:'application',deps:['counter'],factory:function(r,m){m.exports.run=()=>r('counter').next();}}]);");
+  } else if(req.url==='/bad-batch.js') {
+    badBatchGets++;
+    res.setHeader('Content-Type','text/javascript');
+    res.end("JscRuntime.installBatch([{id:'counter',deps:[],factory:function(_r,m){m.exports.next=()=>999;}},{id:'application',deps:['missing'],factory:function(){}}]);");
   } else {res.writeHead(404);res.end('no route');}
 });
 await new Promise(res=>server.listen(0,'127.0.0.1',res));
@@ -85,5 +105,7 @@ try {
   assert.ok(reported, 'browser heap measurements missing');
   console.log('Browser post-GC heap MiB:',reported[1],'growth MiB:',reported[2]);
   assert.equal(patchGets,2,`expected 2 real GET requests but received ${patchGets}`);
-  console.log('PASS: real Chromium, CSP without unsafe-eval, two same-URL GET reloads with Cache-Control no-store, 3000 browser updates with GC heap plateau');
+  assert.equal(batchGets,1,'expected one complete batch request');
+  assert.equal(badBatchGets,1,'expected one invalid batch request');
+  console.log('PASS: real Chromium, CSP without unsafe-eval, two same-URL GET reloads, batch success/rejection, no-store and 3000 GC-checked updates');
 } finally {await new Promise(res=>server.close(res));await rm(dir,{recursive:true,force:true});}
