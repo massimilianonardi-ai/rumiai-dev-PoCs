@@ -422,17 +422,42 @@ A direction policy is still free to translate edit targets. Each operation check
 
 The new exploratory `src/column-edit-probe.mjs` takes a *single rectangular user selection* and an explicit clipboard data input. It uses the **existing** `probeRectangles` view-width/grapheme/virtual-EOL translator, computes a list of oriented selections and **one string per selection**, and returns them to the existing `TextEditSelections.setSelections` / `replace` calls. It does **not** call `TextEditBase.replace`, manage history, or implement a second selection-edit engine. The core remains unaware of columns/clipboard.
 
-The small policy matrix includes plain text line splitting (trailing LF produces an empty data row), CRLF normalization, a reference form for MadEdit-Mod's native clipboard format with **explicit row count**, selected-row cyclic fill when requested, source-shorter-than-target behavior without fill, and **source overflow extending into already existing target document rows** (never silently clipping source lines). This planner deliberately rejects overflow that requires *creating previously nonexistent document rows*, because whole-document row materialization and the newlines around it must be specified separately. The planner rejects unresolved grapheme/tab column boundaries instead of silently snapping. It preserves user traversal in reverse-row selection and backward column-selection orientation. The column-mode name and modes remain **outside** `TextEditSelections`, and the data inputs are explicit model fixtures, not access to the OS clipboard.
+The small policy matrix includes plain text line splitting (trailing LF produces an empty data row), CRLF normalization, a reference form for MadEdit-Mod's native clipboard format with **explicit row count**, selected-row cyclic fill when requested, source-shorter-than-target behavior without fill, and **source overflow extending into already existing target document rows** (never silently clipping source lines). By default the planner **still rejects** overflow requiring new rows; an experimental opt-in `materializeRows` policy (documented below) now supports a restricted downward EOF case without changing either lower-level editor. The planner rejects unresolved grapheme/tab column boundaries instead of silently snapping. It preserves user traversal in reverse-row selection and backward column-selection orientation. The column-mode name and modes remain **outside** `TextEditSelections`, and the data inputs are explicit model fixtures, not access to the OS clipboard.
 
 `tests/column-edit-probe.mjs` exercises the planner plus **real** `FlatDocument`, `PieceDocument` and `AdaptiveRepackDocument`, with one success returning an inverse patch replayed externally to restore text and oriented selections. This is **source-behavior-inspired work, not native MadEdit-Mod GUI validation or full clipboard parity**. No product contract was promoted. Run:
 
     node tests/column-edit-probe.mjs
 
+## Opt-in EOF column growth and paired native-string benchmark (2026-10-10)
+
+An opt-in `materializeRows: true` option in `src/column-edit-probe.mjs` now synthesizes missing rows when a source has more rows than the selected + available destination rows **and the target continues downward with a forward horizontal orientation**. Existing destination rows are still resolved by `probeRectangles`, with tab/grapheme ambiguity checked before editing. Missing rows use spaces representing the requested virtual starting column plus caller-supplied source strings, joined by a validated explicit LF/CRLF or inferred existing newline style. They are staged as one ordinary EOF `replace` target, except when the final existing target is itself an EOF caret: the trailing synthesized lines are fused into that caret's text to avoid duplicate target positions. Selection identities and all per-row clipboard policies remain entirely outside `TextEditBase` and `TextEditSelections`; neither was modified. Unsupported upward missing rows or backwards-horizontal missing-row policies reject explicitly; LF/CRLF does not yet cover native bare-CR mode.
+
+At PoC revision `3773b49fd32794b16dc3e030f40af52f75e1761b`, [Actions run 38085120689](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/38085120689) passed both jobs. `tests/column-edit-probe.mjs` runs actual Flat/Piece/Adaptive backends and checks plain/native clipboard row counts, source overflow, final-newline behavior, existing text suffix, CRLF, virtual cells, invalid tab positions, orientation rejection and exact external inverse application restoring text. This is NOT native MadEdit-Mod GUI equivalence.
+
+`tests/column-extend-hotpath.mjs` adds a **paired** experiment using raw native JavaScript string slicing/concatenation as a direct control, and the same string through the minimal `TextEditSelections` adapter, alongside real Flat/Piece/Adaptive models. At exact commit `96562d8ec9111f6602c7b3d1861c0a8e94ccc3c3`, [Actions run 38085273493](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/38085273493) passed both jobs. Node v22.23.3, hosted Ubuntu x64, nine timed medians; an unselected 4 MiB prefix line plus 128 source clipboard rows (125 new rows) yields just three primitive edits. Constructor and explicit GC are excluded, with raw and selection samples alternating in the same invocation:
+
+| Backend | Planning (ms) | Direct with old text (ms) | With selections (ms) |
+| --- | ---: | ---: | ---: |
+| NativeJavaScriptString | 2.1362 | 1.9428 | 1.9963 |
+| FlatDocument | 1.9936 | 1.9482 | 2.0204 |
+| PieceDocument | 0.0879 | 0.0409 | 0.0572 |
+| AdaptiveRepackDocument | 0.0833 | 0.0828 | 0.1024 |
+
+This result contrasts with **earlier 256 dispersed edits** because this workload is only three edits near the document tail. It does not prove a memory/RSS ceiling, selected giant-line cost, UI-frame latency or a universal speedup.
+
+## Real browser input projection, limited boundary test (2026-10-10)
+
+At exact commit `5c59bf0d5e8a73ca682a2859cb4e313ddacc76c3`, [Actions run 38085536635](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/38085536635) passed both the core and actual Chromium browser jobs. `tests/browser-input.mjs` drives a real Chromium textarea over HTTP by DevTools `Input.insertText`, keyboard Ctrl+Z and Ctrl+Shift+Z, mouse click and an IME preview; the page module `tests/browser-input-scenario.mjs` redirects real `beforeinput` to a DOM-independent `PieceDocument` + `TextEditSelections`, and maintains a minimal test-only external action history. Two independent typed characters are two undoable actions; native pointer hit testing projects a caret, and keyboard undo/redo restore text. Chromium emitted a real `compositionstart` on the IME preview probe.
+
+**Not proven:** IME final commit and action grouping, actual clipboard paste, visual multi-line selections, pixel-perfect grapheme hit testing, full controller capability, memory/performance in browser, actual MadEdit-Mod GUI. The earlier IndexedDB browser regression also passed but does not validate these editing semantics. These PoC HTML/driver files are test fixtures, not an editor runtime or product API.
+
+MadEdit-Mod reference source pinned for this investigation: [MadEdit.cpp at 97cfc879](https://github.com/LiMinggang/madedit-mod/blob/97cfc87996577444f0f3fa14344eddc09352e46e/src/MadEdit/MadEdit.cpp), including `GetColumnDataFromClipboard` (native rowCount, plain fallback and optional autofill) and `InsertColumnString` (row loop/EOF newline). This is only source-based characterization; native GUI remains unexecuted.
+
 ## Next measurements and semantic work
 
-1. Test real browser input and composition/IME through an editor-owned-selection plus outer-controller split, maintaining exact user-action undo granularity.
-2. Characterize MadEdit-Mod source-to-destination mapping through source evidence and real native GUI whenever practical, including overflow rows, autofill, CSV/TSV, tabs, Unicode and virtual columns.
-3. Compare document storage structures under the same real command workloads, including fragmentation, memory and very long selections; history persistence is outside the editor.
+1. Extend already tested real Chromium keyboard/mouse/\`beforeinput\` boundary to actual paste and **committed** IME input, preserving one undo per semantic user action; do not confuse the observed composition preview with completion.
+2. Characterize MadEdit-Mod source-to-destination mapping through actual native GUI and source evidence, including overflow **above** the document, reverse direction, bare-CR newline, autofill, CSV/TSV, tabs, Unicode and virtual columns.
+3. Compare native strings and document structures within one run, including fragmentation, isolated-process memory/RSS and **very long selected lines**; history persistence is outside the editor.
 4. Continue visual selection and viewport-limited DOM rendering experiments without confusing display geometry with text storage.
 
 The JavaScript toolchain remains independently owned by handoff/javascript-build-and-runtime-loading.md. Never treat PoC 061's CodeMirror use as permission to adopt it as our editor engine.
