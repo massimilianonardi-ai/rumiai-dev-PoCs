@@ -250,10 +250,23 @@ try{
     'real Ctrl+V clipboard must work on user-facing demo');
   await chord(false);
   assert.equal(await demoText(),'aa\nb');
+  // A user may position the caret with a real mouse click after arming
+  // column clipboard paste. That click must not silently disarm it.
+  await clickDemo('sample');
+  await clickDemo('column-arm');
+  await clickDemo('editor');
+  await evaluate("navigator.clipboard.writeText('X\\nY\\nZ\\nW')");
+  await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',...pasteKey});
+  await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',...pasteKey});
+  assert.equal(await demoText(),'aaX\nb Y\n  Z\n  W');
+  await clickDemo('undo');
+  assert.equal(await demoText(),'aa\nb');
+
   console.log(JSON.stringify({pass:true,browser:'Chromium',
     handsOnDemo:true,realTyping:true,realPointerToolbar:true,
     groupedColumnPaste:true,multipleCaretModel:true,
-    realClipboardColumnPaste:true,oneActionUndoRedo:true}));
+    realClipboardColumnPaste:true,caretClickKeepsArmedPaste:true,
+    oneActionUndoRedo:true}));
 }finally{
   cdp?.close();
   if(processHandle){
