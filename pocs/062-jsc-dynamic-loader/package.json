@@ -8,6 +8,7 @@
     "build:compiled": "node src/jsc.mjs example/modules.json example/compiled.js",
     "build:workflow": "node example/workflow/build.mjs",
     "test:core": "node tests/run.mjs && node tests/boundaries.mjs && node tests/transactions.mjs && node --expose-gc tests/memory.mjs && node tests/separation.mjs && node tests/workflow.mjs",
-    "test:workflow": "node tests/workflow.mjs && node tests/browser-workflow.mjs"
+    "test:workflow": "node tests/workflow.mjs && node tests/browser-workflow.mjs",
+    "demo:workflow": "node example/workflow/build.mjs && node example/workflow/serve.mjs"
   }
 }
