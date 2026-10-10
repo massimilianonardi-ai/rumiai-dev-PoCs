@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "modules": [
+    {
+      "id": "core",
+      "file": "core.js",
+      "deps": []
+    },
+    {
+      "id": "app",
+      "file": "app.js",
+      "deps": [
+        "core"
+      ]
+    }
+  ]
+}
