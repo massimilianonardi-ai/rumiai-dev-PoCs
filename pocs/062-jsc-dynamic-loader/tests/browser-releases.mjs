@@ -153,7 +153,8 @@ try {
     child.on('close',status=>{clearTimeout(timeout);resolve({status,stdout,stderr});});
   });
   assert.equal(out.status,0,out.stderr.slice(-1000));
-  assert.match(out.stdout,/PASS RELEASES old=v1/,out.stdout.slice(-2600));
+  const observed = out.stdout.match(/<pre id="result">([^<]*)<\/pre>/)?.[1];
+  assert.ok(observed?.startsWith('PASS RELEASES old=v1'),observed || out.stdout.slice(-3500));
   assert.equal(stageCalls,1,'staging must occur once');
   assert.equal(publishCalls,2,'one rejected and one committed publish required');
   assert.ok(oldAssetGets>=1,'old immutable asset must remain available');
