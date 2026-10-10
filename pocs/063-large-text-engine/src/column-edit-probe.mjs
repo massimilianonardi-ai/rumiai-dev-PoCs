@@ -28,40 +28,59 @@ function decodedRows(clipboard) {
   throw new TypeError('unsupported clipboard kind');
 }
 
+// An overflow is staged as ordinary non-overlapping selections. New physical
+// rows are represented by one EOF replacement; TextEditBase remains one-range.
+// This is an opt-in candidate, not a general clipboard or selection API.
+function inferredLineEnding(document) {
+  const start=document.lineStart(document.lineCount-1);
+  return start>=2 && document.slice(start-2,start)==='\r\n'?'\r\n':'\n';
+}
+
 export function planColumnPaste(document,{
-  rectangle,clipboard,autofill=false,tabSize=4,widthOf
+  rectangle,clipboard,autofill=false,tabSize=4,widthOf,
+  materializeRows=false,lineEnding
 }={}) {
   if(!rectangle||![rectangle.lineFrom,rectangle.lineTo,
     rectangle.columnFrom,rectangle.columnTo].every(natural))
     throw new RangeError('rectangle coordinates');
   if(!document || !natural(document.lineCount) ||
-    typeof document.lineStart!=='function'||typeof document.slice!=='function')
+    typeof document.lineStart!=='function'||typeof document.slice!=='function' ||
+    !natural(document.length))
     throw new TypeError('column geometry document');
   if(rectangle.lineFrom>=document.lineCount||rectangle.lineTo>=document.lineCount)
     throw new RangeError('selection row outside document');
-  if(typeof autofill!=='boolean')throw new TypeError('autofill');
+  if(typeof autofill!=='boolean'||typeof materializeRows!=='boolean')
+    throw new TypeError('column paste options');
+  if(lineEnding!==undefined && lineEnding!=='\n' && lineEnding!=='\r\n')
+    throw new RangeError('lineEnding must be LF or CRLF');
   const source=decodedRows(clipboard);
   if(!source.length)return {noop:true,selections:[],texts:[],sourceRows:0,targetRows:0};
   const selectedCount=Math.abs(rectangle.lineTo-rectangle.lineFrom)+1;
   const targetCount=source.length<selectedCount ?
     (autofill?selectedCount:source.length) : source.length;
-  // Selection drag orientation defines the row traversal. The higher-level
-  // planner may extend into *existing* rows. Materializing nonexisting rows
-  // is a separate policy; refusing here prevents silent source truncation.
   const direction=rectangle.lineTo>=rectangle.lineFrom?1:-1;
   const last=rectangle.lineFrom+direction*(targetCount-1);
-  if(last<0||last>=document.lineCount)
+  const needsRows=last<0||last>=document.lineCount;
+  if(needsRows && !materializeRows)
     throw new RangeError('column paste needs external document row materialization');
+  // Upward extension would prepend rows and rebase the user's existing
+  // offsets. Backward-column payloads need the caller's per-row direction
+  // policy, not reversal of a concatenated multi-line tail. Reject until
+  // those separate higher-level policies have been experimentally verified.
+  if(needsRows && direction<0)
+    throw new RangeError('upward row materialization not implemented');
+  if(needsRows && rectangle.columnFrom>rectangle.columnTo)
+    throw new RangeError('backward column materialization needs per-row policy');
+  const existingCount=needsRows?document.lineCount-rectangle.lineFrom:targetCount;
+  const existingLast=rectangle.lineFrom+direction*(existingCount-1);
   const geometry=probeRectangles(document,[{
-    lineFrom:rectangle.lineFrom,lineTo:last,
+    lineFrom:rectangle.lineFrom,lineTo:existingLast,
     columnFrom:rectangle.columnFrom,columnTo:rectangle.columnTo
   }],{tabSize,widthOf});
   if(geometry.unresolved.length)
     throw new RangeError('column target falls inside a grapheme or tab');
   if(geometry.collisions.length)
     throw new RangeError('column targets collide');
-  // probeRectangles sorts by text offsets for model efficiency; source rows
-  // instead follow the user's original row traversal and orientation.
   const ordered=geometry.targets.sort((a,b)=>direction*(a.line-b.line));
   const selections=ordered.map(target=>({
     start:target.start,end:target.end,
@@ -69,8 +88,30 @@ export function planColumnPaste(document,{
   }));
   const texts=ordered.map((target,i)=>
     ' '.repeat(target.virtualSpaces)+source[i%source.length]);
+  const materializedRows=targetCount-existingCount;
+  if(materializedRows){
+    const ending=lineEnding??inferredLineEnding(document);
+    // Only the additional rows are synthesized. The existing tail is
+    // neither read nor copied, even if the last line is huge.
+    const column=Math.min(rectangle.columnFrom,rectangle.columnTo);
+    const prefix=' '.repeat(column);
+    let suffix='';
+    for(let i=existingCount;i<targetCount;i++)
+      suffix+=ending+prefix+source[i%source.length];
+    const lastSelection=selections.at(-1);
+    if(lastSelection.end===document.length){
+      // At an EOF caret an additional selection would be a duplicate.
+      // Fuse the row insertion and its synthesized continuation into one
+      // regular replacement, preserving one primitive per planned target.
+      texts[texts.length-1]+=suffix;
+    }else{
+      selections.push({start:document.length,end:document.length,forward:true});
+      texts.push(suffix);
+    }
+  }
   return {noop:false,selections,texts,sourceRows:source.length,
-    targetRows:ordered.length,autofilled:autofill&&selectedCount>source.length,
-    extended:ordered.length>selectedCount,
+    targetRows:targetCount,materializedRows,
+    autofilled:autofill&&selectedCount>source.length,
+    extended:targetCount>selectedCount,
     sourceKind:typeof clipboard==='string'?'plain':clipboard.kind};
 }
