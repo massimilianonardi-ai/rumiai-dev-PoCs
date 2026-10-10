@@ -142,22 +142,59 @@ const server=http.createServer((req,res)=>{
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
 try {
   const executable=process.env.CHROMIUM || '/usr/bin/chromium';
+  const profile=join(dir,'profile');
   const url=`http://127.0.0.1:${server.address().port}/`;
-  const out=await new Promise((resolve,reject)=>{
-    const child=spawn(executable,['--headless','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--no-first-run',`--user-data-dir=${join(dir,'profile')}`,'--virtual-time-budget=20000','--dump-dom',url],{stdio:['ignore','pipe','pipe']});
-    let stdout='',stderr='';
-    const timeout=setTimeout(()=>{child.kill('SIGKILL');reject(Error('Chrome release timeout: '+stderr.slice(-900)));},45000);
-    child.stdout.on('data',chunk=>stdout+=chunk.toString());
-    child.stderr.on('data',chunk=>stderr+=chunk.toString());
-    child.on('error',error=>{clearTimeout(timeout);reject(error);});
-    child.on('close',status=>{clearTimeout(timeout);resolve({status,stdout,stderr});});
-  });
-  assert.equal(out.status,0,out.stderr.slice(-1000));
-  const observed = out.stdout.match(/<pre id="result">([^<]*)<\/pre>/)?.[1];
-  assert.ok(observed?.startsWith('PASS RELEASES old=v1'),observed || out.stdout.slice(-3500));
-  assert.equal(stageCalls,1,'staging must occur once');
-  assert.equal(publishCalls,2,'one rejected and one committed publish required');
-  assert.ok(oldAssetGets>=1,'old immutable asset must remain available');
-  assert.ok(workerUpdates>=2,'service worker must actually update');
-  console.log(out.stdout.match(/PASS RELEASES[^<]*/)?.[0]);
+  const child=spawn(executable,['--headless','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--no-first-run',`--user-data-dir=${profile}`,'--remote-debugging-port=0','--remote-allow-origins=*',url],{stdio:['ignore','pipe','pipe']});
+  let stderr='';child.stderr.on('data',chunk=>stderr+=chunk.toString());
+  let socket;
+  const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  try {
+    let port;
+    for(let n=0;n<150;n++) {
+      try {port=Number((await readFile(join(profile,'DevToolsActivePort'),'utf8')).split('\n')[0]);if(port>0)break;}
+      catch { /* Chrome has not created the debugging endpoint yet. */ }
+      await delay(100);
+    }
+    assert.ok(port>0,'Chrome remote-debugging port unavailable: '+stderr.slice(-1200));
+    let target;
+    for(let n=0;n<100;n++) {
+      const pages=await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
+      target=pages.find(x=>x.type==='page' && x.url.startsWith(url));
+      if(target)break;
+      await delay(100);
+    }
+    assert.ok(target?.webSocketDebuggerUrl,'Cannot find Chrome page debugging target');
+    socket=new WebSocket(target.webSocketDebuggerUrl);
+    await new Promise((resolve,reject)=>{socket.addEventListener('open',resolve,{once:true});socket.addEventListener('error',reject,{once:true});});
+    let nextId=1;
+    const pending=new Map();
+    socket.addEventListener('message',e=>{
+      const msg=JSON.parse(String(e.data));
+      if(!pending.has(msg.id))return;
+      const {resolve,reject}=pending.get(msg.id);pending.delete(msg.id);
+      if(msg.error)reject(Error(JSON.stringify(msg.error)));else resolve(msg.result);
+    });
+    function call(method,params={}) {
+      const id=nextId++;
+      return new Promise((resolve,reject)=>{pending.set(id,{resolve,reject});socket.send(JSON.stringify({id,method,params}));});
+    }
+    await call('Runtime.enable');
+    let observed='WAIT';
+    for(let n=0;n<300;n++) {
+      const data=await call('Runtime.evaluate',{expression:'document.getElementById("result")?.textContent',returnByValue:true});
+      observed=data.result?.value || 'WAIT';
+      if(observed.startsWith('PASS RELEASES')||observed.startsWith('FAIL RELEASES'))break;
+      await delay(100);
+    }
+    assert.ok(observed.startsWith('PASS RELEASES old=v1'),observed+'\n'+stderr.slice(-1400));
+    assert.equal(stageCalls,1,'staging must occur once');
+    assert.equal(publishCalls,2,'one rejected and one committed publish required');
+    assert.ok(oldAssetGets>=1,'old immutable asset must remain available');
+    assert.ok(workerUpdates>=2,'service worker must actually update');
+    console.log(observed);
+  } finally {
+    socket?.close();
+    child.kill('SIGKILL');
+    await new Promise(resolve=>{if(child.exitCode!==null||child.signalCode!==null)resolve();else child.once('close',resolve);});
+  }
 } finally {await new Promise(r=>server.close(r));await rm(dir,{recursive:true,force:true});}
