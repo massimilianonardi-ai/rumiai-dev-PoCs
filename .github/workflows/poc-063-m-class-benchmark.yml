@@ -3,7 +3,7 @@ name: PoC 063 m.Class benchmark
 on:
   pull_request:
     paths:
-      - 'pocs/063-m-class-native-benchmark/**'
+      - 'pocs/063-m-class-native-benchmark/tests/**'
       - '.github/workflows/poc-063-m-class-benchmark.yml'
   workflow_dispatch:
 
