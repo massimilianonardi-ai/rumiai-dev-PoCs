@@ -276,11 +276,27 @@ const snapshotExpression = String.raw`(() => {
       }
     }
 
+    // Scope actions to this wishlist item; never infer availability from price alone.
+    // Button text is a fallback for Amazon's localized UI, not a global stock claim.
+    const actionLabels = [...node.querySelectorAll('button, input[type="submit"], a[role="button"], span.a-button')]
+      .filter(visible)
+      .map((action) => (action.getAttribute('aria-label') ||
+        action.getAttribute('value') || action.textContent || '')
+        .trim().replace(/\s+/g, ' ').toLocaleLowerCase('it'))
+      .filter(Boolean);
+    const addToCart = actionLabels.some((label) =>
+      /aggiungi al carrello|add to cart/.test(label));
+    const viewOptions = actionLabels.some((label) =>
+      /visualizza tutte le opzioni|see all buying options|see all options/.test(label));
+    const purchaseAction = addToCart && viewOptions ? 'ambiguous' :
+      addToCart ? 'add-to-cart' : viewOptions ? 'view-all-options' : 'unknown';
+
     items.push({
       asin,
       title,
       url: productLink.href,
-      priceCandidates
+      priceCandidates,
+      purchaseAction
     });
   }
 
@@ -349,6 +365,8 @@ function mergeItem(store, raw, round) {
     title: raw.title || previous?.title || '',
     url: raw.url || previous?.url || '',
     price,
+    purchaseAction: raw.purchaseAction && raw.purchaseAction !== 'unknown'
+      ? raw.purchaseAction : (previous?.purchaseAction || 'unknown'),
     firstSeenRound: previous?.firstSeenRound ?? round,
     lastSeenRound: round
   };
