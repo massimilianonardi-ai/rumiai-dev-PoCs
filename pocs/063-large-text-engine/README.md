@@ -302,9 +302,29 @@ Run:
 
 **Open semantic decisions:** How a real view measures grapheme width and proportional-font/pixel geometry, handling caret placement inside tabs/wide cells, visual/virtual selection extension, overlapping multicursor ranges and clipboard-source overflow require observed behavior and explicit policy. A single selected extremely long line is currently segmented/materialized entirely: this candidate alone does not satisfy the huge-line performance target. MadEdit-Mod native GUI behavior remains unverified; the pre-existing `columnPastePlan` is still intentionally provisional and must not be labeled compatible for excess source rows. No editor product code or permanent tests were changed.
 
+## Unified input, editor-owned selections and outer reversible-command controller (2026-10-10)
+
+**User correction:** Cursors are **zero-dimensional selections owned by the editor**, not by the action/history wrapper. All physical keyboards feed one unified ordered input stream. Multiple independent editing keyboards and collaborative editing, including concurrency and synchronization, are out of scope and delegated to higher external layers. Persistence likewise remains external and optional.
+
+An **additive PoC-only candidate** in `src/action-command-probe.mjs` explores this separation, without replacing previous benchmark evidence:
+
+- `EditorCore` owns the document and selection ranges (`anchor === head` is a caret). Its only edit operation applies a validated, sorted, non-overlapping batch and returns exact overwritten spans and before/after selection snapshots. It has no undo/redo, history cap, storage, physical keyboard identity or collaboration policy.
+- `ActionController` wraps the editor, interprets one ordered user input (`text`, `backspace`, provisional `pasteRows`) at a time, and builds both forward/inverse editor-compatible batches from the exact command result. It owns the optional history, configured undo depth, branching and notifications. Undo and redo use the same editor edit entrypoint but never append new history entries.
+- `tests/action-command-probe.mjs` covers real `FlatDocument` and `AdaptiveRepackDocument` models: each separately typed character is one undo step, two physical-keyboard annotations still form *one* serial stream, one input across two carets is one undo, exact selection restoration, redo branching, three-row virtual-column paste sourced from existing `probeRectangles`, duplicate caret rejection, paste row mismatch rejection, optional undo limit, and rejection of a stale wrapper after an out-of-band document change.
+- The failure test injects a `replace` that rejects **before mutation** during a multi-range batch. Earlier applied changes are rolled back, and no user action is recorded. This is a *conditional* transaction guarantee: a document primitive that mutates and then throws (or OOM conditions) does not have proven strong rollback semantics.
+
+**Limitations:** `pasteRows` explicitly requires exactly one source row per selected target and is **not** MadEdit-Mod-compatible for overflow/autofill/CSV cases. Backspace handles one code unit or a surrogate pair, not full grapheme clusters. Real DOM keyboard events, IME/composition, visual hit-testing, source/target mapping, collaborative merges and native MadEdit-Mod GUI have **not** been tested by this headless action-object PoC. The class names and method shapes are experimental, not normative product APIs.
+
+Run from this PoC directory:
+
+    node tests/action-command-probe.mjs
+
+Earlier `History`, `ForegroundHistory`, `AsyncHistory` and `SpillHistory` remain comparison artifacts, not approved product architectures. Do not reopen persisted-provider throughput work in the editor.
+
 ## Next measurements and semantic work
 
-1. Characterize source-to-destination row mapping by reading upstream code and using actual MadEdit-Mod GUI whenever practical, including one/two/many clipboard lines, zero-width selections, long/short target rows, trailing newline, source rows exceeding targets, Unicode and tabs.
+1. Test real browser input and composition/IME through an editor-owned-selection plus outer-controller split, maintaining exact user-action undo granularity.
+2. Characterize MadEdit-Mod source-to-destination mapping through source evidence and real native GUI whenever practical, including overflow rows, autofill, CSV/TSV, tabs, Unicode and virtual columns.
 2. Stress longer edit histories and measure retained source chunks, node/piece growth, consolidation/fragmentation, GC and disk-backed possibilities. Compare a balanced piece tree, rope, and alternative line indexing under the same operations and correctness tests.
 3. Separately prototype mapping text offsets to visual columns and viewport-limited DOM rendering; do not conflate display geometry with text storage or commit to a rendering engine.
 

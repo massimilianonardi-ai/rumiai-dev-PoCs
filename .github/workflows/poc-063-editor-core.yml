@@ -66,6 +66,9 @@ jobs:
         run: |
           node tests/visual-column-probe.mjs
           node tests/visual-column-scale.mjs 8
+      - name: Unified input and external reversible-action controller
+        working-directory: pocs/063-large-text-engine
+        run: node tests/action-command-probe.mjs
       - name: Exploratory editing performance, no threshold claim
         working-directory: pocs/063-large-text-engine
         run: node --expose-gc benchmark.mjs 1 8
