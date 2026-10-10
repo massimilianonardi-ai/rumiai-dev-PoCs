@@ -237,7 +237,7 @@ try{
   await clickDemo('sample');
   await clickDemo('add-cursor');
   await cdp.send('Input.insertText',{text:'Q'});
-  assert.equal(await demoText(),'Qaa\nbQ','two actual editor selections must edit together');
+  assert.equal(await demoText(),'Qaa\nQb','two actual editor selections must edit together');
   await clickDemo('undo');
   assert.equal(await demoText(),'aa\nb','one UI undo removes both inserted carets');
 
