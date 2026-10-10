@@ -94,6 +94,42 @@ Reading MadEdit-Mod MadEdit.cpp (TranslateText, GetTextFromClipboard, GetColumnD
 
 The new source-path characterization exercise is a *simplified model derived from source*, not a native GUI test. Full behavior, clipboard types, TSV/CSV parsing, virtual columns, Unicode and visual selection still need comparison against the real application.
 
+## Incremental coalescing and compact history candidate (2026-10-10)
+
+The original PieceDocument/History pair is retained as a control. Experimental additions:
+
+- ChunkedPieceDocument (in src/documents.mjs) appends short inserted strings to a bounded (4,096 UTF-16 code-unit) mutable source chunk and merges adjacent pieces **only** when they reference contiguous ranges within the same source. It does not reconstruct the document or alter untouched original source chunks; large insertions retain independent sources. This is bounded-local join coalescing, **not** general fragmentation control or filesystem-backed partial loading.
+- CompactHistory (src/compact-history.mjs) records each edit's original offset, deleted text and inserted text once. It stores one selection/caret snapshot per committed after-state plus the initial state. Undo derives inverse coordinates using accumulated length deltas and restores the prior snapshot. No fixed undo-depth cap is imposed. Selection ranges are copied as plain data, not yet a generalized 2D selection engine.
+
+Tests (tests/variants.mjs) compared all three document variants across 6,000 seeded edits each, including Unicode, combining marks, tabs and CRLF; they checked text, slices, logical LF line indices and local coalescing. All six combinations of document and history variants passed 500 multi-range transactions with full undo/redo, selection restoration and redo-branch invalidation. The original tests/run.mjs and source-path clipboard test still passed. These are headless core tests, not browser/editor usability tests.
+
+### Single-run isolated-process memory comparison
+
+Node.js 22.16.0 on Linux x86_64, 2 MiB initial ASCII text, 36,000 one-transaction edits, explicit GC twice before each reported heap sample; *one process per scenario*. Memory is **absolute retained V8 heap after GC**, not the incremental allocation by the editor alone, and peak RSS is a process metric.
+
+| Workload / pair | Retained heap | Live nodes | Live source chunks | Edit time |
+| --- | ---: | ---: | ---: | ---: |
+| Append / original pieces + original history | 45.679 MiB | 36,001 | 36,001 | 142.80 ms |
+| Append / chunked pieces + original history | 34.966 MiB | 15 | 15 | 107.46 ms |
+| Append / original pieces + compact history | 31.109 MiB | 36,001 | 36,001 | 138.06 ms |
+| Append / chunked pieces + compact history | 20.400 MiB | 15 | 15 | 92.24 ms |
+| Distributed mixed edits / original pieces + compact history | 41.859 MiB | 71,308 | 35,966 | 355.47 ms |
+| Distributed mixed edits / chunked pieces + compact history | 34.334 MiB | 71,308 | 15 | 441.25 ms |
+
+For the append workload the combined approach reduced retained heap by about 55% relative to the original pair, and live nodes by 99.96%. **Neither result generalizes to dispersed edits**: the distributed workload still contains 71k nodes and the added boundary checks increased editing time in that isolated run. Long-lived history also grows with the number of transactions, even in the compact journal. The two history implementations preserve selection snapshots in the tested cases; this does not prove safe persistence, failure-atomic updates or memory-bounded unlimited undo.
+
+Run independent comparisons (avoid comparing heap of multiple variants within one process):
+
+    node tests/variants.mjs
+    node --expose-gc tests/compare-memory.mjs piece original append 36000 2
+    node --expose-gc tests/compare-memory.mjs chunked original append 36000 2
+    node --expose-gc tests/compare-memory.mjs piece compact append 36000 2
+    node --expose-gc tests/compare-memory.mjs chunked compact append 36000 2
+    node --expose-gc tests/compare-memory.mjs piece compact mixed 36000 2
+    node --expose-gc tests/compare-memory.mjs chunked compact mixed 36000 2
+
+Future validation needs repeated samples, additional Node/browser versions, large deletions, arbitrary multi-range stress, Unicode geometry, streaming I/O, incremental compaction for dispersed edits, compact selection and history encoding, memory caps and potentially disk-backed history. Source-chunk counts exclude chunks referenced only by journal copies; this PoC's undo data holds JavaScript strings, not references to original source slices. Performance timings here are illustrative and have no pass thresholds.
+
 ## Next measurements and semantic work
 
 1. Characterize source-to-destination row mapping by reading upstream code and using actual MadEdit-Mod GUI whenever practical, including one/two/many clipboard lines, zero-width selections, long/short target rows, trailing newline, source rows exceeding targets, Unicode and tabs.

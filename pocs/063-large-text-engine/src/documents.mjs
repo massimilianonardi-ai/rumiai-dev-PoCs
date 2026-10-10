@@ -102,3 +102,57 @@ export class PieceDocument {
   toString() {return this.slice(0,this.length);}
   stats() {let nodes=0, maxDepth=0,srcs=new Set();const walk=(n,d)=>{if(!n)return;nodes++;maxDepth=Math.max(maxDepth,d);srcs.add(n.src);walk(n.left,d+1);walk(n.right,d+1)};walk(this.root,1);return {nodes,maxDepth,sources:srcs.size};}
 }
+
+// Experimental incremental candidate: shared bounded insert chunks, local join
+// coalescing, and no whole-document materialization. This is not production code.
+function rightmost(n) { while(n.right)n=n.right;return n; }
+function leftmost(n) { while(n.left)n=n.left;return n; }
+function popMax(n) {
+  if(!n.right){const rest=n.left;n.left=null;return [rest,pull(n)];}
+  const [rest,last]=popMax(n.right);n.right=rest;return [pull(n),last];
+}
+function popMin(n) {
+  if(!n.left){const rest=n.right;n.right=null;return [rest,pull(n)];}
+  const [rest,first]=popMin(n.left);n.left=rest;return [pull(n),first];
+}
+function joinCoalesced(a,b) {
+  if(!a)return b;
+  if(!b)return a;
+  const x=rightmost(a),y=leftmost(b);
+  if(x.src!==y.src || x.to!==y.from)return merge(a,b);
+  const [aa,last]=popMax(a),[bb,first]=popMin(b);
+  last.to=first.to;
+  last.length=last.to-last.from;
+  last.pieceLF=lowerBound(last.src.newlines,last.to)-lowerBound(last.src.newlines,last.from);
+  pull(last);
+  return merge(merge(aa,last),bb);
+}
+export class ChunkedPieceDocument extends PieceDocument {
+  constructor(s='',chunkLimit=4096){
+    super(s);
+    if(!Number.isSafeInteger(chunkLimit)||chunkLimit<32)throw new RangeError('chunkLimit');
+    this.chunkLimit=chunkLimit;
+    this.activeChunk=null;
+  }
+  newPiece(text){
+    if(!text)return null;
+    if(text.length>this.chunkLimit)return leaf(source(text));
+    if(!this.activeChunk||this.activeChunk.text.length+text.length>this.chunkLimit){
+      this.activeChunk={text:'',newlines:[]};
+    }
+    const s=this.activeChunk,from=s.text.length;
+    s.text+=text;
+    for(let i=0;i<text.length;i++)if(text.charCodeAt(i)===10)s.newlines.push(from+i);
+    return leaf(s,from,s.text.length);
+  }
+  replace(start,end,insert){
+    check(this,start,end);
+    if(typeof insert!=='string')throw new TypeError('insert must be a string');
+    // Avoid retaining a new chunk for a genuine no-op.
+    if(start===end && insert.length===0)return;
+    const [a,right]=split(this.root,start);
+    const [,b]=split(right,end-start);
+    const item=this.newPiece(insert);
+    this.root=joinCoalesced(joinCoalesced(a,item),b);
+  }
+}

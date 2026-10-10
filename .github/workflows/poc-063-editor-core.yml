@@ -27,6 +27,15 @@ jobs:
         run: |
           node --expose-gc tests/history-memory.mjs piece history 2000 2 mixed
           node --expose-gc tests/compaction.mjs 2000 history
+      - name: Compare incremental pieces and compact undo correctness
+        working-directory: pocs/063-large-text-engine
+        run: node tests/variants.mjs
+      - name: Compare bounded experimental memory workloads
+        working-directory: pocs/063-large-text-engine
+        run: |
+          node --expose-gc tests/compare-memory.mjs piece original append 3000 2
+          node --expose-gc tests/compare-memory.mjs chunked compact append 3000 2
+          node --expose-gc tests/compare-memory.mjs chunked compact mixed 3000 2
       - name: Exploratory editing performance, no threshold claim
         working-directory: pocs/063-large-text-engine
         run: node --expose-gc benchmark.mjs 1 8
