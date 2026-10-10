@@ -321,6 +321,24 @@ Run from this PoC directory:
 
 Earlier `History`, `ForegroundHistory`, `AsyncHistory` and `SpillHistory` remain comparison artifacts, not approved product architectures. Do not reopen persisted-provider throughput work in the editor.
 
+## Stepwise TextEditBase / TextEditSelections experiment (2026-10-10)
+
+The current user correction establishes a **strict layering boundary**. The candidate `TextEditBase` is a **structural contract**, not a mandatory class: each existing `FlatDocument`, `PieceDocument`, and `AdaptiveRepackDocument` satisfies single-interval `length`, `slice(start,end)`, `replace(start,end,text)`. Base receives exactly *one* range per call and **has no selection, batch, undo, callback, clipboard, geometry, or direction semantics**. This experiment does **not** add batch mutation to the base contract.
+
+`src/text-edit-selections-probe.mjs` adds a separate candidate `TextEditSelections` object composed over one such store. It owns user-configured ordered **oriented** selections (a zero-length selection is a caret), translates one string to every selection and maps an array of strings **one-to-one in the user's configured selection order** (not the physical offset order). Wrong array cardinality is rejected without editing. It maps the edit to separate single-interval `TextEditBase.replace` calls in reverse offset order. Disjoint targets only; duplicates/overlaps are explicitly rejected before any write. The result includes exact old/new fragments, original-coordinate edits, inverse coordinates, and selection snapshots for an **external** action/undo controller; there are no editor listeners or internal history.
+
+**Direction is deliberately not predetermined.** A caller-provided policy receives the full oriented selection and target text. Two independent *illustrative* policies demonstrate distinct semantics for backward selections: (1) reverse the sequence of Unicode grapheme clusters in the inserted text while replacing the range; (2) insert the text at the range's right boundary, leaving selected text intact (rightward placement). Both preserve the selection direction after collapse, and neither policy is a `TextEditBase` feature. Other directional behaviors remain possible. Forward selections use direct replacement in this narrow test. No particular directional policy is approved for the product.
+
+Column geometry remains another external step. The existing `probeRectangles` converts requested visual positions into target offsets and EOL virtual padding; the upper caller materializes spaces and per-target texts before invoking the selection layer. No `columnMode`, MadEdit autofill rules or clipboard format logic is embedded in either lower level.
+
+`tests/text-edit-selections-probe.mjs` runs this candidate against the **actual three PoC document representations** in GitHub Actions: unsorted user selection order, string replication, array one-to-one mapping, backward direction policies, exact grapheme reversal (emoji and combining character), zero-length carets, 3-row column-style insertion with externally prepared EOL spaces, external inverse replay, invalid array count and duplicate/overlapping range rejection. A fault-injected backend that rejects before mutation checks reverse-offset execution and best-effort rollback. **This is not a general atomicity proof:** a backend that mutates and then throws or fails out-of-memory may not roll back. No browser DOM, real IME, real MadEdit-Mod clipboard, collaborative editing or persistence is validated by this new test.
+
+Run from this PoC directory:
+
+    node tests/text-edit-selections-probe.mjs
+
+No permanent test or product change. The old combined `EditorCore` PoC and previous history experiments remain comparison references; these names/methods are not yet a canonical API.
+
 ## Next measurements and semantic work
 
 1. Test real browser input and composition/IME through an editor-owned-selection plus outer-controller split, maintaining exact user-action undo granularity.

@@ -69,6 +69,9 @@ jobs:
       - name: Unified input and external reversible-action controller
         working-directory: pocs/063-large-text-engine
         run: node tests/action-command-probe.mjs
+      - name: Structural TextEditBase and oriented TextEditSelections layering
+        working-directory: pocs/063-large-text-engine
+        run: node tests/text-edit-selections-probe.mjs
       - name: Exploratory editing performance, no threshold claim
         working-directory: pocs/063-large-text-engine
         run: node --expose-gc benchmark.mjs 1 8
