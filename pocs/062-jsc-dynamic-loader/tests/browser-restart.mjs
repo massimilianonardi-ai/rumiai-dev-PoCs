@@ -153,6 +153,30 @@ try{
  assert.equal(await current.evaluate('window.demo.source'),'v1','release pointer should use actual Service Worker cached response');
  assert.equal(await current.evaluate('window.demo.stored().then(x=>x.count)'),7);
  assert.ok(failedRequests>=2,'server must refuse actual restart navigation/asset requests');
+ // Stronger offline test: Chrome itself blocks network traffic. Page.navigate is a top-level
+ // document navigation (not an iframe and not merely an HTTP 503 response).
+ down=false;
+ await current.call('Network.enable');
+ await current.call('Network.emulateNetworkConditions',{
+  offline:true,latency:0,downloadThroughput:0,uploadThroughput:0
+ });
+ assert.equal(await current.evaluate('navigator.onLine'),false,'DevTools must report an offline browser');
+ const offlineBefore=await current.evaluate('window.demo.boot');
+ await current.call('Page.navigate',{url:origin});
+ await current.until('window.demo?.version==="v1"&&window.demo.boot!=='+JSON.stringify(offlineBefore),
+   'offline top-level navigation controlled by the service worker');
+ assert.equal(await current.evaluate('window.demo.source'),'v1','release pointer must come from SW cache when network is unavailable');
+ assert.equal(await current.evaluate('window.demo.count'),7,'committed application state must survive offline top-level navigation');
+ await current.call('Network.emulateNetworkConditions',{
+  offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1
+ });
+ await current.until('navigator.onLine===true','browser network restored');
+ const reconnectedBefore=await current.evaluate('window.demo.boot');
+ await current.call('Page.navigate',{url:origin});
+ await current.until('window.demo?.version==="v1"&&window.demo.boot!=='+JSON.stringify(reconnectedBefore),
+   'online top-level navigation after reconnection');
+ assert.equal(await current.evaluate('window.demo.source'),null,'reconnected navigation should fetch live release pointer');
+ down=true;
  // Corrupt/incompatible saved state must never be deleted or silently initialized as a valid empty document.
  await current.evaluate('window.recovery.write({schema:99,count:100}).then(()=>true)');
  await current.evaluate('location.reload()');
@@ -164,7 +188,7 @@ try{
  await current.evaluate('location.reload()');
  await current.until('window.demo?.version==="v1"','manual reset reload');
  assert.equal(await current.evaluate('window.demo.count'),0);
- console.log('PASS RESTART: complete Chrome SIGKILL and fresh process same profile, IndexedDB committed=7 vs volatile=11, SW cached offline boot, incompatible snapshot blocked, manual reset required; backend refused '+failedRequests+' requests');
+ console.log('PASS RESTART: Chrome SIGKILL/same-profile persisted=7 volatile=11, SW-cached restart, DevTools browser-offline top-level navigation and online reconnection, incompatible snapshot blocked/manual reset; backend refused '+failedRequests+' requests');
 }finally{
  if(current){await current.stop();current.socket.close();}
  await new Promise(done=>server.close(done));

@@ -68,6 +68,16 @@ const controller=`<!doctype html><meta charset="utf-8"><pre id="result">WAIT</pr
       worker.postMessage({type:'version'},[channel.port2]);
     });
   }
+  // Test-only application cache policy: retain every explicitly pinned release.
+  // Cache Storage is not a browser-managed unbounded version registry.
+  const pinned=new Set(['v1','v2']);
+  async function prune(){
+    for(const name of await caches.keys()){
+      if(name.startsWith('jsc-pinned-') && !pinned.has(name.slice('jsc-pinned-'.length)))
+        await caches.delete(name);
+    }
+    return caches.keys();
+  }
   async function frame() {
     const iframe=document.createElement('iframe');
     iframe.src='/client';
@@ -107,6 +117,10 @@ const controller=`<!doctype html><meta charset="utf-8"><pre id="result">WAIT</pr
     if(await workerVersion(waiting)!=='v2'||await workerVersion(registration.active)!=='v1')throw Error('version continuity failed');
     const both=await caches.keys();
     if(!both.includes('jsc-pinned-v1')||!both.includes('jsc-pinned-v2'))throw Error('pinned release cache missing');
+    // Both releases remain pinned during migration; pruning cannot delete v1 yet.
+    const protectedCaches=await prune();
+    if(!protectedCaches.includes('jsc-pinned-v1')||!protectedCaches.includes('jsc-pinned-v2'))
+      throw Error('cache cleanup evicted a still-pinned release');
     await serverRequest('/outage?mode=on');
     const stillOld=await frame();
     if(stillOld.contentWindow.AppInfo.version!=='v1')throw Error('waiting v2 broke offline v1');
@@ -124,7 +138,27 @@ const controller=`<!doctype html><meta charset="utf-8"><pre id="result">WAIT</pr
     const offlineV2=await frame();
     if(offlineV2.contentWindow.AppInfo.version!=='v2')throw Error('offline v2 navigation failed');
     if(!(await (await caches.open('jsc-pinned-v1')).match('/client')))throw Error('old pinned release prematurely evicted');
-    result.textContent='PASS OFFLINE real service worker cache, offline v1/v2 navigation, pinned assets, explicit activation';
+    // Only after the v1 clients have migrated and v2 controls the page may v1 be unpinned.
+    // Create many retired-generation caches and verify cleanup remains bounded.
+    const unrelated=await caches.open('jsc-independent-other-app');
+    await unrelated.put('/unrelated',new Response('retained'));
+    for(let i=0;i<20;i++){
+      const old=await caches.open('jsc-pinned-retired-'+i);
+      await old.put('/retired-'+i,new Response('old '+i));
+    }
+    pinned.delete('v1');
+    const remaining=await prune();
+    const owned=remaining.filter(name=>name.startsWith('jsc-pinned-'));
+    if(owned.length!==1||owned[0]!=='jsc-pinned-v2')
+      throw Error('cache cleanup retained old generations or removed the active release');
+    if(!remaining.includes('jsc-independent-other-app'))
+      throw Error('cleanup deleted unrelated application cache');
+    if(!(await (await caches.open('jsc-pinned-v2')).match('/client')))
+      throw Error('cleanup damaged active v2 offline shell');
+    if((await caches.keys()).includes('jsc-pinned-v1'))throw Error('released v1 cache not removed');
+    const v2check=await frame();
+    if(v2check.contentWindow.AppInfo.version!=='v2')throw Error('pruning broke current offline navigation');
+    result.textContent='PASS OFFLINE real SW navigation v1/v2, pinned v1 protection, 20 retired caches removed, active/unrelated cache retained';
   } catch(error) { result.textContent='FAIL OFFLINE '+error.stack; }
 })();
 </script>`;
