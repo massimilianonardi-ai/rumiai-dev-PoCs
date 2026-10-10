@@ -94,3 +94,7 @@ if (!observation.complete || observation.blocked) {
 ```
 
 Options: `webControlCommand`, `scrollWaitMs`, `stableRounds`, `maxRounds`, `timeoutMs`. All optional. Returns the same structured observation as the CLI, including `items[].price` and `items[].purchaseAction`. Incomplete/blocked observations are returned as data; transport/process failures throw. This API is currently an experimental subprocess adapter, not a promoted RumiAI library, package, or stable runtime contract. JSON/CSV/HTML/PDF report generation, monitoring history, presentation, and delivery belong downstream.
+
+## Pure monitoring decision experiment
+
+`price-monitor.mjs` exports `evaluate({lists, observations, accessFailure, unreliable, checkedAt})`. Inputs use integer euro cents; `lists` contain named rows with ASIN, previous current/minimum, user-owned target, and target-notified state. Observations provide `asin`, `priceCents`, `verified`. Outputs: `changes`, `alerts`, per-list `coverage`, `failed`, and email requirements. `notificationAcknowledgement` on target alerts is **only** applied by a downstream delivery/persistence coordinator after successful email delivery. The function never sends mail, changes sheets, or mutates inputs. Synthetic tests: `test-price-monitor.mjs`. The experiment does not yet implement report renderers, email adapters, or a complete end-to-end workflow; particularly error-email success verification is the coordinator's responsibility.
