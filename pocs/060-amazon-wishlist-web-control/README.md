@@ -65,6 +65,8 @@ The run is considered complete only after the browser is at the bottom, no new A
 
 A blocked/challenge page or a run that reaches the maximum round count without meeting the completion condition exits non-zero.
 
+An HTTP 4xx/5xx result or a final page outside the expected Amazon.it wishlist route is explicitly classified as blocked/unverified. An Amazon sign-in redirect must not be reported as a successfully enumerated empty wishlist.
+
 This PoC does not bypass CAPTCHA, challenges, authentication, or Amazon anti-bot controls. Network observation is passive instrumentation of requests already initiated by the rendered page.
 
 ## Interpretation

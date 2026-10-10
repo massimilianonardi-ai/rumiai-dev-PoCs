@@ -171,6 +171,14 @@ const snapshotExpression = String.raw`(() => {
   const bodyText = document.body?.innerText || '';
   const lower = bodyText.toLowerCase();
   const finalUrl = location.href;
+  let expectedWishlist = false;
+  try {
+    const observed = new URL(finalUrl);
+    expectedWishlist = /(^|\.)amazon\.it$/i.test(observed.hostname) &&
+      /^\/hz\/wishlist\/ls(?:\/|$)/i.test(observed.pathname);
+  } catch {
+    expectedWishlist = false;
+  }
 
   const visible = (node) => {
     if (!node) return false;
@@ -184,6 +192,7 @@ const snapshotExpression = String.raw`(() => {
   };
 
   const blockSignals = {
+    unexpectedPage: !expectedWishlist,
     captcha:
       lower.includes('type the characters you see in this image') ||
       lower.includes('inserisci i caratteri che vedi') ||
@@ -368,7 +377,8 @@ try {
     finalSnapshot = snapshot;
     for (const item of snapshot.items || []) mergeItem(items, item, round);
 
-    const blocked = Object.values(snapshot.blockSignals || {}).some(Boolean);
+    const blocked = Object.values(snapshot.blockSignals || {}).some(Boolean) ||
+      (typeof navigation?.status === 'number' && navigation.status >= 400);
     const count = items.size;
     const noNewItems = count === previousCount;
     const sameHeight = snapshot.documentHeight === previousHeight;
@@ -412,7 +422,10 @@ try {
   if (page?.id) await webControl('page', 'close', page.id).catch(() => {});
 }
 
-const blockSignals = finalSnapshot?.blockSignals || {};
+const blockSignals = {
+  ...(finalSnapshot?.blockSignals || {}),
+  httpError: typeof navigation?.status === 'number' && navigation.status >= 400
+};
 const blocked = Object.values(blockSignals).some(Boolean);
 
 const result = {
