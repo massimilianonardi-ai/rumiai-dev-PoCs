@@ -56,7 +56,7 @@ The script emits one JSON document containing:
 
 - navigation/final URL/title and block detection;
 - all unique ASINs observed during the entire scrolling session, not only those left in the final DOM;
-- per-item title, product URL and wishlist-visible price candidates;
+- per-item title, product URL, wishlist-visible price candidates and `purchaseAction` (`add-to-cart`, `view-all-options`, `ambiguous`, `unknown`);
 - every scroll round with item count, document height, scroll position and loading indicators;
 - page-level `fetch`/XHR calls observed after the network recorder was installed;
 - a conservative `complete` flag.
@@ -72,3 +72,7 @@ This PoC does not bypass CAPTCHA, challenges, authentication, or Amazon anti-bot
 ## Interpretation
 
 The rendered-page/scroll result is the reference path. The recorded requests are evidence for a possible later optimization. An internal continuation request must not be adopted merely because it appears once: it must first be shown to reproduce the same complete product set in the same authenticated browser/session context.
+
+## Purchase-action interpretation
+
+The per-item `purchaseAction` reflects the visible wishlist action, not global inventory status. `add-to-cart` means direct wishlist cart action; `view-all-options` means the item directs the user to alternative offers instead. `ambiguous` and `unknown` explicitly avoid inferring availability. The current experiment recognizes Italian and English visible button labels, scoped to each wishlist item. Price verification remains independent of this classification; selectors/labels require physical DOM validation if Amazon changes its interface.
