@@ -2,6 +2,38 @@
 
 Status: **experimental; no selected product architecture**. Owner: rumiai-dev/handoff/browser-column-editor.md.
 
+## Try the real browser engine locally — hands-on experimental demo (2026-10-10)
+
+The small human-facing demonstration is under [demo/index.html](demo/index.html) with [demo/app.mjs](demo/app.mjs). It uses actual **PieceDocument + TextEditSelections + external planColumnPaste** from this PoC, a simple browser textarea projection and a separate in-memory one-action-per-undo controller. This is a **hands-on experimental UI**, not the future large-file viewport renderer or a promoted product API.
+
+From a shell with Python 3 and a current checkout:
+
+```sh
+cd pocs/063-large-text-engine
+python3 -m http.server 8763 --bind 127.0.0.1
+```
+
+Then open **http://127.0.0.1:8763/demo/** in Chrome/Chromium or another modern browser. The initial editable document is:
+
+```text
+aa
+b
+```
+
+Try these representative manual operations:
+
+- Type a character directly; **one keystroke gives one undo entry**, accessible with Cmd+Z (Mac) / Ctrl+Z or the buttons. Redo with Cmd+Shift+Z / Ctrl+Shift+Z or the button.
+- Click **Aggiungi cursore** using default row **2** and UTF-16 column **0**, then type `Q`. Both selected caret positions receive the character, and a single undo restores both positions. The extra carets are listed, **not visually painted over the textarea**.
+- Restore the sample and click **Inserisci a colonne** using the prefilled rectangle and the four rows `X`, `Y`, `Z`, `W`. The result is `aaX\nb Y\n  Z\n  W`: two physical lines are appended beyond EOF, and one undo restores `aa\nb`. The rectangle is chosen through numeric controls; actual drag-to-make-rectangle is **not implemented**.
+- Restore the sample; click **Arma incolla da clipboard** and then perform a real Cmd+V / Ctrl+V with your multiline clipboard text in the focused editor. The browser's real `paste` event flows through the same external column planner.
+- Load or save a small local text file using the controls; the document is **not automatically persisted**. Try ordinary selection, text paste, Backspace and Enter.
+
+Run this from an **HTTP loopback server**, not a `file://` URL, because browser ES modules need resolvable MIME types and standard same-origin behavior. No npm dependencies or cloud services are required. The development checkout itself can of course be obtained from the GitHub repository.
+
+Deliberate **256 KiB demo cap**: the textarea still holds and redraws the whole document, so testing gigabyte files in this UI would misrepresent the engine's performance. For performance/memory, use the isolated command-line benchmarks. Unicode width is supplied by a simplistic experimental view function; arbitrary font/pixel geometry, visual multiple-carets, native rectangular mouse dragging, cross-browser IME sequences, and MadEdit-Mod GUI parity remain open. `demo/` is a PoC UI adapter only and does not modify `TextEditBase`, `TextEditSelections`, core document methods, undo persistence, or canonical project architecture.
+
+The real-Chromium CDP driver in `tests/browser-input.mjs` also visits this **same hands-on page** and exercises actual keyboard input, undo/redo, browser pointer clicks on controls, two-caret editing, interactive column button paste and real OS/browser clipboard Ctrl+V, while the existing browser IDB test remains independent. These checks are on the actual browser DOM and real PoC model, not simulated editor implementations.
+
 ## Questions
 
 Can a self-contained JavaScript core (no DOM, framework or packages) support a general grouped-edit transaction with complete selection/caret snapshots? Is whole-string replacement an acceptable baseline for huge documents? What changes when edits use immutable reference chunks in an indexed sequence?
