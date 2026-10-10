@@ -1,0 +1,41 @@
+name: PoC 062 jsc dynamic loader
+on:
+  push:
+    paths:
+      - 'pocs/062-jsc-dynamic-loader/**'
+      - '.github/workflows/poc-062-jsc-dynamic-loader.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  jsc-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Real Node compiler and loader tests, including heap experiment
+        working-directory: pocs/062-jsc-dynamic-loader
+        run: npm test
+      - name: Build and syntax-check standalone classic bundle
+        working-directory: pocs/062-jsc-dynamic-loader
+        run: |
+          npm run build
+          node --check example/bundle.js
+      - name: Exercise the real browser hot-reload and HTTP cache policy
+        working-directory: pocs/062-jsc-dynamic-loader
+        shell: bash
+        run: |
+          chrome="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$chrome" ]; then
+            echo 'No Chromium/Chrome browser executable available in hosted runner' >&2
+            exit 1
+          fi
+          CHROMIUM="$chrome" npm run test:browser
+      - name: Publish experiment bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: jsc-classic-bundle-062
+          path: pocs/062-jsc-dynamic-loader/example/bundle.js
+          if-no-files-found: error
