@@ -65,6 +65,7 @@ jobs:
         working-directory: pocs/063-large-text-engine
         run: |
           node tests/visual-column-probe.mjs
+          node tests/visual-column-ascii-probe.mjs
           node tests/visual-column-scale.mjs 8
       - name: Unified input and external reversible-action controller
         working-directory: pocs/063-large-text-engine
