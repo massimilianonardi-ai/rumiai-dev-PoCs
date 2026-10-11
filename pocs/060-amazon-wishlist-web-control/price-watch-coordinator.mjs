@@ -1,6 +1,7 @@
 import { evaluate } from './price-monitor.mjs';
 import { readMonitorLists, planMonitorCells } from './price-monitor-sheet-adapter.mjs';
 import { toPriceObservations } from './wishlist-price-adapter.mjs';
+import { reconcileMonitorLists } from './price-monitor-membership.mjs';
 import { alertEmail, errorEmail } from './price-monitor-reports.mjs';
 
 /**
@@ -25,6 +26,7 @@ export async function runPriceWatch({ sources, io, checkedAt = new Date().toISOS
     throw new Error('each monitored sheet must have exactly one Amazon wishlist URL');
   }
   const observations = [];
+  const verifiedLists = new Map();
   const problems = [];
   let accessFailure = false, unreliable = false;
   for (const source of sources) {
@@ -35,14 +37,16 @@ export async function runPriceWatch({ sources, io, checkedAt = new Date().toISOS
       if (result.accessFailure || result.unreliable) {
         problems.push(source.name + ': accesso bloccato, elenco incompleto o ambiguo');
       } else {
-        observations.push(...result.observations);
+        verifiedLists.set(source.name, result.observations);
+        observations.push(...result.observations.map(o => ({...o, list: source.name})));
       }
     } catch (error) {
       accessFailure = true;
       problems.push(source.name + ': ' + String(error.message || error));
     }
   }
-  const decision = evaluate({lists, observations, accessFailure, unreliable, checkedAt});
+  const currentMembership = reconcileMonitorLists(lists, verifiedLists);
+  const decision = evaluate({lists: currentMembership, observations, accessFailure, unreliable, checkedAt});
   const delivery = { errorSent: false, alertSent: false, errors: [] };
   async function deliver(mail, kind) {
     if (!mail) return false;
@@ -57,7 +61,7 @@ export async function runPriceWatch({ sources, io, checkedAt = new Date().toISOS
   }
   delivery.errorSent = await deliver(errorEmail(decision,checkedAt,problems),'error');
   delivery.alertSent = await deliver(alertEmail(decision,checkedAt),'alert');
-  const cells = planMonitorCells(lists,decision,{alertEmailSucceeded:delivery.alertSent});
+  const cells = planMonitorCells(currentMembership,decision,{alertEmailSucceeded:delivery.alertSent});
   let sheetUpdated = false;
   try {
     if (cells.length) await io.applyCells(cells);

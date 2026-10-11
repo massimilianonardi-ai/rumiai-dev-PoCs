@@ -38,6 +38,8 @@ assert.ok(trial.mails.some(m=>m.html.includes('B012345678') &&
   m.html.includes('https://www.amazon.it/dp/B012345678')));
 assert.ok(trial.writes.some(c=>c.column==='L'&&c.value===15));
 assert.ok(!trial.writes.some(c=>c.sheet==='Star Wars'));
+// The source wishlist, not sheet membership, determines which items are evaluated.
+// Duplicate ASINs in other lists cannot borrow verified prices from Watch.
 assert.ok(trial.writes.every(c=>!['F','G','H','I'].includes(c.column)));
 trial=await run({sendAlert:false});
 assert.equal(trial.result.delivery.alertSent,false);

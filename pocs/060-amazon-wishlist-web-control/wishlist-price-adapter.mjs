@@ -27,7 +27,8 @@ export function toPriceObservations(wishlist) {
     observations.push({ asin, verified: valid,
       ...(valid ? { priceCents: price.cents } : {}),
       reason: valid ? null : (price?.reason || 'price-unverified'),
-      purchaseAction: item.purchaseAction || 'unknown' });
+      purchaseAction: item.purchaseAction || 'unknown',
+      description: String(item.title || ''), url: String(item.url || '') });
   }
   return { accessFailure: false, unreliable: false, observations,
     attempted: observations.length, verified: observations.filter(x => x.verified).length };

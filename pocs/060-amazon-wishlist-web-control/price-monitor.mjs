@@ -9,13 +9,15 @@ export function evaluate({ lists, observations, accessFailure = false, unreliabl
   if (!Array.isArray(lists) || !Array.isArray(observations)) throw new TypeError('lists and observations must be arrays');
   if (typeof checkedAt !== 'string' || !checkedAt) throw new TypeError('checkedAt is required');
   const byAsin = new Map();
+  const observationKey = (list, asin) => JSON.stringify([list, asin]);
   for (const observation of observations) {
     if (typeof observation.asin !== 'string' || !valid(observation.priceCents)) continue;
     if (observation.verified !== true) continue;
-    if (byAsin.has(observation.asin)) {
-      // Conflicting prices are not sufficiently reliable.
-      if (byAsin.get(observation.asin) !== observation.priceCents) byAsin.set(observation.asin, null);
-    } else byAsin.set(observation.asin, observation.priceCents);
+    const key = observationKey(observation.list ?? null, observation.asin);
+    if (byAsin.has(key)) {
+      // Conflicting prices for the same list+ASIN are not sufficiently reliable.
+      if (byAsin.get(key) !== observation.priceCents) byAsin.set(key, null);
+    } else byAsin.set(key, observation.priceCents);
   }
   const changes = [], alerts = [], coverage = [];
   for (const list of lists) {
@@ -27,7 +29,9 @@ export function evaluate({ lists, observations, accessFailure = false, unreliabl
       for (const field of ['currentCents','minimumCents','targetCents','targetNotifiedCents']) {
         if (!optional(row[field])) throw new TypeError('invalid ' + field);
       }
-      const current = byAsin.get(row.asin);
+      const scoped = observationKey(list.name, row.asin);
+      const current = byAsin.has(scoped) ? byAsin.get(scoped) :
+        byAsin.get(observationKey(null, row.asin));
       if (!valid(current)) continue;
       verified++;
       const previous = row.currentCents ?? null;

@@ -55,7 +55,7 @@ export function readMonitorLists(tabs) {
         url: String(cells[9] || '')
       });
     });
-    return { name, rows };
+    return { name, rows, lastRow: values.length };
   });
 }
 
@@ -79,6 +79,18 @@ export function planMonitorCells(lists, decision, { alertEmailSucceeded = false 
       throw new Error('monitor change does not identify a unique source sheet row');
     }
     const amount = cents => cents === null ? null : cents / 100;
+    if (original.isNew) {
+      put(cells, change.list, change.sheetRow, 'A', original.asin);
+      put(cells, change.list, change.sheetRow, 'B', original.description);
+      put(cells, change.list, change.sheetRow, 'J', original.url);
+      // Copy formulas into the newly appended row; never alter existing formulas.
+      if (original.formulaFromRow) {
+        cells.push({ sheet: change.list, row: change.sheetRow, column: 'G',
+          copyFormulaFromRow: original.formulaFromRow });
+        cells.push({ sheet: change.list, row: change.sheetRow, column: 'H',
+          copyFormulaFromRow: original.formulaFromRow });
+      }
+    }
     put(cells, change.list, change.sheetRow, 'C', amount(change.currentCents));
     put(cells, change.list, change.sheetRow, 'D', amount(change.differenceCents));
     put(cells, change.list, change.sheetRow, 'E', amount(change.minimumCents));
