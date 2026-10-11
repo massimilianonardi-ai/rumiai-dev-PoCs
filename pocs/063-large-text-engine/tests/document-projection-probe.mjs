@@ -124,6 +124,19 @@ for(const Store of [FlatDocument,PieceDocument,AdaptiveRepackDocument]){
   cases++;
 }
 
+// An EOF-anchored note inside a final folded row remains accounted for.
+{
+  const doc=new PieceDocument('top\nlast');
+  const p=createDocumentProjection(doc,{
+    folds:[{from:0,to:1}],
+    annotations:[{id:'eof',at:doc.length,text:'after last character'}]
+  });
+  const first=p.projectWindow({from:0,count:1}).rows[0];
+  assert.equal(first.parts.find(x=>x.kind==='fold').hiddenAnnotations,1);
+  assert.equal(first.parts.some(x=>x.kind==='annotation'),false);
+  cases++;
+}
+
 // A clipped giant line has no executable caret mapping. Annotations are
 // bounded per visible row, never confused with source characters.
 {
