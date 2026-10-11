@@ -3,6 +3,7 @@ import {performance} from 'node:perf_hooks';
 import {FlatDocument,PieceDocument,AdaptiveRepackDocument} from '../src/documents.mjs';
 import {TextEditSelections} from '../src/text-edit-selections-probe.mjs';
 import {createDocumentProjection} from '../src/document-projection-probe.mjs';
+import {resolveVisibleLineSelection} from '../src/advanced-selection-probe.mjs';
 
 // Same immutable source, two independent views. Folds affect representation,
 // never physical bytes or the selections owned by TextEditSelections.
@@ -67,11 +68,11 @@ for(const Store of [FlatDocument,PieceDocument,AdaptiveRepackDocument]){
     {kind:'unresolved',reason:'no-fold'});
   assert.deepEqual(folded.viewToSource({viewLine:1,grapheme:100}),
     {kind:'unresolved',reason:'grapheme-outside-line'});
-  assert.deepEqual(folded.selectVisibleLines({from:1,to:2}),[
+  assert.deepEqual(resolveVisibleLineSelection(doc,folded,{from:1,to:2}),[
     {start:doc.lineStart(1),end:doc.lineStart(2),forward:true},
     {start:doc.lineStart(4),end:doc.length,forward:true}
   ]);
-  assert.deepEqual(folded.selectVisibleLines({
+  assert.deepEqual(resolveVisibleLineSelection(doc,folded,{
     from:1,to:2,includeFolded:true
   }),[{start:doc.lineStart(1),end:doc.length,forward:true}]);
   assert.throws(()=>createDocumentProjection(doc,{
@@ -86,7 +87,7 @@ for(const Store of [FlatDocument,PieceDocument,AdaptiveRepackDocument]){
   // Selection translation is purely logical: the unchanged selection editor
   // edits only the two visible source lines. Hidden lines survive intact.
   const editor=new TextEditSelections(doc);
-  editor.setSelections(folded.selectVisibleLines({from:1,to:2}));
+  editor.setSelections(resolveVisibleLineSelection(doc,folded,{from:1,to:2}));
   editor.replace(['REPLACED\n','AFTER']);
   assert.equal(doc.slice(0,doc.length),
     'header\nREPLACED\nhidden note line\nhidden last line\nAFTER');
@@ -171,7 +172,7 @@ for(const Store of [FlatDocument,PieceDocument,AdaptiveRepackDocument]){
   assert.ok(maxRead<=10240);
   assert.ok(maxSlice<=512,'must never read a full selected or hidden giant line');
   assert.ok(slicedUnits<350*20*530);
-  assert.deepEqual(p.selectVisibleLines({from:40000,to:40001,includeFolded:true}),[
+  assert.deepEqual(resolveVisibleLineSelection(doc,p,{from:40000,to:40001,includeFolded:true}),[
     {start:doc.lineStart(40000),end:doc.lineStart(150002),forward:true}
   ]);
   console.log(JSON.stringify({scaleRows:N,foldedRows:110000,projections:350,
