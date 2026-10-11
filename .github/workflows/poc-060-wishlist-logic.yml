@@ -31,3 +31,4 @@ jobs:
           node test-api.mjs
           node test-price-monitor.mjs
           node test-adapters.mjs
+          node test-coordinator.mjs
