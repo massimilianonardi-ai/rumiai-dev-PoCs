@@ -70,6 +70,9 @@ jobs:
       - name: Lazy non-DOM document representation with folds and notes
         working-directory: pocs/063-large-text-engine
         run: node tests/document-projection-probe.mjs
+      - name: Explicit rebase of source anchors and folds across confirmed edits
+        working-directory: pocs/063-large-text-engine
+        run: node tests/projection-metadata-rebase-probe.mjs
       - name: Bounded viewport projection over 200k indexed rows
         working-directory: pocs/063-large-text-engine
         run: node tests/viewport-probe.mjs
