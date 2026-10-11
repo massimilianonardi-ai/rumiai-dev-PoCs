@@ -98,6 +98,12 @@ for(const Store of [FlatDocument,PieceDocument,AdaptiveRepackDocument]){
     'header\nREPLACED\nhidden note line\nhidden last line\nAFTER');
   assert.equal(folded.projectWindow({from:1,count:2}).rows[0].parts[0].value,
     'REPLACED','source is projected again on demand, without listeners');
+  const refreshed=createDocumentProjection(doc,{
+    folds:[{from:1,to:3}],
+    annotations:[{id:'end',at:doc.length,text:'EOF note'}]
+  });
+  assert.equal(refreshed.projectWindow({from:2,count:1}).rows[0].parts.at(-1).anchor,
+    doc.length,'caller explicitly recreates annotation anchors after editing');
   cases++;
 }
 
