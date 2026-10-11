@@ -1,0 +1,8 @@
+{
+  "name": "rumiai-wishlist-poc-060",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "cheerio": "1.2.0"
+  }
+}

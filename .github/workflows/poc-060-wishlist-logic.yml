@@ -19,6 +19,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Install PoC parser
+        working-directory: pocs/060-amazon-wishlist-web-control
+        run: npm install --no-audit --no-fund
       - name: Syntax check
         run: |
           for file in pocs/060-amazon-wishlist-web-control/*.mjs; do

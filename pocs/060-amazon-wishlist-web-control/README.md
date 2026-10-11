@@ -2,7 +2,7 @@
 
 Purpose: validate complete deterministic enumeration of an Amazon.it wishlist through the current `web-control` runtime.
 
-The user maintains monitored membership only in Amazon. This PoC therefore accepts a wishlist URL, discovers products itself, reads prices visible in the wishlist, drives lazy loading by scrolling, and records future `fetch`/XHR requests initiated by the page while loading more items.
+The user maintains monitored membership only in Amazon. This PoC therefore accepts a wishlist URL, discovers products itself, reads prices visible in the wishlist, drives lazy loading by scrolling, using only provider-neutral rendered HTML inspection and document scrolling.
 
 It does **not** use Google Sheets, Gmail, ChatGPT, `web-sense`, or individual product-page navigation.
 
@@ -58,7 +58,7 @@ The script emits one JSON document containing:
 - all unique ASINs observed during the entire scrolling session, not only those left in the final DOM;
 - per-item title, product URL, wishlist-visible price candidates and `purchaseAction` (`add-to-cart`, `view-all-options`, `ambiguous`, `unknown`);
 - every scroll round with item count, document height, scroll position and loading indicators;
-- page-level `fetch`/XHR calls observed after the network recorder was installed;
+- `networkTrace: null`, explicitly indicating that the portable interface does not record fetch/XHR;
 - a conservative `complete` flag.
 
 The run is considered complete only after the browser is at the bottom, no new ASIN has appeared, document height has stopped growing, and no recognized loading indicator remains for the configured number of stable rounds.
@@ -110,3 +110,7 @@ Options: `webControlCommand`, `scrollWaitMs`, `stableRounds`, `maxRounds`, `time
 ## Membership reconciliation (Amazon-owned)
 
 `price-monitor-membership.mjs` makes each complete Amazon wishlist extraction authoritative for that cycle's monitored ASIN membership, even when the legacy Sheet contains fewer or older rows. Existing matching Sheet rows retain target and history; old Sheet rows absent from the current Amazon list remain as historical, unmodified rows and are not monitored. New verified items receive an append-row cell plan; new unverified items are observed but not written. Appended rows include explicit G/H formula-copy instructions rather than replacing existing formulas. The I/O implementation must materialize those copies and apply writes safely; no actual row append has yet been performed on the user's Sheet. Failed wishlist extraction leaves that list's historical rows in the attempted failure count, but never treats the failure as a complete membership result. Per-list ASIN evidence is scoped so another wishlist cannot falsely satisfy a blocked list's coverage.
+
+## Provider-independent extraction (2026-10-11)
+
+The current implementation consumes only `web-control page new/navigate/inspect/scroll/capture/close`. A local Cheerio HTML parser interprets rendered Amazon-specific item markup; the provider never receives any Amazon parser or generic JavaScript evaluation request. `page scroll 0` reads layout without motion, while a positive delta advances the real browser and triggers lazy loading. Completeness requires consecutive stable bottom-of-document observations, item count and layout height; a blocked, empty, or incomplete result never becomes a successful complete list. Network trace is deliberately unavailable (`null`), not faked. The same adapter is usable with the updated Electron and Playwright providers exposing the common `page scroll` contract; older released versions lacking `scroll` will fail explicitly. Install the PoC-only HTML parser once with `npm install` inside this directory (or `npm ci` if a lockfile is present). It is not part of the provider package. The hosted Electron integration fixture tests a real browser without authenticating to Amazon; real authenticated Amazon.it DOM behavior still requires physical acceptance.

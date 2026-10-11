@@ -1,3 +1,4 @@
+import { parseWishlistHtml } from './wishlist-html.mjs';
 import { execFile } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -13,6 +14,8 @@ const WAIT_MS = positiveInt('AMAZON_SCROLL_WAIT_MS', 1500);
 const STABLE_ROUNDS = positiveInt('AMAZON_STABLE_ROUNDS', 3);
 const MAX_ROUNDS = positiveInt('AMAZON_MAX_ROUNDS', 80);
 const OUT_DIR = process.env.OUT_DIR || '';
+const TEST_ORIGIN = process.env.AMAZON_TEST_ORIGIN || '';
+if (TEST_ORIGIN && !/^http:\/\/127\.0\.0\.1:\d+$/.test(TEST_ORIGIN)) throw new Error('AMAZON_TEST_ORIGIN must be local loopback');
 
 function positiveInt(name, fallback) {
   const raw = process.env[name];
@@ -31,14 +34,6 @@ async function webControl(...args) {
     maxBuffer: 32 * 1024 * 1024
   });
   return JSON.parse(stdout);
-}
-
-async function evaluate(page, expression) {
-  const result = await webControl(
-    'debug', 'cdp', page, 'Runtime.evaluate',
-    JSON.stringify({ expression, returnByValue: true, awaitPromise: true })
-  );
-  return result?.result?.value;
 }
 
 function parseEuro(text) {
@@ -100,263 +95,6 @@ function selectPrice(candidates) {
   };
 }
 
-const installRecorderExpression = String.raw`(() => {
-  if (window.__rumiaiWishlistTraceInstalled) return { installed: true, reused: true };
-  window.__rumiaiWishlistTraceInstalled = true;
-  window.__rumiaiWishlistTrace = [];
-
-  const simplifyBody = (body) => {
-    if (body == null) return null;
-    try {
-      if (typeof body === 'string') return body.slice(0, 3000);
-      if (body instanceof URLSearchParams) return body.toString().slice(0, 3000);
-      if (body instanceof FormData) {
-        return [...body.entries()].map(([k, v]) => [k, typeof v === 'string' ? v : '[binary]']);
-      }
-      return String(body).slice(0, 3000);
-    } catch {
-      return '[unavailable]';
-    }
-  };
-
-  const record = (entry) => {
-    const item = {
-      at: new Date().toISOString(),
-      kind: entry.kind,
-      method: String(entry.method || 'GET').toUpperCase(),
-      url: String(entry.url || ''),
-      body: simplifyBody(entry.body),
-      status: null
-    };
-    window.__rumiaiWishlistTrace.push(item);
-    return item;
-  };
-
-  const originalFetch = window.fetch;
-  window.fetch = function(input, init = {}) {
-    const request = input instanceof Request ? input : null;
-    const entry = record({
-      kind: 'fetch',
-      method: init.method || request?.method || 'GET',
-      url: request?.url || input,
-      body: init.body
-    });
-    const promise = originalFetch.apply(this, arguments);
-    Promise.resolve(promise).then(
-      (response) => { entry.status = response.status; },
-      () => { entry.status = -1; }
-    );
-    return promise;
-  };
-
-  const originalOpen = XMLHttpRequest.prototype.open;
-  const originalSend = XMLHttpRequest.prototype.send;
-
-  XMLHttpRequest.prototype.open = function(method, url) {
-    this.__rumiaiTraceMeta = { method, url };
-    return originalOpen.apply(this, arguments);
-  };
-
-  XMLHttpRequest.prototype.send = function(body) {
-    const meta = this.__rumiaiTraceMeta || { method: 'GET', url: '' };
-    const entry = record({ kind: 'xhr', method: meta.method, url: meta.url, body });
-    this.addEventListener('loadend', () => { entry.status = this.status; }, { once: true });
-    return originalSend.apply(this, arguments);
-  };
-
-  return { installed: true, reused: false };
-})()`;
-
-const snapshotExpression = String.raw`(() => {
-  const bodyText = document.body?.innerText || '';
-  const lower = bodyText.toLowerCase();
-  const finalUrl = location.href;
-  let expectedWishlist = false;
-  try {
-    const observed = new URL(finalUrl);
-    expectedWishlist = /(^|\.)amazon\.it$/i.test(observed.hostname) &&
-      /^\/hz\/wishlist\/ls(?:\/|$)/i.test(observed.pathname);
-  } catch {
-    expectedWishlist = false;
-  }
-
-  const visible = (node) => {
-    if (!node) return false;
-    const style = getComputedStyle(node);
-    const rect = node.getBoundingClientRect();
-    return style.display !== 'none' &&
-      style.visibility !== 'hidden' &&
-      Number(style.opacity || '1') !== 0 &&
-      rect.width > 0 &&
-      rect.height > 0;
-  };
-
-  const blockSignals = {
-    unexpectedPage: !expectedWishlist,
-    captcha:
-      lower.includes('type the characters you see in this image') ||
-      lower.includes('inserisci i caratteri che vedi') ||
-      lower.includes('enter the characters you see below') ||
-      finalUrl.toLowerCase().includes('validatecaptcha') ||
-      Boolean(document.querySelector('#captchacharacters, form[action*="validateCaptcha"]')),
-    robotCheck:
-      lower.includes('robot check') ||
-      lower.includes('api-services-support@amazon.com'),
-    serviceUnavailable:
-      lower.includes('service unavailable') ||
-      lower.includes('503 service unavailable'),
-    genericAmazonError:
-      lower.includes('sorry! something went wrong') ||
-      (lower.includes('ci dispiace') && lower.includes('qualcosa è andato storto'))
-  };
-
-  const itemNodes = new Set();
-  for (const selector of [
-    'li[id^="item_"]',
-    'li[data-itemid]',
-    '.g-item-sortable',
-    '[data-itemid].a-spacing-none'
-  ]) {
-    for (const node of document.querySelectorAll(selector)) itemNodes.add(node);
-  }
-
-  const items = [];
-  for (const node of itemNodes) {
-    let productLink = null;
-    let asin = null;
-
-    for (const link of node.querySelectorAll('a[href*="/dp/"], a[href*="/gp/product/"]')) {
-      const href = link.href || '';
-      const match = href.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})(?:[/?]|$)/i);
-      if (!match) continue;
-      productLink = link;
-      asin = match[1].toUpperCase();
-      break;
-    }
-
-    if (!asin || !productLink) continue;
-
-    let title = '';
-    for (const selector of [
-      '[id^="itemName_"]',
-      '.a-link-normal .a-size-base-plus',
-      '.a-link-normal .a-size-medium',
-      'h2',
-      'h3'
-    ]) {
-      const candidate = node.querySelector(selector);
-      const text = (candidate?.textContent || '').trim().replace(/\s+/g, ' ');
-      if (text) {
-        title = text;
-        break;
-      }
-    }
-    if (!title) title = (productLink.textContent || '').trim().replace(/\s+/g, ' ');
-
-    const priceSelectors = [
-      ['[id^="itemPrice_"].a-price > .a-offscreen', 10],
-      ['[id^="itemPrice_"].a-price .a-offscreen', 20]
-    ];
-    const priceCandidates = [];
-    const seenPrices = new Set();
-
-    for (const [selector, priority] of priceSelectors) {
-      for (const priceNode of node.querySelectorAll(selector)) {
-        // Amazon's .a-offscreen is intentionally visually hidden: it is the
-        // accessible single-price value, while its sibling repeats the amount.
-        // Verify the parent price widget rather than rejecting .a-offscreen.
-        const widget = priceNode.closest('[id^="itemPrice_"].a-price');
-        if (!widget || !visible(widget)) continue;
-        const text = (priceNode.textContent || '').trim().replace(/\s+/g, ' ');
-        if (!text || !(/[€]|EUR/i.test(text))) continue;
-        const key = priority + '|' + text;
-        if (seenPrices.has(key)) continue;
-        seenPrices.add(key);
-        priceCandidates.push({ priority, selector, text });
-      }
-    }
-
-    // Scope actions to this wishlist item; never infer availability from price alone.
-    // Button text is a fallback for Amazon's localized UI, not a global stock claim.
-    const actionLabels = [...node.querySelectorAll('button, input[type="submit"], a[role="button"], span.a-button')]
-      .filter(visible)
-      .map((action) => (action.getAttribute('aria-label') ||
-        action.getAttribute('value') || action.textContent || '')
-        .trim().replace(/\s+/g, ' ').toLocaleLowerCase('it'))
-      .filter(Boolean);
-    const addToCart = actionLabels.some((label) =>
-      /aggiungi al carrello|add to cart/.test(label));
-    const viewOptions = actionLabels.some((label) =>
-      /visualizza tutte le opzioni|see all buying options|see all options/.test(label));
-    const purchaseAction = addToCart && viewOptions ? 'ambiguous' :
-      addToCart ? 'add-to-cart' : viewOptions ? 'view-all-options' : 'unknown';
-
-    items.push({
-      asin,
-      title,
-      url: productLink.href,
-      priceCandidates,
-      purchaseAction
-    });
-  }
-
-  const loadingSelectors = [
-    '.a-spinner-wrapper',
-    '.a-spinner-medium',
-    '#wl-load-more',
-    '[data-action*="load-more"]',
-    '.load-more'
-  ];
-  const visibleLoading = [];
-  for (const selector of loadingSelectors) {
-    const count = [...document.querySelectorAll(selector)].filter(visible).length;
-    if (count) visibleLoading.push({ selector, count });
-  }
-
-  const root = document.documentElement;
-  const body = document.body;
-  const documentHeight = Math.max(
-    root?.scrollHeight || 0,
-    root?.offsetHeight || 0,
-    body?.scrollHeight || 0,
-    body?.offsetHeight || 0
-  );
-
-  const scrollY = window.scrollY;
-  const viewportHeight = window.innerHeight;
-  const atBottom = scrollY + viewportHeight >= documentHeight - 20;
-
-  return {
-    finalUrl,
-    documentTitle: document.title,
-    blockSignals,
-    items,
-    documentHeight,
-    scrollY,
-    viewportHeight,
-    atBottom,
-    visibleLoading,
-    trace: Array.isArray(window.__rumiaiWishlistTrace)
-      ? window.__rumiaiWishlistTrace.slice()
-      : []
-  };
-})()`;
-
-const scrollExpression = String.raw`(() => {
-  const root = document.documentElement;
-  const body = document.body;
-  const height = Math.max(
-    root?.scrollHeight || 0,
-    root?.offsetHeight || 0,
-    body?.scrollHeight || 0,
-    body?.offsetHeight || 0
-  );
-  const step = Math.max(Math.floor(window.innerHeight * 0.85), 600);
-  const target = Math.min(window.scrollY + step, height);
-  window.scrollTo(0, target);
-  return { target, height };
-})()`;
-
 function mergeItem(store, raw, round) {
   const price = selectPrice(raw.priceCandidates || []);
   const previous = store.get(raw.asin);
@@ -386,50 +124,41 @@ const rounds = [];
 try {
   page = await webControl('page', 'new');
   navigation = await webControl('page', 'navigate', page.id, WISHLIST_URL);
-  await evaluate(page.id, installRecorderExpression);
-
   for (let round = 0; round < MAX_ROUNDS; round += 1) {
-    await sleep(round === 0 ? WAIT_MS : Math.max(250, WAIT_MS));
-    const snapshot = await evaluate(page.id, snapshotExpression);
-    if (!snapshot) throw new Error('wishlist snapshot returned no value');
-
-    finalSnapshot = snapshot;
-    for (const item of snapshot.items || []) mergeItem(items, item, round);
-
-    const blocked = Object.values(snapshot.blockSignals || {}).some(Boolean) ||
+    await sleep(Math.max(50, WAIT_MS));
+    // These two operations are in the portable web-control contract.
+    const geometry = await webControl('page', 'scroll', page.id, '0');
+    const metadata = await webControl('page', 'inspect', page.id, 'summary');
+    const rendered = await webControl('page', 'inspect', page.id, 'html');
+    const snapshot = parseWishlistHtml(rendered.html, metadata.url, {
+      expectedOrigin: TEST_ORIGIN || 'https://www.amazon.it'
+    });
+    finalSnapshot = { ...snapshot, ...geometry };
+    for (const item of snapshot.items) mergeItem(items, item, round);
+    const blocked = Object.values(snapshot.blockSignals).some(Boolean) ||
       (typeof navigation?.status === 'number' && navigation.status >= 400);
     const count = items.size;
     const noNewItems = count === previousCount;
-    const sameHeight = snapshot.documentHeight === previousHeight;
-    const loading = (snapshot.visibleLoading || []).length > 0;
-
-    if (!blocked && snapshot.atBottom && noNewItems && sameHeight && !loading) {
-      stableRounds += 1;
-    } else {
-      stableRounds = 0;
-    }
-
+    const sameHeight = geometry.documentHeight === previousHeight;
+    const loading = snapshot.visibleLoading.length > 0;
+    // Empty-list success needs a separate site-specific empty-state contract.
+    if (!blocked && count > 0 && geometry.atBottom && noNewItems && sameHeight && !loading) {
+      stableRounds++;
+    } else stableRounds = 0;
     rounds.push({
-      round,
-      observedInDom: snapshot.items?.length || 0,
-      uniqueItems: count,
-      documentHeight: snapshot.documentHeight,
-      scrollY: snapshot.scrollY,
-      viewportHeight: snapshot.viewportHeight,
-      atBottom: snapshot.atBottom,
-      loading: snapshot.visibleLoading,
-      stableRounds
+      round, observedInDom: snapshot.items.length, uniqueItems: count,
+      documentHeight: geometry.documentHeight, scrollY: geometry.scrollY,
+      viewportHeight: geometry.viewportHeight, atBottom: geometry.atBottom,
+      loading: snapshot.visibleLoading, stableRounds
     });
-
-    if (blocked) break;
-    if (stableRounds >= STABLE_ROUNDS) {
-      complete = true;
+    if (blocked || stableRounds >= STABLE_ROUNDS) {
+      complete = !blocked;
       break;
     }
-
     previousCount = count;
-    previousHeight = snapshot.documentHeight;
-    await evaluate(page.id, scrollExpression);
+    previousHeight = geometry.documentHeight;
+    // Scroll a page-sized step; no CDP or provider-specific JavaScript.
+    await webControl('page', 'scroll', page.id, String(Math.max(400, Math.floor(geometry.viewportHeight * 0.85))));
   }
 
   if (OUT_DIR && page?.id) {
@@ -463,7 +192,7 @@ const result = {
   rounds,
   itemCount: items.size,
   items: [...items.values()],
-  networkTrace: finalSnapshot?.trace || []
+  networkTrace: null // Not observable through portable web-control; never pretend otherwise.
 };
 
 process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
