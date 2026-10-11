@@ -42,16 +42,13 @@ export async function extract(wishlistUrl, options = {}) {
   } catch (error) {
     // Incomplete/blocked observations retain their structured evidence.
     if (error.stdout) {
-      try {
-        const result = JSON.parse(error.stdout);
-        if (typeof result.complete === 'boolean' && typeof result.blocked === 'boolean') {
-          if (result.failure) {
-            error.observation = result;
-            throw error;
-          }
-          return result;
-        }
-      } catch { /* Preserve the original failure. */ }
+      let result;
+      try { result = JSON.parse(error.stdout); }
+      catch { /* Not every failed subprocess can produce a JSON observation. */ }
+      if (typeof result?.complete === 'boolean' && typeof result?.blocked === 'boolean') {
+        if (!result.failure) return result;
+        error.observation = result;
+      }
     }
     throw error;
   }

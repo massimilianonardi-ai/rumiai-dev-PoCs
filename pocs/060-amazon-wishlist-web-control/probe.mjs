@@ -173,6 +173,7 @@ try {
     await webControl('page', 'capture', page.id, target, 'html', 'text', 'screenshot');
   }
 } catch (error) {
+  complete = false;
   const detail = String(error.stderr || '');
   const pageUnavailable = /unknown page:\s*page-/i.test(detail);
   failure = {

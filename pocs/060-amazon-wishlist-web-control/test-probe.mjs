@@ -70,6 +70,18 @@ try {
   assert.equal(incomplete.itemCount,1);
   assert.equal(incomplete.rounds.length,5);
   assert.equal(incomplete.completionReason,'max-rounds-reached');
+  const apiScript = [
+    "import { extract } from " + JSON.stringify(new URL('./amazon-wishlist-extract.mjs', import.meta.url).href) + ";",
+    "try { await extract('https://www.amazon.it/hz/wishlist/ls/TEST',",
+    "{webControlCommand: process.env.WEB_CONTROL_CMD, maxRounds: 3}); process.exitCode = 93; }",
+    "catch (error) { console.log(JSON.stringify(error.observation || null)); }"
+  ].join('\n');
+  const apiResult = spawnSync(process.execPath,['--input-type=module','-e',apiScript],{
+    encoding:'utf8',timeout:15000,env:{...process.env,WEB_CONTROL_CMD:mockPath,
+      MOCK_PAGE_MISSING:'1',AMAZON_SCROLL_WAIT_MS:'1'}
+  });
+  assert.equal(apiResult.status,0,apiResult.stderr);
+  assert.equal(JSON.parse(apiResult.stdout).failure.reason,'page-unavailable');
   const unavailable=run({MOCK_STATUS:'503'},1);
   assert.equal(unavailable.blockSignals.httpError,true);
   const redirect=run({MOCK_URL:'https://www.amazon.it/ap/signin'},1);
