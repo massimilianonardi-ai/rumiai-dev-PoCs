@@ -63,7 +63,9 @@ The script emits one JSON document containing:
 
 The run is considered complete only after the browser is at the bottom, no new ASIN has appeared, document height has stopped growing, and no recognized loading indicator remains for the configured number of stable rounds.
 
-A blocked/challenge page or a run that reaches the maximum round count without meeting the completion condition exits non-zero.
+A blocked/challenge page or a run that reaches the maximum round count without meeting the completion condition exits non-zero. The output remains structured JSON with `completionReason`: `stable-bottom`, `blocked` or `max-rounds-reached`.
+
+If the page disappears or a `web-control` command fails mid-run, the CLI emits a diagnostic to stderr, but still writes a structured partial observation to stdout (`complete: false`, `failure` with the failed operation and any safely observed remaining page IDs, `completionReason` set to the failure reason). The CLI uses exit code 2 for this case; the experimental import API continues to **throw** on transport failures and attaches any partial `observation` to the thrown error. These failures are never reported as a completed wishlist, nor treated as an authenticated-site validation PASS.
 
 An HTTP 4xx/5xx result or a final page outside the expected Amazon.it wishlist route is explicitly classified as blocked/unverified. An Amazon sign-in redirect must not be reported as a successfully enumerated empty wishlist.
 

@@ -26,12 +26,18 @@ const html='<!doctype html><html><head><title>Wishlist</title></head><body><li i
 if (args[0]==='page'&&args[1]==='new') emit({id:'page-1'});
 else if (args[0]==='page'&&args[1]==='navigate')
   emit({page:'page-1',url,status,statusText:status>=400?'Error':'OK',title:'Wishlist'});
-else if (args[0]==='page'&&args[1]==='inspect'&&args[3]==='summary')
-  emit({id:'page-1',url,title:'Wishlist'});
+else if (args[0]==='page'&&args[1]==='inspect'&&args[3]==='summary') {
+  if (process.env.MOCK_PAGE_MISSING==='1') {
+    process.stderr.write('web-control: unknown page: page-1\\n');
+    process.exitCode=1;
+  } else emit({id:'page-1',url,title:'Wishlist'});
+}
 else if (args[0]==='page'&&args[1]==='inspect'&&args[3]==='html')
   emit({page:'page-1',html:url.includes('/hz/wishlist/ls/')?html:'<html><body>Sign in</body></html>'});
 else if (args[0]==='page'&&args[1]==='scroll')
-  emit({page:'page-1',scrollY:0,documentHeight:100,viewportHeight:100,atBottom:true});
+  emit({page:'page-1',scrollY:0,documentHeight:100,viewportHeight:100,
+    atBottom:process.env.MOCK_NOT_AT_BOTTOM!=='1'});
+else if (args[0]==='page'&&args[1]==='list') emit([{id:'page-2'}]);
 else if (args[0]==='page'&&args[1]==='close') emit({page:'page-1',closed:true});
 else { process.stderr.write('unexpected common web-control command\n');process.exitCode=8; }
 `;
@@ -52,6 +58,18 @@ try {
   assert.equal(good.networkTrace,null);
   assert.equal(run({MOCK_ACTION:'Visualizza tutte le opzioni'},0).items[0].purchaseAction,'view-all-options');
   assert.equal(run({MOCK_ACTION:'Other'},0).items[0].purchaseAction,'unknown');
+  const lost=run({MOCK_PAGE_MISSING:'1'},2);
+  assert.equal(lost.complete,false);
+  assert.equal(lost.blocked,false);
+  assert.equal(lost.completionReason,'page-unavailable');
+  assert.equal(lost.failure.operation,'page inspect');
+  assert.equal(lost.failure.page,'page-1');
+  assert.deepEqual(lost.failure.livePageIds,['page-2']);
+  const incomplete=run({MOCK_NOT_AT_BOTTOM:'1'},1);
+  assert.equal(incomplete.complete,false);
+  assert.equal(incomplete.itemCount,1);
+  assert.equal(incomplete.rounds.length,5);
+  assert.equal(incomplete.completionReason,'max-rounds-reached');
   const unavailable=run({MOCK_STATUS:'503'},1);
   assert.equal(unavailable.blockSignals.httpError,true);
   const redirect=run({MOCK_URL:'https://www.amazon.it/ap/signin'},1);

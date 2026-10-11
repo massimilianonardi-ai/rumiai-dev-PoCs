@@ -45,6 +45,10 @@ export async function extract(wishlistUrl, options = {}) {
       try {
         const result = JSON.parse(error.stdout);
         if (typeof result.complete === 'boolean' && typeof result.blocked === 'boolean') {
+          if (result.failure) {
+            error.observation = result;
+            throw error;
+          }
           return result;
         }
       } catch { /* Preserve the original failure. */ }

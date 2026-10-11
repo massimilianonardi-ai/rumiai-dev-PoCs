@@ -29,11 +29,16 @@ function sleep(ms) {
 }
 
 async function webControl(...args) {
-  const { stdout } = await execFileAsync(WEB_CONTROL, args, {
-    encoding: 'utf8',
-    maxBuffer: 32 * 1024 * 1024
-  });
-  return JSON.parse(stdout);
+  try {
+    const { stdout } = await execFileAsync(WEB_CONTROL, args, {
+      encoding: 'utf8',
+      maxBuffer: 32 * 1024 * 1024
+    });
+    return JSON.parse(stdout);
+  } catch (error) {
+    error.operation = args.slice(0, 2).join(' ');
+    throw error;
+  }
 }
 
 function parseEuro(text) {
@@ -115,6 +120,7 @@ let page = null;
 let navigation = null;
 let finalSnapshot = null;
 let complete = false;
+let failure = null;
 let stableRounds = 0;
 let previousCount = -1;
 let previousHeight = -1;
@@ -166,6 +172,23 @@ try {
     await fs.mkdir(target, { recursive: true });
     await webControl('page', 'capture', page.id, target, 'html', 'text', 'screenshot');
   }
+} catch (error) {
+  const detail = String(error.stderr || '');
+  const pageUnavailable = /unknown page:\s*page-/i.test(detail);
+  failure = {
+    reason: pageUnavailable ? 'page-unavailable' : 'web-control-failed',
+    operation: error.operation || 'unknown',
+    page: page?.id || null
+  };
+  if (pageUnavailable) {
+    // Observation only: the controller may still be running after page closure/crash.
+    try {
+      const live = await webControl('page', 'list');
+      if (Array.isArray(live)) failure.livePageIds = live.map(item => item.id);
+    } catch { /* Preserve the original failure as the sole primary cause. */ }
+  }
+  console.error('Amazon wishlist extraction: ' + failure.reason +
+    ' during ' + failure.operation + ' (page=' + (failure.page || 'none') + ')');
 } finally {
   if (page?.id) await webControl('page', 'close', page.id).catch(() => {});
 }
@@ -188,6 +211,10 @@ const result = {
   complete,
   blocked,
   blockSignals,
+  completionReason: complete ? 'stable-bottom' :
+    failure?.reason || (blocked ? 'blocked' :
+      rounds.length >= MAX_ROUNDS ? 'max-rounds-reached' : 'not-confirmed'),
+  failure,
   stableRounds,
   rounds,
   itemCount: items.size,
@@ -197,4 +224,5 @@ const result = {
 
 process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 
-if (!complete || blocked) process.exitCode = 1;
+if (failure) process.exitCode = 2;
+else if (!complete || blocked) process.exitCode = 1;
