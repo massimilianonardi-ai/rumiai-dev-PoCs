@@ -7,7 +7,8 @@ export function resolveVisibleLineSelection(document,projection,{
 }={}){
   if(!document||typeof document.lineStart!=='function'||
     !natural(document.lineCount)||!natural(document.length)||
-    !projection||typeof projection.viewLineToSource!=='function')
+    !projection||typeof projection.viewLineToSource!=='function'||
+    typeof projection.viewToSource!=='function')
     throw new TypeError('indexed document and projection required');
   if(!natural(from)||!natural(to)||from>to||
     to>=projection.visibleLineCount||typeof includeFolded!=='boolean')
@@ -19,7 +20,11 @@ export function resolveVisibleLineSelection(document,projection,{
   if(includeFolded){
     const first=projection.viewLineToSource(from);
     const last=projection.viewLineToSource(to);
-    return [{start:document.lineStart(first),end:lineAfter(last),forward:true}];
+    // A selected folded header represents its hidden rows as well.
+    const marker=projection.viewToSource({viewLine:to,part:'fold'});
+    const end=marker.kind==='folded-region'?
+      marker.source.end:lineAfter(last);
+    return [{start:document.lineStart(first),end,forward:true}];
   }
   const result=[];
   for(let view=from;view<=to;view++){
