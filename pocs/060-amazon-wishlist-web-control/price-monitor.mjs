@@ -48,7 +48,7 @@ export function evaluate({ lists, observations, accessFailure = false, unreliabl
         ...(dropAbsolute ? ['drop-10-eur'] : []),
         ...(newMinimum ? ['new-minimum'] : [])
       ];
-      const identity = { list: list.name, asin: row.asin };
+      const identity = { list: list.name, asin: row.asin,\n        ...(row.sheetRow ? { sheetRow: row.sheetRow } : {}) };
       changes.push({ ...identity, currentCents: current, differenceCents: difference,
         minimumCents: minimum, checkedAt,
         ...(resetNotification ? { targetNotifiedCents: null } : {}) });

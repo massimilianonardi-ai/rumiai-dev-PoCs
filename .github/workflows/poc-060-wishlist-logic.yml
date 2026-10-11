@@ -20,6 +20,14 @@ jobs:
         with:
           node-version: "22"
       - name: Syntax check
-        run: node --check pocs/060-amazon-wishlist-web-control/probe.mjs
-      - name: Exercise synthetic CLI contract
-        run: node pocs/060-amazon-wishlist-web-control/test-probe.mjs
+        run: |
+          for file in pocs/060-amazon-wishlist-web-control/*.mjs; do
+            node --check "$file"
+          done
+      - name: Exercise synthetic contract and decision tests
+        run: |
+          cd pocs/060-amazon-wishlist-web-control
+          node test-probe.mjs
+          node test-api.mjs
+          node test-price-monitor.mjs
+          node test-adapters.mjs
