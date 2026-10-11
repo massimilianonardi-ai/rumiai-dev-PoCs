@@ -67,11 +67,11 @@ A blocked/challenge page or a run that reaches the maximum round count without m
 
 An HTTP 4xx/5xx result or a final page outside the expected Amazon.it wishlist route is explicitly classified as blocked/unverified. An Amazon sign-in redirect must not be reported as a successfully enumerated empty wishlist.
 
-This PoC does not bypass CAPTCHA, challenges, authentication, or Amazon anti-bot controls. Network observation is passive instrumentation of requests already initiated by the rendered page.
+This PoC does not bypass CAPTCHA, challenges, authentication, or Amazon anti-bot controls. The portable interface does not record network requests; the observation is derived from the rendered HTML and scroll geometry.
 
 ## Interpretation
 
-The rendered-page/scroll result is the reference path. The recorded requests are evidence for a possible later optimization. An internal continuation request must not be adopted merely because it appears once: it must first be shown to reproduce the same complete product set in the same authenticated browser/session context.
+The rendered-page/scroll result is the reference path. The adapter does not call or infer Amazon internal continuation endpoints. Any future optimization would require separately demonstrated equivalence to the complete visible product set.
 
 ## Purchase-action interpretation
 
@@ -97,11 +97,11 @@ Options: `webControlCommand`, `scrollWaitMs`, `stableRounds`, `maxRounds`, `time
 
 ## Pure monitoring decision experiment
 
-`price-monitor.mjs` exports `evaluate({lists, observations, accessFailure, unreliable, checkedAt})`. Inputs use integer euro cents; `lists` contain named rows with ASIN, previous current/minimum, user-owned target, and target-notified state. Observations provide `asin`, `priceCents`, `verified`. Outputs: `changes`, `alerts`, per-list `coverage`, `failed`, and email requirements. `notificationAcknowledgement` on target alerts is **only** applied by a downstream delivery/persistence coordinator after successful email delivery. The function never sends mail, changes sheets, or mutates inputs. Synthetic tests: `test-price-monitor.mjs`. The experiment does not yet implement report renderers, email adapters, or a complete end-to-end workflow; particularly error-email success verification is the coordinator's responsibility.
+`price-monitor.mjs` exports `evaluate({lists, observations, accessFailure, unreliable, checkedAt})`. Inputs use integer euro cents; `lists` contain named rows with ASIN, previous current/minimum, user-owned target, and target-notified state. Observations provide `asin`, `priceCents`, `verified`. Outputs: `changes`, `alerts`, per-list `coverage`, `failed`, and email requirements. `notificationAcknowledgement` on target alerts is **only** applied by a downstream delivery/persistence coordinator after successful email delivery. The function never sends mail, changes sheets, or mutates inputs. Synthetic tests: `test-price-monitor.mjs`. This pure decision module delegates report formatting, email delivery and full end-to-end operation to separate PoC modules below; notably, error-email success verification is the coordinator's responsibility.
 
 ## Wishlist / workbook bridge (experimental)
 
-`wishlist-price-adapter.mjs` converts a complete, non-blocked `extract()` result into verified/unverified price-monitor observations; incomplete or ambiguous enumerations fail closed. `price-monitor-sheet-adapter.mjs` reads the existing twelve-column `Watch`/`Star Wars` Google Sheet arrays into the pure monitor's cents-based rows and creates only a cell-level update plan. It never writes Google Sheets, sends email or overwrites spreadsheet formulas, user-owned targets, notes or URLs. The live workbook's G/H columns contain formulas and must remain untouched. The `Target notificato` acknowledgement is planned **only** when the caller separately confirms successful email delivery. See `test-adapters.mjs` for the isolated bridge test. This PoC still requires a real authenticated runtime and a coordinator to perform end-to-end sheet persistence and notification delivery. The extractor currently requires the Playwright provider's `debug cdp` extension; the Electron provider intentionally has no corresponding command.
+`wishlist-price-adapter.mjs` converts a complete, non-blocked `extract()` result into verified/unverified price-monitor observations; incomplete or ambiguous enumerations fail closed. `price-monitor-sheet-adapter.mjs` reads the existing twelve-column `Watch`/`Star Wars` Google Sheet arrays into the pure monitor's cents-based rows and creates only a cell-level update plan. It never writes Google Sheets, sends email or overwrites spreadsheet formulas, user-owned targets, notes or URLs. The live workbook's G/H columns contain formulas and must remain untouched. The `Target notificato` acknowledgement is planned **only** when the caller separately confirms successful email delivery. See `test-adapters.mjs` for the isolated bridge test. This PoC still requires a real authenticated runtime and a coordinator to perform end-to-end sheet persistence and notification delivery. The extractor requires only the provider-independent `web-control 2` operations. It does not call the Playwright-specific `debug cdp` extension.
 
 ## Isolated coordinator and email formatting
 
