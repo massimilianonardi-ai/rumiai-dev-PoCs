@@ -64,7 +64,7 @@ export function createDocumentProjection(document,{
   function viewLineToSource(viewLine){
     if(!natural(viewLine)||viewLine>=visibleLineCount)
       throw new RangeError('visible line');
-    const before=lowerBound(orderedFolds,viewLine,f=>f.viewHeader+1);
+    const before=lowerBound(orderedFolds,viewLine+1,f=>f.viewHeader+1);
     return viewLine+(before?orderedFolds[before-1].hiddenThrough:0);
   }
   function sourceLineToView(logicalLine){
