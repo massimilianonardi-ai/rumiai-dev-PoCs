@@ -54,11 +54,12 @@ function validateChanges(capture,document,changes){
     return {start:change.start,end:change.end,
       removed:change.removed,inserted:change.inserted};
   }).sort((a,b)=>a.start-b.start||a.end-b.end);
-  let delta=0,lineDelta=0,end=-1;
+  let delta=0,lineDelta=0,end=-1,lastStart=-1;
   for(const change of sorted){
-    if(change.start<=end)
+    if(change.start<end||change.start===lastStart)
       throw new RangeError('overlapping/duplicate text changes');
     end=change.end;
+    lastStart=change.start;
     delta+=change.inserted.length-change.removed.length;
     lineDelta+=lfCount(change.inserted)-lfCount(change.removed);
   }
