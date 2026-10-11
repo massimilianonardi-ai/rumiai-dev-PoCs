@@ -124,9 +124,8 @@ for(const Store of [FlatDocument,PieceDocument,AdaptiveRepackDocument]){
   results.push({store:Store.name,selectionOrder:true,repeat:true,
     orientedReverse:true,orientedRightEdge:true,threeRowColumn:true,externalInverse:true});
 }
-// A backend failure on otherwise valid inputs is exceptional. For speed,
-// TextEditSelections does NOT attempt rollback: one earlier (high offset)
-// replacement may remain. The error must propagate; no success result exists.
+// An exceptional backend failure is compensated without changing selections.
+// The original error still propagates, but completed primitive writes are undone.
 {
   const real=new FlatDocument('aa\nbb\ncc');
   let calls=0;
@@ -137,9 +136,9 @@ for(const Store of [FlatDocument,PieceDocument,AdaptiveRepackDocument]){
   const editor=new TextEditSelections(observed);
   const before=[caret(0),caret(3),caret(6)];editor.setSelections(before);
   assert.throws(()=>editor.replace(['A','B','C']),/injected before-mutation error/);
-  assert.equal(textOf(real),'aa\nbb\nCcc','one prior replace remains, no rollback');
+  assert.equal(textOf(real),'aa\nbb\ncc','the completed write is rolled back');
   assert.deepEqual(editor.getSelections(),before,'do not pretend success by changing selections');
-  assert.equal(calls,2,'no recovery replace calls after exceptional failure');
+  assert.equal(calls,3,'one compensating replace for the completed write');
 }
 // Ordinary input errors are detected before any TextEditBase replacement.
 // Even a bad direction plan after an earlier valid plan does not mutate.
@@ -168,4 +167,4 @@ console.log(JSON.stringify({pass:true,candidate:'TextEditBase -> TextEditSelecti
   variants:results,backendCount:results.length,baseHasNoSelections:true,
   perTargetPrimitiveOnly:true,orientationDefinedByCaller:true,
   columnPolicyExternal:true,noUndoOrListeners:true,
-  prevalidatedBeforeMutation:true,rollbackNotAttempted:true,partialWriteOnBackendError:true,guiTested:false}));
+  prevalidatedBeforeMutation:true,rollbackRestoresCompletedWrites:true,guiTested:false}));
