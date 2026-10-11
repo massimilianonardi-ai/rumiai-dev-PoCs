@@ -220,6 +220,30 @@ for(const Store of [FlatDocument,PieceDocument,AdaptiveRepackDocument]){
   assert.equal(updated.annotations.at(-1).at,annotations.at(-1).at+8);
   const p=createDocumentProjection(observed,updated);
   assert.equal(p.sourceToView(doc.lineStart(100001)).kind,'folded-region');
+  // Many disjoint changes in one confirmed TextEditSelections operation:
+  // verify every annotation offset against an independent naive mapping.
+  const secondCapture=captureProjectionMetadata(observed,updated);
+  const caretPositions=Array.from({length:160},(_,i)=>{
+    const row=i<80?20+i*490:170000+(i-80)*320;
+    return doc.lineStart(row)+2;
+  });
+  const multiChanges=edit(doc,caretPositions.toReversed().map(caret),'*');
+  const secondStart=performance.now();
+  const second=rebaseProjectionMetadata(secondCapture,observed,multiChanges);
+  const manyEditMs=performance.now()-secondStart;
+  assert.deepEqual(second.folds,updated.folds);
+  assert.equal(second.annotations.length,annotations.length);
+  assert.equal(second.unresolved.length,0);
+  for(let i=0;i<second.annotations.length;i++){
+    const oldAt=updated.annotations[i].at;
+    const expected=oldAt+multiChanges.filter(c=>c.start<oldAt).length;
+    assert.equal(second.annotations[i].at,expected);
+  }
+  assert.equal(sliceCalls,0,'neither metadata rebase reads source text');
+  console.log(JSON.stringify({manyEditCount:multiChanges.length,
+    manyEditAnnotations:second.annotations.length,
+    manyEditRebaseMs:+manyEditMs.toFixed(2),
+    measuredNotAStableLatencyGuarantee:true}));
   console.log(JSON.stringify({largeDocumentLines:N,metadata:annotations.length,
     rebasedFolds:updated.folds.length,sourceSliceCalls:sliceCalls,
     elapsedMs:+elapsedMs.toFixed(2),singleRunnerNotLatencyGuarantee:true}));
