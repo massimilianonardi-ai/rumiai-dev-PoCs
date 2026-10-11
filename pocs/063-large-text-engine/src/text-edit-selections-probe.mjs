@@ -94,13 +94,36 @@ export class TextEditSelections {
     // never needs to reconstruct deleted content from a partially edited tree.
     // Apply from right to left: original offsets remain valid while editing.
     const originalLength=this.#store.length;
+    // Prepare every result allocation while the text is still unchanged.
+    const after=new Array(count);
+    const changes=[];
+    let displacement=0;
+    for(let i=0;i<ordered.length;i++){
+      const op=ordered[i], position=op.start+displacement+op.insert.length;
+      after[op.id]={start:position,end:position,forward:op.forward};
+      changes.push({
+        selectionId:op.id, start:op.start, end:op.end,
+        removed:originals[i], inserted:op.insert,
+        inverseStart:op.start+displacement,
+        inverseEnd:position
+      });
+      displacement+=op.insert.length-(op.end-op.start);
+    }
+    if(!Number.isSafeInteger(originalLength+displacement) ||
+       originalLength+displacement<0 ||
+       after.some(r=>!Number.isSafeInteger(r.start)))
+      throw new RangeError('resulting text offsets are not representable');
+    const newOrder=ordered.map(op=>op.id);
+    const result={changes,before,after:after.map(r=>({...r}))};
     const completed=[];
+    let expectedLength=originalLength;
     for(let i=ordered.length-1;i>=0;i--){
       const op=ordered[i];
-      const lengthBefore=this.#store.length;
+      const lengthBefore=expectedLength;
       try {
         this.#store.replace(op.start,op.end,op.insert);
         completed.push(i);
+        expectedLength+=op.insert.length-(op.end-op.start);
       } catch(error) {
         // A custom backend can throw either before or AFTER completing a
         // replacement. Detect both using the local range and length. If its
@@ -139,22 +162,8 @@ export class TextEditSelections {
         throw error;
       }
     }
-    const after=new Array(count);
-    const changes=[];
-    let displacement=0;
-    for(let i=0;i<ordered.length;i++){
-      const op=ordered[i], position=op.start+displacement+op.insert.length;
-      after[op.id]={start:position,end:position,forward:op.forward};
-      changes.push({
-        selectionId:op.id, start:op.start, end:op.end,
-        removed:originals[i], inserted:op.insert,
-        inverseStart:op.start+displacement,
-        inverseEnd:position
-      });
-      displacement+=op.insert.length-(op.end-op.start);
-    }
     this.#selections=after;
-    this.#orderedIds=ordered.map(op=>op.id);
-    return {changes, before, after:this.getSelections()};
+    this.#orderedIds=newOrder;
+    return result;
   }
 }
