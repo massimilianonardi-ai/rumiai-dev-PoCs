@@ -161,25 +161,6 @@ export function createDocumentProjection(document,{
     return {kind:'visible',viewLine:placement.viewLine,
       logicalLine:line,offset};
   }
-  function selectVisibleLines({from,to,includeFolded=false}={}){
-    if(!natural(from)||!natural(to)||from>to||to>=visibleLineCount||
-      typeof includeFolded!=='boolean')
-      throw new RangeError('visible selection');
-    if(includeFolded){
-      const first=viewLineToSource(from),last=viewLineToSource(to);
-      const end=last+1<document.lineCount?
-        document.lineStart(last+1):document.length;
-      return [{start:document.lineStart(first),end,forward:true}];
-    }
-    const result=[];
-    for(let viewLine=from;viewLine<=to;viewLine++){
-      const line=viewLineToSource(viewLine);
-      const end=line+1<document.lineCount?
-        document.lineStart(line+1):document.length;
-      result.push({start:document.lineStart(line),end,forward:true});
-    }
-    return result;
-  }
   return {visibleLineCount,projectWindow,viewLineToSource,
-    sourceLineToView,viewToSource,sourceToView,selectVisibleLines};
+    sourceLineToView,viewToSource,sourceToView};
 }
