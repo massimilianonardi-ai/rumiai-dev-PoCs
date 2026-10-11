@@ -35,3 +35,45 @@ jobs:
           node test-price-monitor.mjs
           node test-adapters.mjs
           node test-coordinator.mjs
+
+  electron-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout exact Electron provider revision
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/electron-web-control
+          ref: 66dd8e61b90be85fde0e12677e2153cc4a72e710
+          path: electron-web-control
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install PoC parser
+        working-directory: pocs/060-amazon-wishlist-web-control
+        run: npm install --no-audit --no-fund
+      - name: Install Electron source dependencies
+        working-directory: electron-web-control
+        run: npm install --no-audit --no-fund
+      - name: Configure disposable Electron sandbox and window manager
+        shell: bash
+        working-directory: electron-web-control
+        run: |
+          binary=$(node -p "require('electron')" | tail -n 1)
+          helper="$(dirname "$binary")/chrome-sandbox"
+          test -f "$helper"
+          sudo chown root:root "$helper"
+          sudo chmod 4755 "$helper"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends openbox
+      - name: Run the adapter through a real Electron window
+        shell: bash
+        run: |
+          xvfb-run -a bash -c '
+            openbox >/tmp/poc060-openbox.log 2>&1 &
+            wm=$!
+            trap "kill $wm 2>/dev/null || :" EXIT
+            sleep 1
+            ELECTRON_WEB_CONTROL_SOURCE="$PWD/electron-web-control" node pocs/060-amazon-wishlist-web-control/test-electron-integration.mjs
+          '
