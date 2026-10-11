@@ -54,4 +54,26 @@ await assert.rejects(()=>runPriceWatch({
   extractWishlist:async()=>null,sendEmail:async()=>({success:true}),
   applyCells:async()=>{}}
 }),/exactly one/);
+
+// A verified ASIN from one list must not satisfy an unpriced copy in another list.
+const sameAsinTabs=[
+  tabs[0],
+  {name:'Star Wars',values:[headers,[a,'Duplicate cross-list ASIN',10,null,10,8,
+    null,null,'keep','https://www.amazon.it/dp/'+a,'old',null]]}
+];
+const crossWrites=[];
+const cross=await runPriceWatch({
+  sources,checkedAt:'2026-10-11 12:00',
+  io:{
+    readTabs:async()=>sameAsinTabs,
+    extractWishlist:async url=>response(a,url.endsWith('AAA')?1400:null),
+    sendEmail:async()=>({success:true}),
+    applyCells:async cells=>{crossWrites.push(...cells)}
+  }
+});
+assert.equal(cross.decision.failed,true);
+assert.equal(cross.decision.coverage[0].verified,1);
+assert.equal(cross.decision.coverage[1].verified,0);
+assert.ok(!crossWrites.some(c=>c.sheet==='Star Wars'));
+
 console.log('PoC 060 coordinator delivery acknowledgement and reports: PASS');
