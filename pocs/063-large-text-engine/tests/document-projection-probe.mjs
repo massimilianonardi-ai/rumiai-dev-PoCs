@@ -75,6 +75,11 @@ for(const Store of [FlatDocument,PieceDocument,AdaptiveRepackDocument]){
   assert.deepEqual(resolveVisibleLineSelection(doc,folded,{
     from:1,to:2,includeFolded:true
   }),[{start:doc.lineStart(1),end:doc.length,forward:true}]);
+  assert.deepEqual(resolveVisibleLineSelection(doc,folded,{
+    from:1,to:1,includeFolded:true
+  }),[{start:doc.lineStart(1),end:doc.lineStart(4),forward:true}],
+  'a selected folded header explicitly includes its hidden source interval');
+
   assert.throws(()=>createDocumentProjection(doc,{
     folds:[{from:0,to:2},{from:1,to:3}]
   }),/overlapping\/nested/);
