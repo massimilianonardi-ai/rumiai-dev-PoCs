@@ -111,7 +111,7 @@ export function createDocumentProjection(document,{
           lowerBound(notes,span.start,n=>n.at)});
     }
     const first=lowerBound(notes,start,n=>n.at);
-    const limit=next===document.length?document.length+1:next;
+    const limit=line===document.lineCount-1?document.length+1:next;
     const last=lowerBound(notes,limit,n=>n.at);
     for(let i=first;i<Math.min(last,first+maxAnnotationsPerRow);i++){
       const note=notes[i];
@@ -122,7 +122,7 @@ export function createDocumentProjection(document,{
       parts,truncated,omittedAnnotations:Math.max(0,last-first-maxAnnotationsPerRow)};
   }
   function projectWindow({from=0,count=24}={}){
-    if(!natural(from)||!natural(count)||from>visibleLineCount)
+    if(!natural(from)||!natural(count)||count>256||from>visibleLineCount)
       throw new RangeError('projection window');
     const to=Math.min(visibleLineCount,from+count);
     const rows=[];
