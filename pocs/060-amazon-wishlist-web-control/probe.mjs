@@ -122,6 +122,7 @@ let finalSnapshot = null;
 let complete = false;
 let failure = null;
 let stableRounds = 0;
+let spinnerMarkersAtCompletion = [];
 let previousCount = -1;
 let previousHeight = -1;
 const items = new Map();
@@ -146,19 +147,31 @@ try {
     const count = items.size;
     const noNewItems = count === previousCount;
     const sameHeight = geometry.documentHeight === previousHeight;
-    const loading = snapshot.visibleLoading.length > 0;
+    // Spinner markup is not proof of active loading. Amazon can retain a
+    // hidden/inactive spinner in the DOM after all items are rendered.
+    // Explicit load-more controls remain blocking. A spinner-only stable
+    // bottom requires a longer quiet interval, never just a round-count timeout.
+    const spinnerMarkers = snapshot.visibleLoading.filter(marker =>
+      marker.selector.startsWith('.a-spinner-'));
+    const actionableLoadMore = snapshot.visibleLoading.some(marker =>
+      !marker.selector.startsWith('.a-spinner-'));
+    const requiredStableRounds = spinnerMarkers.length > 0
+      ? STABLE_ROUNDS * 3 : STABLE_ROUNDS;
     // Empty-list success needs a separate site-specific empty-state contract.
-    if (!blocked && count > 0 && geometry.atBottom && noNewItems && sameHeight && !loading) {
+    if (!blocked && count > 0 && geometry.atBottom && noNewItems &&
+        sameHeight && !actionableLoadMore) {
       stableRounds++;
     } else stableRounds = 0;
     rounds.push({
       round, observedInDom: snapshot.items.length, uniqueItems: count,
       documentHeight: geometry.documentHeight, scrollY: geometry.scrollY,
       viewportHeight: geometry.viewportHeight, atBottom: geometry.atBottom,
-      loading: snapshot.visibleLoading, stableRounds
+      loading: snapshot.visibleLoading, stableRounds,
+      requiredStableRounds
     });
-    if (blocked || stableRounds >= STABLE_ROUNDS) {
+    if (blocked || stableRounds >= requiredStableRounds) {
       complete = !blocked;
+      spinnerMarkersAtCompletion = complete ? spinnerMarkers : [];
       break;
     }
     previousCount = count;
@@ -174,6 +187,7 @@ try {
   }
 } catch (error) {
   complete = false;
+  spinnerMarkersAtCompletion = [];
   const detail = String(error.stderr || '');
   const pageUnavailable = /unknown page:\s*page-/i.test(detail);
   failure = {
@@ -212,11 +226,13 @@ const result = {
   complete,
   blocked,
   blockSignals,
-  completionReason: complete ? 'stable-bottom' :
-    failure?.reason || (blocked ? 'blocked' :
+  completionReason: complete
+    ? (spinnerMarkersAtCompletion.length ? 'stable-bottom-spinner-markers' : 'stable-bottom')
+    : failure?.reason || (blocked ? 'blocked' :
       rounds.length >= MAX_ROUNDS ? 'max-rounds-reached' : 'not-confirmed'),
   failure,
   stableRounds,
+  spinnerMarkersAtCompletion: complete ? spinnerMarkersAtCompletion : [],
   rounds,
   itemCount: items.size,
   items: [...items.values()],

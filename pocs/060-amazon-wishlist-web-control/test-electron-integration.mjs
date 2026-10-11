@@ -45,6 +45,7 @@ const browserScript = 'let added=1;'+
 const fixtureHtml = '<!doctype html><html><head><meta charset="utf-8">'+
   '<title>Local wishlist fixture</title></head><body>'+
   '<h1>Local synthetic wishlist</h1><ul id="wishlist">'+cards[0]+'</ul>'+
+  '<div class="a-spinner-wrapper"><span class="a-spinner-medium"></span></div>'+
   '<div style="height:1100px"></div><script>'+browserScript+'</script></body></html>';
 const server = http.createServer((request, response) => {
   const url = new URL(request.url, 'http://localhost');
@@ -76,6 +77,9 @@ try {
   assert.equal(observed.items.find(x => x.asin === 'B001122334').purchaseAction, 'view-all-options');
   assert.ok(observed.rounds.some(x => x.scrollY > 0), 'Electron must really scroll');
   assert.equal(observed.networkTrace, null);
+  assert.equal(observed.completionReason,'stable-bottom-spinner-markers');
+  assert.ok(observed.stableRounds >= 9); // 3x the configured stable rounds
+  assert.ok(observed.spinnerMarkersAtCompletion.length > 0);
   console.log('PoC 060 real Electron and lazy-loaded wishlist fixture: PASS');
 } catch (error) {
   process.stderr.write(stderr.slice(-3000) + '\n');

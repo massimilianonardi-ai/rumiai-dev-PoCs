@@ -19,10 +19,17 @@ const emit=o=>process.stdout.write(JSON.stringify(o)+'\n');
 const url=process.env.MOCK_URL || 'https://www.amazon.it/hz/wishlist/ls/TEST';
 const status=Number(process.env.MOCK_STATUS || '200');
 const action=process.env.MOCK_ACTION || 'Aggiungi al carrello';
+const spinner=process.env.MOCK_SPINNER==='1'
+  ? '<div class="a-spinner-wrapper"><span class="a-spinner-medium"></span></div>'
+  : process.env.MOCK_SPINNER==='hidden'
+    ? '<div class="a-hidden"><span class="a-spinner-wrapper"><span class="a-spinner-medium"></span></span></div>'
+    : '';
+const more=process.env.MOCK_LOAD_MORE==='1'
+  ? '<button id="wl-load-more">Load more</button>' : '';
 const html='<!doctype html><html><head><title>Wishlist</title></head><body><li id="item_1">'+
 '<a href="/dp/B012345678" id="itemName_1">Synthetic product</a>'+
 '<span class="a-price" id="itemPrice_1"><span class="a-offscreen">10,99 €</span></span>'+
-'<button>'+action+'</button></li></body></html>';
+'<button>'+action+'</button></li>'+spinner+more+'</body></html>';
 if (args[0]==='page'&&args[1]==='new') emit({id:'page-1'});
 else if (args[0]==='page'&&args[1]==='navigate')
   emit({page:'page-1',url,status,statusText:status>=400?'Error':'OK',title:'Wishlist'});
@@ -58,6 +65,20 @@ try {
   assert.equal(good.networkTrace,null);
   assert.equal(run({MOCK_ACTION:'Visualizza tutte le opzioni'},0).items[0].purchaseAction,'view-all-options');
   assert.equal(run({MOCK_ACTION:'Other'},0).items[0].purchaseAction,'unknown');
+  const hiddenSpinner=run({MOCK_SPINNER:'hidden'},0);
+  assert.equal(hiddenSpinner.completionReason,'stable-bottom');
+  assert.deepEqual(hiddenSpinner.spinnerMarkersAtCompletion,[]);
+  const persistentSpinner=run({MOCK_SPINNER:'1',AMAZON_MAX_ROUNDS:'12'},0);
+  assert.equal(persistentSpinner.itemCount,1);
+  assert.equal(persistentSpinner.completionReason,'stable-bottom-spinner-markers');
+  assert.equal(persistentSpinner.stableRounds,6); // 3 * STABLE_ROUNDS=2
+  assert.ok(persistentSpinner.spinnerMarkersAtCompletion.length>=1);
+  assert.equal(persistentSpinner.rounds.at(-1).atBottom,true);
+  const notSettledSpinner=run({MOCK_SPINNER:'1',AMAZON_MAX_ROUNDS:'5'},1);
+  assert.equal(notSettledSpinner.completionReason,'max-rounds-reached');
+  const actionableMore=run({MOCK_SPINNER:'1',MOCK_LOAD_MORE:'1',AMAZON_MAX_ROUNDS:'12'},1);
+  assert.equal(actionableMore.stableRounds,0);
+  assert.equal(actionableMore.completionReason,'max-rounds-reached');
   const lost=run({MOCK_PAGE_MISSING:'1'},2);
   assert.equal(lost.complete,false);
   assert.equal(lost.blocked,false);

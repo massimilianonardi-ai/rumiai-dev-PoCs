@@ -61,9 +61,9 @@ The script emits one JSON document containing:
 - `networkTrace: null`, explicitly indicating that the portable interface does not record fetch/XHR;
 - a conservative `complete` flag.
 
-The run is considered complete only after the browser is at the bottom, no new ASIN has appeared, document height has stopped growing, and no recognized loading indicator remains for the configured number of stable rounds.
+The run is considered complete after repeated bottom-of-document observations with unchanged ASIN count and document height. Actionable load-more elements still prevent completion. Passive Amazon spinner markup is *not* reliable evidence that loading remains active: classes that indicate hidden elements are excluded, and when spinner markers remain the adapter requires three times the normal stable rounds without progress before completion. In that case `completionReason: "stable-bottom-spinner-markers"` and `spinnerMarkersAtCompletion` preserve the uncertainty; this is operational DOM-settling evidence, not independent proof of a complete Amazon inventory. A genuinely stalled Amazon request might also leave the DOM unchanged, so live list membership must still be validated before enabling the price monitor.
 
-A blocked/challenge page or a run that reaches the maximum round count without meeting the completion condition exits non-zero. The output remains structured JSON with `completionReason`: `stable-bottom`, `blocked` or `max-rounds-reached`.
+A blocked/challenge page or a run that reaches the maximum round count without meeting the completion condition exits non-zero. The output remains structured JSON with `completionReason`: `stable-bottom`, `stable-bottom-spinner-markers`, `blocked` or `max-rounds-reached`.
 
 If the page disappears or a `web-control` command fails mid-run, the CLI emits a diagnostic to stderr, but still writes a structured partial observation to stdout (`complete: false`, `failure` with the failed operation and any safely observed remaining page IDs, `completionReason` set to the failure reason). The CLI uses exit code 2 for this case; the experimental import API continues to **throw** on transport failures and attaches any partial `observation` to the thrown error. These failures are never reported as a completed wishlist, nor treated as an authenticated-site validation PASS.
 

@@ -14,6 +14,9 @@ export function parseWishlistHtml(html, pageUrl, { expectedOrigin = 'https://www
   const visibleByAttributes = element => {
     for (let node = $(element); node.length; node = node.parent()) {
       if (node.attr('hidden') !== undefined || node.attr('aria-hidden') === 'true') return false;
+      // Amazon's reusable stylesheet hides template/spinner nodes by class,
+      // which is not represented by an inline style in the serialized DOM.
+      if (node.hasClass('a-hidden') || node.hasClass('aok-hidden')) return false;
       const style = (node.attr('style') || '').toLowerCase().replace(/\s+/g, '');
       if (/display:none(?:;|$)|visibility:hidden(?:;|$)|opacity:0(?:;|$)/.test(style)) return false;
     }
