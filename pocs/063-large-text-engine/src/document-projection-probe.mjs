@@ -105,9 +105,13 @@ export function createDocumentProjection(document,{
     const f=foldForHeader(line);
     if(f){
       const span=foldSourceSpan(f);
+      // A note anchored at EOF belongs to the final folded line if that
+      // line is hidden; notes are metadata, not source characters.
+      const hiddenLimit=f.to===document.lineCount-1?
+        document.length+1:span.end;
       parts.push({kind:'fold',source:span,hiddenLines:f.to-f.from,
         label:'…',hiddenAnnotations:
-          lowerBound(notes,span.end,n=>n.at)-
+          lowerBound(notes,hiddenLimit,n=>n.at)-
           lowerBound(notes,span.start,n=>n.at)});
     }
     const first=lowerBound(notes,start,n=>n.at);
