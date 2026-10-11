@@ -2,6 +2,8 @@
 // TextEditBase is a SINGLE-INTERVAL text store: length, slice(from,to),
 // replace(from,to,text). It has no selection, batch, undo or observer concepts.
 // TextEditSelections alone owns selections; direction is injected by the caller.
+// A failed multi-range action restores completed writes in reverse order.
+// If a backend cannot be restored reliably, the editor instance fails closed.
 
 function validIndex(n) { return Number.isSafeInteger(n) && n >= 0; }
 function copySelection(r, length) {
@@ -22,6 +24,7 @@ export class TextEditSelections {
   #selections=[];
   #orderedIds=[];
   #onBackward;
+  #unrecoverable=false;
   constructor(store, {onBackward=sameRange}={}) {
     validateBase(store);
     if (typeof onBackward !== 'function') throw new TypeError('onBackward');
@@ -32,6 +35,7 @@ export class TextEditSelections {
   slice(from,to) { return this.#store.slice(from,to); }
   getSelections() { return this.#selections.map(s=>({...s})); }
   setSelections(ranges) {
+    if (this.#unrecoverable) throw new Error('text store state is uncertain; discard this editor instance');
     if (!Array.isArray(ranges)) throw new TypeError('selections must be an array');
     const selections=ranges.map(r=>copySelection(r,this.length));
     // Selection identity/order is unchanged. Cache only physical execution
@@ -45,6 +49,7 @@ export class TextEditSelections {
   // A single string is copied to all selections. An array is paired in the
   // USER'S SELECTION ORDER, not sorted text order. No clipboard policy.
   replace(textOrTexts) {
+    if (this.#unrecoverable) throw new Error('text store state is uncertain; discard this editor instance');
     const before=this.getSelections(), count=before.length;
     if (!count) throw new RangeError('no selections');
     const texts=typeof textOrTexts==='string'?
@@ -85,13 +90,54 @@ export class TextEditSelections {
     // Every original span is captured before mutation; the wrapper can build
     // inversion records from the result without subscribing to the base.
     const originals=ordered.map(op=>this.#store.slice(op.start,op.end));
-    // One call per selected range; avoid rollback bookkeeping in the hot path.
-    // Every user-input conflict has already been rejected before writes.
-    // Exceptional failures from a valid base replace propagate directly;
-    // previously completed replacements may remain in the document.
+    // All original text is captured before the first write, so compensation
+    // never needs to reconstruct deleted content from a partially edited tree.
+    // Apply from right to left: original offsets remain valid while editing.
+    const originalLength=this.#store.length;
+    const completed=[];
     for(let i=ordered.length-1;i>=0;i--){
       const op=ordered[i];
-      this.#store.replace(op.start,op.end,op.insert);
+      const lengthBefore=this.#store.length;
+      try {
+        this.#store.replace(op.start,op.end,op.insert);
+        completed.push(i);
+      } catch(error) {
+        // A custom backend can throw either before or AFTER completing a
+        // replacement. Detect both using the local range and length. If its
+        // effects cannot be identified, never guess or silently continue.
+        try {
+          const currentLength=this.#store.length;
+          const unchanged=currentLength===lengthBefore &&
+            this.#store.slice(op.start,op.end)===originals[i];
+          const applied=currentLength===lengthBefore+
+              op.insert.length-(op.end-op.start) &&
+            this.#store.slice(op.start,op.start+op.insert.length)===op.insert;
+          if(!unchanged && !applied)
+            throw new Error('failed replacement left an unrecognizable text state');
+          if(!unchanged) completed.push(i);
+          // Undo in the exact reverse order of successful primitive writes.
+          for(let j=completed.length-1;j>=0;j--){
+            const index=completed[j],done=ordered[index];
+            this.#store.replace(done.start,done.start+done.insert.length,
+              originals[index]);
+          }
+          // Validate the complete set of affected spans and document length.
+          if(this.#store.length!==originalLength)
+            throw new Error('rollback did not restore document length');
+          for(let j=0;j<ordered.length;j++){
+            const candidate=ordered[j];
+            if(this.#store.slice(candidate.start,candidate.end)!==originals[j])
+              throw new Error('rollback did not restore edited text');
+          }
+        } catch(rollbackError) {
+          this.#unrecoverable=true;
+          throw new AggregateError([error,rollbackError],
+            'text edit failed and recovery could not be verified',
+            {cause:error});
+        }
+        // The original error remains the reported failure after recovery.
+        throw error;
+      }
     }
     const after=new Array(count);
     const changes=[];
