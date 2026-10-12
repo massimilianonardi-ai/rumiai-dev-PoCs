@@ -1,5 +1,7 @@
 # PoC 060 — Amazon wishlist enumeration through web-control
 
+**Standalone promotion:** The independent released extractor source of truth is now [`amazon-wishlist-extract`](https://github.com/massimilianonardi-ai/amazon-wishlist-extract), initially released as v0.1.0. This PoC retains its historical experiments and the separate Price Watch decision/coordinator prototypes; future Price Watch product integration must consume the standalone extractor's public interface rather than copying/updating this extraction engine independently. Neither the monitor nor the Google Sheets/Gmail adapters were released as part of the extractor.
+
 Purpose: validate complete deterministic enumeration of an Amazon.it wishlist through the current `web-control` runtime.
 
 The user maintains monitored membership only in Amazon. This PoC therefore accepts a wishlist URL, discovers products itself, reads prices visible in the wishlist, drives lazy loading by scrolling, using only provider-neutral rendered HTML inspection and document scrolling.
