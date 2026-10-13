@@ -51,6 +51,21 @@ The GitHub Actions workflow `.github/workflows/poc-065-jsc-closure.yml` obtains 
 - The PoC does not claim browser runtime validation, CommonJS export validation, final import syntax, deep type checking, real package dependency resolution or the full production `jsc` launcher.
 - An executable `CLOSURE_JAR` is required to claim the checks have actually run. The runtime-only path must never be reported as Closure validation.
 
+
+## Observed execution (2026-10-13)
+
+Verified GitHub Actions run [38372326775](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/38372326775), commit `67d4c9a6b4921e5a577481b7140c7c9525d91a35`: **SUCCESS, 18/18 assertions passed** with Node.js 22, Java 21 and **real Closure Compiler v20260831** (pinned Maven JAR).
+
+- All 3 placements resolve the same explicit imports, emit byte-identical consumer JS and preserve capture-vs-qualified-live behavior across namespace redefinition.
+- Generated classic code is syntactically valid, uses `'use strict'`, and contains no `eval()`, `new Function()` or `with`.
+- The prototype independently rejects an import missing from the provider's declared public API.
+- Closure's `--checks_only` succeeds on the valid consumer with externs synthesized from the provider API, and independently on the producer source without externs.
+- Four intentionally invalid fixtures produced actual nonzero Closure exits: `JSC_UNDEFINED_VARIABLE` (unbound identifier), `JSC_PARSE_ERROR` (syntax), `JSC_INEXISTENT_PROPERTY` (missing API property), and `JSC_TYPE_MISMATCH` (annotated return type).
+
+**Crucial limit:** the producer was syntactically checked separately; the PoC has **not** proven that its concrete exported values implement the published external interface. A definitive architecture must validate producer-to-interface correspondence, plus version compatibility and startup/load order. Generated externs alone cannot prove those facts.
+
+The initial attempt against a guessed v20261007 Maven URL failed with 404 before any compiler checks; it was replaced by the independently confirmed, pinned v20260831 artifact, after which the actual Closure checks passed. This is a bounded experimental validation, **not** product `jsc` validation or a browser runtime test.
+
 ## Design question
 
 Where should cross-bundle imports live? Per-source annotations keep dependencies near code but introduce nonstandard annotations; descriptor imports avoid modifying sources but can make the descriptor verbose; reusable provider APIs reduce duplicated knowledge and can supply externs, but still need a consumer mapping for local names and versions. **No final design decision is made by this PoC.**
