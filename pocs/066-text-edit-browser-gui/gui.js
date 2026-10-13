@@ -12,6 +12,38 @@ const segmenter=new Intl.Segmenter(undefined,{granularity:'grapheme'});
 const HEIGHT=24,MAX_UNITS=1024,OVERSCAN=5;
 let editor=null,unsubscribe=null,drag=null,scheduled=false;
 let visible=[],renderCount=0,maxMounted=0,desiredColumn=null;
+let cellGrid=false,cellPixels=0;
+const measureContext=document.createElement('canvas').getContext('2d');
+const emoji=/\p{Extended_Pictographic}|\p{Regional_Indicator}|\uFE0F/u;
+const wide=/\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}|\p{Script=Hangul}|[\uFF01-\uFF60\uFFE0-\uFFE6]/u;
+// Only a PoC policy, not a complete Unicode terminal-width specification.
+// One grapheme is always indivisible, and may occupy one or more grid cells.
+function semanticCells(grapheme){
+  return emoji.test(grapheme)||wide.test(grapheme)?2:1;
+}
+function gridWidth(grapheme){
+  const measured=measureContext.measureText(grapheme).width;
+  return Math.max(semanticCells(grapheme),
+    Number.isFinite(measured)?Math.ceil((measured-.35)/cellPixels):1,1);
+}
+function setColumnGeometry(){
+  if(!editor)return;
+  const row=rows.querySelector('.row');
+  const font=row?getComputedStyle(row).font:
+    '15px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+  measureContext.font=font;
+  cellPixels=Math.max(1,measureContext.measureText('0').width);
+  editor.representation.setColumnMetrics(cellGrid?
+    {tabSize:4,widthOf:gridWidth}:{tabSize:4});
+}
+function layoutMode(grid){
+  cellGrid=grid;
+  scroller.classList.toggle('cell-grid',grid);
+  $('mode-natural').setAttribute('aria-pressed',String(!grid));
+  $('mode-grid').setAttribute('aria-pressed',String(grid));
+  setColumnGeometry();
+  schedule();
+}
 const p=(row,col)=>({row,col});
 const cmp=(a,b)=>a.row-b.row||a.col-b.col;
 function warning(message=''){$('warning').textContent=message;}
@@ -36,20 +68,39 @@ function boundedRow(row){
   }
   return {row,start:info.start,text,truncated};
 }
-function pixel(textNode,index){
-  if(!textNode||index<0||index>textNode.textContent.length)return null;
+function pixel(span,index){
+  if(!span||index<0)return null;
+  if(cellGrid){
+    // The GUI DOM is just a view: every child stores an exact grapheme
+    // boundary in source UTF-16 units, not an independent copy of selections.
+    let map=span._cellBoundaryPixels;
+    if(!map){
+      map=new Map([[0,0]]);
+      const origin=span.getBoundingClientRect().left;
+      for(const cell of span.querySelectorAll('.grid-cell')){
+        map.set(Number(cell.dataset.start),
+          cell.getBoundingClientRect().left-origin);
+        map.set(Number(cell.dataset.end),
+          cell.getBoundingClientRect().right-origin);
+      }
+      span._cellBoundaryPixels=map;
+    }
+    return map.get(index)??null;
+  }
+  const textNode=span.firstChild;
+  if(!textNode||textNode.nodeType!==Node.TEXT_NODE||
+     index>textNode.textContent.length)return null;
   const range=document.createRange();
   range.setStart(textNode,index);
   range.collapse(true);
-  return range.getBoundingClientRect().left-textNode.parentElement.getBoundingClientRect().left;
+  return range.getBoundingClientRect().left-span.getBoundingClientRect().left;
 }
 function boundaries(span,text){
-  const node=span.firstChild;
-  if(!node||node.nodeType!==Node.TEXT_NODE)return null;
+  if(!cellGrid&&span.firstChild?.nodeType!==Node.TEXT_NODE)return null;
   const indices=[...segmenter.segment(text)].map(x=>x.index);
   if(!indices.includes(0))indices.unshift(0);
   if(indices[indices.length-1]!==text.length)indices.push(text.length);
-  const xs=indices.map(n=>pixel(node,n));
+  const xs=indices.map(n=>pixel(span,n));
   if(xs.some(x=>x===null||!Number.isFinite(x)))return null;
   for(let i=1;i<xs.length;i++)if(xs[i]<=xs[i-1]+.1)return null;
   return {indices,xs};
@@ -58,14 +109,14 @@ function paintSelection(rowInfo){
   const all=editor.selections.getSelections();
   const line=rows.querySelector('[data-row="'+rowInfo.row+'"]');
   if(!line)return;
-  const span=line.querySelector('.content'),node=span.firstChild;
+  const span=line.querySelector('.content');
   for(const s of all){
     if(cmp(s.start,s.end)===0||s.start.row>rowInfo.row||s.end.row<rowInfo.row)continue;
     const start=s.start.row<rowInfo.row?0:s.start.col;
     const end=s.end.row>rowInfo.row?rowInfo.text.length:s.end.col;
     const a=Math.min(rowInfo.text.length,start),b=Math.min(rowInfo.text.length,end);
     if(b<=a)continue;
-    const x1=pixel(node,a),x2=pixel(node,b);
+    const x1=pixel(span,a),x2=pixel(span,b);
     if(x1!==null&&x2!==null&&x2>=x1){
       const mark=document.createElement('span');
       mark.className='mark';mark.style.left=x1+'px';
@@ -75,7 +126,7 @@ function paintSelection(rowInfo){
   for(const s of all){
     const current=s.forward?s.end:s.start;
     if(current.row!==rowInfo.row||current.col>rowInfo.text.length)continue;
-    const x=pixel(node,current.col);
+    const x=pixel(span,current.col);
     if(x!==null&&Number.isFinite(x)){
       const caret=document.createElement('span');
       caret.className='caret';caret.style.left=x+'px';span.append(caret);
@@ -94,7 +145,23 @@ function render(){
     const info=boundedRow(row);visible.push(info);
     const el=document.createElement('div');el.className='row';el.dataset.row=String(row);
     const gutter=document.createElement('span');gutter.className='gutter';gutter.textContent=String(row+1);
-    const text=document.createElement('span');text.className='content';text.append(document.createTextNode(info.text));
+    const text=document.createElement('span');text.className='content';
+    if(cellGrid){
+      let col=0;
+      for(const item of segmenter.segment(info.text)){
+        const grapheme=item.segment;
+        const cells=grapheme==='\t'?4-col%4:gridWidth(grapheme);
+        const cell=document.createElement('span');
+        cell.className='grid-cell';
+        cell.dataset.start=String(item.index);
+        cell.dataset.end=String(item.index+grapheme.length);
+        cell.dataset.cells=String(cells);
+        cell.style.width=(cells*cellPixels)+'px';
+        cell.textContent=grapheme==='\t'?' ':grapheme;
+        text.append(cell);col+=cells;
+      }
+      if(!info.text)text.append(document.createTextNode(''));
+    }else text.append(document.createTextNode(info.text));
     el.append(gutter,text);
     if(info.truncated){
       const suffix=document.createElement('span');suffix.className='ellipsis';
@@ -109,7 +176,8 @@ function render(){
   $('status').textContent='Riga '+(c.row+1)+' · colonna UTF-16 '+c.col+
     ' · selezioni '+editor.selections.getSelections().length;
   $('metrics').textContent=doc.lineCount.toLocaleString('it-IT')+
-    ' righe · DOM '+visible.length+' righe · render '+renderCount;
+    ' righe · DOM '+visible.length+' righe · render '+renderCount+
+    (cellGrid?' · griglia '+cellPixels.toFixed(2)+' px/cella':' · naturale');
 }
 function schedule(){if(!scheduled){scheduled=true;requestAnimationFrame(render);}}
 function reveal(c){
@@ -258,6 +326,7 @@ function reset(text){
   if(unsubscribe)unsubscribe();
   if(editor)editor.dispose();
   editor=new API.TextEdit(text);
+  setColumnGeometry();
   editor.selections.setSelections([{start:p(0,0),end:p(0,0),forward:true}]);
   unsubscribe=editor.document.subscribe(schedule);
   drag=null;desiredColumn=null;maxMounted=0;
@@ -289,19 +358,35 @@ function setFont(proportional){
   scroller.classList.toggle('proportional-font',proportional);
   $('font-mono').setAttribute('aria-pressed',String(!proportional));
   $('font-proportional').setAttribute('aria-pressed',String(proportional));
-  // Selection offsets stay owned by TextEdit; only DOM glyph geometry changes.
+  // Physical selections never change: only font metrics and projections do.
+  setColumnGeometry();
   schedule();
-  if(document.fonts)document.fonts.ready.then(schedule);
+  if(document.fonts)document.fonts.ready.then(()=>{setColumnGeometry();schedule();});
 }
 $('font-mono').addEventListener('click',()=>setFont(false));
 $('font-proportional').addEventListener('click',()=>setFont(true));
+$('mode-natural').addEventListener('click',()=>layoutMode(false));
+$('mode-grid').addEventListener('click',()=>layoutMode(true));
 new ResizeObserver(schedule).observe(scroller);
 globalThis.__guiProbe={
   snapshot:()=>({version:API.VERSION,rows:editor.document.lineCount,
     units:editor.document.length,selection:editor.selections.getSelections(),
     first:visible[0]?.row,last:visible[visible.length-1]?.row,
     mounted:rows.children.length,maxMounted,renderCount,
-    text:editor.document.toString(),warning:$('warning').textContent}),
+    text:editor.document.toString(),warning:$('warning').textContent,
+    mode:cellGrid?'grid':'natural',cellPixels}),
+  geometry:row=>{
+    const item=visible.find(x=>x.row===row),el=rows.querySelector('[data-row="'+row+'"] .content');
+    if(!item||!el)return null;
+    const indices=[...segmenter.segment(item.text)].map(g=>g.index).concat(item.text.length);
+    return indices.map(index=>({index,x:pixel(el,index),
+      col:editor.representation.sourceToColumn(item.start+index)}));
+  },
+  point:(row,col)=>{
+    const el=rows.querySelector('[data-row="'+row+'"] .content');
+    const x=pixel(el,col);if(x===null)throw new RangeError('not a visible grapheme boundary');
+    const box=el.getBoundingClientRect();return {x:box.left+x,y:box.top+HEIGHT/2};
+  },
   focus:()=>scroller.focus(),setText:reset
 };
 sample();
