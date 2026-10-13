@@ -1,0 +1,47 @@
+# 064 — eval-free namespace scopes for jsc (experimental)
+
+This PoC explores design alternatives; it is **not** the `jsc` product, a proposed final JSON schema, a compatibility layer, or a promoted RumiAI specification. In particular, the current JSON, implementation and contracts are **not assumed immutable**. This experiment changes no product or permanent tests.
+
+## Run
+
+```sh
+node probe.mjs
+```
+
+Requires Node.js 22 (tested on Node.js v22.16.0), with no packages, network access or `eval` required for the strict candidate. The legacy model deliberately emits direct `eval` to reproduce the critical current-generator mechanism. It uses Node `vm` to execute classic scripts inside isolated contexts; this is **not** a real browser test. A separate real-Chromium attempt in this execution environment did not produce usable DOM output and is **not** counted as validation.
+
+The emitters are small **behavioral models of namespace emission**, not executions of the entire shipped `jsc` command or all its path, CSS, minification and validation logic. The `legacy` wrapper intentionally mirrors the relevant expression produced by `rumiai-os/bin/sys/jsc.js` at product HEAD `038ca42fdd22adbf0fda9a41ab17baa6cde5b948`; `strict` is an exploratory alternative using a candidate `imports` map on namespace nodes. The map is **not** a proposed or implemented product contract.
+
+## Execution evidence
+
+Node.js v22.16.0: **16/16 assertions passed**. Passing assertions include expected divergences; this is not 16/16 full semantic equivalence.
+
+- Both modeled emitters resolve ordered lexical declarations and ancestor namespace names and reopen a namespace from a second bundle using unqualified symbols.
+- The legacy-emitter model fails the desired redefinition semantics: after a second bundle declares `function MyClass(){ return 77; }`, the previous export (`42`) still wins. The permanent `jsc` suite intends `77`. This is a **modeled mismatch** to verify separately with the complete product execution path, not a claimed passed product regression test.
+- A `strict` emitter using **statically named** `let` aliases populated from namespace objects at bundle initialization supports the same tested separate-bundle use case, and publishes the new function on redefinition (`77`). No `eval`, `with`, `new Function` or module registry is required in the generated strict candidate.
+- Local lexical variables, parameters, `Math`, pre-existing global lexical declarations, `typeof` on absent bindings, reassignment of imported local names, browser-style global namespace access and an explicit CommonJS bridge were exercised in Node's classic-script VM.
+- Importing a nonexistent namespace property changes a free-name `ReferenceError` into a `TypeError` on attempted invocation. Declaring a class with the same name as an injected `let` alias causes a syntax error. These are **counterexamples to naive universal automatic alias insertion**.
+- Capturing a function-valued namespace property at load time differs from qualifying the property lookup inside a function after later changes: both are viable designs, but they have different semantics.
+- A `with`-based dynamic namespace cannot be used under `use strict`.
+
+## Candidate solutions to compare
+
+| Candidate | Retains unqualified access across bundles | `use strict` | Static standalone output | Key issue |
+|---|---|---|---|---|
+| Compile-time aliases, runtime values (tested) | Yes, for statically named imports | Yes | Yes | Must know import names, source/scope collisions, missing symbols |
+| AST-based free-name analysis plus alias generation (not implemented) | Potentially | Yes | Yes | Name-resolution ambiguity against runtime properties/global lexical bindings |
+| Whole-program static linking (not implemented) | Yes, within a linked compilation | Yes | Yes | Separately generated bundles are not independently linked unless dependencies are supplied |
+| Namespace-qualified access (tested for behavior) | Via qualified names, not transparent unqualified aliases | Yes | Yes | Changes source/API semantics and reads updated values dynamically |
+| `with`/Proxy dynamic scope | Possibly | **No** | Depends | Violates strict mode; special cases remain |
+
+`AST` is a candidate compiler implementation technique, not proof that an analyzer can infer arbitrary runtime properties. No automatic identifier discovery has been implemented here. Even a perfect syntax analyzer can only see free identifiers; it cannot generally know whether each denotes a global lexical binding, a future namespace property, or something else. Existing JavaScript lexical shadowing and `this` behavior must also be considered carefully.
+
+## Design questions still open
+
+1. Should separately compiled bundles have the same implicit unqualified scope discovery as today's `eval` path, or should available external names be statically declared/resolved? If static, should names be inferred from linked metadata, AST analysis, source descriptors, or a combination?
+2. Are imported values captured when a bundle is evaluated, or should references track subsequent namespace mutations? Exact old behavior and desirable new behavior need separate definition.
+3. How should conflicting local declarations, outer globals, accessors, missing properties, assignments, changes of function strictness, and namespace redefinitions behave?
+4. Is the output always independently distributable or may some deployment workflows link multiple compilation units first?
+5. What must browser CommonJS/global publication and namespace freeze/reopen semantics be? The PoC has only an explicit CommonJS export bridge, not a final portable-library wrapper.
+
+No product/contract decision is taken by this PoC. Compare candidates against the **twelve user-selected desired properties**, then jointly choose the architecture and only then realign specifications, implementation and permanent tests.
