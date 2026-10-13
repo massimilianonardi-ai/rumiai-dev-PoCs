@@ -12,16 +12,8 @@ const result=await page.goto(base,{waitUntil:'load'});
 assert.equal(result.status(),200);
 await page.waitForFunction(()=>window.__guiProbe?.snapshot()?.mounted>0);
 const snap=()=>page.evaluate(()=>window.__guiProbe.snapshot());
-const position=(row,col)=>page.evaluate(({row,col})=>{
-  const line=document.querySelector('.row[data-row="'+row+'"] .content');
-  if(!line)throw new Error('row not in viewport: '+row);
-  const text=line.firstChild,range=document.createRange();
-  range.setStart(text,col);
-  range.collapse(true);
-  const box=range.getBoundingClientRect();
-  const container=line.getBoundingClientRect();
-  return {x:box.left,y:container.top+12};
-},{row,col});
+const position=(row,col)=>page.evaluate(({row,col})=>
+  window.__guiProbe.point(row,col),{row,col});
 
 try{
   let state=await snap();
@@ -98,6 +90,68 @@ try{
   assert.ok(state.text.includes('aQha')||state.text.includes('aQa'),
     'text edits go through actual TextEdit across rectangle selections');
 
+  // Compare the same real source in natural and snapped cell-grid modes.
+  const source=['A漢B😀e\u0301\tZ','A字B😀e\u0301\tZ','A\t👩‍👩‍👧‍👦B'].join('\n');
+  await page.evaluate(text=>window.__guiProbe.setText(text),source);
+  await page.waitForFunction(()=>window.__guiProbe.snapshot().text.includes('漢'));
+  const stableSource=(await snap()).text;
+  const naturalGeometry=await page.evaluate(()=>window.__guiProbe.geometry(0));
+  await page.locator('#mode-grid').click();
+  await page.waitForFunction(()=>window.__guiProbe.snapshot().mode==='grid'&&
+    document.querySelectorAll('.grid-cell').length>0);
+  state=await snap();
+  assert.equal(state.text,stableSource,'cell grid must not change document content');
+  assert.equal(await page.locator('#mode-grid').getAttribute('aria-pressed'),'true');
+  assert.ok(state.cellPixels>4);
+  const gridGeometry=await page.evaluate(()=>window.__guiProbe.geometry(0));
+  const at=(positions,index)=>positions.find(p=>p.index===index);
+  const approx=(actual,expected)=>Math.abs(actual-expected)<.6;
+  assert.ok(approx(at(gridGeometry,1).x,state.cellPixels));
+  assert.ok(approx(at(gridGeometry,2).x,3*state.cellPixels),
+    'Han grapheme must reserve exactly two logical cells');
+  assert.ok(approx(at(gridGeometry,5).x,6*state.cellPixels),
+    'emoji reserves two cells and cannot be split');
+  assert.equal(at(gridGeometry,5).col.col,6,'logical columns agree with emoji width');
+  assert.equal(at(gridGeometry,7).col.col,7,'decomposed e + accent uses one cell');
+  assert.ok(approx(at(gridGeometry,8).x,8*state.cellPixels),
+    'tab stop advances to the next 4-column boundary');
+  const tabGeometry=await page.evaluate(()=>window.__guiProbe.geometry(2));
+  const endTab=tabGeometry.find(p=>p.index===2);
+  assert.equal(endTab.col.col,4,'tab after first ASCII cell advances three cells');
+  assert.ok(approx(endTab.x,4*state.cellPixels));
+  assert.ok(at(naturalGeometry,5).x!==at(gridGeometry,5).x,
+    'natural font advances and snapped grid are independent renderers');
+
+  // In-grid mouse positioning must resolve actual grapheme boundaries.
+  let target=await position(0,5);await page.mouse.click(target.x,target.y);
+  state=await snap();
+  assert.equal(state.selection[0].end.col,5);
+  await page.locator('#scroller').focus();
+  await page.keyboard.press('Backspace');
+  state=await snap();
+  assert.ok(state.text.startsWith('A漢Be\u0301'),'backspace removes the emoji as one grapheme');
+
+  // Reset fixture and exercise a rectangular selection across wide kanji.
+  await page.evaluate(text=>window.__guiProbe.setText(text),source);
+  await page.waitForFunction(()=>window.__guiProbe.snapshot().mode==='grid'&&
+    document.querySelector('.row[data-row="1"] .grid-cell'));
+  const left=await position(0,1),right=await position(1,2);
+  await page.keyboard.down('Alt');
+  await page.mouse.move(left.x,left.y);await page.mouse.down();
+  await page.mouse.move(right.x,right.y,{steps:6});await page.mouse.up();
+  await page.keyboard.up('Alt');
+  state=await snap();
+  assert.equal(state.selection.length,2,'grid rectangle spans exactly two source rows');
+  assert.deepEqual(state.selection.map(x=>x.start.col),[1,1]);
+  assert.ok(state.selection.every(x=>x.end.col>=2),
+    'grid rectangle includes complete wide graphemes');
+  assert.equal(state.text,source);
+  await page.locator('#mode-natural').click();
+  await page.waitForFunction(()=>window.__guiProbe.snapshot().mode==='natural');
+  assert.equal((await snap()).text,source);
+  assert.deepEqual((await snap()).selection,state.selection,
+    'renderer changes never rewrite physical selections');
+
   // Scroll a genuinely large PieceDocument without mounting 100k DOM rows.
   await page.locator('#large').click();
   await page.waitForFunction(()=>window.__guiProbe.snapshot().rows===100000);
@@ -128,7 +182,7 @@ try{
   await page.waitForFunction(()=>document.querySelector('.row[data-row="50052"]'));
   const unicodeFixture=await page.evaluate(()=>{
     // Actual visible DOM projection: the GUI stores no duplicate document.
-    const content=row=>document.querySelector('.row[data-row="'+row+'"] .content')?.firstChild?.textContent;
+    const content=row=>document.querySelector('.row[data-row="'+row+'"] .content')?.textContent;
     return {unicode:content(50052),ordinary:content(50053)};
   });
   assert.ok(unicodeFixture.unicode.includes('😀e\u0301'));
@@ -137,7 +191,7 @@ try{
   console.log(JSON.stringify({pass:true,version:state.version,
     rendered:state.mounted,maxMounted:state.maxMounted,
     jumpedToRow:state.first+1,tests:['keyboard-input','keyboard-range',
-    'font-proportional','mouse-drag','alt-rectangle','font-selection-stability','multi-selection-edit','scrollbar-does-not-select','viewport-100k']}));
+    'font-proportional','mouse-drag','alt-rectangle','font-selection-stability','multi-selection-edit','wide-unicode-grid','tab-cells','grapheme-backspace','grid-rectangle','scrollbar-does-not-select','viewport-100k']}));
 }finally{
   await browser.close();
 }
