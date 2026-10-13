@@ -228,8 +228,9 @@ function down(event){
   warning();scroller.focus({preventScroll:true});
   const hit=locate(event);if(!hit)return;
   event.preventDefault();drag={anchor:hit,rectangle:event.altKey,id:event.pointerId};
-  if(drag.rectangle)editor.advancedSelections.rectangularSelection(hit.logical,hit.logical);
-  else place(hit.physical);
+  // A wide grapheme cannot be selected by a one-cell rectangle at pointerdown:
+  // start at its valid physical caret boundary, then try resolved rectangles.
+  place(hit.physical);
   schedule();scroller.setPointerCapture(event.pointerId);
 }
 function movePointer(event){
@@ -240,8 +241,16 @@ function movePointer(event){
   render();
   const hit=locate(event);if(!hit)return;
   if(drag.rectangle){
-    editor.advancedSelections.rectangularSelection(drag.anchor.logical,hit.logical);
-    schedule();
+    try{
+      editor.advancedSelections.rectangularSelection(drag.anchor.logical,hit.logical);
+      warning();schedule();
+    }catch(error){
+      // The core intentionally rejects rectangles intersecting partial wide
+      // graphemes or tabs. Keep the last valid selection instead of inventing
+      // a new policy or emitting an unhandled pointer-event exception.
+      if(!(error instanceof RangeError))throw error;
+      warning('Rettangolo non rappresentabile senza dividere un grafema o tab: mantenuta l’ultima selezione valida.');
+    }
   }else setRange(drag.anchor.physical,hit.physical);
 }
 function up(event){
