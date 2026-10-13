@@ -115,7 +115,7 @@ try{
     'font-fallback emoji reserves an integer cell span without compression');
   assert.equal(at(gridGeometry,7).col.col,emojiColumn+1,
     'decomposed e + accent is one indivisible logical cell');
-  const nextTabStop=4*Math.ceil((emojiColumn+1)/4);
+  const nextTabStop=4*(Math.floor((emojiColumn+1)/4)+1);
   assert.equal(at(gridGeometry,8).col.col,nextTabStop,
     'tab advances to the next logical 4-column boundary');
   assert.ok(approx(at(gridGeometry,8).x,nextTabStop*state.cellPixels));
