@@ -123,15 +123,16 @@ try{
   state=await snap();
   assert.ok(state.mounted<90&&state.maxMounted<90);
   assert.equal(state.rows,100000);
-  const unicodeFixture=await page.evaluate(()=>{
-    const d=window.__guiProbe;
-    // It is the actual viewport's loaded TextEdit state, not a second model.
-    const text=document.querySelector('.row[data-row="50052"] .content')?.firstChild?.textContent;
-    return {text,first:d.snapshot().first};
-  });
   // Row 50053 (1-based) is intentionally among every 97th Unicode row.
-  if(unicodeFixture.text!==undefined)
-    assert.ok(unicodeFixture.text.includes('😀e\u0301'));
+  await page.evaluate(()=>{document.getElementById('scroller').scrollTop=50052*24;});
+  await page.waitForFunction(()=>document.querySelector('.row[data-row="50052"]'));
+  const unicodeFixture=await page.evaluate(()=>{
+    // Actual visible DOM projection: the GUI stores no duplicate document.
+    const content=row=>document.querySelector('.row[data-row="'+row+'"] .content')?.firstChild?.textContent;
+    return {unicode:content(50052),ordinary:content(50053)};
+  });
+  assert.ok(unicodeFixture.unicode.includes('😀e\u0301'));
+  assert.ok(!unicodeFixture.ordinary.includes('😀e\u0301'));
   assert.equal(errors.length,0,'no browser script errors: '+errors.join(' | '));
   console.log(JSON.stringify({pass:true,version:state.version,
     rendered:state.mounted,maxMounted:state.maxMounted,
