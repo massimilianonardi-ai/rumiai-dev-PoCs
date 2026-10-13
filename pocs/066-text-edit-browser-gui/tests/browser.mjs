@@ -7,7 +7,7 @@ const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
 const page=await browser.newPage({viewport:{width:1140,height:810}});
 const errors=[];
 page.on('pageerror',error=>errors.push(error.message));
-const base='http://127.0.0.1:8765/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/';
+const base='http://127.0.0.1:8765/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/';
 const result=await page.goto(base,{waitUntil:'load'});
 assert.equal(result.status(),200);
 await page.waitForFunction(()=>window.__guiProbe?.snapshot()?.mounted>0);
@@ -30,6 +30,19 @@ try{
   assert.ok(state.mounted>0&&state.mounted<80);
   assert.equal(state.selection.length,1);
   assert.equal(state.selection[0].start.row,0);
+
+  // Changing font must remeasure visible glyphs without mutating TextEdit state.
+  const monoX=(await position(0,10)).x;
+  await page.locator('#font-proportional').click();
+  await page.waitForFunction(()=>
+    document.getElementById('scroller').classList.contains('proportional-font'));
+  assert.equal(await page.locator('#font-proportional').getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('#font-mono').getAttribute('aria-pressed'),'false');
+  const proportionalX=(await position(0,10)).x;
+  assert.ok(Math.abs(proportionalX-monoX)>3,
+    'proportional font must change measured pixel geometry');
+  assert.deepEqual((await snap()).selection,state.selection,
+    'changing the font must not change the selected physical coordinates');
 
   // Ordinary printable keyboard path and selection-aware editing.
   await page.locator('#scroller').focus();
@@ -70,6 +83,14 @@ try{
   await page.waitForTimeout(50);
   const marks=await page.locator('.mark').count();
   assert.ok(marks>=3,'all three rectangle spans must be rendered');
+  const rectangle=state.selection;
+  await page.locator('#font-mono').click();
+  await page.waitForFunction(()=>
+    !document.getElementById('scroller').classList.contains('proportional-font'));
+  assert.equal(await page.locator('#font-mono').getAttribute('aria-pressed'),'true');
+  assert.deepEqual((await snap()).selection,rectangle,
+    'changing back to monospaced must preserve a rectangular selection');
+  assert.ok(await page.locator('.mark').count()>=3);
   await page.locator('#scroller').focus();
   await page.keyboard.type('Q');
   state=await snap();
@@ -82,16 +103,40 @@ try{
   await page.waitForFunction(()=>window.__guiProbe.snapshot().rows===100000);
   state=await snap();
   assert.ok(state.mounted<90);
+  // Native scrollbar track interactions are NOT text pointer drags.
+  // Regression: formerly pointerdown on the scroll container selected from
+  // the document caret to the top/bottom during scrollbar dragging.
+  const beforeScrollbar=state.selection;
+  const bounds=await page.locator('#scroller').boundingBox();
+  const scrollX=bounds.x+bounds.width-3;
+  const scrollY=bounds.y+bounds.height*.3;
+  await page.mouse.move(scrollX,scrollY);
+  await page.mouse.down();
+  await page.mouse.move(scrollX,scrollY+125,{steps:6});
+  await page.mouse.up();
+  state=await snap();
+  assert.deepEqual(state.selection,beforeScrollbar,
+    'native scrollbar gesture must not change text selection');
+
   await page.locator('#jump').click();
   await page.waitForFunction(()=>window.__guiProbe.snapshot().first>=49000);
   state=await snap();
   assert.ok(state.mounted<90&&state.maxMounted<90);
   assert.equal(state.rows,100000);
+  const unicodeFixture=await page.evaluate(()=>{
+    const d=window.__guiProbe;
+    // It is the actual viewport's loaded TextEdit state, not a second model.
+    const text=document.querySelector('.row[data-row="50052"] .content')?.firstChild?.textContent;
+    return {text,first:d.snapshot().first};
+  });
+  // Row 50053 (1-based) is intentionally among every 97th Unicode row.
+  if(unicodeFixture.text!==undefined)
+    assert.ok(unicodeFixture.text.includes('😀e\u0301'));
   assert.equal(errors.length,0,'no browser script errors: '+errors.join(' | '));
   console.log(JSON.stringify({pass:true,version:state.version,
     rendered:state.mounted,maxMounted:state.maxMounted,
     jumpedToRow:state.first+1,tests:['keyboard-input','keyboard-range',
-    'mouse-drag','alt-rectangle','multi-selection-edit','viewport-100k']}));
+    'font-proportional','mouse-drag','alt-rectangle','font-selection-stability','multi-selection-edit','scrollbar-does-not-select','viewport-100k']}));
 }finally{
   await browser.close();
 }
