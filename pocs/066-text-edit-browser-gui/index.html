@@ -10,10 +10,12 @@
 header{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
 h1{font-size:1.25rem;margin:0 0 9px}.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 button{padding:7px 11px;border:1px solid #adbdcd;border-radius:6px;background:#fff;cursor:pointer}
+button[aria-pressed="true"]{background:#dbeafa;border-color:#206ab2;color:#164875}
 button:focus-visible,.scroller:focus-visible{outline:2px solid #206ab2;outline-offset:2px}
 .scroller{height:65vh;min-height:320px;max-height:760px;overflow:auto;position:relative;background:white;border:1px solid #bfcbd6;outline:0;cursor:text;overscroll-behavior:contain}
 .spacer{position:relative;min-width:100%}.rows{position:absolute;left:0;top:0;width:max-content;min-width:100%}
 .row{height:24px;display:flex;white-space:pre;line-height:24px;font:15px/24px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.scroller.proportional-font .row{font-family:Arial,Helvetica,system-ui,sans-serif}
 .row:nth-child(2n){background:#f9fbfd}.gutter{display:block;flex:0 0 64px;width:64px;padding-right:8px;text-align:right;background:#eaf0f7;color:#627488;user-select:none;position:sticky;left:0;z-index:2}
 .content{position:relative;display:block;min-width:1px;white-space:pre;tab-size:4}
 .mark{position:absolute;top:1px;height:22px;background:rgba(53,126,213,.28);pointer-events:none}
@@ -29,6 +31,8 @@ button:focus-visible,.scroller:focus-visible{outline:2px solid #206ab2;outline-o
   <button id="sample" type="button">Esempio Unicode</button>
   <button id="large" type="button">100.000 righe</button>
   <button id="jump" type="button">Vai a riga 50.000</button>
+  <button id="font-mono" type="button" aria-pressed="true">Monospaziato</button>
+  <button id="font-proportional" type="button" aria-pressed="false">Proporzionale</button>
  </div>
 </header>
 <p>Click: cursore · drag: selezione · <kbd>Alt</kbd>+drag: rettangolo · <kbd>Shift</kbd>+frecce: estendi · <kbd>Ctrl/Cmd</kbd>+<kbd>A</kbd>: seleziona tutto. Niente clipboard, history, IME o file.</p>
@@ -37,8 +41,8 @@ button:focus-visible,.scroller:focus-visible{outline:2px solid #206ab2;outline-o
 </div>
 <div class="footer"><span id="status" role="status"></span><span id="metrics"></span></div>
 <p id="warning" role="alert"></p>
-<!-- Checkout rumiai-os and rumiai-dev-PoCs as siblings under a shared served parent. -->
-<script src="../../../rumiai-os/lib/sys/js/text-edit.lib.js"></script>
+<!-- GUI PoC checkout: rumiai-os/src/rumiai-dev-PoCs. Serve rumiai-os as HTTP root. -->
+<script src="../../../../lib/sys/js/text-edit.lib.js"></script>
 <script src="./gui.js"></script>
 </body>
 </html>
