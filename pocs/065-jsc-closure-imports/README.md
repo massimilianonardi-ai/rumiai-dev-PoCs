@@ -31,10 +31,10 @@ Runtime-only tests, no external dependencies:
 node probe.mjs --runtime-only
 ```
 
-With a preprovisioned pinned **Google Closure Compiler v20261007** Java JAR:
+With a preprovisioned pinned **Google Closure Compiler v20260831** Java JAR:
 
 ```sh
-CLOSURE_JAR=/path/to/closure-compiler-v20261007.jar node probe.mjs
+CLOSURE_JAR=/path/to/closure-compiler-v20260831.jar node probe.mjs
 ```
 
 The GitHub Actions workflow `.github/workflows/poc-065-jsc-closure.yml` obtains this version explicitly from Maven Central. Generated libraries themselves do not depend on Closure. Tests can run offline once the compiler JAR is available.
