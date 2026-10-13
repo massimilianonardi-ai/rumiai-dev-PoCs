@@ -1,0 +1,43 @@
+name: PoC 066 TextEdit browser GUI
+
+on:
+  push:
+    paths:
+      - 'pocs/066-text-edit-browser-gui/**'
+      - '.github/workflows/poc-066-text-edit-gui.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chromium-gui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out GUI PoC
+        uses: actions/checkout@v4
+        with:
+          path: rumiai-dev-PoCs
+      - name: Check out the real stable TextEdit 0.8.1
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-os
+          ref: 9f4524d9af44cc031ba039b88cfda8d2df0e1c65
+          path: rumiai-os
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Set up headless browser driver
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install chromium
+      - name: Verify PoC source syntax
+        run: |
+          node --check rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/gui.js
+          node --check rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/browser.mjs
+      - name: Run actual Chromium mouse and keyboard scenario
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/text-edit-gui-http.log 2>&1 &
+          sleep 2
+          node rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/browser.mjs
