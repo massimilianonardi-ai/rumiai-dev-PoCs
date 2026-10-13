@@ -18,6 +18,8 @@ button:focus-visible,.scroller:focus-visible{outline:2px solid #206ab2;outline-o
 .scroller.proportional-font .row{font-family:Arial,Helvetica,system-ui,sans-serif}
 .row:nth-child(2n){background:#f9fbfd}.gutter{display:block;flex:0 0 64px;width:64px;padding-right:8px;text-align:right;background:#eaf0f7;color:#627488;user-select:none;position:sticky;left:0;z-index:2}
 .content{position:relative;display:block;min-width:1px;white-space:pre;tab-size:4}
+.scroller.cell-grid .content{font-variant-ligatures:none}
+.grid-cell{display:inline-block;box-sizing:border-box;white-space:pre;vertical-align:top;line-height:24px;overflow:visible}
 .mark{position:absolute;top:1px;height:22px;background:rgba(53,126,213,.28);pointer-events:none}
 .caret{position:absolute;top:0;height:24px;border-left:2px solid #125baa;pointer-events:none;z-index:1}
 .ellipsis{color:#8f6d19;padding-left:10px;font-style:italic}
@@ -33,9 +35,11 @@ button:focus-visible,.scroller:focus-visible{outline:2px solid #206ab2;outline-o
   <button id="jump" type="button">Vai a riga 50.000</button>
   <button id="font-mono" type="button" aria-pressed="true">Monospaziato</button>
   <button id="font-proportional" type="button" aria-pressed="false">Proporzionale</button>
+  <button id="mode-natural" type="button" aria-pressed="true">Larghezza naturale</button>
+  <button id="mode-grid" type="button" aria-pressed="false">Griglia a celle</button>
  </div>
 </header>
-<p>Click: cursore · drag: selezione · <kbd>Alt</kbd>+drag: rettangolo · <kbd>Shift</kbd>+frecce: estendi · <kbd>Ctrl/Cmd</kbd>+<kbd>A</kbd>: seleziona tutto. Niente clipboard, history, IME o file.</p>
+<p>Confronta il rendering naturale e la griglia logica di celle (Unicode largo: più celle, non un carattere forzato in una cella). Click: cursore · drag: selezione · <kbd>Alt</kbd>+drag: rettangolo · <kbd>Shift</kbd>+frecce: estendi · <kbd>Ctrl/Cmd</kbd>+<kbd>A</kbd>: seleziona tutto. Niente clipboard, history, IME o file.</p>
 <div id="scroller" class="scroller" tabindex="0" role="textbox" aria-label="Editor di testo sperimentale" aria-multiline="true">
  <div id="spacer" class="spacer"><div id="rows" class="rows"></div></div>
 </div>
