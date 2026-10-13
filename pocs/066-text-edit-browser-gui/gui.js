@@ -149,7 +149,12 @@ function down(event){
   // padding, gutter or empty viewport space.
   const frame=scroller.getBoundingClientRect();
   const left=frame.left+scroller.clientLeft,top=frame.top+scroller.clientTop;
-  if(event.clientX<left||event.clientX>=left+scroller.clientWidth||
+  // Overlay scrollbars may report zero gutter width and target a DOM row
+  // underneath the scrollbar. Reserve their right-edge hit zone explicitly.
+  const nativeGutter=scroller.offsetWidth-scroller.clientWidth-scroller.clientLeft;
+  const overlayGuard=scroller.scrollHeight>scroller.clientHeight&&nativeGutter<4?18:0;
+  if(event.clientX<left||
+     event.clientX>=left+scroller.clientWidth-overlayGuard||
      event.clientY<top||event.clientY>=top+scroller.clientHeight||
      !event.target.closest('.row')||event.target.closest('.gutter'))return;
   warning();scroller.focus({preventScroll:true});
