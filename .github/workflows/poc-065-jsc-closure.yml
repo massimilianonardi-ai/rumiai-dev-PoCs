@@ -24,7 +24,7 @@ jobs:
         run: |
           set -euo pipefail
           curl --fail --location --retry 3 --output "$RUNNER_TEMP/closure-compiler.jar" \
-            https://repo.maven.apache.org/maven2/com/google/javascript/closure-compiler/v20261007/closure-compiler-v20261007.jar
+            https://repo.maven.apache.org/maven2/com/google/javascript/closure-compiler/v20260831/closure-compiler-v20260831.jar
           java -jar "$RUNNER_TEMP/closure-compiler.jar" --version
       - name: Run V8 semantics and real Closure checks
         shell: bash
