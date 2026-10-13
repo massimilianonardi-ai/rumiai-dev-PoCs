@@ -4,7 +4,7 @@
 const API=globalThis.TextEdit;
 const $=id=>document.getElementById(id);
 if(!API||API.VERSION!=='0.8.1'){
-  $('warning').textContent='TextEdit 0.8.1 non disponibile: controllare i checkout affiancati.';
+  $('warning').textContent='TextEdit 0.8.1 non disponibile: verificare rumiai-os/src/rumiai-dev-PoCs e il server avviato da rumiai-os.';
   return;
 }
 const scroller=$('scroller'),rows=$('rows'),spacer=$('spacer');
@@ -143,7 +143,15 @@ function locate(event){
   return {physical,logical:p(logical.row,logical.col)};
 }
 function down(event){
-  if(event.button!==0||event.target.closest('.gutter'))return;
+  if(event.button!==0)return;
+  // Native scrollbars belong to the scroller, not to editable text rows.
+  // Do not start a selection or capture pointers in scrollbar tracks,
+  // padding, gutter or empty viewport space.
+  const frame=scroller.getBoundingClientRect();
+  const left=frame.left+scroller.clientLeft,top=frame.top+scroller.clientTop;
+  if(event.clientX<left||event.clientX>=left+scroller.clientWidth||
+     event.clientY<top||event.clientY>=top+scroller.clientHeight||
+     !event.target.closest('.row')||event.target.closest('.gutter'))return;
   warning();scroller.focus({preventScroll:true});
   const hit=locate(event);if(!hit)return;
   event.preventDefault();drag={anchor:hit,rectangle:event.altKey,id:event.pointerId};
@@ -272,6 +280,16 @@ $('jump').addEventListener('click',()=>{
   scroller.scrollTop=Math.min(editor.document.lineCount-1,49999)*HEIGHT;
   schedule();scroller.focus({preventScroll:true});
 });
+function setFont(proportional){
+  scroller.classList.toggle('proportional-font',proportional);
+  $('font-mono').setAttribute('aria-pressed',String(!proportional));
+  $('font-proportional').setAttribute('aria-pressed',String(proportional));
+  // Selection offsets stay owned by TextEdit; only DOM glyph geometry changes.
+  schedule();
+  if(document.fonts)document.fonts.ready.then(schedule);
+}
+$('font-mono').addEventListener('click',()=>setFont(false));
+$('font-proportional').addEventListener('click',()=>setFont(true));
 new ResizeObserver(schedule).observe(scroller);
 globalThis.__guiProbe={
   snapshot:()=>({version:API.VERSION,rows:editor.document.lineCount,
