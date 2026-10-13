@@ -248,7 +248,7 @@ function movePointer(event){
       // The core intentionally rejects rectangles intersecting partial wide
       // graphemes or tabs. Keep the last valid selection instead of inventing
       // a new policy or emitting an unhandled pointer-event exception.
-      if(!(error instanceof RangeError))throw error;
+      if(!(error instanceof RangeError)||!/(?:selection intersects an indivisible grapheme or tab)/.test(error.message))throw error;
       warning('Rettangolo non rappresentabile senza dividere un grafema o tab: mantenuta l’ultima selezione valida.');
     }
   }else setRange(drag.anchor.physical,hit.physical);
