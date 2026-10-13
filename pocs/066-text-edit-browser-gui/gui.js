@@ -55,24 +55,26 @@ function boundaries(span,text){
   return {indices,xs};
 }
 function paintSelection(rowInfo){
-  const s=selection(),current=active();
+  const all=editor.selections.getSelections();
   const line=rows.querySelector('[data-row="'+rowInfo.row+'"]');
   if(!line)return;
   const span=line.querySelector('.content'),node=span.firstChild;
-  if(cmp(s.start,s.end)!==0&&s.start.row<=rowInfo.row&&s.end.row>=rowInfo.row){
+  for(const s of all){
+    if(cmp(s.start,s.end)===0||s.start.row>rowInfo.row||s.end.row<rowInfo.row)continue;
     const start=s.start.row<rowInfo.row?0:s.start.col;
     const end=s.end.row>rowInfo.row?rowInfo.text.length:s.end.col;
     const a=Math.min(rowInfo.text.length,start),b=Math.min(rowInfo.text.length,end);
-    if(b>a){
-      const x1=pixel(node,a),x2=pixel(node,b);
-      if(x1!==null&&x2!==null&&x2>=x1){
-        const mark=document.createElement('span');
-        mark.className='mark';mark.style.left=x1+'px';
-        mark.style.width=Math.max(1,x2-x1)+'px';span.append(mark);
-      }
+    if(b<=a)continue;
+    const x1=pixel(node,a),x2=pixel(node,b);
+    if(x1!==null&&x2!==null&&x2>=x1){
+      const mark=document.createElement('span');
+      mark.className='mark';mark.style.left=x1+'px';
+      mark.style.width=Math.max(1,x2-x1)+'px';span.append(mark);
     }
   }
-  if(current.row===rowInfo.row&&current.col<=rowInfo.text.length){
+  for(const s of all){
+    const current=s.forward?s.end:s.start;
+    if(current.row!==rowInfo.row||current.col>rowInfo.text.length)continue;
     const x=pixel(node,current.col);
     if(x!==null&&Number.isFinite(x)){
       const caret=document.createElement('span');
