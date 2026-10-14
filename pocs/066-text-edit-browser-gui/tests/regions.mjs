@@ -1,4 +1,4 @@
-/* Browser-level experiment; all physical selections are real TextEdit 0.8.1.
+/* Browser-level experiment; all physical selections are real TextEdit 0.8.2.
  * The independent 2D selection geometry is NOT a product API.
  */
 import assert from 'node:assert/strict';
@@ -23,7 +23,7 @@ try
   const source='A\tB\nfold alpha\nfold beta\nfold gamma\n0123456789\nuvwxyzABCD';
 
   let s=await state();
-  assert.equal(s.version,'0.8.1');
+  assert.equal(s.version,'0.8.2');
   assert.equal(s.text,source);
   assert.equal(s.sourceRows,6);
   assert.equal(s.visualRows,4);
@@ -55,7 +55,12 @@ try
   assert.equal(afterAction.revision,1);
   assert.equal(afterAction.text,'AABB\nfold alpha\nfold beta\nfold gamma\n0123456789\nuvwxyzABCD');
   assert.match(await page.locator('#input-result').textContent(),/Sostituzione eseguita/);
-  assert.equal(await page.locator('#apply').isDisabled(),true);
+  assert.equal(await page.locator('#apply').isEnabled(),true,
+    'post-edit oriented caret remains a valid selection target');
+  await page.locator('#replacement').fill('Q');
+  await page.locator('#apply').click();
+  assert.equal((await state()).text,'AAQBB\nfold alpha\nfold beta\nfold gamma\n0123456789\nuvwxyzABCD',
+    'an ordinary forward post-edit caret accepts consecutive input');
   await call('reset');
 
   const tab=s.regions.find(r=>r.kind==='tab');
@@ -204,6 +209,13 @@ try
   assert.equal(s.revision,1,'one atomic source revision for two array targets');
   assert.equal(s.text,'A\tB\nfold alpha\nfold beta\nfold gamma\n0ZYX456789\nue\u0301😀AyzABCD');
   assert.deepEqual(s.selected,[]);
+  assert.deepEqual(s.physical.map(x=>x.forward),[false,false],
+    '2D rectangle result is an ordinary array of oriented physical carets');
+  assert.equal(await page.locator('#apply-array').isEnabled(),true);
+  await call('replace',['Q','R']);
+  s=await state();
+  assert.equal(s.text,'A\tB\nfold alpha\nfold beta\nfold gamma\n0RZYX456789\nuQe\u0301😀AyzABCD',
+    'repeated reverse array insertion retains original bottom-to-top order');
 
   // Disabled reverse option leaves payloads unchanged in backward rectangles.
   await call('reset');
