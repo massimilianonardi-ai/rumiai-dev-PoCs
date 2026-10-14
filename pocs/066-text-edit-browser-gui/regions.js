@@ -225,7 +225,10 @@
 
   function updateInputStatus()
   {
-    const physicalCount=editor.selections.getSelections().length;
+    // Post-edit carets remain valid TextEdit state but do not create a
+    // new region selection or authorize a repeated region replacement.
+    const physicalCount=selected.some(item=>item.source!==null)?
+      editor.selections.getSelections().length:0;
     const inputCount=$('replacement-array').value.split(/\r\n|\r|\n/).length;
     $('apply').disabled=physicalCount===0;
     $('apply-array').disabled=physicalCount===0;
