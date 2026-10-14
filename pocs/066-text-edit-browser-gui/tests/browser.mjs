@@ -156,6 +156,87 @@ try{
   assert.deepEqual((await snap()).selection,state.selection,
     'renderer changes never rewrite physical selections');
 
+  // The advanced rectangle resolver preserves vertical traversal order and
+  // independently encodes horizontal orientation in each physical selection.
+  const reverseFixture='abcde\nfghij\nklmno';
+  await page.evaluate(text=>window.__guiProbe.setText(text),reverseFixture);
+  await page.locator('#reverse-horizontal').check();
+  let ordered=await page.evaluate(()=>window.__guiProbe.selectRectangle(
+    {row:2,col:3},{row:0,col:1}));
+  assert.deepEqual(ordered.map(s=>s.start.row),[2,1,0],
+    'bottom-up rectangular selection order is retained in TextEditSelections');
+  assert.ok(ordered.every(s=>s.forward===false),
+    'right-to-left is independent of bottom-up traversal');
+  let replaced=await page.evaluate(()=>window.__guiProbe.replacePayload(
+    ['A😀e\u0301','XY','PQR']));
+  assert.equal(replaced,'aRQPe\nfYXj\nke\u0301😀Ao',
+    'array payload index 0 edits the bottom row, with grapheme-safe inversion');
+  state=await snap();
+  assert.equal(state.rectangle,false,'one replacement ends rectangle input mode');
+  // Opt-out leaves payload unchanged even when the rectangle is backward.
+  await page.evaluate(text=>window.__guiProbe.setText(text),reverseFixture);
+  await page.locator('#reverse-horizontal').uncheck();
+  await page.evaluate(()=>window.__guiProbe.selectRectangle(
+    {row:2,col:3},{row:0,col:1}));
+  replaced=await page.evaluate(()=>window.__guiProbe.replacePayload('A😀e\u0301'));
+  assert.equal(replaced,'aA😀e\u0301e\nfA😀e\u0301j\nkA😀e\u0301o');
+  // With option on, a LEFT-to-RIGHT rectangle remains unchanged.
+  await page.evaluate(text=>window.__guiProbe.setText(text),reverseFixture);
+  await page.locator('#reverse-horizontal').check();
+  ordered=await page.evaluate(()=>window.__guiProbe.selectRectangle(
+    {row:2,col:1},{row:0,col:3}));
+  assert.deepEqual(ordered.map(s=>s.start.row),[2,1,0]);
+  assert.ok(ordered.every(s=>s.forward));
+  replaced=await page.evaluate(()=>window.__guiProbe.replacePayload(['L','M','N']));
+  assert.equal(replaced,'aNe\nfMj\nkLo');
+  // Top-down selection gives top-down array distribution independently of
+  // the reverse horizontal direction.
+  await page.evaluate(text=>window.__guiProbe.setText(text),reverseFixture);
+  ordered=await page.evaluate(()=>window.__guiProbe.selectRectangle(
+    {row:0,col:3},{row:2,col:1}));
+  assert.deepEqual(ordered.map(s=>s.start.row),[0,1,2]);
+  assert.ok(ordered.every(s=>s.forward===false));
+  replaced=await page.evaluate(()=>window.__guiProbe.replacePayload(['ABC','DEF','GHI']));
+  assert.equal(replaced,'aCBAe\nfFEDj\nkIHGo');
+  // Multiline input preserves CRLF and row order while reversing each
+  // line separately (rather than reversing the entire UTF-16 sequence).
+  await page.evaluate(text=>window.__guiProbe.setText(text),reverseFixture);
+  await page.evaluate(()=>window.__guiProbe.selectRectangle(
+    {row:0,col:3},{row:0,col:1}));
+  replaced=await page.evaluate(()=>window.__guiProbe.replacePayload('AB\r\nC😀'));
+  assert.equal(replaced,'aBA\r\n😀Ce\nfghij\nklmno');
+  // A backward ordinary linear selection must NOT inherit rectangle-only
+  // reversal merely because its physical forward flag is false.
+  await page.evaluate(text=>window.__guiProbe.setText(text),reverseFixture);
+  let regularFrom=await position(0,3),regularTo=await position(0,1);
+  await page.mouse.move(regularFrom.x,regularFrom.y);await page.mouse.down();
+  await page.mouse.move(regularTo.x,regularTo.y,{steps:5});await page.mouse.up();
+  state=await snap();
+  assert.equal(state.rectangle,false);
+  assert.equal(state.selection[0].forward,false);
+  await page.locator('#insert-text').fill('A😀e\u0301B');
+  await page.locator('#apply-text').click();
+  assert.equal((await snap()).text,'aA😀e\u0301Be\nfghij\nklmno');
+  // GUI button path for bottom-up per-selection arrays (not clipboard paste).
+  await page.evaluate(text=>window.__guiProbe.setText(text),reverseFixture);
+  await page.evaluate(()=>window.__guiProbe.selectRectangle(
+    {row:2,col:3},{row:0,col:1}));
+  await page.locator('#insert-array').fill('uno\ndue\ntre');
+  await page.locator('#apply-array').click();
+  assert.equal((await snap()).text,'aerte\nfeudj\nkonuo');
+  // Refuse an incomplete per-selection array atomically.
+  await page.evaluate(text=>window.__guiProbe.setText(text),reverseFixture);
+  await page.evaluate(()=>window.__guiProbe.selectRectangle(
+    {row:2,col:3},{row:0,col:1}));
+  const beforeIncomplete=await snap();
+  const incomplete=await page.evaluate(()=>{
+    try{window.__guiProbe.replacePayload(['one']);return 'accepted';}
+    catch(error){return error.message;}
+  });
+  assert.match(incomplete,/Un valore per ogni selezione/);
+  assert.deepEqual((await snap()).selection,beforeIncomplete.selection);
+  assert.equal((await snap()).text,reverseFixture);
+
   // Scroll a genuinely large PieceDocument without mounting 100k DOM rows.
   await page.locator('#large').click();
   await page.waitForFunction(()=>window.__guiProbe.snapshot().rows===100000);
@@ -195,7 +276,7 @@ try{
   console.log(JSON.stringify({pass:true,version:state.version,
     rendered:state.mounted,maxMounted:state.maxMounted,
     jumpedToRow:state.first+1,tests:['keyboard-input','keyboard-range',
-    'font-proportional','mouse-drag','alt-rectangle','font-selection-stability','multi-selection-edit','wide-unicode-grid','tab-cells','grapheme-backspace','grid-rectangle','scrollbar-does-not-select','viewport-100k']}));
+    'font-proportional','mouse-drag','alt-rectangle','font-selection-stability','multi-selection-edit','wide-unicode-grid','tab-cells','grapheme-backspace','grid-rectangle','reverse-grapheme-array','bottom-up-selection-order','horizontal-direction-independent','reverse-opt-out','multiline-grapheme','linear-selection-unaffected','array-validation','scrollbar-does-not-select','viewport-100k']}));
 }finally{
   await browser.close();
 }
