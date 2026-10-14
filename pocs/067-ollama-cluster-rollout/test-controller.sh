@@ -41,4 +41,15 @@ then echo 'FAIL: apps canary failure did not halt' >&2; exit 1; fi
 [ "$(grep -c '^check:' "$base/sequence")" -eq 8 ]
 [ "$(grep -c '^apply:' "$base/sequence")" -eq 2 ]
 grep -q 'CLUSTER ROLLOUT STOPPED group=apps' "$base/failure.err"
-echo 'PASS: controller preflights fleet and stops promotion on canary failure'
+unset CLUSTER_TEST_FAIL_GROUP
+: > "$base/sequence"
+cluster_rollout "$rev" "$catalog" "$artifact" check > "$base/check.out"
+[ "$(grep -c '^check:' "$base/sequence")" -eq 8 ]
+! grep -q '^apply:' "$base/sequence"
+grep -q '^CLUSTER PREFLIGHT OK' "$base/check.out"
+: > "$base/sequence"
+cluster_rollout "$rev" "$catalog" "$artifact" canary > "$base/canary.out"
+[ "$(grep -c '^check:' "$base/sequence")" -eq 8 ]
+[ "$(grep -c '^apply:' "$base/sequence")" -eq 2 ]
+grep -q '^CLUSTER CANARY OK' "$base/canary.out"
+echo 'PASS: controller preflights fleet, separates check/canary modes and stops promotion on canary failure'
