@@ -179,11 +179,13 @@
     const physical=[];
     for(const part of merged)
     {
-      physical.push({
+      const value=
+      {
         start:pointAt(part.start),
         end:pointAt(part.end),
         forward:direction.horizontal
-      });
+      };
+      physical.push(value);
     }
     editor.selections.setSelections(physical);
   }
