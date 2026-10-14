@@ -46,13 +46,32 @@ function layoutMode(grid){
 }
 const p=(row,col)=>({row,col});
 const cmp=(a,b)=>a.row-b.row||a.col-b.col;
-function warning(message=''){$('warning').textContent=message;}
+function warning(message='')
+{
+  $('warning').textContent=message;
+}
+function updateInputStatus()
+{
+  const targets=editor.selections.getSelections().length;
+  const inputs=$('insert-array').value.split(/\r\n|\r|\n/).length;
+  $('input-status').textContent='Selezioni fisiche: '+targets+
+    ' · elementi array: '+inputs+
+    (targets===inputs?' · pronto per la sostituzione array.':
+      ' · per usare l’array occorre un elemento per selezione.');
+}
+function inputSuccess(count)
+{
+  $('input-result').textContent='Sostituzione eseguita su '+count+
+    ' selezione/i · revisione sorgente '+editor.document.revision+'.';
+  warning();
+}
 function rowInfo(row){const x=editor.document.lineInfo(row);return {start:x.start,end:x.end,width:x.end-x.start};}
 function width(row){return rowInfo(row).width;}
 function selection(){return editor.selections.getSelections()[0];}
 function active(){const s=selection();return s.forward?s.end:s.start;}
 function setRange(anchor,cursor){
   rectangleSelection=false;
+  $('input-result').textContent='';
   const forward=cmp(anchor,cursor)<=0;
   const start=forward?anchor:cursor,end=forward?cursor:anchor;
   editor.selections.setSelections([{start:{...start},end:{...end},forward}]);
@@ -173,6 +192,7 @@ function render(){
   rows.replaceChildren(batch);
   for(const info of visible)paintSelection(info);
   renderCount++;maxMounted=Math.max(maxMounted,visible.length);
+  updateInputStatus();
   const c=active();
   $('status').textContent='Riga '+(c.row+1)+' · colonna UTF-16 '+c.col+
     ' · selezioni '+editor.selections.getSelections().length;
@@ -245,6 +265,7 @@ function movePointer(event){
     try{
       editor.advancedSelections.rectangularSelection(drag.anchor.logical,hit.logical);
       rectangleSelection=true;
+      $('input-result').textContent='';
       warning();schedule();
     }catch(error){
       // The core intentionally rejects rectangles intersecting partial wide
@@ -380,6 +401,7 @@ function reset(text){
   editor.selections.setSelections([{start:p(0,0),end:p(0,0),forward:true}]);
   unsubscribe=editor.document.subscribe(schedule);
   drag=null;rectangleSelection=false;desiredColumn=null;maxMounted=0;
+  $('input-result').textContent='';warning();
   scroller.scrollTop=0;scroller.scrollLeft=0;
   schedule();
 }
@@ -402,8 +424,9 @@ function applyText()
 {
   try
   {
+    const count=editor.selections.getSelections().length;
     write($('insert-text').value);
-    warning();
+    inputSuccess(count);
   }
   catch(error)
   {
@@ -415,8 +438,9 @@ function applyArray()
 {
   try
   {
+    const count=editor.selections.getSelections().length;
     write($('insert-array').value.split(/\r\n|\r|\n/));
-    warning();
+    inputSuccess(count);
   }
   catch(error)
   {
@@ -424,6 +448,7 @@ function applyArray()
   }
   scroller.focus({preventScroll:true});
 }
+$('insert-array').addEventListener('input',updateInputStatus);
 $('apply-text').addEventListener('click',applyText);
 $('apply-array').addEventListener('click',applyArray);
 $('sample').addEventListener('click',sample);
@@ -460,7 +485,9 @@ globalThis.__guiProbe={
     mounted:rows.children.length,maxMounted,renderCount,
     text:editor.document.toString(),warning:$('warning').textContent,
     mode:cellGrid?'grid':'natural',cellPixels,
-    rectangle:rectangleSelection,reverseHorizontal:$('reverse-horizontal').checked}),
+    rectangle:rectangleSelection,reverseHorizontal:$('reverse-horizontal').checked,
+    inputStatus:$('input-status').textContent,
+    inputResult:$('input-result').textContent}),
   geometry:row=>{
     const item=visible.find(x=>x.row===row),el=rows.querySelector('[data-row="'+row+'"] .content');
     if(!item||!el)return null;
