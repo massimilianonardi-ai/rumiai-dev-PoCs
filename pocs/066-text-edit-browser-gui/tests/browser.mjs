@@ -23,6 +23,29 @@ try{
   assert.equal(state.selection.length,1);
   assert.equal(state.selection[0].start.row,0);
 
+  // The operator must see immediate results near the actual buttons:
+  // one initial caret is a valid text insertion target, but not a
+  // three-element array target.
+  await page.waitForFunction(()=>document.getElementById('input-status').textContent.includes('Selezioni fisiche: 1'));
+  assert.ok((await page.locator('#input-status').textContent()).includes('elementi array: 3'));
+  await page.locator('#apply-text').click();
+  state=await snap();
+  assert.ok(state.text.startsWith('A😀e\u0301Balpha'));
+  assert.ok(state.inputResult.includes('Sostituzione eseguita'));
+  await page.locator('#sample').click();
+  await page.locator('#apply-array').click();
+  state=await snap();
+  assert.ok(state.warning.includes('Un valore per ogni selezione'));
+  assert.ok((await page.locator('#warning').boundingBox()).y <
+    (await page.locator('#scroller').boundingBox()).y,'error should be visible above editor viewport');
+  assert.ok(state.text.startsWith('alpha'),'invalid array must not mutate the document');
+  await page.locator('#insert-array').fill('Z');
+  await page.locator('#apply-array').click();
+  state=await snap();
+  assert.ok(state.text.startsWith('Zalpha'));
+  assert.ok(state.inputResult.includes('Sostituzione eseguita'));
+  await page.locator('#sample').click();
+
   // Changing font must remeasure visible glyphs without mutating TextEdit state.
   const monoX=(await position(0,10)).x;
   await page.locator('#font-proportional').click();
@@ -281,7 +304,7 @@ try{
   assert.equal(errors.length,0,'no browser script errors: '+errors.join(' | '));
   console.log(JSON.stringify({pass:true,version:state.version,
     rendered:state.mounted,maxMounted:state.maxMounted,
-    jumpedToRow:state.first+1,tests:['keyboard-input','keyboard-range',
+    jumpedToRow:state.first+1,tests:['visible-button-feedback','default-array-mismatch','keyboard-input','keyboard-range',
     'font-proportional','mouse-drag','alt-rectangle','font-selection-stability','multi-selection-edit','wide-unicode-grid','tab-cells','grapheme-backspace','grid-rectangle','reverse-grapheme-array','bottom-up-selection-order','horizontal-direction-independent','reverse-opt-out','multiline-grapheme','linear-selection-unaffected','array-validation','scrollbar-does-not-select','viewport-100k']}));
 }finally{
   await browser.close();
