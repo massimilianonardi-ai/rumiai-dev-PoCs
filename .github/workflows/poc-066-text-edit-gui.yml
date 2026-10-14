@@ -15,11 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Check out the real stable TextEdit 0.8.1
+      - name: Check out the real current TextEdit 0.8.2
         uses: actions/checkout@v4
         with:
           repository: massimilianonardi-ai/rumiai-os
-          ref: 9f4524d9af44cc031ba039b88cfda8d2df0e1c65
+          ref: ef466362e9630b86d81b07ca647c2f2fbfd97a22
           path: rumiai-os
       - name: Check out GUI PoC at its actual nested path
         uses: actions/checkout@v4
