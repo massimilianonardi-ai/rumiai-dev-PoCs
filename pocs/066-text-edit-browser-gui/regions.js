@@ -176,11 +176,16 @@
     // Merge by physical source position, then restore high-level vertical
     // traversal order for the index->payload contract of TextEdit.replace([]).
     if(!direction.vertical)merged.reverse();
-    editor.selections.setSelections(merged.map(part=>({
-      start:pointAt(part.start),
-      end:pointAt(part.end),
-      forward:direction.horizontal
-    })));
+    const physical=[];
+    for(const part of merged)
+    {
+      physical.push({
+        start:pointAt(part.start),
+        end:pointAt(part.end),
+        forward:direction.horizontal
+      });
+    }
+    editor.selections.setSelections(physical);
   }
 
   function select(a,b)
@@ -298,10 +303,16 @@
     if(texts.length!==physical.length)
       throw new RangeError('Occorre un valore per ogni selezione fisica, nell’ordine attuale.');
     const reverse=$('reverse-horizontal').checked&&!direction.horizontal;
-    const payloads=texts.map((text,i)=>{
-      if(typeof text!=='string')throw new TypeError('Testo sostitutivo non valido.');
-      return reverse&&!physical[i].forward?reverseLineGraphemes(text):text;
-    });
+    const payloads=[];
+    for(let i=0;i<texts.length;i++)
+    {
+      const text=texts[i];
+      if(typeof text!=='string')
+      {
+        throw new TypeError('Testo sostitutivo non valido.');
+      }
+      payloads.push(reverse&&!physical[i].forward?reverseLineGraphemes(text):text);
+    }
 
     // The only commit path remains the real selected TextEdit facade.
     editor.replace(payloads);
@@ -374,16 +385,30 @@
     catch(error){$('warning').textContent=error.message;}
   });
   $('reset').addEventListener('click',reset);
-  $('apply').addEventListener('click',()=>
+  function applyText()
   {
-    try{replace($('replacement').value);}
-    catch(error){$('warning').textContent=error.message;}
-  });
-  $('apply-array').addEventListener('click',()=>
+    try
+    {
+      replace($('replacement').value);
+    }
+    catch(error)
+    {
+      $('warning').textContent=error.message;
+    }
+  }
+  function applyArray()
   {
-    try{replace($('replacement-array').value.split(/\r\n|\r|\n/));}
-    catch(error){$('warning').textContent=error.message;}
-  });
+    try
+    {
+      replace($('replacement-array').value.split(/\r\n|\r|\n/));
+    }
+    catch(error)
+    {
+      $('warning').textContent=error.message;
+    }
+  }
+  $('apply').addEventListener('click',applyText);
+  $('apply-array').addEventListener('click',applyArray);
 
   reset();
 
