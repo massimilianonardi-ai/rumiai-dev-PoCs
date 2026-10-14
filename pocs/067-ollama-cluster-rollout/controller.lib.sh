@@ -3,8 +3,9 @@
 cluster_rollout()
 (
   set +x
-  [ "$#" -eq 3 ] || { printf '%s\n' 'expected runtime, catalog and manifest SHA pins' >&2; return 1; }
-  cluster_runtime=$1 cluster_catalog=$2 cluster_artifact=$3
+  [ "$#" -ge 3 ] && [ "$#" -le 4 ] || { printf '%s\n' 'expected runtime, catalog, manifest pins and optional check|canary|rollout mode' >&2; return 1; }
+  cluster_runtime=$1 cluster_catalog=$2 cluster_artifact=$3 cluster_mode=${4:-rollout}
+  case "$cluster_mode" in check|canary|rollout) ;; *) printf '%s\n' 'invalid rollout mode' >&2; return 15 ;; esac
   for value in "$cluster_runtime" "$cluster_catalog" "$cluster_artifact"
   do
     case "$value" in *[!0-9a-f]*|'') printf '%s\n' 'invalid pin' >&2; return 2 ;; esac
@@ -43,6 +44,13 @@ cluster_rollout()
     eval "cluster_head_$group=\$head"
   done
 
+  if [ "$cluster_mode" = check ]
+  then
+    printf 'CLUSTER PREFLIGHT OK runtime=%s catalog=%s artifact=%s\n' \
+      "$cluster_runtime" "$cluster_catalog" "$cluster_artifact"
+    return 0
+  fi
+
   # Central host and one local 8GiB worker are distinct canaries.
   # The rest are strictly sequential; the first failed host stops promotion.
   for group in gis apps apisix keycloak apisix_psn apps_psn keycloak_psn webgisrpr
@@ -57,6 +65,12 @@ cluster_rollout()
         return 14
       }
     printf 'CLUSTER NODE OK %s\n' "$group"
+    if [ "$cluster_mode" = canary ] && [ "$group" = apps ]
+    then
+      printf 'CLUSTER CANARY OK runtime=%s catalog=%s artifact=%s\n' \
+        "$cluster_runtime" "$cluster_catalog" "$cluster_artifact"
+      return 0
+    fi
   done
   printf 'CLUSTER ROLLOUT OK runtime=%s catalog=%s artifact=%s\n' \
     "$cluster_runtime" "$cluster_catalog" "$cluster_artifact"
