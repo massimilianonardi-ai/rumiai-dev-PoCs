@@ -28,6 +28,7 @@
   let regions=[];
   let visualRows=[];
   let requested=null;
+  let direction={horizontal:true,vertical:true};
   let selected=[];
   let dragging=null;
 
@@ -172,10 +173,13 @@
       else merged.push({...part});
     }
 
+    // Merge by physical source position, then restore high-level vertical
+    // traversal order for the index->payload contract of TextEdit.replace([]).
+    if(!direction.vertical)merged.reverse();
     editor.selections.setSelections(merged.map(part=>({
       start:pointAt(part.start),
       end:pointAt(part.end),
-      forward:true
+      forward:direction.horizontal
     })));
   }
 
@@ -188,6 +192,7 @@
          point.row<0||point.row>maxRow||point.col<0||point.col>=COLUMNS)
         throw new RangeError('selection point outside the visual grid');
     }
+    direction={horizontal:a.col<=b.col,vertical:a.row<=b.row};
     requested=clippedRectangle(a,b);
     selected=regions.filter(item=>hit(item,requested));
     publishPhysical(selected);
@@ -235,6 +240,8 @@
       text:doc.toString(),
       revision:doc.revision,
       requested:requested?{...requested}:null,
+      direction:{...direction},
+      reverseHorizontal:$('reverse-horizontal').checked,
       selected:selected.map(item=>item.id),
       physical:editor.selections.getSelections(),
       regions:regions.map(r=>({
@@ -263,6 +270,7 @@
       id:'info',at:doc.lineStart(4),text:'ℹ nota',affinity:'after'
     }]);
     requested=null;
+    direction={horizontal:true,vertical:true};
     selected=[];
     $('warning').textContent='';
     buildRegions();
@@ -270,18 +278,35 @@
     render();
   }
 
+  function reverseLineGraphemes(text)
+  {
+    const pieces=text.split(/(\r\n|\r|\n)/);
+    for(let i=0;i<pieces.length;i+=2)
+      pieces[i]=Array.from(segmenter.segment(pieces[i]),item=>item.segment).reverse().join('');
+    return pieces.join('');
+  }
+
   function replace(value)
   {
-    if(typeof value!=='string')throw new TypeError('replacement must be text');
     const physical=editor.selections.getSelections();
     if(!physical.length)
     {
       $('warning').textContent='Nessun testo sorgente selezionato: nessuna modifica.';
       return {changed:false,revision:editor.document.revision};
     }
-    // This is the ONLY edit path, through the real TextEdit facade.
-    editor.replace(value);
+    const texts=Array.isArray(value)?value:physical.map(()=>value);
+    if(texts.length!==physical.length)
+      throw new RangeError('Occorre un valore per ogni selezione fisica, nell’ordine attuale.');
+    const reverse=$('reverse-horizontal').checked&&!direction.horizontal;
+    const payloads=texts.map((text,i)=>{
+      if(typeof text!=='string')throw new TypeError('Testo sostitutivo non valido.');
+      return reverse&&!physical[i].forward?reverseLineGraphemes(text):text;
+    });
+
+    // The only commit path remains the real selected TextEdit facade.
+    editor.replace(payloads);
     requested=null;
+    direction={horizontal:true,vertical:true};
     selected=[];
     $('warning').textContent='';
     buildRegions();
@@ -349,7 +374,16 @@
     catch(error){$('warning').textContent=error.message;}
   });
   $('reset').addEventListener('click',reset);
-  $('apply').addEventListener('click',()=>replace($('replacement').value));
+  $('apply').addEventListener('click',()=>
+  {
+    try{replace($('replacement').value);}
+    catch(error){$('warning').textContent=error.message;}
+  });
+  $('apply-array').addEventListener('click',()=>
+  {
+    try{replace($('replacement-array').value.split(/\r\n|\r|\n/));}
+    catch(error){$('warning').textContent=error.message;}
+  });
 
   reset();
 
