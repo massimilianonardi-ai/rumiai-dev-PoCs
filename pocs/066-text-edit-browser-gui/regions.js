@@ -1,4 +1,4 @@
-/* Experimental 2D visual regions over the real, unchanged TextEdit 0.8.1.
+/* Experimental 2D visual regions over the real, unchanged TextEdit 0.8.2.
  * Only TextEdit owns document content and effective physical selections.
  * This prototype does NOT introduce a product API or a second selection store.
  */
@@ -8,9 +8,9 @@
 
   const API=globalThis.TextEdit;
   const $=id=>document.getElementById(id);
-  if(!API||API.VERSION!=='0.8.1')
+  if(!API||API.VERSION!=='0.8.2')
   {
-    $('warning').textContent='TextEdit 0.8.1 non disponibile.';
+    $('warning').textContent='TextEdit 0.8.2 non disponibile.';
     return;
   }
 
@@ -225,10 +225,9 @@
 
   function updateInputStatus()
   {
-    // Post-edit carets remain valid TextEdit state but do not create a
-    // new region selection or authorize a repeated region replacement.
-    const physicalCount=selected.some(item=>item.source!==null)?
-      editor.selections.getSelections().length:0;
+    // Every retained physical caret remains editable regardless of which
+    // high-level selection constructor originally produced it.
+    const physicalCount=editor.selections.getSelections().length;
     const inputCount=$('replacement-array').value.split(/\r\n|\r|\n/).length;
     $('apply').disabled=physicalCount===0;
     $('apply-array').disabled=physicalCount===0;
@@ -332,7 +331,7 @@
     const texts=Array.isArray(value)?value:physical.map(()=>value);
     if(texts.length!==physical.length)
       throw new RangeError('Occorre un valore per ogni selezione fisica, nell’ordine attuale.');
-    const reverse=$('reverse-horizontal').checked&&!direction.horizontal;
+    const reverse=$('reverse-horizontal').checked;
     const payloads=[];
     for(let i=0;i<texts.length;i++)
     {
@@ -347,7 +346,6 @@
     // The only commit path remains the real selected TextEdit facade.
     editor.replace(payloads);
     requested=null;
-    direction={horizontal:true,vertical:true};
     selected=[];
     $('warning').textContent='';
     buildRegions();
