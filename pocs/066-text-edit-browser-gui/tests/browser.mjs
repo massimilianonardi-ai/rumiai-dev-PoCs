@@ -45,6 +45,7 @@ try{
   assert.ok(state.text.startsWith('Zalpha'));
   assert.ok(state.inputResult.includes('Sostituzione eseguita'));
   await page.locator('#sample').click();
+  state=await snap();
 
   // Changing font must remeasure visible glyphs without mutating TextEdit state.
   const monoX=(await position(0,10)).x;
