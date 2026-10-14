@@ -12,7 +12,7 @@ const segmenter=new Intl.Segmenter(undefined,{granularity:'grapheme'});
 const HEIGHT=24,MAX_UNITS=1024,OVERSCAN=5;
 let editor=null,unsubscribe=null,drag=null,scheduled=false;
 let visible=[],renderCount=0,maxMounted=0,desiredColumn=null;
-let cellGrid=false,cellPixels=0;
+let cellGrid=false,cellPixels=0,rectangleSelection=false;
 const measureContext=document.createElement('canvas').getContext('2d');
 const emoji=/\p{Extended_Pictographic}|\p{Regional_Indicator}|\uFE0F/u;
 const wide=/\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}|\p{Script=Hangul}|[\uFF01-\uFF60\uFFE0-\uFFE6]/u;
@@ -52,6 +52,7 @@ function width(row){return rowInfo(row).width;}
 function selection(){return editor.selections.getSelections()[0];}
 function active(){const s=selection();return s.forward?s.end:s.start;}
 function setRange(anchor,cursor){
+  rectangleSelection=false;
   const forward=cmp(anchor,cursor)<=0;
   const start=forward?anchor:cursor,end=forward?cursor:anchor;
   editor.selections.setSelections([{start:{...start},end:{...end},forward}]);
@@ -243,6 +244,7 @@ function movePointer(event){
   if(drag.rectangle){
     try{
       editor.advancedSelections.rectangularSelection(drag.anchor.logical,hit.logical);
+      rectangleSelection=true;
       warning();schedule();
     }catch(error){
       // The core intentionally rejects rectangles intersecting partial wide
@@ -306,7 +308,29 @@ function keyboardMove(key,extend){
   else setRange(result,result);
   reveal(result);
 }
-function write(text){editor.replace(text);desiredColumn=null;schedule();reveal(active());}
+function reverseLineGraphemes(text){
+  // Preserve line separators and their order: only the grapheme sequence
+  // within each line is reversed (including emoji/combining clusters).
+  const parts=text.split(/(\r\n|\r|\n)/);
+  for(let i=0;i<parts.length;i+=2)
+    parts[i]=Array.from(segmenter.segment(parts[i]),item=>item.segment).reverse().join('');
+  return parts.join('');
+}
+function write(text){
+  const selections=editor.selections.getSelections();
+  if(!selections.length)throw new RangeError('Nessuna selezione da sostituire.');
+  const values=Array.isArray(text)?text:selections.map(()=>text);
+  if(values.length!==selections.length)
+    throw new RangeError('Un valore per ogni selezione, nell’ordine conservato da TextEdit.');
+  const reverse=rectangleSelection&&$('reverse-horizontal').checked;
+  const payloads=values.map((value,i)=>{
+    if(typeof value!=='string')throw new TypeError('Il testo da inserire deve essere una stringa.');
+    return reverse&&!selections[i].forward?reverseLineGraphemes(value):value;
+  });
+  editor.replace(payloads);
+  rectangleSelection=false;
+  desiredColumn=null;schedule();reveal(active());
+}
 function erase(backward){
   const s=selection();
   if(cmp(s.start,s.end)!==0){write('');return;}
@@ -338,7 +362,7 @@ function reset(text){
   setColumnGeometry();
   editor.selections.setSelections([{start:p(0,0),end:p(0,0),forward:true}]);
   unsubscribe=editor.document.subscribe(schedule);
-  drag=null;desiredColumn=null;maxMounted=0;
+  drag=null;rectangleSelection=false;desiredColumn=null;maxMounted=0;
   scroller.scrollTop=0;scroller.scrollLeft=0;
   schedule();
 }
@@ -357,6 +381,16 @@ scroller.addEventListener('pointermove',movePointer);
 scroller.addEventListener('pointerup',up);
 scroller.addEventListener('pointercancel',up);
 scroller.addEventListener('keydown',keyDown);
+$('apply-text').addEventListener('click',()=>{
+  try{write($('insert-text').value);warning();}
+  catch(error){warning(error?.message||String(error));}
+  scroller.focus({preventScroll:true});
+});
+$('apply-array').addEventListener('click',()=>{
+  try{write($('insert-array').value.split(/\r\n|\r|\n/));warning();}
+  catch(error){warning(error?.message||String(error));}
+  scroller.focus({preventScroll:true});
+});
 $('sample').addEventListener('click',sample);
 $('large').addEventListener('click',large);
 $('jump').addEventListener('click',()=>{
@@ -383,7 +417,8 @@ globalThis.__guiProbe={
     first:visible[0]?.row,last:visible[visible.length-1]?.row,
     mounted:rows.children.length,maxMounted,renderCount,
     text:editor.document.toString(),warning:$('warning').textContent,
-    mode:cellGrid?'grid':'natural',cellPixels}),
+    mode:cellGrid?'grid':'natural',cellPixels,
+    rectangle:rectangleSelection,reverseHorizontal:$('reverse-horizontal').checked}),
   geometry:row=>{
     const item=visible.find(x=>x.row===row),el=rows.querySelector('[data-row="'+row+'"] .content');
     if(!item||!el)return null;
@@ -396,6 +431,13 @@ globalThis.__guiProbe={
     const x=pixel(el,col);if(x===null)throw new RangeError('not a visible grapheme boundary');
     const box=el.getBoundingClientRect();return {x:box.left+x,y:box.top+HEIGHT/2};
   },
+  selectRectangle:(a,b)=>{
+    editor.advancedSelections.rectangularSelection(a,b);
+    rectangleSelection=true;
+    schedule();
+    return editor.selections.getSelections();
+  },
+  replacePayload:value=>{write(value);return editor.document.toString();},
   focus:()=>scroller.focus(),setText:reset
 };
 sample();
