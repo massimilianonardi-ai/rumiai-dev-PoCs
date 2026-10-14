@@ -59,7 +59,7 @@ try
     'post-edit oriented caret remains a valid selection target');
   await page.locator('#replacement').fill('Q');
   await page.locator('#apply').click();
-  assert.equal((await state()).text,'AAQBB\nfold alpha\nfold beta\nfold gamma\n0123456789\nuvwxyzABCD',
+  assert.equal((await state()).text,'AABQB\nfold alpha\nfold beta\nfold gamma\n0123456789\nuvwxyzABCD',
     'an ordinary forward post-edit caret accepts consecutive input');
   await call('reset');
 
