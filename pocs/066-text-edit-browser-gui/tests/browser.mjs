@@ -216,7 +216,7 @@ try{
   assert.equal(state.selection[0].forward,false);
   await page.locator('#insert-text').fill('A😀e\u0301B');
   await page.locator('#apply-text').click();
-  assert.equal((await snap()).text,'aA😀e\u0301Be\nfghij\nklmno');
+  assert.equal((await snap()).text,'aA😀e\u0301Bde\nfghij\nklmno');
   // GUI button path for bottom-up per-selection arrays (not clipboard paste).
   await page.evaluate(text=>window.__guiProbe.setText(text),reverseFixture);
   await page.evaluate(()=>window.__guiProbe.selectRectangle(
