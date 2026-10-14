@@ -13,7 +13,10 @@ or replace an installed Ollama concrete package root.
 Start rsudo-admin with the required credential groups loaded in its session.
 Choose "rsudo jobs"; select controller.lib.sh as the library and rollout.job
 as the template. The console edits a private copy of the job before execution.
-Review the three pinned SHA values in that temporary job.
+Review the three pinned SHA values in that temporary job. The template defaults
+to `check` (non-mutating preflight). Edit only the final mode operand to `canary`
+(apply only on gis and apps) or `rollout` (canaries, then remaining six
+workers). The program preflights all eight nodes for every mode.
 
 The controller resolves the exact catalog commit and checks for the Ollama
 0.35.1 definition, then preflights all eight hosts before changing any runtime
