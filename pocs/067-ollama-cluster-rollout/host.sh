@@ -16,8 +16,8 @@ case "$mode" in check|apply) ;; *) fail 'invalid mode' 2 ;; esac
 case "$role" in gis|worker) ;; *) fail 'invalid host role' 3 ;; esac
 case "$runtime_sha" in *[!0-9a-f]*|'') fail 'invalid runtime SHA pin' 4 ;; esac
 [ "${#runtime_sha}" -eq 40 ] || fail 'invalid runtime SHA length' 5
-case "$artifact_sha" in *[!0-9a-f]*|'') fail 'invalid artifact SHA pin' 49 ;; esac
-[ "${#artifact_sha}" -eq 64 ] || fail 'invalid artifact SHA length' 46
+case "$artifact_sha" in *[!0-9a-f]*|'') fail 'invalid artifact SHA pin' 46 ;; esac
+[ "${#artifact_sha}" -eq 64 ] || fail 'invalid artifact SHA length' 47
 [ "$(id -u)" -eq 0 ] || fail 'remote operation requires root' 6
 root=/m/src/git/rumiai-os
 [ -d "$root/.git" ] || fail 'missing managed runtime checkout' 7
@@ -25,8 +25,8 @@ old_head=$(git -C "$root" rev-parse HEAD) || fail 'cannot read installed runtime
 if [ "$mode" = apply ]
 then
   case "$expected_head" in *[!0-9a-f]*|'') fail 'invalid expected HEAD' 9 ;; esac
-  [ "${#expected_head}" -eq 40 ] || fail 'invalid expected HEAD length' 47
-  [ "$expected_head" = "$old_head" ] || fail 'concurrent runtime revision change' 48
+  [ "${#expected_head}" -eq 40 ] || fail 'invalid expected HEAD length' 48
+  [ "$expected_head" = "$old_head" ] || fail 'concurrent runtime revision change' 49
 fi
 changes=$(git -C "$root" status --porcelain --untracked-files=no) || fail 'cannot inspect tracked modifications' 10
 # The three platform selectors are the only tolerated tracked mutations.
