@@ -30,6 +30,20 @@ The script loads `/lib/sys/js/text-edit.lib.js` from the containing `rumiai-os` 
 - Native scrollbar dragging must not create or extend text selections
 - A 100,000-line fixture and an observable `window.__guiProbe.snapshot()`
 
+## Separate 2D representation-element experiment
+
+Open `http://127.0.0.1:8765/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/regions.html` (also linked from the main editor). This **separate browser page** explores a deliberately minimal axis-aligned rectangle model over the same stable TextEdit 0.8.1 library; it does **not** replace the working GUI or introduce new product exports.
+
+- A tab spans three cells at tab stop four and maps to a single real source `\t`.
+- A folded region spans six display cells on one projected visual row while mapping to three hidden physical source lines, using a real `TextEditRepresentation.setReplacements` overlay.
+- A source-less annotation occupies four cells across two visual rows and is anchored using real `TextEditRepresentation.setAnnotations`.
+- Each region can be configured as unselectable (`none`), selected on any overlap (`touch`), or selected only upon complete coverage (`full`). Ordinary ASCII/grapheme cells use the same experimental overlap rule. Configurable rules are proof-of-concept only, not new TextEdit APIs.
+- A requested grid rectangle is **not** itself rendered as an effective selection. Only resolved, selected whole regions receive highlighting. Real source-backed regions are translated to physical source ranges, merged and given to the existing `TextEditSelections` owner; no overlapping physical target is duplicated. Visual-only regions can be selected for highlighting but provide **no physical edit target**.
+- The replace action uses only the actual `TextEdit.replace()` facade. Selecting never modifies source content. A selected fold may replace a multi-line source interval; its overlay is invalidated normally on committed edits. Test reset restores the original fixture.
+- A genuine Chromium regression explicitly compares selection past EOL with `TextEditAdvancedSelections` in `clipped` mode, proving the same *requested geometry versus effective selection* distinction already exists in the stabilized engine. It does not claim to implement a generalized source/view-row mapping or reuse the advanced selector to resolve the new region policies.
+
+The geometry resolver is intentionally local to this PoC. Current TextEditRepresentation has source-mapped **linear** overlays/annotations and source-row metrics, but lacks generalized multi-row view layout and region selection rules; current TextEditAdvancedSelections retains its existing selection-policy contract. This experiment does not answer overlapping-region precedence, caret/navigation inside fold placeholders, editing visual-only regions, arbitrary shapes, viewport virtualization for thousands of projected regions, or semantics of user-configurable presets. The 2D page handles a tiny deterministic fixture only. Do not promote it to a product API or claim full browser editor integration based solely on these tests.
+
 ## Deliberately excluded
 
 History/undo, files, clipboard, remote collaboration and IME. Composition events are ignored rather than claimed supported. This is not an implementation of native browser text input or an accessibility-complete editor.
