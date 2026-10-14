@@ -14,7 +14,8 @@ Start rsudo-admin with the required credential groups loaded in its session.
 Choose "rsudo jobs"; select controller.lib.sh as the library and rollout.job
 as the template. The console edits a private copy of the job before execution.
 Review the three pinned SHA values in that temporary job. The template defaults
-to `check` (no checkout/service changes; Git fetch refreshes remote-tracking\nmetadata). Edit only the final mode operand to `canary`
+to `check` (no checkout/service changes; Git fetch refreshes remote-tracking
+metadata). Edit only the final mode operand to `canary`
 (apply only on gis and apps) or `rollout` (canaries, then remaining six
 workers). The program preflights all eight nodes for every mode.
 
