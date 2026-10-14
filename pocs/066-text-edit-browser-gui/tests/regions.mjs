@@ -163,9 +163,8 @@ try
   assert.equal(await page.locator('.region.text.selected').count(),3);
 
 
-  // 2D region selections retain horizontal direction independent of
-  // vertical array target order. Payloads are reversed by graphemes only
-  // when the optional reverse-horizontal behavior is enabled.
+  // 2D regions retain horizontal direction independently of vertical
+  // traversal order, which determines the source target for each array item.
   await call('reset');
   await page.locator('#reverse-horizontal').check();
   s=await selection(box(3,3),box(2,1));
@@ -175,36 +174,46 @@ try
   await page.locator('#replacement-array').fill('A😀e\u0301\nXYZ');
   await page.locator('#apply-array').click();
   s=await state();
-  assert.equal(s.revision,1,'a two-row array edit is one source revision');
+  assert.equal(s.revision,1,'one atomic source revision for two array targets');
   assert.equal(s.text,'A\tB\nfold alpha\nfold beta\nfold gamma\n0ZYX456789\nue\u0301😀AyzABCD');
   assert.deepEqual(s.selected,[]);
-  // Disabled policy must preserve input order, even for reversed geometry.
+
+  // Disabled reverse option leaves payloads unchanged in backward rectangles.
   await call('reset');
   await page.locator('#reverse-horizontal').uncheck();
   s=await selection(box(3,3),box(2,1));
   assert.deepEqual(s.physical.map(x=>x.start.row),[5,4]);
   await call('replace',['A😀e\u0301','XYZ']);
-  assert.equal((await state()).text,
-    'A\tB\nfold alpha\nfold beta\nfold gamma\n0XYZ456789\nuA😀e\u0301yzABCD');
-  // Opposite vertical traversal changes array assignment, not horizontal
-  // replacement policy. Top row receives first array entry in this case.
+  assert.equal((await state()).text,'A\tB\nfold alpha\nfold beta\nfold gamma\n0XYZ456789\nuA😀e\u0301yzABCD');
+
+  // Top-to-bottom requests assign the first array entry to the top row,
+  // irrespective of right-to-left horizontal selection geometry.
   await call('reset');
   await page.locator('#reverse-horizontal').check();
   s=await selection(box(2,3),box(3,1));
   assert.deepEqual(s.direction,{horizontal:false,vertical:true});
   assert.deepEqual(s.physical.map(x=>x.start.row),[4,5]);
   await call('replace',['ABC','DEF']);
-  assert.equal((await state()).text,
-    'A\tB\nfold alpha\nfold beta\nfold gamma\n0CBA456789\nuFEDyzABCD');
+  assert.equal((await state()).text,'A\tB\nfold alpha\nfold beta\nfold gamma\n0CBA456789\nuFEDyzABCD');
 
   await call('reset');
   await selection(box(3,3),box(2,1));
   const preInvalid=await state();
-  const failure=await page.evaluate(()=>
-  {
-    try{window.__regionsProbe.replace(['only-one']);return 'accepted';}
-    catch(error){return error.message;}
-  });
+  const failure=await page.evaluate
+  (
+    function()
+    {
+      try
+      {
+        window.__regionsProbe.replace(['only-one']);
+        return 'accepted';
+      }
+      catch(error)
+      {
+        return error.message;
+      }
+    }
+  );
   assert.match(failure,/Occorre un valore per ogni selezione/);
   s=await state();
   assert.equal(s.text,preInvalid.text);
