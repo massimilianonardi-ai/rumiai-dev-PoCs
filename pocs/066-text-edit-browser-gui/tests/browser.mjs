@@ -161,78 +161,84 @@ try{
   const reverseFixture='abcde\nfghij\nklmno';
   await page.evaluate(text=>window.__guiProbe.setText(text),reverseFixture);
   await page.locator('#reverse-horizontal').check();
-  let ordered=await page.evaluate(()=>window.__guiProbe.selectRectangle(
-    {row:2,col:3},{row:0,col:1}));
-  assert.deepEqual(ordered.map(s=>s.start.row),[2,1,0],
-    'bottom-up rectangular selection order is retained in TextEditSelections');
-  assert.ok(ordered.every(s=>s.forward===false),
-    'right-to-left is independent of bottom-up traversal');
-  let replaced=await page.evaluate(()=>window.__guiProbe.replacePayload(
-    ['A😀e\u0301','XY','PQR']));
-  assert.equal(replaced,'aRQPe\nfYXj\nke\u0301😀Ao',
-    'array payload index 0 edits the bottom row, with grapheme-safe inversion');
+  let ordered=await page.evaluate(()=>window.__guiProbe.selectRectangle({row:2,col:3},{row:0,col:1}));
+  assert.deepEqual(ordered.map(s=>s.start.row),[2,1,0],'bottom-up rectangle selection order is retained');
+  assert.ok(ordered.every(s=>s.forward===false),'reverse horizontal direction is independent of row order');
+  let replaced=await page.evaluate(()=>window.__guiProbe.replacePayload(['A😀e\u0301','XY','PQR']));
+  assert.equal(replaced,'aRQPe\nfYXj\nke\u0301😀Ao','array item zero edits bottom row, reversing entire graphemes');
   state=await snap();
-  assert.equal(state.rectangle,false,'one replacement ends rectangle input mode');
-  // Opt-out leaves payload unchanged even when the rectangle is backward.
+  assert.equal(state.rectangle,false,'after replacement the next input command is no longer rectangular');
+
+  // The opt-out preserves payloads unchanged even for a reversed rectangle.
   await page.evaluate(text=>window.__guiProbe.setText(text),reverseFixture);
   await page.locator('#reverse-horizontal').uncheck();
-  await page.evaluate(()=>window.__guiProbe.selectRectangle(
-    {row:2,col:3},{row:0,col:1}));
+  await page.evaluate(()=>window.__guiProbe.selectRectangle({row:2,col:3},{row:0,col:1}));
   replaced=await page.evaluate(()=>window.__guiProbe.replacePayload('A😀e\u0301'));
   assert.equal(replaced,'aA😀e\u0301e\nfA😀e\u0301j\nkA😀e\u0301o');
-  // With option on, a LEFT-to-RIGHT rectangle remains unchanged.
+
+  // Bottom-up order is independent of horizontal orientation.
   await page.evaluate(text=>window.__guiProbe.setText(text),reverseFixture);
   await page.locator('#reverse-horizontal').check();
-  ordered=await page.evaluate(()=>window.__guiProbe.selectRectangle(
-    {row:2,col:1},{row:0,col:3}));
+  ordered=await page.evaluate(()=>window.__guiProbe.selectRectangle({row:2,col:1},{row:0,col:3}));
   assert.deepEqual(ordered.map(s=>s.start.row),[2,1,0]);
   assert.ok(ordered.every(s=>s.forward));
   replaced=await page.evaluate(()=>window.__guiProbe.replacePayload(['L','M','N']));
   assert.equal(replaced,'aNe\nfMj\nkLo');
-  // Top-down selection gives top-down array distribution independently of
-  // the reverse horizontal direction.
+
+  // Top-down ordering assigns array item zero to the highest selected row.
   await page.evaluate(text=>window.__guiProbe.setText(text),reverseFixture);
-  ordered=await page.evaluate(()=>window.__guiProbe.selectRectangle(
-    {row:0,col:3},{row:2,col:1}));
+  ordered=await page.evaluate(()=>window.__guiProbe.selectRectangle({row:0,col:3},{row:2,col:1}));
   assert.deepEqual(ordered.map(s=>s.start.row),[0,1,2]);
   assert.ok(ordered.every(s=>s.forward===false));
   replaced=await page.evaluate(()=>window.__guiProbe.replacePayload(['ABC','DEF','GHI']));
   assert.equal(replaced,'aCBAe\nfFEDj\nkIHGo');
-  // Multiline input preserves CRLF and row order while reversing each
-  // line separately (rather than reversing the entire UTF-16 sequence).
+
+  // Preserve CRLF and row order while reversing the graphemes on each line.
   await page.evaluate(text=>window.__guiProbe.setText(text),reverseFixture);
-  await page.evaluate(()=>window.__guiProbe.selectRectangle(
-    {row:0,col:3},{row:0,col:1}));
+  await page.evaluate(()=>window.__guiProbe.selectRectangle({row:0,col:3},{row:0,col:1}));
   replaced=await page.evaluate(()=>window.__guiProbe.replacePayload('AB\r\nC😀'));
   assert.equal(replaced,'aBA\r\n😀Ce\nfghij\nklmno');
-  // A backward ordinary linear selection must NOT inherit rectangle-only
-  // reversal merely because its physical forward flag is false.
+
+  // A backward ordinary linear range must NOT trigger rectangle-only reversal.
   await page.evaluate(text=>window.__guiProbe.setText(text),reverseFixture);
   let regularFrom=await position(0,3),regularTo=await position(0,1);
-  await page.mouse.move(regularFrom.x,regularFrom.y);await page.mouse.down();
-  await page.mouse.move(regularTo.x,regularTo.y,{steps:5});await page.mouse.up();
+  await page.mouse.move(regularFrom.x,regularFrom.y);
+  await page.mouse.down();
+  await page.mouse.move(regularTo.x,regularTo.y,{steps:5});
+  await page.mouse.up();
   state=await snap();
   assert.equal(state.rectangle,false);
   assert.equal(state.selection[0].forward,false);
   await page.locator('#insert-text').fill('A😀e\u0301B');
   await page.locator('#apply-text').click();
   assert.equal((await snap()).text,'aA😀e\u0301Bde\nfghij\nklmno');
-  // GUI button path for bottom-up per-selection arrays (not clipboard paste).
+
+  // Real browser array-button path, no clipboard implementation involved.
   await page.evaluate(text=>window.__guiProbe.setText(text),reverseFixture);
-  await page.evaluate(()=>window.__guiProbe.selectRectangle(
-    {row:2,col:3},{row:0,col:1}));
+  await page.evaluate(()=>window.__guiProbe.selectRectangle({row:2,col:3},{row:0,col:1}));
   await page.locator('#insert-array').fill('uno\ndue\ntre');
   await page.locator('#apply-array').click();
   assert.equal((await snap()).text,'aerte\nfeudj\nkonuo');
-  // Refuse an incomplete per-selection array atomically.
+
+  // Reject an incomplete per-selection array before attempting any source edit.
   await page.evaluate(text=>window.__guiProbe.setText(text),reverseFixture);
-  await page.evaluate(()=>window.__guiProbe.selectRectangle(
-    {row:2,col:3},{row:0,col:1}));
+  await page.evaluate(()=>window.__guiProbe.selectRectangle({row:2,col:3},{row:0,col:1}));
   const beforeIncomplete=await snap();
-  const incomplete=await page.evaluate(()=>{
-    try{window.__guiProbe.replacePayload(['one']);return 'accepted';}
-    catch(error){return error.message;}
-  });
+  const incomplete=await page.evaluate
+  (
+    function()
+    {
+      try
+      {
+        window.__guiProbe.replacePayload(['one']);
+        return 'accepted';
+      }
+      catch(error)
+      {
+        return error.message;
+      }
+    }
+  );
   assert.match(incomplete,/Un valore per ogni selezione/);
   assert.deepEqual((await snap()).selection,beforeIncomplete.selection);
   assert.equal((await snap()).text,reverseFixture);
