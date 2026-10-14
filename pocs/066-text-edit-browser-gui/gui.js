@@ -3,8 +3,8 @@
 'use strict';
 const API=globalThis.TextEdit;
 const $=id=>document.getElementById(id);
-if(!API||API.VERSION!=='0.8.1'){
-  $('warning').textContent='TextEdit 0.8.1 non disponibile: verificare rumiai-os/src/rumiai-dev-PoCs e il server avviato da rumiai-os.';
+if(!API||API.VERSION!=='0.8.2'){
+  $('warning').textContent='TextEdit 0.8.2 non disponibile: verificare rumiai-os/src/rumiai-dev-PoCs e il server avviato da rumiai-os.';
   return;
 }
 const scroller=$('scroller'),rows=$('rows'),spacer=$('spacer');
@@ -12,7 +12,7 @@ const segmenter=new Intl.Segmenter(undefined,{granularity:'grapheme'});
 const HEIGHT=24,MAX_UNITS=1024,OVERSCAN=5;
 let editor=null,unsubscribe=null,drag=null,scheduled=false;
 let visible=[],renderCount=0,maxMounted=0,desiredColumn=null;
-let cellGrid=false,cellPixels=0,rectangleSelection=false;
+let cellGrid=false,cellPixels=0;
 const measureContext=document.createElement('canvas').getContext('2d');
 const emoji=/\p{Extended_Pictographic}|\p{Regional_Indicator}|\uFE0F/u;
 const wide=/\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}|\p{Script=Hangul}|[\uFF01-\uFF60\uFFE0-\uFFE6]/u;
@@ -70,7 +70,6 @@ function width(row){return rowInfo(row).width;}
 function selection(){return editor.selections.getSelections()[0];}
 function active(){const s=selection();return s.forward?s.end:s.start;}
 function setRange(anchor,cursor){
-  rectangleSelection=false;
   $('input-result').textContent='';
   const forward=cmp(anchor,cursor)<=0;
   const start=forward?anchor:cursor,end=forward?cursor:anchor;
@@ -264,7 +263,6 @@ function movePointer(event){
   if(drag.rectangle){
     try{
       editor.advancedSelections.rectangularSelection(drag.anchor.logical,hit.logical);
-      rectangleSelection=true;
       $('input-result').textContent='';
       warning();schedule();
     }catch(error){
@@ -352,7 +350,7 @@ function write(text)
   {
     throw new RangeError('Un valore per ogni selezione, nell’ordine conservato da TextEdit.');
   }
-  const reverse=rectangleSelection&&$('reverse-horizontal').checked;
+  const reverse=$('reverse-horizontal').checked;
   const payloads=[];
   for(let i=0;i<values.length;i++)
   {
@@ -364,7 +362,6 @@ function write(text)
     payloads.push(reverse&&!selections[i].forward?reverseLineGraphemes(value):value);
   }
   editor.replace(payloads);
-  rectangleSelection=false;
   desiredColumn=null;
   schedule();
   reveal(active());
@@ -400,7 +397,7 @@ function reset(text){
   setColumnGeometry();
   editor.selections.setSelections([{start:p(0,0),end:p(0,0),forward:true}]);
   unsubscribe=editor.document.subscribe(schedule);
-  drag=null;rectangleSelection=false;desiredColumn=null;maxMounted=0;
+  drag=null;desiredColumn=null;maxMounted=0;
   $('input-result').textContent='';warning();
   scroller.scrollTop=0;scroller.scrollLeft=0;
   schedule();
@@ -474,7 +471,6 @@ new ResizeObserver(schedule).observe(scroller);
 function probeSelectRectangle(a,b)
 {
   editor.advancedSelections.rectangularSelection(a,b);
-  rectangleSelection=true;
   schedule();
   return editor.selections.getSelections();
 }
@@ -485,7 +481,7 @@ globalThis.__guiProbe={
     mounted:rows.children.length,maxMounted,renderCount,
     text:editor.document.toString(),warning:$('warning').textContent,
     mode:cellGrid?'grid':'natural',cellPixels,
-    rectangle:rectangleSelection,reverseHorizontal:$('reverse-horizontal').checked,
+    reverseHorizontal:$('reverse-horizontal').checked,
     inputStatus:$('input-status').textContent,
     inputResult:$('input-result').textContent}),
   geometry:row=>{
