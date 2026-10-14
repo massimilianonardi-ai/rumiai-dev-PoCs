@@ -30,6 +30,8 @@ button{cursor:pointer}
 #summary{white-space:pre-wrap;background:white;padding:12px;border:1px solid #cbd5df;border-radius:5px;min-height:115px;overflow:auto}
 .note{font-size:13px;color:#516277}
 #warning{min-height:1.5em;color:#a32b1e}
+#input-status{margin:5px 0;color:#334f65;font-weight:600}
+#input-result{margin:5px 0;color:#256b3d;min-height:1.3em}
 </style>
 </head>
 <body>
@@ -51,14 +53,16 @@ button{cursor:pointer}
  <button id="select-range" type="button">Seleziona celle</button>
  <label><input id="reverse-horizontal" type="checkbox"> Inverti grafemi per selezione verso sinistra</label>
  <label>Testo sostitutivo<input id="replacement" value="X" maxlength="256"></label>
- <button id="apply" type="button">Sostituisci selezione fisica</button>
+ <button id="apply" type="button" disabled>Sostituisci selezione fisica</button>
  <label>Array per selezione<textarea id="replacement-array" rows="2" cols="14">uno
 due</textarea></label>
- <button id="apply-array" type="button">Sostituisci array</button>
+ <button id="apply-array" type="button" disabled>Sostituisci array</button>
 </div>
+<p id="input-status" role="status" aria-live="polite"></p>
+<p id="input-result" role="status" aria-live="polite"></p>
 <p id="warning" role="alert"></p>
 <pre id="summary" aria-live="polite"></pre>
 <script src="../../../../lib/sys/js/text-edit.lib.js"></script>
-<script src="./regions.js"></script>
+<script src="./regions.js?v=2-input-status"></script>
 </body>
 </html>
