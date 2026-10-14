@@ -24,7 +24,9 @@ button:focus-visible,.scroller:focus-visible{outline:2px solid #206ab2;outline-o
 .caret{position:absolute;top:0;height:24px;border-left:2px solid #125baa;pointer-events:none;z-index:1}
 .ellipsis{color:#8f6d19;padding-left:10px;font-style:italic}
 .footer{display:flex;gap:12px;flex-wrap:wrap;margin-top:11px;color:#47586b}
-#warning{color:#a5321e;min-height:1.3em}p{margin:10px 0}kbd{font:12px monospace;padding:2px 4px;background:#e9eef4;border-radius:3px}
+#warning{color:#a5321e;min-height:1.3em}
+#input-status{margin:5px 0;color:#334f65}
+#input-result{margin:5px 0;color:#256b3d;min-height:1.3em}p{margin:10px 0}kbd{font:12px monospace;padding:2px 4px;background:#e9eef4;border-radius:3px}
 </style>
 </head>
 <body>
@@ -51,6 +53,7 @@ tre</textarea></label>
  <button id="apply-array" type="button">Sostituisci con array</button>
 </div>
 <p id="input-status" role="status" aria-live="polite"></p>
+<p id="input-result" role="status" aria-live="polite"></p>
 <p id="warning" role="alert" aria-live="assertive"></p>
 <div id="scroller" class="scroller" tabindex="0" role="textbox" aria-label="Editor di testo sperimentale" aria-multiline="true">
  <div id="spacer" class="spacer"><div id="rows" class="rows"></div></div>
