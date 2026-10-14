@@ -50,13 +50,15 @@ due
 tre</textarea></label>
  <button id="apply-array" type="button">Sostituisci con array</button>
 </div>
+<p id="input-status" role="status" aria-live="polite"></p>
+<p id="warning" role="alert" aria-live="assertive"></p>
 <div id="scroller" class="scroller" tabindex="0" role="textbox" aria-label="Editor di testo sperimentale" aria-multiline="true">
  <div id="spacer" class="spacer"><div id="rows" class="rows"></div></div>
 </div>
 <div class="footer"><span id="status" role="status"></span><span id="metrics"></span></div>
-<p id="warning" role="alert"></p>
+
 <!-- GUI PoC checkout: rumiai-os/src/rumiai-dev-PoCs. Serve rumiai-os as HTTP root. -->
 <script src="../../../../lib/sys/js/text-edit.lib.js"></script>
-<script src="./gui.js"></script>
+<script src="./gui.js?v=2-input-status"></script>
 </body>
 </html>
