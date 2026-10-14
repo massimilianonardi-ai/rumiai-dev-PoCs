@@ -201,6 +201,7 @@
     }
     direction={horizontal:a.col<=b.col,vertical:a.row<=b.row};
     requested=clippedRectangle(a,b);
+    $('input-result').textContent='';
     selected=regions.filter(item=>hit(item,requested));
     publishPhysical(selected);
     render();
@@ -222,8 +223,31 @@
     return element;
   }
 
+  function updateInputStatus()
+  {
+    const physicalCount=editor.selections.getSelections().length;
+    const inputCount=$('replacement-array').value.split(/\r\n|\r|\n/).length;
+    $('apply').disabled=physicalCount===0;
+    $('apply-array').disabled=physicalCount===0;
+    if(physicalCount===0)
+    {
+      $('input-status').textContent=selected.length?
+        'Elementi visuali selezionati: '+selected.length+
+        ', ma nessun intervallo sorgente modificabile.':
+        'Nessuna selezione fisica: seleziona una o più celle collegate al testo prima di sostituire.';
+    }
+    else
+    {
+      $('input-status').textContent='Selezioni fisiche: '+physicalCount+
+        ' · elementi array: '+inputCount+
+        (physicalCount===inputCount?' · array pronto.':
+          ' · per l’array serve un valore per ciascuna selezione.');
+    }
+  }
+
   function render()
   {
+    updateInputStatus();
     const grid=$('grid');
     const fragment=document.createDocumentFragment();
     const selectedIds=new Set(selected.map(item=>item.id));
@@ -280,6 +304,7 @@
     direction={horizontal:true,vertical:true};
     selected=[];
     $('warning').textContent='';
+    $('input-result').textContent='';
     buildRegions();
     editor.selections.setSelections([]);
     render();
@@ -324,6 +349,8 @@
     $('warning').textContent='';
     buildRegions();
     render();
+    $('input-result').textContent='Sostituzione eseguita su '+physical.length+
+      ' selezione/i · revisione sorgente '+editor.document.revision+'.';
     return {changed:true,revision:editor.document.revision};
   }
 
@@ -409,6 +436,7 @@
       $('warning').textContent=error.message;
     }
   }
+  $('replacement-array').addEventListener('input',updateInputStatus);
   $('apply').addEventListener('click',applyText);
   $('apply-array').addEventListener('click',applyArray);
 
