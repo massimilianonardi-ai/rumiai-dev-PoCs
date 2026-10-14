@@ -49,7 +49,7 @@ cluster_rollout()
   do
     role=worker
     [ "$group" = gis ] && role=gis
-    eval "expected=${cluster_head_$group}"
+    eval "expected=\${cluster_head_$group}"
     printf 'CLUSTER APPLY %s expected=%s\n' "$group" "$expected"
     rsudo --load ":$group" -- /bin/sh -s -- apply "$cluster_runtime" "$cluster_artifact" "$role" "$expected" \
       < "$cluster_dir/host.sh" || {
