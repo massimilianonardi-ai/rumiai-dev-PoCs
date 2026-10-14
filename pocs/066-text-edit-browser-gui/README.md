@@ -56,6 +56,14 @@ Both browser pages now expose an **opt-in** checkbox that reverses the grapheme 
 - A per-selection array must contain exactly one value for each currently effective physical selection. Incorrect array length is rejected without modifying the document; annotation-only visual selection still has no physical edit target.
 - This remains PoC-local input behavior. No `TextEditRepresentation`, `TextEditAdvancedSelections`, `TextEditSelections`, source-store, permanent test, package or public product contract was modified.
 
+## Operator-visible replacement feedback (2026-10-14)
+
+The browser GUI now shows the current physical selection count and the current newline-delimited array-entry count **next to the replacement buttons**, with visible inline errors and success confirmations. The main GUI begins with one valid insertion caret but the sample array contains three entries; the array action therefore rejects this mismatch **without modifying the document** until the operator provides exactly one entry per physical selection. Both pages include a versioned script URL to avoid confusing a newly updated HTML view with an older cached GUI script.
+
+The 2D region page deliberately begins with no editable source target, so both replacement buttons are disabled with a nearby explanation until a source-backed region is selected. Selecting a visual-only annotation does not authorize source replacement. After a successful edit, the original TextEdit post-edit caret may remain physically valid, but the separate 2D region selection is cleared and the buttons are disabled again until a new view-region selection is made. This distinction avoids silently editing an unhighlighted source position.
+
+New real Chromium tests click both button types, confirm the initial mismatch is reported within the viewport, exercise successful replacements, verify disabled/no-source conditions, and protect all previous editor interactions. The 2D geometry is still experimental and stable TextEdit 0.8.1 was not modified.
+
 ## Deliberately excluded
 
 History/undo, files, clipboard, remote collaboration and IME. Composition events are ignored rather than claimed supported. This is not an implementation of native browser text input or an accessibility-complete editor.
