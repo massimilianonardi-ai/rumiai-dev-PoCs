@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TextEdit PoC 066 — elementi 2D</title>
+<style>
+:root{font:15px/1.5 system-ui,sans-serif;background:#f3f5f8;color:#26394b}
+*{box-sizing:border-box}
+body{margin:0 auto;padding:20px;max-width:1120px}
+h1{font-size:1.35rem;margin:0 0 7px}
+p{margin:8px 0 16px;max-width:85ch}
+a{color:#12599d}
+.controls{display:flex;gap:15px;flex-wrap:wrap;align-items:end;margin-bottom:14px}
+label{display:grid;gap:4px;font-size:14px}
+select,button,input{font:inherit;padding:7px 10px;border:1px solid #a2b4c5;border-radius:5px;background:white}
+button{cursor:pointer}
+#grid{--cell:29px;--line:38px;position:relative;width:max-content;max-width:100%;overflow:hidden;cursor:crosshair;touch-action:none;
+ border:1px solid #778fa5;outline-offset:3px;
+ background-image:linear-gradient(to right,#d8e1ea 1px,transparent 1px),linear-gradient(to bottom,#d8e1ea 1px,transparent 1px);
+ background-size:var(--cell) var(--line)}
+.region{position:absolute;display:flex;align-items:center;justify-content:center;white-space:nowrap;
+ font:15px/1.1 ui-monospace,Consolas,monospace;outline:1px solid rgba(36,61,87,.18);pointer-events:none}
+.region.text{background:#fff}
+.region.tab{background:#e6edf7;color:#364d76}
+.region.fold{background:#e8eee0;color:#3e5d37}
+.region.annotation{background:#f1e8f6;color:#694775}
+.region.selected{background:#2369bd;color:white;outline:2px solid #174780;z-index:2}
+.region.muted{color:#a2a8b0}
+#summary{white-space:pre-wrap;background:white;padding:12px;border:1px solid #cbd5df;border-radius:5px;min-height:115px;overflow:auto}
+.note{font-size:13px;color:#516277}
+#warning{min-height:1.5em;color:#a32b1e}
+</style>
+</head>
+<body>
+<h1>TextEdit — elementi logici 2D (PoC 066)</h1>
+<p><a href="./">Torna all'editor principale</a>. Seleziona celle trascinando nella griglia o cliccando una cella. La selezione visibile rispecchia le regole degli elementi, non necessariamente il rettangolo richiesto.</p>
+<div class="controls">
+ <label>TAB (1 × N)<select id="tab-policy"><option value="touch">Qualsiasi intersezione</option><option value="full">Solo copertura completa</option><option value="none">Non selezionabile</option></select></label>
+ <label>Folding (1 × 6)<select id="fold-policy"><option value="touch">Qualsiasi intersezione</option><option value="full">Solo copertura completa</option><option value="none">Non selezionabile</option></select></label>
+ <label>Annotazione (2 × 4)<select id="annotation-policy"><option value="touch">Qualsiasi intersezione</option><option value="full">Solo copertura completa</option><option value="none">Non selezionabile</option></select></label>
+ <button type="button" id="reset">Ripristina testo</button>
+</div>
+<div id="grid" role="group" aria-label="Griglia della rappresentazione; usa anche i comandi selezione sotto" tabindex="0"></div>
+<p class="note">Il TAB occupa celle fino al tab stop 4; il folding sostituisce tre righe sorgente; la nota non possiede testo sorgente. Le celle vuote oltre EOL non diventano selezioni fisiche in questa prova clipped. Selezione e rendering non alterano il documento.</p>
+<div class="controls">
+ <label>Riga iniziale<input id="start-row" type="number" min="0" max="30" value="0"></label>
+ <label>Colonna iniziale<input id="start-col" type="number" min="0" max="17" value="2"></label>
+ <label>Riga finale<input id="end-row" type="number" min="0" max="30" value="0"></label>
+ <label>Colonna finale<input id="end-col" type="number" min="0" max="17" value="2"></label>
+ <button id="select-range" type="button">Seleziona celle</button>
+ <label>Testo sostitutivo<input id="replacement" value="X" maxlength="32"></label>
+ <button id="apply" type="button">Sostituisci selezione fisica</button>
+</div>
+<p id="warning" role="alert"></p>
+<pre id="summary" aria-live="polite"></pre>
+<script src="../../../../lib/sys/js/text-edit.lib.js"></script>
+<script src="./regions.js"></script>
+</body>
+</html>
