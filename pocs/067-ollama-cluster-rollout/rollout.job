@@ -1,0 +1,6 @@
+# rsudo-admin jobs: select controller.lib.sh as the library, then this job as template.
+# Exact release pins are intentionally edited/reviewed before execution.
+cluster_rollout \
+  '9f4524d9af44cc031ba039b88cfda8d2df0e1c65' \
+  '5f3edca59cdc2dd721c50856d99736392f0fff0b' \
+  'f181030a940abc79aa98797c6ac13bd149d6d1cba545f1111886eea8c3445cfd'
