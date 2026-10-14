@@ -44,7 +44,7 @@ button:focus-visible,.scroller:focus-visible{outline:2px solid #206ab2;outline-o
 <p><a href="./regions.html">Apri l’esperimento 2D: TAB, folding, annotazioni e tre regole di selezione</a></p>
 <p>Confronta il rendering naturale e la griglia logica di celle (Unicode largo: più celle, non un carattere forzato in una cella). Click: cursore · drag: selezione · <kbd>Alt</kbd>+drag: rettangolo · <kbd>Shift</kbd>+frecce: estendi · <kbd>Ctrl/Cmd</kbd>+<kbd>A</kbd>: seleziona tutto. Niente clipboard, history, IME o file.</p>
 <div class="toolbar" style="margin-bottom:12px">
- <label><input id="reverse-horizontal" type="checkbox"> Inverti grafemi per rettangoli da destra a sinistra</label>
+ <label><input id="reverse-horizontal" type="checkbox"> Inverti grafemi per ogni selezione inversa</label>
  <label>Testo di prova <input id="insert-text" value="A😀éB" aria-label="Testo da sostituire nella selezione"></label>
  <button id="apply-text" type="button">Sostituisci selezione</button>
  <label>Array di prova (una riga per selezione) <textarea id="insert-array" rows="2" cols="18" aria-label="Valori per le selezioni in ordine">uno
@@ -62,6 +62,6 @@ tre</textarea></label>
 
 <!-- GUI PoC checkout: rumiai-os/src/rumiai-dev-PoCs. Serve rumiai-os as HTTP root. -->
 <script src="../../../../lib/sys/js/text-edit.lib.js"></script>
-<script src="./gui.js?v=2-input-status"></script>
+<script src="./gui.js?v=3-oriented-input"></script>
 </body>
 </html>
