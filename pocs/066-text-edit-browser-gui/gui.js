@@ -308,28 +308,45 @@ function keyboardMove(key,extend){
   else setRange(result,result);
   reveal(result);
 }
-function reverseLineGraphemes(text){
-  // Preserve line separators and their order: only the grapheme sequence
-  // within each line is reversed (including emoji/combining clusters).
+function reverseLineGraphemes(text)
+{
+  // Preserve line separators and their order, reversing only complete
+  // grapheme clusters within each line.
   const parts=text.split(/(\r\n|\r|\n)/);
   for(let i=0;i<parts.length;i+=2)
+  {
     parts[i]=Array.from(segmenter.segment(parts[i]),item=>item.segment).reverse().join('');
+  }
   return parts.join('');
 }
-function write(text){
+function write(text)
+{
   const selections=editor.selections.getSelections();
-  if(!selections.length)throw new RangeError('Nessuna selezione da sostituire.');
+  if(!selections.length)
+  {
+    throw new RangeError('Nessuna selezione da sostituire.');
+  }
   const values=Array.isArray(text)?text:selections.map(()=>text);
   if(values.length!==selections.length)
+  {
     throw new RangeError('Un valore per ogni selezione, nell’ordine conservato da TextEdit.');
+  }
   const reverse=rectangleSelection&&$('reverse-horizontal').checked;
-  const payloads=values.map((value,i)=>{
-    if(typeof value!=='string')throw new TypeError('Il testo da inserire deve essere una stringa.');
-    return reverse&&!selections[i].forward?reverseLineGraphemes(value):value;
-  });
+  const payloads=[];
+  for(let i=0;i<values.length;i++)
+  {
+    const value=values[i];
+    if(typeof value!=='string')
+    {
+      throw new TypeError('Il testo da inserire deve essere una stringa.');
+    }
+    payloads.push(reverse&&!selections[i].forward?reverseLineGraphemes(value):value);
+  }
   editor.replace(payloads);
   rectangleSelection=false;
-  desiredColumn=null;schedule();reveal(active());
+  desiredColumn=null;
+  schedule();
+  reveal(active());
 }
 function erase(backward){
   const s=selection();
@@ -381,16 +398,34 @@ scroller.addEventListener('pointermove',movePointer);
 scroller.addEventListener('pointerup',up);
 scroller.addEventListener('pointercancel',up);
 scroller.addEventListener('keydown',keyDown);
-$('apply-text').addEventListener('click',()=>{
-  try{write($('insert-text').value);warning();}
-  catch(error){warning(error?.message||String(error));}
+function applyText()
+{
+  try
+  {
+    write($('insert-text').value);
+    warning();
+  }
+  catch(error)
+  {
+    warning(error?.message||String(error));
+  }
   scroller.focus({preventScroll:true});
-});
-$('apply-array').addEventListener('click',()=>{
-  try{write($('insert-array').value.split(/\r\n|\r|\n/));warning();}
-  catch(error){warning(error?.message||String(error));}
+}
+function applyArray()
+{
+  try
+  {
+    write($('insert-array').value.split(/\r\n|\r|\n/));
+    warning();
+  }
+  catch(error)
+  {
+    warning(error?.message||String(error));
+  }
   scroller.focus({preventScroll:true});
-});
+}
+$('apply-text').addEventListener('click',applyText);
+$('apply-array').addEventListener('click',applyArray);
 $('sample').addEventListener('click',sample);
 $('large').addEventListener('click',large);
 $('jump').addEventListener('click',()=>{
@@ -411,6 +446,13 @@ $('font-proportional').addEventListener('click',()=>setFont(true));
 $('mode-natural').addEventListener('click',()=>layoutMode(false));
 $('mode-grid').addEventListener('click',()=>layoutMode(true));
 new ResizeObserver(schedule).observe(scroller);
+function probeSelectRectangle(a,b)
+{
+  editor.advancedSelections.rectangularSelection(a,b);
+  rectangleSelection=true;
+  schedule();
+  return editor.selections.getSelections();
+}
 globalThis.__guiProbe={
   snapshot:()=>({version:API.VERSION,rows:editor.document.lineCount,
     units:editor.document.length,selection:editor.selections.getSelections(),
@@ -431,12 +473,7 @@ globalThis.__guiProbe={
     const x=pixel(el,col);if(x===null)throw new RangeError('not a visible grapheme boundary');
     const box=el.getBoundingClientRect();return {x:box.left+x,y:box.top+HEIGHT/2};
   },
-  selectRectangle:(a,b)=>{
-    editor.advancedSelections.rectangularSelection(a,b);
-    rectangleSelection=true;
-    schedule();
-    return editor.selections.getSelections();
-  },
+  selectRectangle:probeSelectRectangle,
   replacePayload:value=>{write(value);return editor.document.toString();},
   focus:()=>scroller.focus(),setText:reset
 };
