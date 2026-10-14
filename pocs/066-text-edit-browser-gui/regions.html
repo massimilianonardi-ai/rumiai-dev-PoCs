@@ -51,7 +51,7 @@ button{cursor:pointer}
  <label>Riga finale<input id="end-row" type="number" min="0" max="30" value="0"></label>
  <label>Colonna finale<input id="end-col" type="number" min="0" max="17" value="2"></label>
  <button id="select-range" type="button">Seleziona celle</button>
- <label><input id="reverse-horizontal" type="checkbox"> Inverti grafemi per selezione verso sinistra</label>
+ <label><input id="reverse-horizontal" type="checkbox"> Inverti grafemi per ogni selezione inversa</label>
  <label>Testo sostitutivo<input id="replacement" value="X" maxlength="256"></label>
  <button id="apply" type="button" disabled>Sostituisci selezione fisica</button>
  <label>Array per selezione<textarea id="replacement-array" rows="2" cols="14">uno
@@ -63,6 +63,6 @@ due</textarea></label>
 <p id="warning" role="alert"></p>
 <pre id="summary" aria-live="polite"></pre>
 <script src="../../../../lib/sys/js/text-edit.lib.js"></script>
-<script src="./regions.js?v=2-input-status"></script>
+<script src="./regions.js?v=3-oriented-input"></script>
 </body>
 </html>
