@@ -17,7 +17,7 @@ const position=(row,col)=>page.evaluate(({row,col})=>
 
 try{
   let state=await snap();
-  assert.equal(state.version,'0.8.1');
+  assert.equal(state.version,'0.8.2');
   assert.equal(state.rows,7);
   assert.ok(state.mounted>0&&state.mounted<80);
   assert.equal(state.selection.length,1);
@@ -191,7 +191,15 @@ try{
   let replaced=await page.evaluate(()=>window.__guiProbe.replacePayload(['A😀e\u0301','XY','PQR']));
   assert.equal(replaced,'aRQPe\nfYXj\nke\u0301😀Ao','array item zero edits bottom row, reversing entire graphemes');
   state=await snap();
-  assert.equal(state.rectangle,false,'after replacement the next input command is no longer rectangular');
+  assert.equal(state.selection.length,3);
+  assert.ok(state.selection.every(x=>!x.forward&&x.start.col===x.end.col),
+    'reverse physical caret orientation survives the replacement');
+  replaced=await page.evaluate(()=>window.__guiProbe.replacePayload('T'));
+  assert.equal(replaced,'aTRQPe\nfTYXj\nkTe\u0301😀Ao',
+    'next input uses the retained oriented multicaret collection');
+  replaced=await page.evaluate(()=>window.__guiProbe.replacePayload('U'));
+  assert.equal(replaced,'aUTRQPe\nfUTYXj\nkUTe\u0301😀Ao',
+    'sequential reverse typing remains anchored at inserted text start');
 
   // The opt-out preserves payloads unchanged even for a reversed rectangle.
   await page.evaluate(text=>window.__guiProbe.setText(text),reverseFixture);
@@ -223,7 +231,7 @@ try{
   replaced=await page.evaluate(()=>window.__guiProbe.replacePayload('AB\r\nC😀'));
   assert.equal(replaced,'aBA\r\n😀Ce\nfghij\nklmno');
 
-  // A backward ordinary linear range must NOT trigger rectangle-only reversal.
+  // Ordinary backward linear ranges use the same reverse input semantics.
   await page.evaluate(text=>window.__guiProbe.setText(text),reverseFixture);
   let regularFrom=await position(0,3),regularTo=await position(0,1);
   await page.mouse.move(regularFrom.x,regularFrom.y);
@@ -231,11 +239,17 @@ try{
   await page.mouse.move(regularTo.x,regularTo.y,{steps:5});
   await page.mouse.up();
   state=await snap();
-  assert.equal(state.rectangle,false);
   assert.equal(state.selection[0].forward,false);
   await page.locator('#insert-text').fill('A😀e\u0301B');
   await page.locator('#apply-text').click();
-  assert.equal((await snap()).text,'aA😀e\u0301Bde\nfghij\nklmno');
+  state=await snap();
+  assert.equal(state.text,'aBe\u0301😀Ade\nfghij\nklmno',
+    'reverse insertion also applies to ordinary linear selections');
+  assert.equal(state.selection[0].forward,false);
+  await page.locator('#scroller').focus();
+  await page.keyboard.type('X');
+  assert.equal((await snap()).text,'aXBe\u0301😀Ade\nfghij\nklmno',
+    'single-grapheme input through ordinary reverse caret inserts to its left');
 
   // Real browser array-button path, no clipboard implementation involved.
   await page.evaluate(text=>window.__guiProbe.setText(text),reverseFixture);
@@ -306,7 +320,7 @@ try{
   console.log(JSON.stringify({pass:true,version:state.version,
     rendered:state.mounted,maxMounted:state.maxMounted,
     jumpedToRow:state.first+1,tests:['visible-button-feedback','default-array-mismatch','keyboard-input','keyboard-range',
-    'font-proportional','mouse-drag','alt-rectangle','font-selection-stability','multi-selection-edit','wide-unicode-grid','tab-cells','grapheme-backspace','grid-rectangle','reverse-grapheme-array','bottom-up-selection-order','horizontal-direction-independent','reverse-opt-out','multiline-grapheme','linear-selection-unaffected','array-validation','scrollbar-does-not-select','viewport-100k']}));
+    'font-proportional','mouse-drag','alt-rectangle','font-selection-stability','multi-selection-edit','wide-unicode-grid','tab-cells','grapheme-backspace','grid-rectangle','reverse-grapheme-array','bottom-up-selection-order','horizontal-direction-independent','reverse-opt-out','multiline-grapheme','reverse-linear-selection','array-validation','scrollbar-does-not-select','viewport-100k']}));
 }finally{
   await browser.close();
 }
