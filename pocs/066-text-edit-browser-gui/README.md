@@ -1,4 +1,4 @@
-# PoC 066 — browser GUI on TextEdit 0.8.1
+# PoC 066 — browser GUI on TextEdit 0.8.2
 
 This experiment exercises rendering, viewport, pixel hit-testing, font metrics, scrolling, keyboard input and mouse/drag using the **existing TextEdit library**. It deliberately contains no alternate document or selection engine.
 
@@ -13,7 +13,7 @@ python3 -m http.server 8765
 
 Open `http://127.0.0.1:8765/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/`.
 
-The script loads `/lib/sys/js/text-edit.lib.js` from the containing `rumiai-os` checkout through `../../../../lib/sys/js/text-edit.lib.js` and checks the real `TextEdit.VERSION === '0.8.1'`. No remote CDN, npm package or bundler is required to run the demo. A modern browser with `Intl.Segmenter` is needed.
+The script loads `/lib/sys/js/text-edit.lib.js` from the containing `rumiai-os` checkout through `../../../../lib/sys/js/text-edit.lib.js` and checks the real `TextEdit.VERSION === '0.8.2'`. No remote CDN, npm package or bundler is required to run the demo. A modern browser with `Intl.Segmenter` is needed.
 
 ## In scope
 
@@ -32,7 +32,7 @@ The script loads `/lib/sys/js/text-edit.lib.js` from the containing `rumiai-os` 
 
 ## Separate 2D representation-element experiment
 
-Open `http://127.0.0.1:8765/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/regions.html` (also linked from the main editor). This **separate browser page** explores a deliberately minimal axis-aligned rectangle model over the same stable TextEdit 0.8.1 library; it does **not** replace the working GUI or introduce new product exports.
+Open `http://127.0.0.1:8765/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/regions.html` (also linked from the main editor). This **separate browser page** explores a deliberately minimal axis-aligned rectangle model over the same stable TextEdit 0.8.2 library; it does **not** replace the working GUI or introduce new product exports.
 
 - A tab spans three cells at tab stop four and maps to a single real source `\t`.
 - A folded region spans six display cells on one projected visual row while mapping to three hidden physical source lines, using a real `TextEditRepresentation.setReplacements` overlay.
@@ -44,25 +44,23 @@ Open `http://127.0.0.1:8765/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/r
 
 The geometry resolver is intentionally local to this PoC. Current TextEditRepresentation has source-mapped **linear** overlays/annotations and source-row metrics, but lacks generalized multi-row view layout and region selection rules; current TextEditAdvancedSelections retains its existing selection-policy contract. This experiment does not answer overlapping-region precedence, caret/navigation inside fold placeholders, editing visual-only regions, arbitrary shapes, viewport virtualization for thousands of projected regions, or semantics of user-configurable presets. The 2D page handles a tiny deterministic fixture only. Do not promote it to a product API or claim full browser editor integration based solely on these tests.
 
-## Configurable inverse-horizontal replacement experiment
+## Configurable oriented-selection input and cursor behavior
 
-Both browser pages now expose an **opt-in** checkbox that reverses the grapheme order of replacement payloads for a high-level selection running **right to left**. The setting is off by default. This is a *bulk replace/paste-like command* experiment, not continuous reverse typing, clipboard support or a new TextEdit core API.
+Both browser pages expose an **opt-in** reverse-grapheme input checkbox, initially off. A selected payload is reversed **per physical selection** whenever that selection's explicit `forward` is false. The operation does not inspect whether the selections originated from a rectangle, an ordinary linear mouse drag or other constructors. `Intl.Segmenter` reverses complete Unicode grapheme clusters independently within each line; existing LF, CR and CRLF separators keep their positions. Disabling the checkbox leaves the payload's characters unchanged, but does not rewrite the selection's orientation.
 
-- The main GUI's Alt+drag rectangles use the existing `TextEditAdvancedSelections.rectangularSelection`; the separate 2D region page restores horizontal direction on each effective physical selection while sorting physical targets into the requested vertical row-traversal order.
-- `TextEditAdvancedSelections.resolveRectangles` creates selection targets in requested **vertical** order (bottom-up when rowStart > rowEnd) and sets `forward` according to horizontal orientation (left-to-right versus right-to-left). `TextEditSelections.getSelections()` preserves that order and orientation. `TextEdit.replace([first, second, ...])` binds each value to the corresponding indexed selection **before** internally source-sorting for the atomic commit; bottom-up selections thus receive payloads bottom-up.
-- The checkbox applies only when the current command was initiated from an inverse **horizontal rectangular** selection. A backward ordinary linear range is not enough. With the option disabled, insertion is unchanged. For array inputs, each selection's value is transformed independently and the array-to-selection association is unchanged.
-- Replacement text reverses **grapheme clusters** via `Intl.Segmenter`, never UTF-16 code units. Each line's graphemes are reversed independently; LF, CR and CRLF separators keep their positions and their original order. Decomposed accents and multi-codepoint emoji remain intact.
-- Use the main GUI's **Testo di prova / Sostituisci selezione** button for one payload applied to each selected target, or **Array di prova / Sostituisci con array** for one newline-delimited value per target. The 2D page has equivalent replacement and array controls. The test fixture's row count and current selection orientation are not changed just by toggling the option. The ordinary editor keyboard path remains one-grapheme-at-a-time and does **not** implement reversed cursor motion.
-- A per-selection array must contain exactly one value for each currently effective physical selection. Incorrect array length is rejected without modifying the document; annotation-only visual selection still has no physical edit target.
-- This remains PoC-local input behavior. No `TextEditRepresentation`, `TextEditAdvancedSelections`, `TextEditSelections`, source-store, permanent test, package or public product contract was modified.
+- All selection APIs produce one ordinary ordered `{start,end,forward}` collection owned by `TextEditSelections`. There is no saved selection-kind flag or persistent rectangle identity. A rectangle constructor assigns entries in the requested vertical row traversal order and `forward` from the horizontal direction. `lineSelection()` creates a single forward selection regardless of endpoint order. `virtual` and `clipped` remain separate high-level **selection construction** policies, not input policies.
+- The production TextEdit 0.8.2 selector atomically replaces all selected ranges, retaining each selection's index and `forward` while collapsing it to a caret. **Forward** caret results appear after their inserted text; **reverse** caret results are placed at its beginning (after any virtual padding). Consecutive single-grapheme key input therefore inserts successive characters to the *left* of a reverse caret without special reverse-typing mode. For bulk reverse insertion, enable the checkbox to reverse the full grapheme sequence as well.
+- The GUI's one-value-per-selection array accepts entries in current selection order, not document row order: a bottom-up selection receives the first array entry at the bottom. The PoC commands require array count to equal the number of physical targets and show immediate validation errors/success feedback; the underlying TextEdit selector has its own documented normalization rules.
+- In the 2D regions page a visual-only annotation has no source selection and cannot be edited. After a successful edit of source-backed regions, their highlights clear, but the physical selected carets remain and can be used for subsequent replacements. Input direction depends only on those physical carets.
+- Reversing **each multi-grapheme payload** remains PoC-local input-adapter behavior: the TextEdit engine does not permute input content, record a gesture's origin, or implement clipboard/IME. Direction-aware caret positioning and always-forward line selection are the stable TextEdit 0.8.2 engine behaviors protected by permanent tests.
 
 ## Operator-visible replacement feedback (2026-10-14)
 
 The browser GUI now shows the current physical selection count and the current newline-delimited array-entry count **next to the replacement buttons**, with visible inline errors and success confirmations. The main GUI begins with one valid insertion caret but the sample array contains three entries; the array action therefore rejects this mismatch **without modifying the document** until the operator provides exactly one entry per physical selection. Both pages include a versioned script URL to avoid confusing a newly updated HTML view with an older cached GUI script.
 
-The 2D region page deliberately begins with no editable source target, so both replacement buttons are disabled with a nearby explanation until a source-backed region is selected. Selecting a visual-only annotation does not authorize source replacement. After a successful edit, the original TextEdit post-edit caret may remain physically valid, but the separate 2D region selection is cleared and the buttons are disabled again until a new view-region selection is made. This distinction avoids silently editing an unhighlighted source position.
+The 2D region page deliberately begins with no editable source target, so both replacement buttons are disabled with a nearby explanation until a source-backed region is selected. Selecting a visual-only annotation does not authorize source replacement. After a successful edit, the highlighted 2D region selection clears, but the underlying oriented physical carets remain valid and the replacement buttons stay available so that consecutive editing works without reconstructing the original gesture.
 
-New real Chromium tests click both button types, confirm the initial mismatch is reported within the viewport, exercise successful replacements, verify disabled/no-source conditions, and protect all previous editor interactions. The 2D geometry is still experimental and stable TextEdit 0.8.1 was not modified.
+New real Chromium tests click both button types, confirm the initial mismatch is reported within the viewport, exercise successful replacements, verify initial disabled/no-source conditions and enabled post-edit carets, and protect all previous editor interactions. The 2D geometry is still experimental and the new TextEdit 0.8.2 caret contract is exercised.
 
 ## Deliberately excluded
 
