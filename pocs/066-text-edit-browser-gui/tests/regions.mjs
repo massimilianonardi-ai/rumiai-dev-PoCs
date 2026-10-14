@@ -162,12 +162,60 @@ try
   assert.deepEqual(s.physical[0].end,{row:4,col:3});
   assert.equal(await page.locator('.region.text.selected').count(),3);
 
+
+  // 2D region selections retain horizontal direction independent of
+  // vertical array target order. Payloads are reversed by graphemes only
+  // when the optional reverse-horizontal behavior is enabled.
+  await call('reset');
+  await page.locator('#reverse-horizontal').check();
+  s=await selection(box(3,3),box(2,1));
+  assert.deepEqual(s.direction,{horizontal:false,vertical:false});
+  assert.deepEqual(s.physical.map(x=>x.start.row),[5,4]);
+  assert.ok(s.physical.every(x=>x.forward===false));
+  await page.locator('#replacement-array').fill('A😀e\u0301\nXYZ');
+  await page.locator('#apply-array').click();
+  s=await state();
+  assert.equal(s.revision,1,'a two-row array edit is one source revision');
+  assert.equal(s.text,'A\tB\nfold alpha\nfold beta\nfold gamma\n0ZYX456789\nue\u0301😀AyzABCD');
+  assert.deepEqual(s.selected,[]);
+  // Disabled policy must preserve input order, even for reversed geometry.
+  await call('reset');
+  await page.locator('#reverse-horizontal').uncheck();
+  s=await selection(box(3,3),box(2,1));
+  assert.deepEqual(s.physical.map(x=>x.start.row),[5,4]);
+  await call('replace',['A😀e\u0301','XYZ']);
+  assert.equal((await state()).text,
+    'A\tB\nfold alpha\nfold beta\nfold gamma\n0XYZ456789\nuA😀e\u0301yzABCD');
+  // Opposite vertical traversal changes array assignment, not horizontal
+  // replacement policy. Top row receives first array entry in this case.
+  await call('reset');
+  await page.locator('#reverse-horizontal').check();
+  s=await selection(box(2,3),box(3,1));
+  assert.deepEqual(s.direction,{horizontal:false,vertical:true});
+  assert.deepEqual(s.physical.map(x=>x.start.row),[4,5]);
+  await call('replace',['ABC','DEF']);
+  assert.equal((await state()).text,
+    'A\tB\nfold alpha\nfold beta\nfold gamma\n0CBA456789\nuFEDyzABCD');
+
+  await call('reset');
+  await selection(box(3,3),box(2,1));
+  const preInvalid=await state();
+  const failure=await page.evaluate(()=>
+  {
+    try{window.__regionsProbe.replace(['only-one']);return 'accepted';}
+    catch(error){return error.message;}
+  });
+  assert.match(failure,/Occorre un valore per ogni selezione/);
+  s=await state();
+  assert.equal(s.text,preInvalid.text);
+  assert.deepEqual(s.physical,preInvalid.physical);
+
   assert.deepEqual(errors,[],'no browser errors');
   console.log(JSON.stringify({
     pass:true,version:s.version,
     tests:['source-mapped-tab','fold-multiline','visual-only-annotation',
       'none-touch-full','reverse-geometry','clipped-eol-equivalence',
-      'physical-union','atomic-source-replace','real-pointer-highlight']
+      'physical-union','atomic-source-replace','real-pointer-highlight','region-direction-array','reverse-unicode-graphemes','reverse-configuration','array-length-atomicity']
   }));
 }
 finally
