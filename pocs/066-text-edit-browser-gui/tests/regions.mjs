@@ -31,6 +31,33 @@ try
   assert.deepEqual(s.annotations.map(a=>a.id),['info']);
   assert.equal(s.physical.length,0);
 
+  // The 2D page starts with no physical source targets. This must be
+  // explicitly explained next to the buttons, not perceived as inert UI.
+  assert.equal(await page.locator('#apply').isDisabled(),true);
+  assert.equal(await page.locator('#apply-array').isDisabled(),true);
+  assert.match(await page.locator('#input-status').textContent(),/Nessuna selezione fisica/);
+  let preview=await selection(box(2,13),box(2,13));
+  assert.deepEqual(preview.selected,['annotation']);
+  assert.deepEqual(preview.physical,[]);
+  assert.equal(await page.locator('#apply').isDisabled(),true);
+  assert.match(await page.locator('#input-status').textContent(),/nessun intervallo sorgente/);
+  await call('reset');
+  preview=await selection(box(0,2),box(0,2));
+  assert.equal(preview.physical.length,1);
+  assert.equal(await page.locator('#apply').isEnabled(),true);
+  assert.match(await page.locator('#input-status').textContent(),/elementi array: 2/);
+  await page.locator('#apply-array').click();
+  assert.match(await page.locator('#warning').textContent(),/Occorre un valore per ogni selezione/);
+  assert.equal((await state()).text,source);
+  await page.locator('#replacement-array').fill('AB');
+  await page.locator('#apply-array').click();
+  let afterAction=await state();
+  assert.equal(afterAction.revision,1);
+  assert.equal(afterAction.text,'AABB\nfold alpha\nfold beta\nfold gamma\n0123456789\nuvwxyzABCD');
+  assert.match(await page.locator('#input-result').textContent(),/Sostituzione eseguita/);
+  assert.equal(await page.locator('#apply').isDisabled(),true);
+  await call('reset');
+
   const tab=s.regions.find(r=>r.kind==='tab');
   const folding=s.regions.find(r=>r.kind==='fold');
   const note=s.regions.find(r=>r.kind==='annotation');
@@ -222,7 +249,7 @@ try
   assert.deepEqual(errors,[],'no browser errors');
   console.log(JSON.stringify({
     pass:true,version:s.version,
-    tests:['source-mapped-tab','fold-multiline','visual-only-annotation',
+    tests:['visible-2d-buttons-feedback','no-physical-target-disabled','source-mapped-tab','fold-multiline','visual-only-annotation',
       'none-touch-full','reverse-geometry','clipped-eol-equivalence',
       'physical-union','atomic-source-replace','real-pointer-highlight','region-direction-array','reverse-unicode-graphemes','reverse-configuration','array-length-atomicity']
   }));
