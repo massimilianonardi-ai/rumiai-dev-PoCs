@@ -36,8 +36,11 @@ jobs:
         run: |
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/gui.js
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/browser.mjs
+          node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/regions.js
+          node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/regions.mjs
       - name: Run actual Chromium mouse and keyboard scenario
         run: |
           python3 -m http.server 8765 --bind 127.0.0.1 --directory rumiai-os >/tmp/text-edit-gui-http.log 2>&1 &
           sleep 2
           node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/browser.mjs
+          node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/regions.mjs
