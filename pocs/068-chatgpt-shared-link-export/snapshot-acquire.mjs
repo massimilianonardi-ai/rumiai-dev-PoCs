@@ -1,7 +1,7 @@
-import { parseSnapshot } from './snapshot-export.mjs';
+import { findSnapshot, parseSnapshot } from './snapshot-export.mjs';
 
-const MAX_SCRIPTS = 120;
 const MAX_JSON_BYTES = 24 * 1024 * 1024;
+const CAPTURE_SLOT = '__rumiaiChatgptShareSnapshot';
 
 export class AcquisitionError extends Error {
   constructor(code, message, stats) {
@@ -22,44 +22,6 @@ export function shareUrl(input) {
   }
   url.hash = '';
   return url.href;
-}
-
-export function splitTopLevelParams(source) {
-  const values = [];
-  let start = 0, depth = 0;
-  for (let i = 0; i < source.length; i++) {
-    if ('([{'.includes(source[i])) depth += 1;
-    else if (')]}'.includes(source[i])) depth -= 1;
-    else if (source[i] === ',' && depth === 0) {
-      values.push(source.slice(start, i).trim());
-      start = i + 1;
-    }
-  }
-  values.push(source.slice(start).trim());
-  return values;
-}
-
-export function discoverHook(source, url) {
-  let position = source.indexOf('mergeActiveBranch');
-  while (position >= 0) {
-    const start = Math.max(0, position - 500);
-    const fragment = source.slice(start, position + 250);
-    const regex = /function\s+([A-Za-z_$][A-Za-z0-9_$]*)\((.*?)\)\{/gs;
-    const matches = [...fragment.matchAll(regex)];
-    for (const match of matches.reverse()) {
-      if (!match[2].includes('mergeActiveBranch')) continue;
-      const parameters = splitTopLevelParams(match[2]);
-      const arg = parameters[1];
-      if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(arg || '')) continue;
-      const offset = start + match.index + match[0].length;
-      const preceding = source.slice(0, offset);
-      const line = preceding.split('\n').length - 1;
-      const column = offset - preceding.lastIndexOf('\n') - 1;
-      return { url, lineNumber: line, columnNumber: column, arg };
-    }
-    position = source.indexOf('mergeActiveBranch', position + 1);
-  }
-  return null;
 }
 
 export function recordJsonShape(raw, stats) {
@@ -87,32 +49,81 @@ function fromJson(raw, stats) {
   return found;
 }
 
-function withinShare(url) {
-  try { const u = new URL(url); return u.protocol === 'https:' && u.hostname === 'chatgpt.com'; }
-  catch { return false; }
-}
-function resourcesForHook(frameTree) {
-  const scripts = [];
-  const visit = (tree) => {
-    const frameId = tree?.frame?.id;
-    for (const resource of tree?.resources || []) {
-      const url = resource?.url || '';
-      if (frameId && resource?.type === 'Script' && url.startsWith('https://') &&
-          (url.startsWith('https://chatgpt.com/') || url.includes('.oaistatic.com/'))) {
-        scripts.push({ frameId, url });
-      }
+export function injectedCaptureSource() {
+  return `(() => {
+    const slot = ${JSON.stringify(CAPTURE_SLOT)};
+    const findSnapshot = ${findSnapshot.toString()};
+    const store = (value) => {
+      try {
+        if (globalThis[slot]) return;
+        const snapshot = findSnapshot(value);
+        if (snapshot) globalThis[slot] = JSON.stringify(snapshot);
+      } catch {}
+    };
+    const inspectText = (text) => {
+      if (typeof text !== 'string' || text.length > ${MAX_JSON_BYTES}) return;
+      try { store(JSON.parse(text)); } catch {}
+    };
+    const relevant = (type) =>
+      /json|javascript|text|x-component|event-stream/i.test(String(type || ''));
+
+    const nativeFetch = globalThis.fetch;
+    if (typeof nativeFetch === 'function') {
+      globalThis.fetch = async function(...args) {
+        const response = await Reflect.apply(nativeFetch, this, args);
+        try {
+          const type = response.headers?.get?.('content-type') || '';
+          if (relevant(type)) {
+            const clone = response.clone();
+            void clone.text().then(inspectText).catch(() => {});
+          }
+        } catch {}
+        return response;
+      };
     }
-    for (const child of tree?.childFrames || []) visit(child);
-  };
-  visit(frameTree);
-  return scripts
-    .sort((a, b) => Number(!a.url.startsWith('https://chatgpt.com/')) -
-      Number(!b.url.startsWith('https://chatgpt.com/')))
-    .slice(0, MAX_SCRIPTS);
+
+    const xhr = globalThis.XMLHttpRequest?.prototype;
+    const nativeSend = xhr?.send;
+    if (typeof nativeSend === 'function') {
+      xhr.send = function(...args) {
+        try {
+          this.addEventListener('loadend', () => {
+            try {
+              const type = this.getResponseHeader?.('content-type') || '';
+              if (!relevant(type)) return;
+              if (this.responseType === 'json') store(this.response);
+              else if (!this.responseType || this.responseType === 'text')
+                inspectText(this.responseText);
+            } catch {}
+          }, { once: true });
+        } catch {}
+        return Reflect.apply(nativeSend, this, args);
+      };
+    }
+
+    const scanScripts = () => {
+      try {
+        for (const script of document.querySelectorAll('script')) {
+          const type = script.type || '';
+          if (type === 'application/json' || type === 'application/ld+json')
+            inspectText(script.textContent || '');
+        }
+      } catch {}
+    };
+    if (document.readyState === 'loading')
+      document.addEventListener('DOMContentLoaded', scanScripts, { once: true });
+    else
+      scanScripts();
+  })()`;
+}
+
+function captureExpression() {
+  return `globalThis[${JSON.stringify(CAPTURE_SLOT)}] ?? null`;
 }
 
 // Control is the portable public web-control client adapter: one command per
-// request, managed sessions live inside the provider's controller.
+// request. The persistent session is used only as the common privileged CDP
+// transport; this acquisition path does not enable Network or Debugger events.
 export async function captureStructuredSnapshot(control, inputUrl, options = {}) {
   const url = shareUrl(inputUrl);
   const seconds = options.seconds ?? 20;
@@ -120,228 +131,89 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
     throw new AcquisitionError('share.invalid-seconds', 'seconds must be 1..120');
   const stats = { phase: 'page-creation', operation: null, providerDiagnostic: null,
     hookFound: false, scriptCount: 0, inspectedResponses: 0, jsonShapes: [] };
-  const requests = new Map();
-  let page, session, after = 0;
+  let page, session;
 
   async function send(method, params = {}) {
     const result = await control('debug', 'session', 'send', session, method, JSON.stringify(params));
     return result.result;
   }
 
-  function eventsOverflow(error) {
-    return String(error?.providerDiagnostic || error?.message || error)
-      .includes('debug.events-overflow');
-  }
+  try {
+    const created = await control('page', 'new');
+    page = created.id;
+    if (!page)
+      throw new AcquisitionError('share.page-create-failed', 'provider did not return page ID', stats);
 
-  async function reopenSession() {
-    if (session) await control('debug', 'session', 'close', session).catch(() => {});
-    session = null;
+    stats.phase = 'debug-attach';
     stats.operation = 'debug session open';
     const opened = await control('debug', 'session', 'open', page);
     session = opened.session;
     if (!session)
       throw new AcquisitionError('share.debug-open-failed', 'missing session handle', stats);
-    after = 0;
-    stats.operation = null;
-  }
 
-  async function resyncEvents() {
-    // Level 3 returns the current lastSequence even when the requested cursor is
-    // already beyond it. Use that to discard a known-unneeded burst without
-    // reopening the debugger and losing Debugger domain state.
-    const batch = await control('debug', 'session', 'events', session,
-      String(Number.MAX_SAFE_INTEGER), '1', '0');
-    after = batch.lastSequence || 0;
-  }
-
-  async function waitForDocument(deadline) {
-    while (Date.now() < deadline) {
-      try {
-        const result = await send('Runtime.evaluate', {
-          expression: 'document.readyState',
-          returnByValue: true
-        });
-        if (['interactive', 'complete'].includes(result?.result?.value)) return;
-      } catch { /* Navigation can transiently replace the execution context. */ }
-      await new Promise(resolve => setTimeout(resolve, 50));
-    }
-  }
-
-  async function eventBatch(deadline, waitOverride = null) {
-    const wait = waitOverride ?? Math.min(500, Math.max(0, deadline - Date.now()));
-    return control('debug', 'session', 'events', session,
-      String(after), '128', String(wait));
-  }
-
-  async function handleEvents(events, hookArg) {
-    for (const event of events) {
-      const data = event.params || {};
-      if (event.method === 'Network.responseReceived') {
-        if (data.requestId) requests.set(data.requestId,
-          { url: data.response?.url || '', mime: data.response?.mimeType || '' });
-      } else if (event.method === 'Network.loadingFinished') {
-        const entry = requests.get(data.requestId);
-        requests.delete(data.requestId);
-        if (!entry || !withinShare(entry.url) ||
-            !/json|text\/html/.test(entry.mime)) continue;
-        stats.inspectedResponses += 1;
-        try {
-          const response = await send('Network.getResponseBody', { requestId: data.requestId });
-          const raw = response.base64Encoded
-            ? Buffer.from(response.body, 'base64').toString('utf8')
-            : response.body;
-          const snapshot = fromJson(raw, stats);
-          if (snapshot) return { snapshot, method: 'observed-network' };
-        } catch { /* Response may be unavailable after the request is disposed. */ }
-      } else if (event.method === 'Debugger.paused') {
-        let snapshot = null;
-        try {
-          if (hookArg) {
-            for (const frame of data.callFrames || []) {
-              try {
-                const result = await send('Debugger.evaluateOnCallFrame', {
-                  callFrameId: frame.callFrameId,
-                  expression: 'JSON.stringify(' + hookArg + ')',
-                  returnByValue: true, silent: true
-                });
-                const raw = result?.result?.value;
-                if (typeof raw === 'string' && (snapshot = parseSnapshot(raw))) break;
-              } catch { /* The selected expression may be absent in this frame. */ }
-            }
-          }
-        } finally {
-          await send('Debugger.resume');
-        }
-        if (snapshot) return { snapshot, method: 'original-breakpoint' };
-      }
-    }
-    return null;
-  }
-
-  async function observed(deadline, hookArg = null, trigger = null) {
-    if (trigger) {
-      while (Date.now() < deadline) {
-        const batch = await eventBatch(deadline, 0);
-        const events = batch.events || [];
-        if (!events.length) break;
-        after = events.at(-1).sequence;
-        const found = await handleEvents(events, hookArg);
-        if (found) return found;
-      }
-    }
-
-    const pending = () => eventBatch(deadline).then(
-      batch => ({ batch }),
-      error => ({ error })
-    );
-    let next = pending();
-    if (trigger) await trigger();
-
-    while (Date.now() < deadline) {
-      const delivery = await next;
-      if (delivery.error) throw delivery.error;
-      const events = delivery.batch.events || [];
-      if (events.length) after = events.at(-1).sequence;
-      next = Date.now() < deadline ? pending() : null;
-      const found = await handleEvents(events, hookArg);
-      if (found) return found;
-    }
-    return null;
-  }
-
-  try {
-    const created = await control('page', 'new');
-    page = created.id;
-    if (!page) throw new AcquisitionError('share.page-create-failed', 'provider did not return page ID', stats);
-    stats.phase = 'debug-attach';
-    await reopenSession();
-    // Keep the initial event stream minimal. Network is the only domain
-    // required while looking for a browser-delivered structured response.
-    stats.operation = 'debug session send Network.enable';
-    await send('Network.enable');
-    stats.operation = null;
+    stats.phase = 'script-injection';
+    stats.operation = 'debug session send Page.addScriptToEvaluateOnNewDocument';
+    await send('Page.addScriptToEvaluateOnNewDocument', {
+      source: injectedCaptureSource()
+    });
 
     stats.phase = 'initial-navigation';
     stats.operation = 'debug session send Page.navigate';
-    let found = null;
-    try {
-      found = await observed(Date.now() + Math.min(seconds, 10) * 1000,
-        null, () => send('Page.navigate', { url }));
-    } catch (error) {
-      if (!eventsOverflow(error)) throw error;
-      // Network observation is opportunistic. The level-3 contract explicitly
-      // reports bounded-buffer loss; recover by reopening on the already
-      // navigated page instead of pretending the event sequence was complete.
-      await reopenSession();
-      await waitForDocument(Date.now() + Math.min(seconds, 3) * 1000);
-    }
-    stats.operation = null;
-    if (found) return { ...found, stats };
+    await send('Page.navigate', { url });
 
+    stats.phase = 'capture-poll';
+    stats.operation = 'debug session send Runtime.evaluate';
+    const deadline = Date.now() + seconds * 1000;
+    while (Date.now() < deadline) {
+      try {
+        const result = await send('Runtime.evaluate', {
+          expression: captureExpression(),
+          returnByValue: true,
+          silent: true
+        });
+        const raw = result?.result?.value;
+        if (typeof raw === 'string') {
+          const snapshot = parseSnapshot(raw);
+          if (snapshot) {
+            stats.operation = null;
+            return { snapshot, method: 'injected-page', stats };
+          }
+        }
+      } catch { /* Navigation may transiently replace the execution context. */ }
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    // Keep privacy-reduced shape evidence from inline JSON if injection did
+    // not observe a complete snapshot. This is diagnostic only.
     stats.phase = 'embedded-json';
-    const expression = "(() => [...document.querySelectorAll('script[type=\"application/json\"]')].slice(0,20).map(s=>s.textContent).filter(x=>x&&x.length<16000000))()";
+    const expression =
+      "(() => [...document.querySelectorAll('script[type=\"application/json\"]')]" +
+      ".slice(0,20).map(s=>s.textContent).filter(x=>x&&x.length<16000000))()";
     try {
-      const result = await send('Runtime.evaluate', { expression, returnByValue: true });
+      const result = await send('Runtime.evaluate', {
+        expression,
+        returnByValue: true,
+        silent: true
+      });
       for (const raw of result?.result?.value || []) {
         if (typeof raw !== 'string') continue;
         const snapshot = fromJson(raw, stats);
-        if (snapshot) return { snapshot, method: 'embedded-json', stats };
+        if (snapshot) {
+          stats.operation = null;
+          return { snapshot, method: 'embedded-json', stats };
+        }
       }
     } catch { /* Not every page exposes inline JSON script tags. */ }
 
-    stats.phase = 'hook-discovery';
-    requests.clear();
-
-    // Discover loaded bundle sources by request/response instead of depending
-    // on the bursty Debugger.scriptParsed event stream.
-    stats.operation = 'debug session send Page.getResourceTree';
-    const resourceTree = await send('Page.getResourceTree');
-    const resourceScripts = resourcesForHook(resourceTree?.frameTree);
-    stats.scriptCount = resourceScripts.length;
-    let hook = null;
-    for (const resource of resourceScripts) {
-      try {
-        stats.operation = 'debug session send Page.getResourceContent';
-        const result = await send('Page.getResourceContent', {
-          frameId: resource.frameId,
-          url: resource.url
-        });
-        const raw = result?.base64Encoded
-          ? Buffer.from(result.content || '', 'base64').toString('utf8')
-          : result?.content || '';
-        hook = discoverHook(raw, resource.url);
-        if (hook) break;
-      } catch { /* Some cached/cross-frame resources may no longer be readable. */ }
-    }
     stats.operation = null;
-    stats.hookFound = Boolean(hook);
-    if (!hook) throw new AcquisitionError('share.snapshot-hook-unavailable',
-      'no structured snapshot or matching observed browser hook', stats);
-
-    stats.phase = 'breakpoint-capture';
-    stats.operation = 'debug session send Debugger.enable';
-    await send('Debugger.enable');
-    stats.operation = 'debug session events resync';
-    await resyncEvents();
-    stats.operation = 'debug session send Debugger.setBreakpointByUrl';
-    await send('Debugger.setBreakpointByUrl', { url: hook.url,
-      lineNumber: hook.lineNumber, columnNumber: hook.columnNumber });
-    stats.operation = null;
-    // CDP navigation returns before a paused JS breakpoint can deadlock the
-    // provider's page.goto/BrowserWindow.loadURL awaiting DOM readiness.
-    stats.operation = 'debug session send Page.navigate';
-    found = await observed(Date.now() + seconds * 1000, hook.arg,
-      () => send('Page.navigate', { url }));
-    stats.operation = null;
-    if (found) return { ...found, stats };
     throw new AcquisitionError('share.snapshot-not-observed',
-      'matching hook installed, but no parent-linked snapshot captured', stats);
+      'injected page capture did not observe a parent-linked snapshot', stats);
   } catch (error) {
     if (error instanceof AcquisitionError) throw error;
     stats.operation = error.operation || stats.operation;
     stats.providerDiagnostic = error.providerDiagnostic || null;
     throw new AcquisitionError('share.web-control-failed',
-      'browser command or debugger event processing failed: ' +
+      'browser command or injected capture failed: ' +
       String(error.message || error).split('\n')[0].slice(0, 180), stats);
   } finally {
     if (session) await control('debug', 'session', 'close', session).catch(() => {});
