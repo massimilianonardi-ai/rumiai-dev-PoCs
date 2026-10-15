@@ -48,6 +48,40 @@ test('preserves original mapping/current_node active branch and multimodal objec
   assert.ok(!derived.visible.some(x => x.text === 'Inactive branch'));
 });
 
+test('omits renderer-hidden assistant nodes before transcript rendering', () => {
+  const data = { current_node: 'visible', mapping: {
+    user: { parent: null, message: { id: 'u', author: { role: 'user' },
+      content: { parts: ['Question'] }, weight: 1 } },
+    hidden: { parent: 'user', message: { id: 'h', author: { role: 'assistant' },
+      channel: 'final', recipient: 'all', content: { parts: ['Hidden duplicate'] },
+      metadata: { is_visually_hidden_from_conversation: true }, weight: 1 } },
+    preamble: { parent: 'hidden', message: { id: 'p', author: { role: 'assistant' },
+      channel: 'final', recipient: 'all', content: { parts: ['Transient preamble'] },
+      metadata: { is_thinking_preamble_message: true }, weight: 1 } },
+    zero: { parent: 'preamble', message: { id: 'z', author: { role: 'assistant' },
+      channel: 'final', recipient: 'all', content: { parts: ['Zero weight'] },
+      metadata: {}, weight: 0 } },
+    visible: { parent: 'zero', message: { id: 'a', author: { role: 'assistant' },
+      channel: 'final', recipient: 'all', content: { parts: ['Answer'] },
+      metadata: { message_type: 'next', is_complete: true }, weight: 1,
+      status: 'finished_successfully', end_turn: true } }
+  } };
+  const derived = deriveTranscript(data);
+  assert.deepEqual(derived.visible.map(x => x.text), ['Question', 'Answer']);
+  assert.equal(derived.counts.visually_hidden, 1);
+  assert.equal(derived.counts.thinking_preamble, 1);
+  assert.equal(derived.counts.zero_weight, 1);
+  const hidden = derived.nodes.find(x => x.node_id === 'hidden');
+  assert.equal(hidden.included, false);
+  assert.equal(hidden.visually_hidden, true);
+  const visible = derived.nodes.find(x => x.node_id === 'visible');
+  assert.equal(visible.status, 'finished_successfully');
+  assert.equal(visible.end_turn, true);
+  assert.equal(visible.weight, 1);
+  assert.equal(visible.message_type, 'next');
+  assert.equal(visible.is_complete, true);
+});
+
 test('rejects invalid or cycling parent chains', () => {
   const broken = snapshot();
   broken.mapping.user.parent = 'missing';

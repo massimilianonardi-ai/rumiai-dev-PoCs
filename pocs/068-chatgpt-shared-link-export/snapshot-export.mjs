@@ -70,6 +70,11 @@ function fragments(content) {
 
 function classification(message) {
   const role = message.author?.role;
+  if (message.metadata?.is_visually_hidden_from_conversation === true)
+    return 'visually_hidden';
+  if (message.metadata?.is_thinking_preamble_message === true)
+    return 'thinking_preamble';
+  if (message.weight === 0) return 'zero_weight';
   if (role === 'tool') return 'tool_traffic';
   if (!['user', 'assistant'].includes(role)) return 'internal_role:' + String(role);
   if (INTERNAL_TYPES.has(message.content?.content_type)) return 'internal_reasoning';
@@ -100,8 +105,14 @@ export function deriveTranscript(snapshot) {
     counts[kind] = (counts[kind] || 0) + 1;
     nodes.push({ ordinal, node_id: id, message_id: msg.id ?? null, role,
       channel: msg.channel ?? null, recipient: msg.recipient ?? null,
-      content_type: content.content_type ?? null, classification: kind,
-      included, text_length: found.text.length, non_text_parts: found.nonText.length });
+      content_type: content.content_type ?? null, status: msg.status ?? null,
+      end_turn: msg.end_turn ?? null, weight: msg.weight ?? null,
+      visually_hidden: msg.metadata?.is_visually_hidden_from_conversation === true,
+      thinking_preamble: msg.metadata?.is_thinking_preamble_message === true,
+      message_type: msg.metadata?.message_type ?? null,
+      is_complete: msg.metadata?.is_complete ?? null,
+      classification: kind, included,
+      text_length: found.text.length, non_text_parts: found.nonText.length });
     if (!included) return;
     visible.push({ ordinal, node_id: id, parent: node.parent ?? null,
       message_id: msg.id ?? null, role, channel: msg.channel ?? null,
