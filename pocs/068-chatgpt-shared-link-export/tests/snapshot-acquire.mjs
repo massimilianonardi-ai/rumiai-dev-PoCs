@@ -36,7 +36,7 @@ test('page-context fetch returns structured shared conversation without event do
       }
       if (args[4] === 'Runtime.evaluate') {
         const params = JSON.parse(args[5]);
-        if (params.expression.includes('location.origin'))
+        if (params.expression === "location.origin + '|' + document.readyState")
           return { result: { result: { value:
             navigated ? 'https://chatgpt.com|complete' : 'data:|complete' } } };
         if (params.expression.includes('backend-anon')) {
@@ -96,7 +96,7 @@ test('page-context media acquisition uses visible assets and authenticated fallb
     }
     if (cmd === 'debug session send' && args[4] === 'Runtime.evaluate') {
       const params = JSON.parse(args[5]);
-      if (params.expression.includes('location.origin'))
+      if (params.expression === "location.origin + '|' + document.readyState")
         return { result: { result: { value:
           navigated ? 'https://chatgpt.com|complete' : 'data:|complete' } } };
       if (params.expression.includes('/files/download/')) {
@@ -142,7 +142,7 @@ test('backend-api is represented as safe fallback evidence', async () => {
       return { result: {} };
     if (cmd === 'debug session send' && args[4] === 'Runtime.evaluate') {
       const params = JSON.parse(args[5]);
-      if (params.expression.includes('location.origin'))
+      if (params.expression === "location.origin + '|' + document.readyState")
         return { result: { result: { value: 'https://chatgpt.com|interactive' } } };
       if (params.expression.includes('backend-anon'))
         return { result: { result: { value: {
