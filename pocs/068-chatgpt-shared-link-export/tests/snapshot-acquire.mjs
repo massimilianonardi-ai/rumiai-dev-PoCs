@@ -24,37 +24,53 @@ test('share URL validation and exact original semantic hook detection', () => {
   assert.equal(discoverHook('const x=1', 'https://chatgpt.com/assets/main.js'), null);
 });
 
-test('structured network snapshot is received via shared web-control commands', async () => {
+test('structured network snapshot drains before navigation to avoid event overflow', async () => {
   const calls = [];
-  let batch = false;
+  let navigated = false;
+  let waiting = null;
+  const networkEvents = [
+    { sequence: 1, method: 'Network.responseReceived', params: {
+      requestId: 'one', response: { url: 'https://chatgpt.com/share/abc',
+        mimeType: 'application/json' } } },
+    { sequence: 2, method: 'Network.loadingFinished', params: { requestId: 'one' } }
+  ];
   const control = async (...args) => {
     calls.push(args);
     const cmd = args.slice(0, 3).join(' ');
     if (cmd === 'page new') return { id: 'page-1' };
+    if (cmd === 'page navigate')
+      throw new Error('debug.events-overflow: navigation completed before event drain');
     if (cmd === 'debug session open') return { session: 'debug-1' };
     if (cmd === 'debug session send') {
-      switch (args[4]) {
-        case 'Network.getResponseBody': return { result: { body: JSON.stringify({ payload: snapshot() }), base64Encoded: false } };
-        default: return { result: {} };
+      if (args[4] === 'Page.navigate') {
+        if (!waiting)
+          throw new Error('debug.events-overflow: no event poll active during navigation');
+        navigated = true;
+        const resolve = waiting;
+        waiting = null;
+        queueMicrotask(() => resolve({ events: networkEvents }));
+        return { result: {} };
       }
+      if (args[4] === 'Network.getResponseBody')
+        return { result: { body: JSON.stringify({ payload: snapshot() }), base64Encoded: false } };
+      return { result: {} };
     }
     if (cmd === 'debug session events') {
-      if (batch) return { events: [] };
-      batch = true;
-      return { events: [
-        { sequence: 1, method: 'Network.responseReceived', params: {
-          requestId: 'one', response: { url: 'https://chatgpt.com/share/abc',
-            mimeType: 'application/json' } } },
-        { sequence: 2, method: 'Network.loadingFinished', params: { requestId: 'one' } }
-      ] };
+      if (args[6] === '0') return { events: [] };
+      if (!navigated)
+        return new Promise((resolve) => { waiting = resolve; });
+      return { events: [] };
     }
     return {};
   };
-  const result = await captureStructuredSnapshot(control, 'https://chatgpt.com/share/abc', { seconds: 1 });
+  const result = await captureStructuredSnapshot(control,
+    'https://chatgpt.com/share/abc', { seconds: 1 });
   assert.equal(result.method, 'observed-network');
   assert.deepEqual(result.snapshot, snapshot());
   assert.ok(calls.some(x => x.slice(0, 3).join(' ') === 'debug session open'));
   assert.ok(calls.some(x => x.slice(0, 3).join(' ') === 'debug session close'));
+  assert.ok(calls.some(x => x[4] === 'Page.navigate'));
+  assert.ok(!calls.some(x => x.slice(0, 2).join(' ') === 'page navigate'));
   assert.ok(!calls.some(x => x.slice(0, 2).join(' ') === 'debug cdp'));
 });
 
@@ -68,8 +84,9 @@ test('privacy-safe diagnostics retain shape without values', () => {
 test('original persistent paused-frame snapshot is captured and resumed', async () => {
   const calls = [];
   let navigations = 0;
+  let breakpoint = false;
+  let scriptDelivered = false;
   let paused = false;
-  let firstScripts = false;
   const control = async (...args) => {
     calls.push(args);
     const cmd = args.slice(0, 3).join(' ');
@@ -81,16 +98,18 @@ test('original persistent paused-frame snapshot is captured and resumed', async 
       if (args[4] === 'Runtime.evaluate') return { result: { result: { value: [] } } };
       if (args[4] === 'Debugger.evaluateOnCallFrame')
         return { result: { result: { value: JSON.stringify(snapshot()) } } };
+      if (args[4] === 'Debugger.setBreakpointByUrl') breakpoint = true;
       if (args[4] === 'Page.navigate') navigations++;
       return { result: {} };
     }
     if (cmd === 'debug session events') {
-      if (!firstScripts) {
-        firstScripts = true;
+      if (args[6] === '0') return { events: [] };
+      if (navigations && !scriptDelivered) {
+        scriptDelivered = true;
         return { events: [{ sequence: 1, method: 'Debugger.scriptParsed', params: {
           scriptId: '1', url: 'https://chatgpt.com/assets/main.js' } }] };
       }
-      if (navigations && !paused) {
+      if (breakpoint && navigations >= 2 && !paused) {
         paused = true;
         return { events: [{ sequence: 2, method: 'Debugger.paused',
           params: { callFrames: [{ callFrameId: 'frame-1' }] } }] };
@@ -99,10 +118,11 @@ test('original persistent paused-frame snapshot is captured and resumed', async 
     }
     return {};
   };
-  const result = await captureStructuredSnapshot(control, 'https://chatgpt.com/share/abc', { seconds: 1 });
+  const result = await captureStructuredSnapshot(control,
+    'https://chatgpt.com/share/abc', { seconds: 1 });
   assert.equal(result.method, 'original-breakpoint');
   assert.deepEqual(result.snapshot, snapshot());
   assert.ok(calls.some(x => x[4] === 'Debugger.resume'));
   assert.ok(calls.some(x => x[4] === 'Debugger.setBreakpointByUrl'));
-  assert.ok(calls.some(x => x[4] === 'Page.navigate'));
+  assert.ok(calls.filter(x => x[4] === 'Page.navigate').length >= 2);
 });

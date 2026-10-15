@@ -118,55 +118,86 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
     return result.result;
   }
 
-  async function observed(deadline, hookArg = null) {
-    while (Date.now() < deadline) {
-      const wait = Math.min(500, Math.max(0, deadline - Date.now()));
-      const batch = await control('debug', 'session', 'events', session,
-        String(after), '100', String(wait));
-      for (const event of batch.events) {
-        after = event.sequence;
-        const data = event.params || {};
-        if (event.method === 'Debugger.scriptParsed') {
-          if (data.scriptId) scripts.set(data.scriptId, data.url || '');
-        } else if (event.method === 'Network.responseReceived') {
-          if (data.requestId) requests.set(data.requestId,
-            { url: data.response?.url || '', mime: data.response?.mimeType || '' });
-        } else if (event.method === 'Network.loadingFinished') {
-          const entry = requests.get(data.requestId);
-          requests.delete(data.requestId);
-          if (!entry || !withinShare(entry.url) ||
-              !/json|text\/html/.test(entry.mime)) continue;
-          stats.inspectedResponses += 1;
-          try {
-            const response = await send('Network.getResponseBody', { requestId: data.requestId });
-            const raw = response.base64Encoded
-              ? Buffer.from(response.body, 'base64').toString('utf8')
-              : response.body;
-            const snapshot = fromJson(raw, stats);
-            if (snapshot) return { snapshot, method: 'observed-network' };
-          } catch { /* Response may be unavailable after the request is disposed. */ }
-        } else if (event.method === 'Debugger.paused') {
-          let snapshot = null;
-          try {
-            if (hookArg) {
-              for (const frame of data.callFrames || []) {
-                try {
-                  const result = await send('Debugger.evaluateOnCallFrame', {
-                    callFrameId: frame.callFrameId,
-                    expression: 'JSON.stringify(' + hookArg + ')',
-                    returnByValue: true, silent: true
-                  });
-                  const raw = result?.result?.value;
-                  if (typeof raw === 'string' && (snapshot = parseSnapshot(raw))) break;
-                } catch { /* The selected expression may be absent in this frame. */ }
-              }
+  async function eventBatch(deadline, waitOverride = null) {
+    const wait = waitOverride ?? Math.min(500, Math.max(0, deadline - Date.now()));
+    return control('debug', 'session', 'events', session,
+      String(after), '128', String(wait));
+  }
+
+  async function handleEvents(events, hookArg) {
+    for (const event of events) {
+      const data = event.params || {};
+      if (event.method === 'Debugger.scriptParsed') {
+        if (data.scriptId) scripts.set(data.scriptId, data.url || '');
+      } else if (event.method === 'Network.responseReceived') {
+        if (data.requestId) requests.set(data.requestId,
+          { url: data.response?.url || '', mime: data.response?.mimeType || '' });
+      } else if (event.method === 'Network.loadingFinished') {
+        const entry = requests.get(data.requestId);
+        requests.delete(data.requestId);
+        if (!entry || !withinShare(entry.url) ||
+            !/json|text\/html/.test(entry.mime)) continue;
+        stats.inspectedResponses += 1;
+        try {
+          const response = await send('Network.getResponseBody', { requestId: data.requestId });
+          const raw = response.base64Encoded
+            ? Buffer.from(response.body, 'base64').toString('utf8')
+            : response.body;
+          const snapshot = fromJson(raw, stats);
+          if (snapshot) return { snapshot, method: 'observed-network' };
+        } catch { /* Response may be unavailable after the request is disposed. */ }
+      } else if (event.method === 'Debugger.paused') {
+        let snapshot = null;
+        try {
+          if (hookArg) {
+            for (const frame of data.callFrames || []) {
+              try {
+                const result = await send('Debugger.evaluateOnCallFrame', {
+                  callFrameId: frame.callFrameId,
+                  expression: 'JSON.stringify(' + hookArg + ')',
+                  returnByValue: true, silent: true
+                });
+                const raw = result?.result?.value;
+                if (typeof raw === 'string' && (snapshot = parseSnapshot(raw))) break;
+              } catch { /* The selected expression may be absent in this frame. */ }
             }
-          } finally {
-            await send('Debugger.resume');
           }
-          if (snapshot) return { snapshot, method: 'original-breakpoint' };
+        } finally {
+          await send('Debugger.resume');
         }
+        if (snapshot) return { snapshot, method: 'original-breakpoint' };
       }
+    }
+    return null;
+  }
+
+  async function observed(deadline, hookArg = null, trigger = null) {
+    if (trigger) {
+      while (Date.now() < deadline) {
+        const batch = await eventBatch(deadline, 0);
+        const events = batch.events || [];
+        if (!events.length) break;
+        after = events.at(-1).sequence;
+        const found = await handleEvents(events, hookArg);
+        if (found) return found;
+      }
+    }
+
+    const pending = () => eventBatch(deadline).then(
+      batch => ({ batch }),
+      error => ({ error })
+    );
+    let next = pending();
+    if (trigger) await trigger();
+
+    while (Date.now() < deadline) {
+      const delivery = await next;
+      if (delivery.error) throw delivery.error;
+      const events = delivery.batch.events || [];
+      if (events.length) after = events.at(-1).sequence;
+      next = Date.now() < deadline ? pending() : null;
+      const found = await handleEvents(events, hookArg);
+      if (found) return found;
     }
     return null;
   }
@@ -187,8 +218,10 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
     stats.operation = null;
 
     stats.phase = 'initial-navigation';
-    await control('page', 'navigate', page, url);
-    let found = await observed(Date.now() + Math.min(seconds, 10) * 1000);
+    stats.operation = 'debug session send Page.navigate';
+    let found = await observed(Date.now() + Math.min(seconds, 10) * 1000,
+      null, () => send('Page.navigate', { url }));
+    stats.operation = null;
     if (found) return { ...found, stats };
 
     stats.phase = 'embedded-json';
@@ -221,8 +254,10 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
       lineNumber: hook.lineNumber, columnNumber: hook.columnNumber });
     // CDP navigation returns before a paused JS breakpoint can deadlock the
     // provider's page.goto/BrowserWindow.loadURL awaiting DOM readiness.
-    await send('Page.navigate', { url });
-    found = await observed(Date.now() + seconds * 1000, hook.arg);
+    stats.operation = 'debug session send Page.navigate';
+    found = await observed(Date.now() + seconds * 1000, hook.arg,
+      () => send('Page.navigate', { url }));
+    stats.operation = null;
     if (found) return { ...found, stats };
     throw new AcquisitionError('share.snapshot-not-observed',
       'matching hook installed, but no parent-linked snapshot captured', stats);
