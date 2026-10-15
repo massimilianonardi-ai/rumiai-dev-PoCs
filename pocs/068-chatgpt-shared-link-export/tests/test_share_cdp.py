@@ -1,5 +1,7 @@
 """Tests for the share adapter and unchanged reference snapshot writer."""
+import contextlib
 import gzip
+import io
 import importlib.util
 import json
 from pathlib import Path
@@ -128,6 +130,26 @@ class ShareCdpTests(unittest.TestCase):
         self.assertNotIn("TOP SECRET", text)
         self.assertNotIn("private-value", text)
         self.assertEqual(len(stats["json_shapes"]), 1)
+
+    def test_failures_are_explicit_and_keep_all_diagnostics(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(share, "new_browser_tab",
+                              side_effect=share.ExportError(
+                                  "share.local-cdp-unavailable",
+                                  "No Chrome debug target")):
+                for _ in range(2):
+                    with contextlib.redirect_stderr(io.StringIO()):
+                        rc = share.main([
+                            "https://chatgpt.com/share/123456",
+                            directory, "--seconds", "1"])
+                    self.assertEqual(rc, 1)
+            files = sorted(Path(directory).glob("share-cdp-diagnostic-*.json"))
+            self.assertEqual(len(files), 2)
+            for item in files:
+                record = json.loads(item.read_text())
+                self.assertEqual(record["status"], "incomplete")
+                self.assertEqual(record["error"], "share.local-cdp-unavailable")
+            self.assertFalse(list(Path(directory).rglob("TRANSCRIPT.md")))
 
     def test_no_debugger_is_explicit_failure_not_an_empty_success_export(self):
         with self.assertRaises(share.ExportError):
