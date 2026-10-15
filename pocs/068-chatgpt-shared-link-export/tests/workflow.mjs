@@ -49,7 +49,11 @@ else if (kind === "page press")
     else if (process.env.SHARE_LAZY_TOP === "1" && !state.unlocked)
     {
       state.topProbes += 1;
-      if (state.topProbes >= 2) state.unlocked = true;
+      if (state.topProbes >= 2)
+      {
+        state.unlocked = true;
+        offset = Math.max(0, offset - 1);
+      }
     }
     await saveState();
   }
