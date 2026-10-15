@@ -1,0 +1,119 @@
+import assert from "node:assert/strict";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import test from "node:test";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { fileURLToPath } from "node:url";
+
+const execFileAsync = promisify(execFile);
+const exporter = fileURLToPath(new URL("../export.mjs", import.meta.url));
+const share = "https://chatgpt.com/share/12345678-1234-1234-1234-123456789012";
+
+const providerSimulator = String.raw`#!/usr/bin/env node
+import fs from "node:fs/promises";
+import path from "node:path";
+
+const args = process.argv.slice(2);
+const kind = args.slice(0, 2).join(" ");
+const html = await fs.readFile(process.env.SHARE_HTML_FILE, "utf8");
+let result;
+
+if (args[0] === "status") result = { browserRunning: true };
+else if (kind === "page new") result = { id: "simulated-page" };
+else if (kind === "page navigate") result = { url: args[3] };
+else if (kind === "page inspect") result = { html };
+else if (kind === "page scroll") result =
+{ scrollY: 0, documentHeight: 600, viewportHeight: 900, atBottom: true };
+else if (kind === "page capture")
+{
+  const output = args[3];
+  await fs.mkdir(output, { recursive: true });
+  const htmlFile = path.join(output, "page.html");
+  const textFile = path.join(output, "page.txt");
+  await fs.writeFile(htmlFile, html);
+  await fs.writeFile(textFile, "fixture text\n");
+  result = { files: { html: htmlFile, text: textFile } };
+}
+else if (kind === "page close") result = { closed: true };
+else throw new Error("unhandled simulated command " + JSON.stringify(args));
+process.stdout.write(JSON.stringify(result) + "\n");
+`;
+
+async function fixtureRun(html, run)
+{
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "chatgpt-shared-export-poc-"));
+  const htmlPath = path.join(root, "shared.html");
+  const command = path.join(root, "web-control-fixture.mjs");
+  await fs.writeFile(htmlPath, html);
+  await fs.writeFile(command, providerSimulator, { mode: 0o700 });
+  try
+  {
+    await run({
+      directory: path.join(root, "exports"),
+      env: {
+        ...process.env,
+        WEB_CONTROL_CMD: command,
+        SHARE_HTML_FILE: htmlPath
+      }
+    });
+  }
+  finally
+  {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+}
+
+test("export command writes new revisions without overwriting prior snapshots", async () =>
+{
+  const html = '<html><title>Shared</title><body>'
+    + '<section data-message-author-role="user"><div class="whitespace-pre-wrap">Question</div></section>'
+    + '<section data-message-author-role="assistant"><div class="markdown"><p>Answer</p></div></section>'
+    + "</body></html>";
+
+  await fixtureRun(html, async ({ directory, env }) =>
+  {
+    const first = JSON.parse((await execFileAsync(process.execPath,
+      [exporter, share, directory], { env })).stdout);
+    assert.equal(first.revision, "0001");
+    assert.equal(first.messageCount, 2);
+    const markdown = await fs.readFile(path.join(directory, "0001", "conversation.md"), "utf8");
+    assert.match(markdown, /Answer/);
+    const original = await fs.readFile(path.join(directory, "0001", "capture", "page.html"), "utf8");
+    assert.equal(original, html);
+
+    const second = JSON.parse((await execFileAsync(process.execPath,
+      [exporter, share, directory], { env })).stdout);
+    assert.equal(second.revision, "0002");
+    const json = JSON.parse(await fs.readFile(
+      path.join(directory, "0002", "conversation.json"), "utf8"));
+    assert.equal(json.messages.length, 2);
+    assert.equal(json.completeness, "visible-page-only; source-chat completeness not verifiable");
+    assert.equal(await fs.readFile(path.join(directory, "0001", "conversation.md"), "utf8"), markdown);
+  });
+});
+
+test("failed extraction retains rendered page evidence", async () =>
+{
+  await fixtureRun("<html><body>restricted share</body></html>", async ({ directory, env }) =>
+  {
+    await assert.rejects(execFileAsync(process.execPath, [exporter, share, directory], { env }));
+    const saved = await fs.readFile(path.join(directory, "0001", "capture", "page.html"), "utf8");
+    assert.match(saved, /restricted share/);
+    const failure = JSON.parse(await fs.readFile(
+      path.join(directory, "0001", "failure.json"), "utf8"));
+    assert.equal(failure.diagnostic, "share-dom-unrecognized");
+    await fs.access(path.join(directory, "0001", "error.txt"));
+  });
+});
+
+test("invalid share URL fails without creating archive", async () =>
+{
+  await fixtureRun("<html></html>", async ({ directory, env }) =>
+  {
+    await assert.rejects(execFileAsync(process.execPath,
+      [exporter, "https://example.org/share/invalid", directory], { env }));
+    await assert.rejects(fs.access(directory));
+  });
+});
