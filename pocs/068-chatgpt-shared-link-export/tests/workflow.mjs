@@ -233,3 +233,25 @@ test("CLI reloads older segments at a false top boundary using only public DOM/p
       Array.from({ length: 10 }, (_, i) => i));
   }, { lazyTop: true });
 });
+
+test("DOM inline image is materialized as a local asset without network or CDP", async () =>
+{
+  const tinyPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==";
+  const html = '<html><head><title>Inline image</title></head><body>'
+    + '<div data-testid="conversation-turn-1">'
+    + '<div data-message-author-role="assistant"><div class="markdown">'
+    + '<p>Graphic</p><img alt="dot" src="data:image/png;base64,' + tinyPng + '">'
+    + '</div></div></div></body></html>';
+  await fixtureRun(html, async ({ directory, env }) =>
+  {
+    const result = JSON.parse((await execFileAsync(process.execPath,
+      [exporter, share, directory], { env })).stdout);
+    assert.equal(result.messageCount, 1);
+    assert.equal(result.imagesDownloaded, 1);
+    assert.equal(result.imagesUnavailable, 0);
+    const file = path.join(directory, "0001", "assets", "image-0001.png");
+    assert.ok((await fs.readFile(file)).length > 50);
+    const markup = await fs.readFile(path.join(directory, "0001", "conversation.html"), "utf8");
+    assert.match(markup, /assets\/image-0001.png/);
+  });
+});
