@@ -282,12 +282,12 @@ async function _observe(page, sharedUrl, versionDir)
         geometry.scrollY
       ].join(":");
 
+      // The new segment can push the viewport away from its previous edge.
+      // Count that transition too, rather than only changes staying atEdge.
+      if (sawBoundary && signature !== lastEdgeSignature) boundaryExtensionCount += 1;
       if (atEdge)
       {
         edgeProbeCount += 1;
-        // New message IDs or new scroll geometry after reaching a boundary
-        // indicate that ChatGPT appended another virtualized segment.
-        if (sawBoundary && signature !== lastEdgeSignature) boundaryExtensionCount += 1;
         stable = signature === previous ? stable + 1 : 0;
         sawBoundary = true;
         lastEdgeSignature = signature;
