@@ -15,21 +15,21 @@ function editorFixture()
 {
   const editor=new API.TextEdit(SOURCE);
   editor.representation.setColumnMetrics({tabSize:4,widthOf:()=>1});
-  editor.representation.setReplacements
-  ([
-    {
-      start:editor.document.lineStart(1),
-      end:editor.document.lineStart(4),
-      text:'[3 folded rows]'
-    }
-  ]);
-  editor.representation.setAnnotations
-  ([
-    {
-      id:'info',at:editor.document.lineStart(4),
-      text:'ℹ nota',affinity:'after'
-    }
-  ]);
+  const fold=
+  {
+    start:editor.document.lineStart(1),
+    end:editor.document.lineStart(4),
+    text:'[3 folded rows]'
+  };
+  const annotation=
+  {
+    id:'info',
+    at:editor.document.lineStart(4),
+    text:'ℹ nota',
+    affinity:'after'
+  };
+  editor.representation.setReplacements([fold]);
+  editor.representation.setAnnotations([annotation]);
   return editor;
 }
 
@@ -70,32 +70,33 @@ function resolve(editor,projection,start,end)
     assert.deepEqual([fold.row,fold.col,fold.width,fold.height],[1,0,6,1]);
     assert.deepEqual([note.row,note.col,note.width,note.height],[2,12,4,2]);
     assert.equal(note.source,null);
-    assert.deepEqual(fold.source,
-      {start:editor.document.lineStart(1),end:editor.document.lineStart(4)});
+    const foldSource=
+    {
+      start:editor.document.lineStart(1),
+      end:editor.document.lineStart(4)
+    };
+    assert.deepEqual(fold.source,foldSource);
 
     let result=resolve(editor,projection,point(0,2),point(0,2));
     assert.deepEqual(result.selected.map(x=>x.id),[tab.id]);
-    assert.deepEqual(result.physical,
-      [{start:point(0,1),end:point(0,2),forward:true}]);
+    const tabSelection={start:point(0,1),end:point(0,2),forward:true};
+    assert.deepEqual(result.physical,[tabSelection]);
 
     const full=project(editor,{...policies(),tab:'full'});
     assert.deepEqual(resolve(editor,full,point(0,2),point(0,2)).selected,[]);
-    assert.deepEqual(resolve(editor,full,point(0,1),point(0,3))
-      .selected.map(x=>x.id),[tab.id]);
+    assert.deepEqual(resolve(editor,full,point(0,1),point(0,3)).selected.map(x=>x.id),[tab.id]);
     const none=project(editor,{...policies(),tab:'none'});
     assert.deepEqual(resolve(editor,none,point(0,1),point(0,3)).physical,[]);
 
     result=resolve(editor,projection,point(1,2),point(1,2));
-    assert.deepEqual(result.physical,
-      [{start:point(1,0),end:point(4,0),forward:true}]);
+    assert.deepEqual(result.physical,[{start:point(1,0),end:point(4,0),forward:true}]);
 
     result=resolve(editor,projection,point(2,13),point(2,13));
     assert.deepEqual(result.selected.map(x=>x.id),['annotation']);
     assert.deepEqual(result.physical,[],'source-less highlight is not editable');
 
     result=resolve(editor,projection,point(2,9),point(2,16));
-    assert.deepEqual(result.physical,
-      [{start:point(4,9),end:point(4,10),forward:true}]);
+    assert.deepEqual(result.physical,[{start:point(4,9),end:point(4,10),forward:true}]);
 
     const overlapping=
     [
@@ -104,13 +105,14 @@ function resolve(editor,projection,start,end)
       {source:{start:0,end:2}},
       {source:null}
     ];
-    assert.deepEqual(
-      geometry.physicalSelections(editor.document,overlapping,
-        {horizontal:false,vertical:false}),
-      [{start:point(0,0),end:point(0,3),forward:false}],
-      'duplicated and overlapping source spans coalesce in this PoC');
-    assert.equal(editor.document.revision,revision,
-      'projection and selection resolution never change source');
+    const coalesced=geometry.physicalSelections
+    (
+      editor.document,
+      overlapping,
+      {horizontal:false,vertical:false}
+    );
+    assert.deepEqual(coalesced,[{start:point(0,0),end:point(0,3),forward:false}]);
+    assert.equal(editor.document.revision,revision);
     assert.equal(editor.document.toString(),SOURCE);
   }
   finally
@@ -123,8 +125,7 @@ function resolve(editor,projection,start,end)
   const editor=editorFixture();
   try
   {
-    const projection=project(editor);
-    const result=resolve(editor,projection,point(3,3),point(2,1));
+    const result=resolve(editor,project(editor),point(3,3),point(2,1));
     assert.deepEqual(result.direction,{horizontal:false,vertical:false});
     assert.deepEqual(result.physical.map(s=>s.start.row),[5,4]);
     assert.ok(result.physical.every(s=>s.forward===false));
@@ -132,13 +133,11 @@ function resolve(editor,projection,start,end)
     editor.replace(['AA','BB']);
     assert.equal(editor.document.toString(),
       'A\tB\nfold alpha\nfold beta\nfold gamma\n0BB456789\nuAAyzABCD');
-    assert.deepEqual(editor.selections.getSelections().map(s=>s.forward),
-      [false,false]);
+    assert.deepEqual(editor.selections.getSelections().map(s=>s.forward),[false,false]);
     editor.replace(['Q','R']);
     assert.equal(editor.document.toString(),
       'A\tB\nfold alpha\nfold beta\nfold gamma\n0RBB456789\nuQAAyzABCD');
-    assert.deepEqual(editor.selections.getSelections().map(s=>s.start.row),
-      [5,4],'repeated edits keep original visual traversal order');
+    assert.deepEqual(editor.selections.getSelections().map(s=>s.start.row),[5,4]);
   }
   finally
   {
@@ -150,13 +149,11 @@ function resolve(editor,projection,start,end)
   const editor=editorFixture();
   try
   {
-    const projection=project(editor);
-    const result=resolve(editor,projection,point(1,2),point(1,2));
+    const result=resolve(editor,project(editor),point(1,2),point(1,2));
     editor.selections.setSelections(result.physical);
     editor.replace('X');
     assert.equal(editor.document.revision,1);
-    assert.equal(editor.representation.replacements.length,0,
-      'real TextEdit invalidates the consumed fold overlay');
+    assert.equal(editor.representation.replacements.length,0);
     assert.equal(project(editor).visualRows.length,3);
     assert.equal(editor.document.toString(),'A\tB\nX0123456789\nuvwxyzABCD');
   }
@@ -166,12 +163,20 @@ function resolve(editor,projection,start,end)
   }
 }
 
-console.log(JSON.stringify({
-  pass:true,version:API.VERSION,
-  coverage:[
-    'source-region-projection','tab-complete-cell','fold-source-span',
-    'annotation-source-less','touch-full-none','clipped-eol',
-    'overlapping-interval-coalescence','bottom-up-physical-order',
-    'reverse-caret-reuse','source-invalidation'
-  ]
-}));
+console.log
+(
+  JSON.stringify
+  (
+    {
+      pass:true,
+      version:API.VERSION,
+      coverage:
+      [
+        'source-region-projection','tab-complete-cell','fold-source-span',
+        'annotation-source-less','touch-full-none','clipped-eol',
+        'overlapping-interval-coalescence','bottom-up-physical-order',
+        'reverse-caret-reuse','source-invalidation'
+      ]
+    }
+  )
+);

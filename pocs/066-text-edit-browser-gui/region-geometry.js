@@ -41,17 +41,22 @@
 
   function selectRegions(regions,requested)
   {
-    return regions.filter(item=>
-      item.policy!=='none'&&
-      (item.policy==='full'?covers(requested,item):overlaps(item,requested)));
+    return regions.filter
+    (
+      item=>
+        item.policy!=='none'&&
+        (item.policy==='full'?covers(requested,item):overlaps(item,requested))
+    );
   }
 
   function buildRegions(document,representation,{columns,policies})
   {
     // The fold marker and annotation layout are PoC fixture choices, not
     // generalized projection conventions or proposed product interfaces.
-    const replacement=representation.replacements.find(item=>
-      item.text==='[3 folded rows]');
+    const replacement=representation.replacements.find
+    (
+      item=>item.text==='[3 folded rows]'
+    );
     const foldStart=replacement?document.lineAt(replacement.start):-1;
     const foldEnd=replacement?document.lineAt(replacement.end):-1;
     const visualRows=[];
@@ -71,11 +76,18 @@
       const visible=visualRows[vrow];
       if(visible.kind==='fold')
       {
-        regions.push(region({
-          id:'fold',kind:'fold',row:vrow,col:0,width:6,
-          source:{start:visible.replacement.start,end:visible.replacement.end},
-          label:'[3 righe]',policy:policies.fold
-        },columns));
+        regions.push
+        (
+          region
+          (
+            {
+              id:'fold',kind:'fold',row:vrow,col:0,width:6,
+              source:{start:visible.replacement.start,end:visible.replacement.end},
+              label:'[3 righe]',policy:policies.fold
+            },
+            columns
+          )
+        );
         continue;
       }
 
@@ -95,12 +107,19 @@
         const isTab=item.segment==='\t';
         const label=isTab?'⇥'+'·'.repeat(Math.max(0,width-1)):
           /^[\x20-\x7e]$/.test(item.segment)?item.segment:'◇';
-        regions.push(region({
-          id:'source:'+row+':'+item.index,kind:isTab?'tab':'text',
-          row:vrow,col:a.col,width:Math.min(width,columns-a.col),
-          source:{start:from,end:to},label,
-          policy:isTab?policies.tab:'touch'
-        },columns));
+        regions.push
+        (
+          region
+          (
+            {
+              id:'source:'+row+':'+item.index,kind:isTab?'tab':'text',
+              row:vrow,col:a.col,width:Math.min(width,columns-a.col),
+              source:{start:from,end:to},label,
+              policy:isTab?policies.tab:'touch'
+            },
+            columns
+          )
+        );
       }
     }
 
@@ -111,11 +130,18 @@
       const at=visualRows.findIndex(x=>x.sourceRow===anchorRow);
       if(at>=0)
       {
-        regions.push(region({
-          id:'annotation',kind:'annotation',row:at,col:12,
-          width:4,height:Math.min(2,visualRows.length-at),
-          source:null,label:'ℹ nota',policy:policies.annotation
-        },columns));
+        regions.push
+        (
+          region
+          (
+            {
+              id:'annotation',kind:'annotation',row:at,col:12,
+              width:4,height:Math.min(2,visualRows.length-at),
+              source:null,label:'ℹ nota',policy:policies.annotation
+            },
+            columns
+          )
+        );
       }
     }
     return {regions,visualRows};
@@ -138,23 +164,32 @@
     }
 
     if(!direction.vertical)merged.reverse();
-    return merged.map(part=>
-    {
-      const startRow=document.lineAt(part.start);
-      const endRow=document.lineAt(part.end);
-      return {
-        start:{row:startRow,col:part.start-document.lineStart(startRow)},
-        end:{row:endRow,col:part.end-document.lineStart(endRow)},
-        forward:direction.horizontal
-      };
-    });
+    return merged.map
+    (
+      part=>
+      {
+        const startRow=document.lineAt(part.start);
+        const endRow=document.lineAt(part.end);
+        const physical=
+        {
+          start:{row:startRow,col:part.start-document.lineStart(startRow)},
+          end:{row:endRow,col:part.end-document.lineStart(endRow)},
+          forward:direction.horizontal
+        };
+        return physical;
+      }
+    );
   }
 
-  const model=Object.freeze({
-    buildRegions,clippedRectangle,selectRegions,physicalSelections
-  });
+  const model=Object.freeze
+  (
+    {
+      buildRegions,clippedRectangle,selectRegions,physicalSelections
+    }
+  );
   if(typeof module!=='undefined'&&module.exports)
     module.exports=model;
   else
     root.__regionGeometryPoC=model;
-})(globalThis);
+}
+)(globalThis);
