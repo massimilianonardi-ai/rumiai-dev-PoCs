@@ -268,11 +268,13 @@ async function _observe(page, sharedUrl, versionDir)
         ? geometry.atBottom === true
         : geometry.scrollY === 0;
 
-      if (atEdge && marker === previous && parsed) stable += 1;
+      if (atEdge && marker === previous) stable += 1;
       else stable = 0;
       previous = marker;
 
-      if (stable >= 2)
+      // A missing or restricted share must terminate with diagnostic evidence,
+      // not spend the entire scan budget waiting for nonexistent turn nodes.
+      if (stable >= (parsed ? 2 : 10))
       {
         reached = true;
         break;
