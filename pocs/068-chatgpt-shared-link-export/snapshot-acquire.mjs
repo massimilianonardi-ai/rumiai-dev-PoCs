@@ -91,12 +91,23 @@ function withinShare(url) {
   try { const u = new URL(url); return u.protocol === 'https:' && u.hostname === 'chatgpt.com'; }
   catch { return false; }
 }
-function scriptsForHook(scripts) {
-  return [...scripts.entries()].filter(([, url]) =>
-    url.startsWith('https://') && url.includes('.js') &&
-    (url.startsWith('https://chatgpt.com/') || url.includes('.oaistatic.com/')))
-    .sort((a, b) => Number(!a[1].startsWith('https://chatgpt.com/')) -
-      Number(!b[1].startsWith('https://chatgpt.com/')))
+function resourcesForHook(frameTree) {
+  const scripts = [];
+  const visit = (tree) => {
+    const frameId = tree?.frame?.id;
+    for (const resource of tree?.resources || []) {
+      const url = resource?.url || '';
+      if (frameId && resource?.type === 'Script' && url.startsWith('https://') &&
+          (url.startsWith('https://chatgpt.com/') || url.includes('.oaistatic.com/'))) {
+        scripts.push({ frameId, url });
+      }
+    }
+    for (const child of tree?.childFrames || []) visit(child);
+  };
+  visit(frameTree);
+  return scripts
+    .sort((a, b) => Number(!a.url.startsWith('https://chatgpt.com/')) -
+      Number(!b.url.startsWith('https://chatgpt.com/')))
     .slice(0, MAX_SCRIPTS);
 }
 
@@ -109,7 +120,6 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
     throw new AcquisitionError('share.invalid-seconds', 'seconds must be 1..120');
   const stats = { phase: 'page-creation', operation: null, providerDiagnostic: null,
     hookFound: false, scriptCount: 0, inspectedResponses: 0, jsonShapes: [] };
-  const scripts = new Map();
   const requests = new Map();
   let page, session, after = 0;
 
@@ -135,6 +145,15 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
     stats.operation = null;
   }
 
+  async function resyncEvents() {
+    // Level 3 returns the current lastSequence even when the requested cursor is
+    // already beyond it. Use that to discard a known-unneeded burst without
+    // reopening the debugger and losing Debugger domain state.
+    const batch = await control('debug', 'session', 'events', session,
+      String(Number.MAX_SAFE_INTEGER), '1', '0');
+    after = batch.lastSequence || 0;
+  }
+
   async function waitForDocument(deadline) {
     while (Date.now() < deadline) {
       try {
@@ -157,9 +176,7 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
   async function handleEvents(events, hookArg) {
     for (const event of events) {
       const data = event.params || {};
-      if (event.method === 'Debugger.scriptParsed') {
-        if (data.scriptId) scripts.set(data.scriptId, data.url || '');
-      } else if (event.method === 'Network.responseReceived') {
+      if (event.method === 'Network.responseReceived') {
         if (data.requestId) requests.set(data.requestId,
           { url: data.response?.url || '', mime: data.response?.mimeType || '' });
       } else if (event.method === 'Network.loadingFinished') {
@@ -273,35 +290,43 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
     } catch { /* Not every page exposes inline JSON script tags. */ }
 
     stats.phase = 'hook-discovery';
-    stats.operation = 'debug session send Network.disable';
-    await send('Network.disable');
     requests.clear();
 
-    // Debugger.enable can emit the already-known script set immediately. Start
-    // the event reader first so those scriptParsed events are consumed while
-    // the domain is being enabled instead of competing with navigation events.
-    stats.operation = 'debug session send Debugger.enable';
-    found = await observed(Date.now() + Math.min(seconds, 1) * 1000,
-      null, () => send('Debugger.enable'));
-    stats.operation = null;
-    if (found) return { ...found, stats };
-
-    stats.scriptCount = scripts.size;
+    // Discover loaded bundle sources by request/response instead of depending
+    // on the bursty Debugger.scriptParsed event stream.
+    stats.operation = 'debug session send Page.getResourceTree';
+    const resourceTree = await send('Page.getResourceTree');
+    const resourceScripts = resourcesForHook(resourceTree?.frameTree);
+    stats.scriptCount = resourceScripts.length;
     let hook = null;
-    for (const [id, jsUrl] of scriptsForHook(scripts)) {
+    for (const resource of resourceScripts) {
       try {
-        const result = await send('Debugger.getScriptSource', { scriptId: id });
-        hook = discoverHook(result.scriptSource || '', jsUrl);
+        stats.operation = 'debug session send Page.getResourceContent';
+        const result = await send('Page.getResourceContent', {
+          frameId: resource.frameId,
+          url: resource.url
+        });
+        const raw = result?.base64Encoded
+          ? Buffer.from(result.content || '', 'base64').toString('utf8')
+          : result?.content || '';
+        hook = discoverHook(raw, resource.url);
         if (hook) break;
-      } catch { /* Loading/reloading a bundle can invalidate the script ID. */ }
+      } catch { /* Some cached/cross-frame resources may no longer be readable. */ }
     }
+    stats.operation = null;
     stats.hookFound = Boolean(hook);
     if (!hook) throw new AcquisitionError('share.snapshot-hook-unavailable',
       'no structured snapshot or matching observed browser hook', stats);
 
     stats.phase = 'breakpoint-capture';
+    stats.operation = 'debug session send Debugger.enable';
+    await send('Debugger.enable');
+    stats.operation = 'debug session events resync';
+    await resyncEvents();
+    stats.operation = 'debug session send Debugger.setBreakpointByUrl';
     await send('Debugger.setBreakpointByUrl', { url: hook.url,
       lineNumber: hook.lineNumber, columnNumber: hook.columnNumber });
+    stats.operation = null;
     // CDP navigation returns before a paused JS breakpoint can deadlock the
     // provider's page.goto/BrowserWindow.loadURL awaiting DOM readiness.
     stats.operation = 'debug session send Page.navigate';

@@ -132,12 +132,11 @@ test('privacy-safe diagnostics retain shape without values', () => {
   assert.doesNotMatch(JSON.stringify(stats), /DO NOT PRINT|TOKEN/);
 });
 
-test('original persistent paused-frame snapshot is captured and resumed', async () => {
+test('resource-tree hook discovery survives debugger event burst and captures paused frame', async () => {
   const calls = [];
   let navigations = 0;
-  let debuggerEnabled = false;
   let breakpoint = false;
-  let scriptDelivered = false;
+  let resynchronized = false;
   let paused = false;
   const control = async (...args) => {
     calls.push(args);
@@ -145,29 +144,36 @@ test('original persistent paused-frame snapshot is captured and resumed', async 
     if (cmd === 'page new') return { id: 'page-1' };
     if (cmd === 'debug session open') return { session: 'debug-1' };
     if (cmd === 'debug session send') {
-      if (args[4] === 'Debugger.getScriptSource')
-        return { result: { scriptSource: 'function z({mergeActiveBranch},t){return mergeActiveBranch(t)}' } };
+      if (args[4] === 'Page.getResourceTree')
+        return { result: { frameTree: {
+          frame: { id: 'frame-1' },
+          resources: [{ type: 'Script', url: 'https://chatgpt.com/assets/main.js' }]
+        } } };
+      if (args[4] === 'Page.getResourceContent')
+        return { result: {
+          content: 'function z({mergeActiveBranch},t){return mergeActiveBranch(t)}',
+          base64Encoded: false
+        } };
       if (args[4] === 'Runtime.evaluate') return { result: { result: { value: [] } } };
       if (args[4] === 'Debugger.evaluateOnCallFrame')
         return { result: { result: { value: JSON.stringify(snapshot()) } } };
-      if (args[4] === 'Debugger.enable') debuggerEnabled = true;
       if (args[4] === 'Debugger.setBreakpointByUrl') breakpoint = true;
       if (args[4] === 'Page.navigate') navigations++;
       return { result: {} };
     }
     if (cmd === 'debug session events') {
-      if (args[6] === '0') return { events: [] };
-      if (debuggerEnabled && !scriptDelivered) {
-        scriptDelivered = true;
-        return { events: [{ sequence: 1, method: 'Debugger.scriptParsed', params: {
-          scriptId: '1', url: 'https://chatgpt.com/assets/main.js' } }] };
+      if (args[4] === String(Number.MAX_SAFE_INTEGER)) {
+        resynchronized = true;
+        return { after: Number.MAX_SAFE_INTEGER, lastSequence: 240, events: [] };
       }
-      if (breakpoint && navigations >= 2 && !paused) {
+      if (args[6] === '0') return { after: Number(args[4]), lastSequence: Number(args[4]), events: [] };
+      if (breakpoint && resynchronized && navigations >= 2 && !paused) {
         paused = true;
-        return { events: [{ sequence: 2, method: 'Debugger.paused',
-          params: { callFrames: [{ callFrameId: 'frame-1' }] } }] };
+        return { after: Number(args[4]), lastSequence: 241,
+          events: [{ sequence: 241, method: 'Debugger.paused',
+            params: { callFrames: [{ callFrameId: 'frame-1' }] } }] };
       }
-      return { events: [] };
+      return { after: Number(args[4]), lastSequence: Number(args[4]), events: [] };
     }
     return {};
   };
@@ -175,12 +181,13 @@ test('original persistent paused-frame snapshot is captured and resumed', async 
     'https://chatgpt.com/share/abc', { seconds: 1 });
   assert.equal(result.method, 'original-breakpoint');
   assert.deepEqual(result.snapshot, snapshot());
-  assert.ok(calls.some(x => x[4] === 'Debugger.resume'));
-  assert.ok(calls.some(x => x[4] === 'Network.disable'));
+  assert.equal(result.stats.scriptCount, 1);
+  assert.ok(calls.some(x => x[4] === 'Page.getResourceTree'));
+  assert.ok(calls.some(x => x[4] === 'Page.getResourceContent'));
   assert.ok(calls.some(x => x[4] === 'Debugger.enable'));
+  assert.ok(calls.some(x => x.slice(0, 3).join(' ') === 'debug session events' &&
+    x[4] === String(Number.MAX_SAFE_INTEGER)));
+  assert.ok(calls.some(x => x[4] === 'Debugger.resume'));
   assert.ok(calls.some(x => x[4] === 'Debugger.setBreakpointByUrl'));
   assert.ok(calls.filter(x => x[4] === 'Page.navigate').length >= 2);
-  const firstNavigation = calls.findIndex(x => x[4] === 'Page.navigate');
-  const debuggerEnable = calls.findIndex(x => x[4] === 'Debugger.enable');
-  assert.ok(debuggerEnable > firstNavigation);
 });
