@@ -1,7 +1,6 @@
 import { findSnapshot, parseSnapshot } from './snapshot-export.mjs';
 
 const MAX_JSON_BYTES = 24 * 1024 * 1024;
-const CAPTURE_SLOT = '__rumiaiChatgptShareSnapshot';
 
 export class AcquisitionError extends Error {
   constructor(code, message, stats) {
@@ -49,88 +48,73 @@ function fromJson(raw, stats) {
   return found;
 }
 
-export function injectedCaptureSource() {
-  return `(() => {
-    const slot = ${JSON.stringify(CAPTURE_SLOT)};
+function shareFetchExpression(shareId) {
+  return `(async () => {
     const findSnapshot = ${findSnapshot.toString()};
-    const store = (value) => {
+    const attempts = [];
+    for (const base of ['backend-anon', 'backend-api']) {
       try {
-        if (globalThis[slot]) return;
-        const snapshot = findSnapshot(value);
-        if (snapshot) globalThis[slot] = JSON.stringify(snapshot);
-      } catch {}
-    };
-    const inspectText = (text) => {
-      if (typeof text !== 'string' || text.length > ${MAX_JSON_BYTES}) return;
-      try { store(JSON.parse(text)); } catch {}
-    };
-    const relevant = (type) =>
-      /json|javascript|text|x-component|event-stream/i.test(String(type || ''));
-
-    const nativeFetch = globalThis.fetch;
-    if (typeof nativeFetch === 'function') {
-      globalThis.fetch = async function(...args) {
-        const response = await Reflect.apply(nativeFetch, this, args);
-        try {
-          const type = response.headers?.get?.('content-type') || '';
-          if (relevant(type)) {
-            const clone = response.clone();
-            void clone.text().then(inspectText).catch(() => {});
-          }
-        } catch {}
-        return response;
-      };
-    }
-
-    const xhr = globalThis.XMLHttpRequest?.prototype;
-    const nativeSend = xhr?.send;
-    if (typeof nativeSend === 'function') {
-      xhr.send = function(...args) {
-        try {
-          this.addEventListener('loadend', () => {
-            try {
-              const type = this.getResponseHeader?.('content-type') || '';
-              if (!relevant(type)) return;
-              if (this.responseType === 'json') store(this.response);
-              else if (!this.responseType || this.responseType === 'text')
-                inspectText(this.responseText);
-            } catch {}
-          }, { once: true });
-        } catch {}
-        return Reflect.apply(nativeSend, this, args);
-      };
-    }
-
-    const scanScripts = () => {
-      try {
-        for (const script of document.querySelectorAll('script')) {
-          const type = script.type || '';
-          if (type === 'application/json' || type === 'application/ld+json')
-            inspectText(script.textContent || '');
+        const response = await fetch('/' + base + '/share/' +
+          ${JSON.stringify(shareId)}, {
+            credentials: 'include',
+            headers: { accept: 'application/json' }
+          });
+        const attempt = { source: base, status: response.status };
+        attempts.push(attempt);
+        if (!response.ok) continue;
+        const text = await response.text();
+        if (text.length > ${MAX_JSON_BYTES}) {
+          attempt.tooLarge = true;
+          continue;
         }
-      } catch {}
-    };
-    if (document.readyState === 'loading')
-      document.addEventListener('DOMContentLoaded', scanScripts, { once: true });
-    else
-      scanScripts();
+        let value;
+        try { value = JSON.parse(text); }
+        catch {
+          attempt.invalidJson = true;
+          continue;
+        }
+        const snapshot = findSnapshot(value);
+        if (snapshot)
+          return { attempts, snapshot: JSON.stringify(snapshot) };
+        attempt.noSnapshot = true;
+      } catch {
+        attempts.push({ source: base, status: null, failed: true });
+      }
+    }
+    return { attempts, snapshot: null };
   })()`;
 }
 
-function captureExpression() {
-  return `globalThis[${JSON.stringify(CAPTURE_SLOT)}] ?? null`;
+async function waitForShareDocument(send, deadline) {
+  while (Date.now() < deadline) {
+    try {
+      const result = await send('Runtime.evaluate', {
+        expression: "location.origin + '|' + document.readyState",
+        returnByValue: true,
+        silent: true
+      });
+      const value = result?.result?.value;
+      if (typeof value === 'string' &&
+          value.startsWith('https://chatgpt.com|') &&
+          !value.endsWith('|loading')) return;
+    } catch { /* Navigation can transiently replace the execution context. */ }
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
 }
 
 // Control is the portable public web-control client adapter: one command per
 // request. The persistent session is used only as the common privileged CDP
-// transport; this acquisition path does not enable Network or Debugger events.
+// transport for page navigation and Runtime.evaluate. No debugger or network
+// event domain is enabled by this acquisition path.
 export async function captureStructuredSnapshot(control, inputUrl, options = {}) {
   const url = shareUrl(inputUrl);
+  const shareId = new URL(url).pathname.split('/').filter(Boolean).at(-1);
   const seconds = options.seconds ?? 20;
   if (!Number.isSafeInteger(seconds) || seconds < 1 || seconds > 120)
     throw new AcquisitionError('share.invalid-seconds', 'seconds must be 1..120');
   const stats = { phase: 'page-creation', operation: null, providerDiagnostic: null,
-    hookFound: false, scriptCount: 0, inspectedResponses: 0, jsonShapes: [] };
+    hookFound: false, scriptCount: 0, inspectedResponses: 0, jsonShapes: [],
+    sourceAttempts: [] };
   let page, session;
 
   async function send(method, params = {}) {
@@ -151,51 +135,43 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
     if (!session)
       throw new AcquisitionError('share.debug-open-failed', 'missing session handle', stats);
 
-    stats.phase = 'script-injection';
-    stats.operation = 'debug session send Page.addScriptToEvaluateOnNewDocument';
-    await send('Page.addScriptToEvaluateOnNewDocument', {
-      source: injectedCaptureSource()
-    });
-
     stats.phase = 'initial-navigation';
     stats.operation = 'debug session send Page.navigate';
     await send('Page.navigate', { url });
 
-    stats.phase = 'capture-poll';
+    stats.phase = 'share-json';
     stats.operation = 'debug session send Runtime.evaluate';
-    const deadline = Date.now() + seconds * 1000;
-    while (Date.now() < deadline) {
-      try {
-        const result = await send('Runtime.evaluate', {
-          expression: captureExpression(),
-          returnByValue: true,
-          silent: true
-        });
-        const raw = result?.result?.value;
-        if (typeof raw === 'string') {
-          const snapshot = parseSnapshot(raw);
-          if (snapshot) {
-            stats.operation = null;
-            return { snapshot, method: 'injected-page', stats };
-          }
+    await waitForShareDocument(send, Date.now() + Math.min(seconds, 10) * 1000);
+    const result = await send('Runtime.evaluate', {
+      expression: shareFetchExpression(shareId),
+      awaitPromise: true,
+      returnByValue: true,
+      silent: true
+    });
+    const fetched = result?.result?.value;
+    if (fetched && typeof fetched === 'object') {
+      stats.sourceAttempts = Array.isArray(fetched.attempts) ? fetched.attempts : [];
+      if (typeof fetched.snapshot === 'string') {
+        const snapshot = parseSnapshot(fetched.snapshot);
+        if (snapshot) {
+          stats.operation = null;
+          return { snapshot, method: 'page-fetch', stats };
         }
-      } catch { /* Navigation may transiently replace the execution context. */ }
-      await new Promise(resolve => setTimeout(resolve, 100));
+      }
     }
 
-    // Keep privacy-reduced shape evidence from inline JSON if injection did
-    // not observe a complete snapshot. This is diagnostic only.
+    // Diagnostic fallback only: retain privacy-reduced shapes from inline JSON.
     stats.phase = 'embedded-json';
     const expression =
       "(() => [...document.querySelectorAll('script[type=\"application/json\"]')]" +
       ".slice(0,20).map(s=>s.textContent).filter(x=>x&&x.length<16000000))()";
     try {
-      const result = await send('Runtime.evaluate', {
+      const inline = await send('Runtime.evaluate', {
         expression,
         returnByValue: true,
         silent: true
       });
-      for (const raw of result?.result?.value || []) {
+      for (const raw of inline?.result?.value || []) {
         if (typeof raw !== 'string') continue;
         const snapshot = fromJson(raw, stats);
         if (snapshot) {
@@ -207,13 +183,13 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
 
     stats.operation = null;
     throw new AcquisitionError('share.snapshot-not-observed',
-      'injected page capture did not observe a parent-linked snapshot', stats);
+      'shared conversation JSON did not yield a parent-linked snapshot', stats);
   } catch (error) {
     if (error instanceof AcquisitionError) throw error;
     stats.operation = error.operation || stats.operation;
     stats.providerDiagnostic = error.providerDiagnostic || null;
     throw new AcquisitionError('share.web-control-failed',
-      'browser command or injected capture failed: ' +
+      'browser command or page-context fetch failed: ' +
       String(error.message || error).split('\n')[0].slice(0, 180), stats);
   } finally {
     if (session) await control('debug', 'session', 'close', session).catch(() => {});

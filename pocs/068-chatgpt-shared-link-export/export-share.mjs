@@ -58,7 +58,8 @@ async function failureRecord(folder, error) {
     hookFound: Boolean(error.stats?.hookFound),
     inspectedResponses: error.stats?.inspectedResponses || 0,
     scriptCount: error.stats?.scriptCount || 0,
-    observedJsonShapes: error.stats?.jsonShapes || []
+    observedJsonShapes: error.stats?.jsonShapes || [],
+    sourceAttempts: error.stats?.sourceAttempts || []
   };
   for (let n = 1; n < 100000; n++) {
     const file = path.join(folder, 'share-debug-diagnostic-' + String(n).padStart(4, '0') + '.json');
