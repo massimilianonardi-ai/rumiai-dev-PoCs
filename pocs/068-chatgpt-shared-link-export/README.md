@@ -34,10 +34,12 @@ archive/
   0001/
     conversation.md
     conversation.json
+    conversation.html
     capture/
       page.html
       page.txt
       metadata.json
+      page.mhtml  # optional Playwright capture of final segment
       segments/
         00001.html
         00002.html
@@ -50,11 +52,13 @@ archive/
 
 Image assets are downloaded **only if** their source is an HTTPS URL from an explicitly accepted OpenAI-owned image host, their response is an image, and fetching succeeds without redirects. Unavailable images remain as remote Markdown links and are listed in `conversation.json` with status/reason. Observed ordinary file hyperlinks are retained but their referenced file bytes are **not** downloaded.
 
-The exporter scans downward and then **back upward**, capturing each distinct rendered message window before the client removes it from the DOM. Neighboring windows are reconciled using message IDs and visible turn indices when present, or overlapping role/content otherwise. A page that opens at its last turn may therefore yield more messages than any individual DOM snapshot. The last rendered HTML remains in `capture/page.html`; the intermediate windows are retained under `capture/segments/` for review.
+The exporter scans downward and then **back upward**, capturing each distinct rendered message window before the client removes it from the DOM. ChatGPT may expose only a **segment**, not the whole scrollable chat: a top/bottom scroll coordinate may be the current segment boundary. The Playwright provider's existing `debug cdp` extension therefore emits actual browser wheel events over the closest message-pane scroll container, including at apparent boundaries, and checks whether newly loaded segments extend the scrollable area. Edge-quiescence requires a sustained quiet probing interval rather than two unchanged frames. Neighboring windows are reconciled using observed IDs/turn indices or overlapping role/content. The final HTML is under `capture/page.html`; intermediate windows are in `capture/segments/`.
 
-The JSON contains role, observed turn index/message identity, order, rendered text, extracted Markdown, original message fragment HTML, image URLs and links. `observedSettledAtBottom`, `observedSettledAtTop`, `observedSegmentGaps` and `observationComplete` are **scan observations only**. Even when both edges are reached and no gap is detected, the `completeness` field explicitly states that completeness relative to the source conversation cannot be verified from a shared page alone. Rendered image URLs are retained from all observed windows, not just the last one. Embedded/non-HTTP image sources still require separate support.
+The JSON contains role, observed turn index/message identity, order, rendered text, extracted Markdown, message HTML, image URLs and links. `observedSettledAtBottom`, `observedSettledAtTop`, `observedBoundaryExtensions`, `observedEdgeProbes` and `observedSegmentGaps` describe **what the scan observed**; even a long quiet period is not a proof of source-chat completeness. `observationComplete` is **false for DOM-only scans**. It is true only if an actually present embedded `mapping/current_node` JSON snapshot has been traversed. `extractionMethod` reports the source of the export. Rendered image URLs are retained from all observed windows; unavailable files are reported instead of fabricated.
 
-The shared-page source may contain richer structured conversation data, but the PoC does not claim to have retrieved that undocumented payload or the internal desktop renderer snapshot. The attached reference exporter for the native ChatGPT application uses a CDP debugger breakpoint to capture a complete conversation snapshot in memory; that app-specific mechanism is distinct from the portable `web-control` share-link consumer.
+The user-supplied native macOS exporter obtains `mapping/current_node` by a breakpoint in the desktop renderer. PoC 068 now reuses its **data traversal and message classification** when such a snapshot is actually found in an `application/json` script on a shared page; it does not assume the native-app breakpoint or invent a remote endpoint. It saves detected raw JSON under `capture/conversation.raw.json`. Otherwise it uses the rendered-window approach. The Playwright `debug cdp` wheel extension is **provider-specific**; Electron's portable document-scroll fallback cannot guarantee navigation of nested/segmented pages.
+
+A separate styled `conversation.html` contains locally embedded presentation CSS, code block/list/table styling, and relative links to downloaded image assets. This is a readable **reconstruction**, not a pixel-accurate copy of ChatGPT's live stylesheet. Optional Playwright `capture/page.mhtml` retains a browser-native archive of the *final visible DOM segment only*, not the entire conversation. The raw capture and independent reconstructed transcript are intentionally distinct.
 
 On a failed extraction after navigation, captured HTML/text remain under `capture/`, and `failure.json` plus `error.txt` diagnose the failure. A failed attempt may reserve a version directory, and the next run never replaces it.
 
