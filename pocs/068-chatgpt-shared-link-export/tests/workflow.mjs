@@ -30,6 +30,30 @@ if (args[0] === "status") result = { browserRunning: true };
 else if (kind === "page new") result = { id: "simulated-page" };
 else if (kind === "page navigate") result = { url: args[3] };
 else if (kind === "page inspect") result = { html };
+else if (kind === "debug cdp")
+{
+  const params = JSON.parse(args[4]);
+  const delta = Number(params.expression.match(/\}\)\((-?\d+)\)$/)?.[1] || 0);
+  if (windows)
+  {
+    offset = Math.max(0, Math.min(windows.length - 1,
+      offset + Math.sign(delta)));
+    await fs.writeFile(offsetFile, String(offset));
+  }
+  result = {
+    result: {
+      type: "object",
+      value: {
+        source: windows ? "nested-element" : "document",
+        scrollY: windows ? offset * 450 : 0,
+        documentHeight: windows ? windows.length * 450 : 600,
+        viewportHeight: windows ? 450 : 900,
+        atTop: !windows || offset === 0,
+        atBottom: !windows || offset === windows.length - 1
+      }
+    }
+  };
+}
 else if (kind === "page scroll")
 {
   if (windows)
@@ -95,6 +119,9 @@ test("export command writes new revisions without overwriting prior snapshots", 
       [exporter, share, directory], { env })).stdout);
     assert.equal(first.revision, "0001");
     assert.equal(first.messageCount, 2);
+    const styled = await fs.readFile(path.join(directory, "0001", "conversation.html"), "utf8");
+    assert.match(styled, /<style>/);
+    assert.match(styled, /Answer/);
     const markdown = await fs.readFile(path.join(directory, "0001", "conversation.md"), "utf8");
     assert.match(markdown, /Answer/);
     const original = await fs.readFile(path.join(directory, "0001", "capture", "page.html"), "utf8");
@@ -160,6 +187,7 @@ test("real CLI assembles virtualized windows and preserves evicted image referen
     assert.equal(result.observedSettledAtBottom, true);
     assert.equal(result.observedSettledAtTop, true);
     assert.equal(result.observationComplete, true);
+    assert.equal(result.scrollSource, "nested-element");
     assert.ok(result.observedSegmentCaptures >= 4);
     const data = JSON.parse(await fs.readFile(
       path.join(directory, "0001", "conversation.json"), "utf8"));
