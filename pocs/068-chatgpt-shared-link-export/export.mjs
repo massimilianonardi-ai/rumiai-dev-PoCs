@@ -5,6 +5,9 @@ import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { extractConversation, markdownDocument, relinkImages, mergeMessageWindows } from "./extract.mjs";
+import { scrollConversation } from "./scroll.mjs";
+import { renderConversationHtml } from "./render-html.mjs";
+import { snapshotFromRenderedHtml, conversationFromSnapshot } from "./snapshot.mjs";
 
 const execFileAsync = promisify(execFile);
 const WEB_CONTROL = process.env.WEB_CONTROL_CMD || "web-control";
@@ -213,6 +216,7 @@ async function _observe(page, sharedUrl, versionDir)
   let nextEvidence = 1;
   let lastEvidence = "";
   let title = "";
+  let structured = null;
   const MAX_SWEEP_STEPS = 240;
 
   async function sweep(direction)
@@ -227,6 +231,7 @@ async function _observe(page, sharedUrl, versionDir)
     for (let attempt = 0; attempt < MAX_SWEEP_STEPS; attempt += 1)
     {
       const html = (await _control("page", "inspect", page, "html")).html;
+      if (!structured) structured = snapshotFromRenderedHtml(html);
       let parsed = null;
       try
       {
@@ -258,15 +263,13 @@ async function _observe(page, sharedUrl, versionDir)
         }
       }
 
-      geometry = await _control("page", "scroll", page, String(direction * 600));
+      geometry = await scrollConversation(_control, page, direction * 450);
       const marker = parsed
         ? createHash("sha256").update(JSON.stringify(parsed.messages.map((message) => [
             message.messageId, message.turnIndex, message.markdown
           ]))).digest("hex")
         : "not-yet-rendered";
-      const atEdge = direction === 1
-        ? geometry.atBottom === true
-        : geometry.scrollY === 0;
+      const atEdge = direction === 1 ? geometry.atBottom === true : geometry.atTop === true;
 
       if (atEdge && marker === previous) stable += 1;
       else stable = 0;
@@ -291,20 +294,24 @@ async function _observe(page, sharedUrl, versionDir)
   const upward = await sweep(-1);
   const selected = upward.messages.length >= downward.messages.length ? upward : downward;
   const titleValue = title || "ChatGPT shared conversation";
+  const conversation = structured ? conversationFromSnapshot(structured) : {
+    title: titleValue,
+    messages: selected.messages.map((message, index) => ({ ...message, index: index + 1 })),
+    imageUrls: [...new Set(selected.messages.flatMap((message) => message.imageUrls))]
+  };
   return {
-    conversation: {
-      title: titleValue,
-      messages: selected.messages.map((message, index) => ({ ...message, index: index + 1 })),
-      imageUrls: [...new Set(selected.messages.flatMap((message) => message.imageUrls))]
-    },
+    conversation,
+    extractionMethod: structured ? "embedded-mapping-snapshot" : "rendered-windows",
+    scrollSource: upward.geometry?.source || null,
     observedSettledAtBottom: downward.reached,
     observedSettledAtTop: upward.reached,
     observedSegmentGaps: selected.gapCount,
     observedDownwardMessages: downward.messages.length,
     observedUpwardMessages: upward.messages.length,
     observedSegmentCaptures: nextEvidence - 1,
-    observationComplete: downward.reached && upward.reached
-      && selected.gapCount === 0
+    observationComplete: structured !== null ||
+      (downward.reached && upward.reached && selected.gapCount === 0
+        && upward.geometry?.source !== "portable-document")
   };
 }
 
@@ -330,7 +337,17 @@ async function exportLink(rawUrl, destination)
 
     const observed = await _observe(page, sharedUrl, versionDir);
     const captureDirectory = path.join(versionDir, "capture");
-    await _control("page", "capture", page, captureDirectory, "html", "text");
+    try
+    {
+      // The Playwright provider can preserve the final DOM with its styles
+      // as an MHTML archive. The reconstructed conversation has separate CSS.
+      await _control("page", "capture", page, captureDirectory, "html", "text", "mhtml");
+    }
+    catch (error)
+    {
+      if (!/unsupported capture format|unsupported format/i.test(error.message)) throw error;
+      await _control("page", "capture", page, captureDirectory, "html", "text");
+    }
 
     const conversation = observed.conversation;
     if (!conversation.messages.length)
@@ -348,8 +365,15 @@ async function exportLink(rawUrl, destination)
       throw error;
     }
 
+    if (observed.extractionMethod === "embedded-mapping-snapshot")
+    {
+      await fs.writeFile(path.join(captureDirectory, "conversation.raw.json"),
+        JSON.stringify(conversation.rawSnapshot, null, 2) + "\n", { mode: 0o600 });
+    }
+
     const assets = await _images(conversation.imageUrls, versionDir);
     relinkImages(conversation, assets.available);
+    delete conversation.rawSnapshot;
     const data = {
       format: "chatgpt-shared-link-export-poc-1",
       source: sharedUrl,
@@ -358,6 +382,8 @@ async function exportLink(rawUrl, destination)
       revision: name,
       observedSettledAtBottom: observed.observedSettledAtBottom,
       observedSettledAtTop: observed.observedSettledAtTop,
+      extractionMethod: observed.extractionMethod,
+      scrollSource: observed.scrollSource,
       observedSegmentGaps: observed.observedSegmentGaps,
       observedDownwardMessages: observed.observedDownwardMessages,
       observedUpwardMessages: observed.observedUpwardMessages,
@@ -370,6 +396,9 @@ async function exportLink(rawUrl, destination)
     };
     const markdown = markdownDocument(conversation, sharedUrl, capturedAt);
     await fs.writeFile(path.join(versionDir, "conversation.md"), markdown, { mode: 0o600 });
+    await fs.writeFile(path.join(versionDir, "conversation.html"),
+      renderConversationHtml(conversation, sharedUrl, capturedAt, assets.available),
+      { mode: 0o600 });
     await fs.writeFile(path.join(versionDir, "conversation.json"),
       JSON.stringify(data, null, 2) + "\n", { mode: 0o600 });
     return { directory: versionDir, revision: name, messageCount: data.messages.length,
@@ -378,6 +407,8 @@ async function exportLink(rawUrl, destination)
         + conversation.messages.reduce((sum, message) => sum + message.missingImages.length, 0),
       observedSettledAtBottom: data.observedSettledAtBottom,
       observedSettledAtTop: data.observedSettledAtTop,
+      scrollSource: data.scrollSource,
+      extractionMethod: data.extractionMethod,
       observationComplete: data.observationComplete,
       observedSegmentCaptures: data.observedSegmentCaptures };
   }
