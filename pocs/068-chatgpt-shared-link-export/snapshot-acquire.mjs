@@ -107,8 +107,8 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
   const seconds = options.seconds ?? 20;
   if (!Number.isSafeInteger(seconds) || seconds < 1 || seconds > 120)
     throw new AcquisitionError('share.invalid-seconds', 'seconds must be 1..120');
-  const stats = { phase: 'page-creation', hookFound: false,
-    scriptCount: 0, inspectedResponses: 0, jsonShapes: [] };
+  const stats = { phase: 'page-creation', operation: null, providerDiagnostic: null,
+    hookFound: false, scriptCount: 0, inspectedResponses: 0, jsonShapes: [] };
   const scripts = new Map();
   const requests = new Map();
   let page, session, after = 0;
@@ -176,11 +176,15 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
     page = created.id;
     if (!page) throw new AcquisitionError('share.page-create-failed', 'provider did not return page ID', stats);
     stats.phase = 'debug-attach';
+    stats.operation = 'debug session open';
     const opened = await control('debug', 'session', 'open', page);
     session = opened.session;
     if (!session) throw new AcquisitionError('share.debug-open-failed', 'missing session handle', stats);
-    for (const domain of ['Runtime', 'Debugger', 'Network', 'Page'])
+    for (const domain of ['Runtime', 'Debugger', 'Network', 'Page']) {
+      stats.operation = 'debug session send ' + domain + '.enable';
       await send(domain + '.enable');
+    }
+    stats.operation = null;
 
     stats.phase = 'initial-navigation';
     await control('page', 'navigate', page, url);
@@ -224,6 +228,8 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
       'matching hook installed, but no parent-linked snapshot captured', stats);
   } catch (error) {
     if (error instanceof AcquisitionError) throw error;
+    stats.operation = error.operation || stats.operation;
+    stats.providerDiagnostic = error.providerDiagnostic || null;
     throw new AcquisitionError('share.web-control-failed',
       'browser command or debugger event processing failed: ' +
       String(error.message || error).split('\n')[0].slice(0, 180), stats);
