@@ -49,10 +49,16 @@ function _markdown(node, context)
   if (tag === "br") return "\n";
   if (tag === "img")
   {
-    const src = _absoluteUrl(node.getAttribute("src") || node.getAttribute("data-src"), context.baseUrl);
-    if (!src) return "";
-    context.images.add(src);
+    const raw = node.getAttribute("src") || node.getAttribute("data-src")
+      || node.getAttribute("srcset")?.split(",")[0]?.trim().split(/\s+/)[0];
+    const src = _absoluteUrl(raw, context.baseUrl);
     const alt = (node.getAttribute("alt") || "image").replace(/[\[\]]/g, "");
+    if (!src)
+    {
+      context.missingImages.push({ alt, reason: "source-not-fetchable" });
+      return "[Image unavailable: " + alt + "]";
+    }
+    context.images.add(src);
     return "![" + alt + "](<" + src + ">)";
   }
 
@@ -109,10 +115,12 @@ function _markdown(node, context)
 
 function _messageContent(turn)
 {
-  return turn.querySelector(".markdown")
-    || turn.querySelector("[data-testid='message-content']")
-    || turn.querySelector(".whitespace-pre-wrap")
-    || turn;
+  const explicit = turn.querySelectorAll("[data-testid='message-content']");
+  if (explicit.length === 1) return explicit[0];
+  const markdown = turn.querySelectorAll(".markdown");
+  if (markdown.length === 1) return markdown[0];
+  if (markdown.length > 1 || explicit.length > 1) return turn;
+  return turn.querySelector(".whitespace-pre-wrap") || turn;
 }
 
 function _normalizeMarkdown(value)
@@ -152,7 +160,7 @@ export function extractConversation(html, baseUrl)
     {
       control.remove();
     }
-    const context = { baseUrl, images: new Set(), links: new Set() };
+    const context = { baseUrl, images: new Set(), links: new Set(), missingImages: [] };
     const markdown = _normalizeMarkdown(_markdown(visible, context));
     const text = _plain(visible);
     return {
@@ -162,11 +170,12 @@ export function extractConversation(html, baseUrl)
       markdown: markdown || text,
       html: content.innerHTML,
       imageUrls: [...context.images],
+      missingImages: context.missingImages,
       links: [...context.links]
     };
   });
 
-  if (messages.every((message) => !message.text && !message.imageUrls.length))
+  if (messages.every((message) => !message.text && !message.imageUrls.length && !message.missingImages.length))
   {
     const error = new Error("share-dom-empty: message containers carry no content");
     error.code = "share-dom-empty";
