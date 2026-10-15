@@ -78,6 +78,53 @@ test('structured network snapshot drains before navigation to avoid event overfl
   assert.ok(!calls.some(x => x.slice(0, 2).join(' ') === 'debug cdp'));
 });
 
+test('initial Network overflow reopens the session and continues with embedded JSON', async () => {
+  const calls = [];
+  let opens = 0;
+  let navigated = false;
+  let overflowed = false;
+  const control = async (...args) => {
+    calls.push(args);
+    const cmd = args.slice(0, 3).join(' ');
+    if (cmd === 'page new') return { id: 'page-1' };
+    if (cmd === 'debug session open') return { session: 'debug-' + (++opens) };
+    if (cmd === 'debug session close') return { closed: true };
+    if (cmd === 'debug session send') {
+      if (args[4] === 'Page.navigate') {
+        navigated = true;
+        return { result: {} };
+      }
+      if (args[4] === 'Runtime.evaluate') {
+        const params = JSON.parse(args[5]);
+        if (params.expression === 'document.readyState')
+          return { result: { result: { value: 'complete' } } };
+        return { result: { result: { value: [JSON.stringify(snapshot())] } } };
+      }
+      return { result: {} };
+    }
+    if (cmd === 'debug session events') {
+      if (args[6] === '0') return { events: [] };
+      if (navigated && !overflowed) {
+        overflowed = true;
+        const error = new Error('share.web-control-command-failed');
+        error.providerDiagnostic =
+          'web-control: debug.events-overflow: events were discarded; reopen or resynchronize the session';
+        throw error;
+      }
+      return { events: [] };
+    }
+    return {};
+  };
+  const result = await captureStructuredSnapshot(control,
+    'https://chatgpt.com/share/abc', { seconds: 1 });
+  assert.equal(result.method, 'embedded-json');
+  assert.deepEqual(result.snapshot, snapshot());
+  assert.equal(opens, 2);
+  assert.ok(calls.some(x => x.slice(0, 3).join(' ') === 'debug session close'));
+  assert.ok(calls.some(x => x[4] === 'Runtime.evaluate' &&
+    JSON.parse(x[5]).expression === 'document.readyState'));
+});
+
 test('privacy-safe diagnostics retain shape without values', () => {
   const stats = { jsonShapes: [] };
   recordJsonShape(JSON.stringify({ data: { messages: ['DO NOT PRINT'] }, secret: 'TOKEN' }), stats);

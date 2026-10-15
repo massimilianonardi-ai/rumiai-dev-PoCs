@@ -118,6 +118,36 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
     return result.result;
   }
 
+  function eventsOverflow(error) {
+    return String(error?.providerDiagnostic || error?.message || error)
+      .includes('debug.events-overflow');
+  }
+
+  async function reopenSession() {
+    if (session) await control('debug', 'session', 'close', session).catch(() => {});
+    session = null;
+    stats.operation = 'debug session open';
+    const opened = await control('debug', 'session', 'open', page);
+    session = opened.session;
+    if (!session)
+      throw new AcquisitionError('share.debug-open-failed', 'missing session handle', stats);
+    after = 0;
+    stats.operation = null;
+  }
+
+  async function waitForDocument(deadline) {
+    while (Date.now() < deadline) {
+      try {
+        const result = await send('Runtime.evaluate', {
+          expression: 'document.readyState',
+          returnByValue: true
+        });
+        if (['interactive', 'complete'].includes(result?.result?.value)) return;
+      } catch { /* Navigation can transiently replace the execution context. */ }
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+  }
+
   async function eventBatch(deadline, waitOverride = null) {
     const wait = waitOverride ?? Math.min(500, Math.max(0, deadline - Date.now()));
     return control('debug', 'session', 'events', session,
@@ -207,10 +237,7 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
     page = created.id;
     if (!page) throw new AcquisitionError('share.page-create-failed', 'provider did not return page ID', stats);
     stats.phase = 'debug-attach';
-    stats.operation = 'debug session open';
-    const opened = await control('debug', 'session', 'open', page);
-    session = opened.session;
-    if (!session) throw new AcquisitionError('share.debug-open-failed', 'missing session handle', stats);
+    await reopenSession();
     // Keep the initial event stream minimal. Network is the only domain
     // required while looking for a browser-delivered structured response.
     stats.operation = 'debug session send Network.enable';
@@ -219,8 +246,18 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
 
     stats.phase = 'initial-navigation';
     stats.operation = 'debug session send Page.navigate';
-    let found = await observed(Date.now() + Math.min(seconds, 10) * 1000,
-      null, () => send('Page.navigate', { url }));
+    let found = null;
+    try {
+      found = await observed(Date.now() + Math.min(seconds, 10) * 1000,
+        null, () => send('Page.navigate', { url }));
+    } catch (error) {
+      if (!eventsOverflow(error)) throw error;
+      // Network observation is opportunistic. The level-3 contract explicitly
+      // reports bounded-buffer loss; recover by reopening on the already
+      // navigated page instead of pretending the event sequence was complete.
+      await reopenSession();
+      await waitForDocument(Date.now() + Math.min(seconds, 3) * 1000);
+    }
     stats.operation = null;
     if (found) return { ...found, stats };
 
