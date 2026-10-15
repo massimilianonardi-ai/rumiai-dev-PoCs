@@ -139,14 +139,19 @@ function _extension(contentType)
 
 async function _images(imageUrls, versionDir)
 {
-  const records = [];
+  const records = imageUrls.map((url, index) =>
+    ({ index: index + 1, url, status: "unavailable" }));
   const available = new Map();
   const assetDir = path.join(versionDir, "assets");
+  let next = 0;
 
-  for (const [index, url] of imageUrls.entries())
+  async function worker()
   {
-    const item = { index: index + 1, url, status: "unavailable" };
-    records.push(item);
+    while (next < imageUrls.length)
+    {
+      const index = next++;
+      const url = imageUrls[index];
+      const item = records[index];
 
     if (!_trustedAssetUrl(url))
     {
@@ -158,7 +163,7 @@ async function _images(imageUrls, versionDir)
     {
       const response = await fetch(url, {
         redirect: "error",
-        signal: AbortSignal.timeout(15000)
+        signal: AbortSignal.timeout(7000)
       });
       if (!response.ok) throw new Error("HTTP " + response.status);
       const ext = _extension(response.headers.get("content-type"));
@@ -196,7 +201,9 @@ async function _images(imageUrls, versionDir)
       // Deliberately avoid logging asset URLs: they can contain signed tokens.
       item.reason = String(error.message || error);
     }
+    }
   }
+  await Promise.all(Array.from({ length: Math.min(4, imageUrls.length) }, () => worker()));
   return { records, available };
 }
 
