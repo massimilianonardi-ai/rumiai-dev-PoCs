@@ -35,7 +35,10 @@ function _markdown(node, context)
 {
   if (node.nodeType === 3)
   {
-    return node.nodeValue.replace(/\s+/g, " ");
+    const preformatted = node.parentElement?.closest(".whitespace-pre-wrap");
+    return preformatted
+      ? node.nodeValue.replace(/\r\n/g, "\n")
+      : node.nodeValue.replace(/\s+/g, " ");
   }
   if (node.nodeType !== 1) return "";
 
@@ -143,9 +146,15 @@ export function extractConversation(html, baseUrl)
   {
     const role = node.getAttribute("data-message-author-role");
     const content = _messageContent(node);
+    const visible = content.cloneNode(true);
+    for (const control of visible.querySelectorAll(
+      "button,svg,script,style,noscript,template,[aria-hidden='true']"))
+    {
+      control.remove();
+    }
     const context = { baseUrl, images: new Set(), links: new Set() };
-    const markdown = _normalizeMarkdown(_markdown(content, context));
-    const text = _plain(content);
+    const markdown = _normalizeMarkdown(_markdown(visible, context));
+    const text = _plain(visible);
     return {
       index: index + 1,
       role,
