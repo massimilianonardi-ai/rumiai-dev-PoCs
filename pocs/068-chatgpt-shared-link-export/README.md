@@ -38,6 +38,10 @@ archive/
       page.html
       page.txt
       metadata.json
+      segments/
+        00001.html
+        00002.html
+        ...
     assets/
       image-0001.png
   0002/
@@ -46,7 +50,11 @@ archive/
 
 Image assets are downloaded **only if** their source is an HTTPS URL from an explicitly accepted OpenAI-owned image host, their response is an image, and fetching succeeds without redirects. Unavailable images remain as remote Markdown links and are listed in `conversation.json` with status/reason. Observed ordinary file hyperlinks are retained but their referenced file bytes are **not** downloaded.
 
-The JSON contains individual role, order, rendered text, extracted Markdown, original message fragment HTML, image URLs and links. Its `completeness` field explicitly states that completeness relative to the original conversation cannot be verified from a shared page alone. `observedSettledAtBottom` is evidence of a stable scroll observation, not proof of total coverage. Captured rendered HTML/text are preserved to support later re-extraction when ChatGPT changes its DOM.
+The exporter scans downward and then **back upward**, capturing each distinct rendered message window before the client removes it from the DOM. Neighboring windows are reconciled using message IDs and visible turn indices when present, or overlapping role/content otherwise. A page that opens at its last turn may therefore yield more messages than any individual DOM snapshot. The last rendered HTML remains in `capture/page.html`; the intermediate windows are retained under `capture/segments/` for review.
+
+The JSON contains role, observed turn index/message identity, order, rendered text, extracted Markdown, original message fragment HTML, image URLs and links. `observedSettledAtBottom`, `observedSettledAtTop`, `observedSegmentGaps` and `observationComplete` are **scan observations only**. Even when both edges are reached and no gap is detected, the `completeness` field explicitly states that completeness relative to the source conversation cannot be verified from a shared page alone. Rendered image URLs are retained from all observed windows, not just the last one. Embedded/non-HTTP image sources still require separate support.
+
+The shared-page source may contain richer structured conversation data, but the PoC does not claim to have retrieved that undocumented payload or the internal desktop renderer snapshot. The attached reference exporter for the native ChatGPT application uses a CDP debugger breakpoint to capture a complete conversation snapshot in memory; that app-specific mechanism is distinct from the portable `web-control` share-link consumer.
 
 On a failed extraction after navigation, captured HTML/text remain under `capture/`, and `failure.json` plus `error.txt` diagnose the failure. A failed attempt may reserve a version directory, and the next run never replaces it.
 
@@ -57,7 +65,7 @@ npm test
 npm run check
 ```
 
-The current tests cover synthetic rendered-HTML extraction and the real exporter command with a simulated external web-control protocol boundary (including versioned files and failure evidence). They do **not** establish successful navigation through a real web-control provider or fidelity against a real shared link. Live provider + share validation, image/download coverage, large and virtualized conversations, source share updates and workspace-restricted links remain open.
+The current tests cover synthetic rendered-HTML extraction, virtualized-window merging (including repeated identical text and gaps), and the real exporter command with a simulated external web-control protocol boundary (including a page whose DOM exposes only a moving subset of the turns, versioned files and failure evidence). They do **not** establish successful navigation through a real web-control provider or fidelity against a real shared link. A user-reported physical-host run of the previous revision captured only the final 10 messages of a real virtualized share page, which motivated the current scan change. The new revision still requires physical-provider revalidation, image/download fidelity checks, large-conversation verification, source share updates and workspace-restricted links.
 
 ## Opt-in real-provider validation
 
