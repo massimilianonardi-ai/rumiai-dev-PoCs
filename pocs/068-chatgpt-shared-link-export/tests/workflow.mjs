@@ -17,15 +17,30 @@ import path from "node:path";
 
 const args = process.argv.slice(2);
 const kind = args.slice(0, 2).join(" ");
-const html = await fs.readFile(process.env.SHARE_HTML_FILE, "utf8");
+const windows = process.env.SHARE_WINDOWS_JSON
+  ? JSON.parse(process.env.SHARE_WINDOWS_JSON) : null;
+const offsetFile = process.env.SHARE_SCROLL_FILE;
+let offset = windows
+  ? Number(await fs.readFile(offsetFile, "utf8").catch(() => String(windows.length - 1)))
+  : 0;
+let html = windows ? windows[offset] : await fs.readFile(process.env.SHARE_HTML_FILE, "utf8");
 let result;
 
 if (args[0] === "status") result = { browserRunning: true };
 else if (kind === "page new") result = { id: "simulated-page" };
 else if (kind === "page navigate") result = { url: args[3] };
 else if (kind === "page inspect") result = { html };
-else if (kind === "page scroll") result =
-{ scrollY: 0, documentHeight: 600, viewportHeight: 900, atBottom: true };
+else if (kind === "page scroll")
+{
+  if (windows)
+  {
+    offset = Math.max(0, Math.min(windows.length - 1,
+      offset + Math.sign(Number(args[3]))));
+    await fs.writeFile(offsetFile, String(offset));
+  }
+  result = { scrollY: offset * 600, documentHeight: windows?.length * 600 || 600,
+    viewportHeight: 600, atBottom: !windows || offset === windows.length - 1 };
+}
 else if (kind === "page capture")
 {
   const output = args[3];
@@ -46,7 +61,7 @@ async function fixtureRun(html, run)
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "chatgpt-shared-export-poc-"));
   const htmlPath = path.join(root, "shared.html");
   const command = path.join(root, "web-control-fixture.mjs");
-  await fs.writeFile(htmlPath, html);
+  await fs.writeFile(htmlPath, Array.isArray(html) ? html.at(-1) : html);
   await fs.writeFile(command, providerSimulator, { mode: 0o700 });
   try
   {
@@ -55,7 +70,9 @@ async function fixtureRun(html, run)
       env: {
         ...process.env,
         WEB_CONTROL_CMD: command,
-        SHARE_HTML_FILE: htmlPath
+        SHARE_HTML_FILE: htmlPath,
+        SHARE_WINDOWS_JSON: Array.isArray(html) ? JSON.stringify(html) : "",
+        SHARE_SCROLL_FILE: path.join(root, "scroll-state")
       }
     });
   }
@@ -89,7 +106,8 @@ test("export command writes new revisions without overwriting prior snapshots", 
     const json = JSON.parse(await fs.readFile(
       path.join(directory, "0002", "conversation.json"), "utf8"));
     assert.equal(json.messages.length, 2);
-    assert.equal(json.completeness, "visible-page-only; source-chat completeness not verifiable");
+    assert.equal(json.completeness,
+      "scanned-rendered-windows-only; source-chat completeness not verifiable");
     assert.equal(await fs.readFile(path.join(directory, "0001", "conversation.md"), "utf8"), markdown);
   });
 });
@@ -115,5 +133,43 @@ test("invalid share URL fails without creating archive", async () =>
     await assert.rejects(execFileAsync(process.execPath,
       [exporter, "https://example.org/share/invalid", directory], { env }));
     await assert.rejects(fs.access(directory));
+  });
+});
+
+test("real CLI assembles virtualized windows and preserves evicted image references", async () =>
+{
+  const render = (numbers) => '<html><title>Virtualized</title><body>'
+    + numbers.map((i) => '<div data-testid="conversation-turn-' + i + '">'
+      + '<article data-message-id="msg-' + i + '" data-message-author-role="'
+      + (i % 2 ? "assistant" : "user") + '"><div class="markdown"><p>Turn ' + i + '</p>'
+      + (i === 1 ? '<img alt="diagram" src="blob:only-in-browser">' : '')
+      + '</div></article></div>').join("") + "</body></html>";
+  const windows =
+  [
+    render([0, 1, 2]),
+    render([2, 3, 4]),
+    render([4, 5, 6]),
+    render([6, 7, 8, 9])
+  ];
+
+  await fixtureRun(windows, async ({ directory, env }) =>
+  {
+    const result = JSON.parse((await execFileAsync(process.execPath,
+      [exporter, share, directory], { env })).stdout);
+    assert.equal(result.messageCount, 10);
+    assert.equal(result.observedSettledAtBottom, true);
+    assert.equal(result.observedSettledAtTop, true);
+    assert.equal(result.observationComplete, true);
+    assert.ok(result.observedSegmentCaptures >= 4);
+    const data = JSON.parse(await fs.readFile(
+      path.join(directory, "0001", "conversation.json"), "utf8"));
+    assert.deepEqual(data.messages.map((message) => message.turnIndex),
+      Array.from({ length: 10 }, (_, i) => i));
+    assert.equal(data.messages[1].missingImages.length, 1);
+    assert.equal(result.imagesUnavailable, 1);
+    const markdown = await fs.readFile(path.join(directory, "0001", "conversation.md"), "utf8");
+    assert.ok(markdown.indexOf("Turn 0") < markdown.indexOf("Turn 9"));
+    const captured = await fs.readdir(path.join(directory, "0001", "capture", "segments"));
+    assert.ok(captured.length >= 4);
   });
 });
