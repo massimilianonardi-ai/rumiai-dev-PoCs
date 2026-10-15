@@ -401,6 +401,8 @@ async function exportLink(rawUrl, destination)
       observedBoundaryExtensions: observed.observedBoundaryExtensions,
       observedNoEarlierPrefix: observed.observedNoEarlierPrefix,
       uncertainWindowAlignment: observed.uncertain,
+      numberedTurns: conversation.messages.filter((message) => Number.isSafeInteger(message.turnIndex)).length,
+      identifiedMessages: conversation.messages.filter((message) => Boolean(message.messageId)).length,
       observationComplete: false,
       completeness: "scanned-rendered-windows-only; source-chat completeness not verifiable",
       messages: conversation.messages,
@@ -423,7 +425,9 @@ async function exportLink(rawUrl, destination)
       observedSegmentCaptures: data.observedSegmentCaptures,
       observedBoundaryExtensions: data.observedBoundaryExtensions,
       observedNoEarlierPrefix: data.observedNoEarlierPrefix,
-      uncertainWindowAlignment: data.uncertainWindowAlignment };
+      uncertainWindowAlignment: data.uncertainWindowAlignment,
+      numberedTurns: data.numberedTurns,
+      identifiedMessages: data.identifiedMessages };
   }
   catch (error)
   {
