@@ -105,15 +105,23 @@ test('page-context media acquisition maps renderer generated images to raw asset
       if (params.expression === "location.origin + '|' + document.readyState")
         return { result: { result: { value:
           navigated ? 'https://chatgpt.com|complete' : 'data:|complete' } } };
-      if (params.expression.includes('generated-image-preview')) {
+      if (params.expression.includes("document.querySelectorAll('img[src]')")) {
+        assert.ok(params.expression.includes('1536x1024'));
         return { result: { result: { value: [
           { status: 200, byteLength: 3, mimeType: 'image/png',
             base64: Buffer.from('one').toString('base64'),
-            occurrences: [{ occurrence: 0, aria_label: 'generated 1',
+            occurrences: [{ occurrence: 0, generated_preview: true,
+              button_aria_label: 'generated 1',
+              natural_width: 1536, natural_height: 1024 }] },
+          { status: 200, byteLength: 3, mimeType: 'image/png',
+            base64: Buffer.from('one').toString('base64'),
+            occurrences: [{ occurrence: 1, generated_preview: false,
+              button_aria_label: 'original image',
               natural_width: 1536, natural_height: 1024 }] },
           { status: 200, byteLength: 4, mimeType: 'image/png',
             base64: Buffer.from('four').toString('base64'),
-            occurrences: [{ occurrence: 1, aria_label: 'generated 1',
+            occurrences: [{ occurrence: 2, generated_preview: true,
+              button_aria_label: 'generated 1',
               natural_width: 1536, natural_height: 1024 }] }
         ] } } };
       }
@@ -136,9 +144,11 @@ test('page-context media acquisition maps renderer generated images to raw asset
     ['renderer-generated-image', 'renderer-generated-image']);
   assert.deepEqual(result.assets.map(x => x.references[0].classification),
     ['zero_weight', 'zero_weight']);
+  assert.equal(result.assets[0].renderer_references.length, 2);
+  assert.equal(result.assets[1].renderer_references.length, 1);
   assert.equal(result.stats.rendererImageResources, 2);
-  assert.equal(result.stats.rendererImageOccurrences, 2);
-  assert.ok(expressions.some(x => x.includes('generated-image-preview')));
+  assert.equal(result.stats.rendererImageOccurrences, 3);
+  assert.ok(expressions.some(x => x.includes("document.querySelectorAll('img[src]')")));
   assert.ok(!expressions.some(x => x.includes('/api/auth/session')));
   assert.ok(!expressions.some(x => x.includes('Authorization')));
 });

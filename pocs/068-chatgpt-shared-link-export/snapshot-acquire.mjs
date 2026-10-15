@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { activeBranch, deriveTranscript, findSnapshot, parseSnapshot } from './snapshot-export.mjs';
 
 const MAX_JSON_BYTES = 24 * 1024 * 1024;
@@ -146,28 +147,33 @@ function imageAssets(snapshot) {
   }
   return [...assets.values()];
 }
-function rendererImageExpression() {
+function rendererImageExpression(assets) {
+  const dimensions = [...new Set(assets
+    .filter(asset => Number.isSafeInteger(asset.width) && Number.isSafeInteger(asset.height))
+    .map(asset => asset.width + 'x' + asset.height))];
   return `(async () => {
-    const images = [...document.querySelectorAll(
-      'button[data-testid="generated-image-preview"] img[src]'
-    )];
+    const expected = new Set(${JSON.stringify(dimensions)});
+    const images = [...document.querySelectorAll('img[src]')].filter(img => {
+      if (!img.currentSrc && !img.src) return false;
+      if (!Number.isSafeInteger(img.naturalWidth) || !Number.isSafeInteger(img.naturalHeight))
+        return false;
+      return expected.has(img.naturalWidth + 'x' + img.naturalHeight);
+    });
     const resources = new Map();
     images.forEach((img, occurrence) => {
       const src = img.currentSrc || img.src;
-      if (!src) return;
       let item = resources.get(src);
       if (!item) {
         item = { src, occurrences: [] };
         resources.set(src, item);
       }
+      const button = img.closest('button');
       item.occurrences.push({
         occurrence,
-        aria_label: img.closest('button[data-testid="generated-image-preview"]')
-          ?.getAttribute('aria-label') || null,
-        natural_width: Number.isSafeInteger(img.naturalWidth) && img.naturalWidth > 0
-          ? img.naturalWidth : null,
-        natural_height: Number.isSafeInteger(img.naturalHeight) && img.naturalHeight > 0
-          ? img.naturalHeight : null
+        generated_preview: Boolean(img.closest('[data-testid="generated-image-preview"]')),
+        button_aria_label: button?.getAttribute('aria-label') || null,
+        natural_width: img.naturalWidth,
+        natural_height: img.naturalHeight
       });
     });
     const result = [];
@@ -204,22 +210,36 @@ function rendererImageExpression() {
   })()`;
 }
 
-async function captureRendererImages(send, expected, deadline) {
+function collapseRendererImages(items) {
+  const unique = new Map();
+  for (const item of items) {
+    if (typeof item?.base64 !== 'string' || !Number.isSafeInteger(item?.byteLength)) continue;
+    const bytes = Buffer.from(item.base64, 'base64');
+    const digest = createHash('sha256').update(bytes).digest('hex');
+    let found = unique.get(digest);
+    if (!found) {
+      found = { ...item, sha256: digest, occurrences: [] };
+      unique.set(digest, found);
+    }
+    found.occurrences.push(...(Array.isArray(item.occurrences) ? item.occurrences : []));
+  }
+  return [...unique.values()];
+}
+
+async function captureRendererImages(send, assets, deadline) {
   let last = [];
   while (Date.now() < deadline) {
     try {
       const response = await send('Runtime.evaluate', {
-        expression: rendererImageExpression(),
+        expression: rendererImageExpression(assets),
         awaitPromise: true, returnByValue: true, silent: true
       });
       const value = response?.result?.value;
       if (Array.isArray(value)) {
-        last = value;
-        const loaded = value.filter(item =>
-          typeof item?.base64 === 'string' && Number.isSafeInteger(item?.byteLength)).length;
-        if (loaded >= expected) break;
+        last = collapseRendererImages(value);
+        if (last.length >= assets.length) break;
       }
-    } catch { /* Renderer may still be materializing image blobs. */ }
+    } catch { /* Renderer may still be materializing image resources. */ }
     await new Promise(resolve => setTimeout(resolve, 150));
   }
   return last;
@@ -316,7 +336,7 @@ function rendererMatch(asset, renderer) {
 
 async function captureImageAssets(send, snapshot, shareId, stats) {
   const assets = imageAssets(snapshot);
-  const renderer = await captureRendererImages(send, assets.length, Date.now() + 5000);
+  const renderer = await captureRendererImages(send, assets, Date.now() + 5000);
   stats.rendererImageResources = renderer.length;
   stats.rendererImageOccurrences = renderer.reduce((n, item) =>
     n + (Array.isArray(item?.occurrences) ? item.occurrences.length : 0), 0);
