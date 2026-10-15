@@ -1,6 +1,13 @@
-# rsudo-admin jobs: select controller.lib.sh as the library, then this job as template.
-# Exact release pins are intentionally edited/reviewed before execution.
-# Modes: check (safe preflight), canary (gis + apps), rollout (entire fleet).
+exec > "/m/src/git/rsudo-jobs.log" 2>&1
+
+# rsudo-admin jobs: select controller.lib.sh as library, then this template.
+# Review exact release pins. Default: check. Change final mode to canary or
+# rollout for updates; no remote mutation occurs in check mode.
+command -v cluster_rollout >/dev/null 2>&1 || {
+  printf '%s\n' 'CLUSTER ERROR: selected library lacks cluster_rollout' >&2
+  return 1
+}
+
 cluster_rollout \
   '9f4524d9af44cc031ba039b88cfda8d2df0e1c65' \
   '5f3edca59cdc2dd721c50856d99736392f0fff0b' \
