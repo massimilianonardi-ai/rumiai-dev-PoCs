@@ -74,3 +74,30 @@ test("retain fenced source code containing triple backticks", () =>
   assert.equal((result.messages[0].markdown.match(/^\x60{4,}/gm) || []).length, 2);
   assert.match(result.messages[0].markdown, /hello/);
 });
+
+test("keep non-fetchable image as explicit missing content", () =>
+{
+  const html = '<div data-message-author-role="assistant">'
+    + '<div class="markdown"><p>Diagram</p><img alt="drawing" src="blob:temporary"></div></div>';
+  const result = extractConversation(html, sharedUrl);
+  assert.equal(result.messages[0].missingImages.length, 1);
+  assert.match(result.messages[0].markdown, /\[Image unavailable: drawing\]/);
+});
+
+test("retain multiple markdown sections within one assistant turn", () =>
+{
+  const html = '<div data-message-author-role="assistant">'
+    + '<div class="markdown"><p>Part one</p></div>'
+    + '<div class="markdown"><p>Part two</p></div></div>';
+  const result = extractConversation(html, sharedUrl);
+  assert.match(result.messages[0].markdown, /Part one/);
+  assert.match(result.messages[0].markdown, /Part two/);
+});
+
+test("retain user line breaks from whitespace-pre-wrap source", () =>
+{
+  const html = '<div data-message-author-role="user">'
+    + '<div class="whitespace-pre-wrap">first\nsecond</div></div>';
+  const result = extractConversation(html, sharedUrl);
+  assert.match(result.messages[0].markdown, /first\nsecond/);
+});
