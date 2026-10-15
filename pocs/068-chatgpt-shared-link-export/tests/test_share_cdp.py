@@ -83,7 +83,7 @@ class ShareCdpTests(unittest.TestCase):
 
     def test_original_semantic_marker_discovery_uses_loaded_browser_bundle(self):
         fake_source = (
-            'function z(e,t){const s=mergeActiveBranch(e,t);return s;}'
+            'function z({mergeActiveBranch},t){const s=mergeActiveBranch(t);return s;}'
         )
         cdp = FakeCdp(fake_source)
         hook = share.discover_share_hook(cdp, {"42": "https://chatgpt.com/assets/main.js"})
