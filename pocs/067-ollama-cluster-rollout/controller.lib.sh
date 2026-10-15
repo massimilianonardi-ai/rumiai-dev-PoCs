@@ -7,8 +7,6 @@ cluster_remote_source()
 set -u
 LC_ALL=C
 export LC_ALL
-PATH=/usr/bin:/bin
-export PATH
 
 fail()
 {
