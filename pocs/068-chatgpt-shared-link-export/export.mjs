@@ -4,7 +4,7 @@ import process from "node:process";
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { extractConversation, markdownDocument, relinkImages } from "./extract.mjs";
+import { extractConversation, markdownDocument, relinkImages, mergeMessageWindows } from "./extract.mjs";
 
 const execFileAsync = promisify(execFile);
 const WEB_CONTROL = process.env.WEB_CONTROL_CMD || "web-control";
@@ -205,39 +205,106 @@ async function _sleep(milliseconds)
   await new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-async function _observe(page, sharedUrl)
+async function _observe(page, sharedUrl, versionDir)
 {
-  let html = "";
-  let previous = "";
-  let stable = 0;
-  let parsed = null;
-  let geometry = null;
+  const segmentDirectory = path.join(versionDir, "capture", "segments");
+  await fs.mkdir(segmentDirectory, { recursive: true, mode: 0o700 });
 
-  for (let attempt = 0; attempt < 60; attempt += 1)
+  let nextEvidence = 1;
+  let lastEvidence = "";
+  let title = "";
+  const MAX_SWEEP_STEPS = 240;
+
+  async function sweep(direction)
   {
-    html = (await _control("page", "inspect", page, "html")).html;
-    try
+    let messages = [];
+    let previous = "";
+    let stable = 0;
+    let reached = false;
+    let gapCount = 0;
+    let geometry = null;
+
+    for (let attempt = 0; attempt < MAX_SWEEP_STEPS; attempt += 1)
     {
-      parsed = extractConversation(html, sharedUrl);
-    }
-    catch (error)
-    {
-      if (!["share-dom-unrecognized", "share-dom-empty"].includes(error.code)) throw error;
-      parsed = null;
+      const html = (await _control("page", "inspect", page, "html")).html;
+      let parsed = null;
+      try
+      {
+        parsed = extractConversation(html, sharedUrl);
+      }
+      catch (error)
+      {
+        if (!["share-dom-unrecognized", "share-dom-empty"].includes(error.code)) throw error;
+      }
+
+      if (parsed)
+      {
+        title ||= parsed.title;
+        const combined = mergeMessageWindows(messages, parsed.messages, direction);
+        messages = combined.messages;
+        if (combined.gap) gapCount += 1;
+        const fingerprint = createHash("sha256")
+          .update(JSON.stringify(parsed.messages.map((message) => [
+            message.messageId, message.turnIndex, message.role, message.markdown
+          ]))).digest("hex");
+
+        // Preserve each distinct rendered window before React can unmount it.
+        if (fingerprint !== lastEvidence)
+        {
+          const name = String(nextEvidence).padStart(5, "0") + ".html";
+          await fs.writeFile(path.join(segmentDirectory, name), html, { mode: 0o600 });
+          nextEvidence += 1;
+          lastEvidence = fingerprint;
+        }
+      }
+
+      geometry = await _control("page", "scroll", page, String(direction * 600));
+      const marker = parsed
+        ? createHash("sha256").update(JSON.stringify(parsed.messages.map((message) => [
+            message.messageId, message.turnIndex, message.markdown
+          ]))).digest("hex")
+        : "not-yet-rendered";
+      const atEdge = direction === 1
+        ? geometry.atBottom === true
+        : geometry.scrollY === 0;
+
+      if (atEdge && marker === previous && parsed) stable += 1;
+      else stable = 0;
+      previous = marker;
+
+      if (stable >= 2)
+      {
+        reached = true;
+        break;
+      }
+      await _sleep(250);
     }
 
-    geometry = await _control("page", "scroll", page, "850");
-    const marker = String(parsed?.messages.length || 0) + ":"
-      + createHash("sha256").update(html).digest("hex");
-    if (geometry.atBottom && parsed && marker === previous) stable += 1;
-    else stable = 0;
-    previous = marker;
-
-    if (stable >= 2) break;
-    await _sleep(300);
+    return { messages, reached, gapCount, geometry };
   }
 
-  return { parsed, html, geometry, stable };
+  // A shared ChatGPT page may mount just its final visible turns. Visit both
+  // directions; a final DOM capture alone is therefore never authoritative.
+  const downward = await sweep(1);
+  const upward = await sweep(-1);
+  const selected = upward.messages.length >= downward.messages.length ? upward : downward;
+  const titleValue = title || "ChatGPT shared conversation";
+  return {
+    conversation: {
+      title: titleValue,
+      messages: selected.messages.map((message, index) => ({ ...message, index: index + 1 })),
+      imageUrls: [...new Set(selected.messages.flatMap((message) => message.imageUrls))]
+    },
+    observedSettledAtBottom: downward.reached,
+    observedSettledAtTop: upward.reached,
+    observedSegmentGaps: selected.gapCount,
+    observedDownwardMessages: downward.messages.length,
+    observedUpwardMessages: upward.messages.length,
+    observedSegmentCaptures: nextEvidence - 1,
+    observationComplete: downward.reached && upward.reached
+      && selected.gapCount === 0
+      && downward.messages.length === upward.messages.length
+  };
 }
 
 async function exportLink(rawUrl, destination)
@@ -260,23 +327,20 @@ async function exportLink(rawUrl, destination)
       throw new Error("export.navigation-outside-share: final page is not a ChatGPT conversation share");
     }
 
-    const observed = await _observe(page, sharedUrl);
+    const observed = await _observe(page, sharedUrl, versionDir);
     const captureDirectory = path.join(versionDir, "capture");
-    const capture = await _control("page", "capture", page, captureDirectory, "html", "text");
-    const captureHtml = await fs.readFile(capture.files.html, "utf8");
+    await _control("page", "capture", page, captureDirectory, "html", "text");
 
-    let conversation;
-    try
+    const conversation = observed.conversation;
+    if (!conversation.messages.length)
     {
-      conversation = extractConversation(captureHtml, navigation.url);
-    }
-    catch (error)
-    {
+      const error = new Error("share-dom-unrecognized: no message windows captured");
+      error.code = "share-dom-unrecognized";
       await fs.writeFile(path.join(versionDir, "failure.json"),
         JSON.stringify({
           source: sharedUrl,
           capturedAt,
-          diagnostic: error.code || "export.extract-failed",
+          diagnostic: error.code,
           message: error.message,
           evidence: "capture/"
         }, null, 2) + "\n", { mode: 0o600 });
@@ -291,8 +355,14 @@ async function exportLink(rawUrl, destination)
       finalUrl: navigation.url,
       capturedAt,
       revision: name,
-      observedSettledAtBottom: observed.stable >= 2,
-      completeness: "visible-page-only; source-chat completeness not verifiable",
+      observedSettledAtBottom: observed.observedSettledAtBottom,
+      observedSettledAtTop: observed.observedSettledAtTop,
+      observedSegmentGaps: observed.observedSegmentGaps,
+      observedDownwardMessages: observed.observedDownwardMessages,
+      observedUpwardMessages: observed.observedUpwardMessages,
+      observedSegmentCaptures: observed.observedSegmentCaptures,
+      observationComplete: observed.observationComplete,
+      completeness: "scanned-rendered-windows-only; source-chat completeness not verifiable",
       messages: conversation.messages,
       assets: assets.records,
       capture: "capture/"
@@ -305,7 +375,10 @@ async function exportLink(rawUrl, destination)
       imagesDownloaded: assets.records.filter((asset) => asset.status === "downloaded").length,
       imagesUnavailable: assets.records.filter((asset) => asset.status !== "downloaded").length
         + conversation.messages.reduce((sum, message) => sum + message.missingImages.length, 0),
-      observedSettledAtBottom: data.observedSettledAtBottom };
+      observedSettledAtBottom: data.observedSettledAtBottom,
+      observedSettledAtTop: data.observedSettledAtTop,
+      observationComplete: data.observationComplete,
+      observedSegmentCaptures: data.observedSegmentCaptures };
   }
   catch (error)
   {
