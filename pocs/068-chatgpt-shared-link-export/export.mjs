@@ -303,7 +303,6 @@ async function _observe(page, sharedUrl, versionDir)
     observedSegmentCaptures: nextEvidence - 1,
     observationComplete: downward.reached && upward.reached
       && selected.gapCount === 0
-      && downward.messages.length === upward.messages.length
   };
 }
 
