@@ -57,7 +57,9 @@ function _markdown(node, context)
   {
     const raw = node.getAttribute("src") || node.getAttribute("data-src")
       || node.getAttribute("srcset")?.split(",")[0]?.trim().split(/\s+/)[0];
-    const src = _absoluteUrl(raw, context.baseUrl);
+    const inline = /^data:image\/(?:png|jpeg|gif|webp|avif);base64,[A-Za-z0-9+/=]+$/i.test(raw || "")
+      && raw.length <= 28 * 1024 * 1024;
+    const src = inline ? raw : _absoluteUrl(raw, context.baseUrl);
     const alt = (node.getAttribute("alt") || "image").replace(/[\[\]]/g, "");
     if (!src)
     {
