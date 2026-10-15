@@ -4,39 +4,39 @@ Status: Experimental. Not a published RumiAI command/package.
 
 ## Objective
 
-Accept one ChatGPT conversation sharing URL as the only application-specific input, open it via the provider-neutral public web-control command, and archive the rendered evidence and extractable visible messages in immutable numbered local revisions.
+Study complete structured snapshot capture for a user-authorized ChatGPT shared URL by reusing the existing working persistent CDP exporter. The earlier provider-neutral DOM-based exporter is retained only as a failed physical-site experiment.
 
 This is a **site-specific deterministic adapter**, not a web-control provider, web-sense agent, ChatGPT account export, or API integration.
 
 ## Persistent CDP snapshot experiment (original exporter reused)
 
-**This is the new active investigation after the physical failures of the DOM-scrolling exporter.** The legacy \`node export.mjs\` path remains in the repository as a comparison artifact, not as an accepted complete-chat exporter.
+**This is the new active investigation after the physical failures of the DOM-scrolling exporter.** The legacy `node export.mjs` path remains in the repository as a comparison artifact, not as an accepted complete-chat exporter.
 
-The original user-provided, proven macOS script is stored **unchanged** at \`reference/chatgpt-export-v3.py\`. The browser-share adapter \`export-share-cdp.py\` imports its existing \`WebSocket\`, \`CDP\`, call-frame evaluator, active-branch traversal, forensic export writer and multimodal object preservation. It changes **only** how the browser target is selected, how the shared URL is navigated, and how the *actual* browser renderer's structured snapshot is discovered. The native app's \`app://-/index.html\` breakpoint is **not** assumed to exist on \`chatgpt.com/share/\`.
+The original user-provided, proven macOS script is stored **unchanged** at `reference/chatgpt-export-v3.py`. The browser-share adapter `export-share-cdp.py` imports its existing `WebSocket`, `CDP`, call-frame evaluator, active-branch traversal, forensic export writer and multimodal object preservation. It changes **only** how the browser target is selected, how the shared URL is navigated, and how the *actual* browser renderer's structured snapshot is discovered. The native app's `app://-/index.html` breakpoint is **not** assumed to exist on `chatgpt.com/share/`.
 
-This experimental adapter does **not** use \`web-control\` or the provider's short-lived \`debug cdp\` command. A breakpoint must stay attached during navigation. It uses a separately launched, explicitly opt-in Chromium debugging target, bound to **localhost only**, and never changes browser provider configuration. Keep this browser profile dedicated to the PoC; CDP grants powerful access to all tabs in that browser. Do not expose its debugger port to the network.
+This experimental adapter does **not** use `web-control` or the provider's short-lived `debug cdp` command. A breakpoint must stay attached during navigation. It uses a separately launched, explicitly opt-in Chromium debugging target, bound to **localhost only**, and never changes browser provider configuration. Keep this browser profile dedicated to the PoC; CDP grants powerful access to all tabs in that browser. Do not expose its debugger port to the network.
 
-Start a dedicated Chrome/Chromium process on the physical test host in another terminal (choose the installed binary, \`chromium\` or \`google-chrome\`):
+Start a dedicated Chrome/Chromium process on the physical test host in another terminal (choose the installed binary, `chromium` or `google-chrome`):
 
-\`\`\`sh
+```sh
 CDP_PROFILE=$(mktemp -d)
 chromium --remote-debugging-address=127.0.0.1 --remote-debugging-port=9222 \
   --user-data-dir="$CDP_PROFILE" about:blank
-\`\`\`
+```
 
 Then from the PoC directory:
 
-\`\`\`sh
+```sh
 python3 export-share-cdp.py "https://chatgpt.com/share/<id>" "./archive" --port 9222
-\`\`\`
+```
 
-The new command creates a separate blank tab, attaches via the original persistent CDP WebSocket client, observes structured JSON actually delivered to the shared page, and if absent looks for the original semantic \`mergeActiveBranch\` marker **in the loaded HTTPS JavaScript**. It sets a breakpoint only if the marker is actually found and reloads the page without dropping the debugger session. It accepts the result only when it contains a valid \`mapping/current_node\` parent chain. No private endpoint, chat content, or internal API schema is invented.
+The new command creates a separate blank tab, attaches via the original persistent CDP WebSocket client, observes structured JSON actually delivered to the shared page, and if absent looks for the original semantic `mergeActiveBranch` marker **in the loaded HTTPS JavaScript**. It sets a breakpoint only if the marker is actually found and reloads the page without dropping the debugger session. It accepts the result only when it contains a valid `mapping/current_node` parent chain. No private endpoint, chat content, or internal API schema is invented.
 
-**Success** produces the original forensic outputs inside a uniquely named folder: \`conversation.raw.json.gz\`, \`TRANSCRIPT.md\`, \`VISIBLE_MESSAGES.jsonl\`, \`NON_TEXT_PARTS.json\`, \`AUDIT.json\`, \`SHA256SUMS\`, \`README.md\` and a ZIP, plus \`ACQUISITION.json\` stating the acquisition method. The original raw message objects retain multimodal metadata and file pointers, but the command does **not** claim to download image files or create a visual ChatGPT HTML clone. Those are separate tasks *after* structured capture.
+**Success** produces the original forensic outputs inside a uniquely named folder: `conversation.raw.json.gz`, `TRANSCRIPT.md`, `VISIBLE_MESSAGES.jsonl`, `NON_TEXT_PARTS.json`, `AUDIT.json`, `SHA256SUMS`, `README.md` and a ZIP, plus `ACQUISITION.json` stating the acquisition method. The original raw message objects retain multimodal metadata and file pointers, but the command does **not** claim to download image files or create a visual ChatGPT HTML clone. Those are separate tasks *after* structured capture.
 
-**Failure** (for example, no compatible hook or network snapshot in the real share page) exits nonzero, creates \`share-cdp-diagnostic.json\` with counts/phase and a specific failure identity, and does not fabricate a complete transcript. The real browser-share hook is **not yet verified on the user's physical host**; tests cannot prove that the macOS app and shared website use the same renderer hook. If no hook is found, the next activity is to examine the observed shared-page payload shape, not to return to DOM scroll hacks.
+**Failure** (for example, no compatible hook or network snapshot in the real share page) exits nonzero, creates `share-cdp-diagnostic.json` with counts/phase and a specific failure identity, and does not fabricate a complete transcript. The real browser-share hook is **not yet verified on the user's physical host**; tests cannot prove that the macOS app and shared website use the same renderer hook. If no hook is found, the next activity is to examine the observed shared-page payload shape, not to return to DOM scroll hacks.
 
-The user-supplied macOS exporter itself still works according to the user's physical validation, and has not been modified. The existence of CDP here does not imply that a Chrome browser shares its application-specific \`app://\` JavaScript code.
+The user-supplied macOS exporter itself still works according to the user's physical validation, and has not been modified. The existence of CDP here does not imply that a Chrome browser shares its application-specific `app://` JavaScript code.
 
 ## Earlier experimental DOM exporter (not physically accepted)
 
