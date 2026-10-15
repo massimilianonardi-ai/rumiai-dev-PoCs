@@ -412,6 +412,7 @@ async function exportLink(rawUrl, destination)
       imagesUnavailable: assets.records.filter((asset) => asset.status !== "downloaded").length
         + conversation.messages.reduce((sum, message) => sum + message.missingImages.length, 0),
       extractionMethod: data.extractionMethod,
+      observationComplete: data.observationComplete,
       observedSegmentCaptures: data.observedSegmentCaptures,
       observedBoundaryExtensions: data.observedBoundaryExtensions,
       observedNoEarlierPrefix: data.observedNoEarlierPrefix,
