@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { extractConversation, markdownDocument, relinkImages, mergeMessageWindows } from "../extract.mjs";
+import { extractConversation, markdownDocument, relinkImages, prependOlderMessages } from "../extract.mjs";
 
 const sharedUrl = "https://chatgpt.com/share/12345678-1234-1234-1234-123456789012";
 
@@ -102,7 +102,8 @@ test("retain user line breaks from whitespace-pre-wrap source", () =>
   assert.match(result.messages[0].markdown, /first\nsecond/);
 });
 
-test("merge windows from a page that only keeps neighboring turns mounted", () =>
+
+test("prepend only new numbered DOM turns and never duplicate complete windows", () =>
 {
   const window = (from, to) =>
   {
@@ -118,41 +119,52 @@ test("merge windows from a page that only keeps neighboring turns mounted", () =
       + nodes.join("") + "</body></html>", sharedUrl).messages;
   };
 
-  let assembled = [];
-  for (const current of [window(6, 9), window(4, 7), window(2, 5), window(0, 3)])
+  let assembled = window(6, 9);
+  for (const current of [window(4, 7), window(2, 5), window(0, 3)])
   {
-    const joined = mergeMessageWindows(assembled, current, -1);
-    assert.equal(joined.gap, false);
+    const joined = prependOlderMessages(assembled, current);
+    assert.equal(joined.added, 2);
     assembled = joined.messages;
   }
-  assert.deepEqual(assembled.map((m) => m.messageId),
-    Array.from({ length: 10 }, (_, i) => "msg-" + i));
+  for (let attempt = 0; attempt < 6; attempt += 1)
+  {
+    const same = prependOlderMessages(assembled, window(0, 9));
+    assert.equal(same.added, 0);
+    assembled = same.messages;
+  }
   assert.deepEqual(assembled.map((m) => m.turnIndex),
     Array.from({ length: 10 }, (_, i) => i));
 });
 
-test("repeated identical messages remain distinct when turn identities differ", () =>
+test("duplicate text with different numbered turns remains distinct", () =>
 {
   const first = extractConversation(
-    '<div data-testid="conversation-turn-1">'
-      + '<div data-message-author-role="user"><div class="whitespace-pre-wrap">OK</div></div></div>',
+    '<div data-testid="conversation-turn-2"><div data-message-author-role="user">OK</div></div>',
     sharedUrl).messages;
-  const second = extractConversation(
-    '<div data-testid="conversation-turn-2">'
-      + '<div data-message-author-role="user"><div class="whitespace-pre-wrap">OK</div></div></div>',
+  const previous = extractConversation(
+    '<div data-testid="conversation-turn-1"><div data-message-author-role="user">OK</div></div>',
     sharedUrl).messages;
-  const merged = mergeMessageWindows(first, second, 1);
-  assert.deepEqual(merged.messages.map((m) => m.turnIndex), [1, 2]);
-  assert.equal(merged.gap, false);
+  const joined = prependOlderMessages(first, previous);
+  assert.deepEqual(joined.messages.map((m) => m.turnIndex), [1, 2]);
 });
 
-test("report discontinuities instead of silently claiming full scan", () =>
+test("unidentified disjoint DOM chunks are not silently prepended", () =>
 {
   const first = extractConversation(
-    '<div data-testid="conversation-turn-1">'
-      + '<div data-message-author-role="assistant">A</div></div>', sharedUrl).messages;
-  const second = extractConversation(
-    '<div data-testid="conversation-turn-5">'
-      + '<div data-message-author-role="assistant">B</div></div>', sharedUrl).messages;
-  assert.equal(mergeMessageWindows(first, second, 1).gap, true);
+    '<div data-message-author-role="assistant">B</div>', sharedUrl).messages;
+  const previous = extractConversation(
+    '<div data-message-author-role="user">A</div>', sharedUrl).messages;
+  const joined = prependOlderMessages(first, previous);
+  assert.equal(joined.uncertain, true);
+  assert.equal(joined.added, 0);
+});
+
+test("SVG chart is retained as an HTML graphic reference", () =>
+{
+  const html = '<div data-message-author-role="assistant"><div class="markdown">'
+    + '<p>Distribution</p><svg width="400" height="200"><rect width="20" height="50"/></svg>'
+    + '</div></div>';
+  const chat = extractConversation(html, sharedUrl);
+  assert.match(chat.messages[0].markdown, /SVG graphic/);
+  assert.match(chat.messages[0].html, /<svg/);
 });
