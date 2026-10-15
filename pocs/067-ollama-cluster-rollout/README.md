@@ -62,6 +62,8 @@ version, visibility of `qwen3:4b`, and bounded real chat inference.
 
 ## Validation and remaining evidence
 
+On 2026-10-15, [GitHub Actions run 38702344501](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/38702344501) completed successfully for committed SHA `e516e5fd314716a2315392067ac9ef3ceab5d6f3`: `sh`/`dash`/`bash` syntax, simulated fleet sequencing, an extracted verifier using real SHA-256 on a disposable filesystem and isolated real Git forward/repeat/stale-HEAD tests all passed. The Git fixture substitutes systemd, API, package metadata and physical rsudo transport; these are not full live-cluster tests. The exact committed two-file code is still pending physical validation and NFS reconciliation parity remains intentionally open.
+
 `test-controller.sh` exercises the **simulated rsudo sequencing boundary**;
 `test-git-safety.sh` exercises real local Git in a disposable root Linux
 environment while mocking OS/service/API dependencies;
