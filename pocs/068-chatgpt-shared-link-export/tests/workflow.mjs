@@ -38,48 +38,22 @@ if (args[0] === "status") result = { browserRunning: true };
 else if (kind === "page new") result = { id: "simulated-page" };
 else if (kind === "page navigate") result = { url: args[3] };
 else if (kind === "page inspect") result = { html };
-else if (kind === "debug cdp")
+else if (kind === "page press")
 {
-  const params = JSON.parse(args[4]);
-  if (args[3] === "Input.dispatchMouseEvent")
+  if (windows)
   {
-    const delta = Number(params.deltaY);
-    if (windows)
+    if (offset > minimum())
     {
-      // The client may report a top edge of the currently loaded segment.
-      // Multiple wheel attempts at that edge are required to mount the prior
-      // segment and enlarge the scrollable region.
-      if (delta < 0 && offset === minimum() && process.env.SHARE_LAZY_TOP === "1"
-        && !state.unlocked)
-      {
-        state.topProbes += 1;
-        if (state.topProbes >= 6) state.unlocked = true;
-      }
-      offset = Math.max(minimum(), Math.min(windows.length - 1,
-        offset + Math.sign(delta)));
-      await saveState();
+      offset -= 1;
     }
-    result = {};
+    else if (process.env.SHARE_LAZY_TOP === "1" && !state.unlocked)
+    {
+      state.topProbes += 1;
+      if (state.topProbes >= 2) state.unlocked = true;
+    }
+    await saveState();
   }
-  else if (args[3] === "Runtime.evaluate")
-  {
-    result = {
-      result: {
-        type: "object",
-        value: {
-          source: windows ? "nested-element" : "document",
-          scrollY: windows ? (offset - minimum()) * 450 : 0,
-          documentHeight: windows ? (windows.length - minimum()) * 450 : 600,
-          viewportHeight: windows ? 450 : 900,
-          atTop: !windows || offset === minimum(),
-          atBottom: !windows || offset === windows.length - 1,
-          x: 400,
-          y: 300
-        }
-      }
-    };
-  }
-  else throw new Error("unexpected CDP method: " + args[3]);
+  result = { pressed: true };
 }
 else if (kind === "page scroll")
 {
@@ -212,10 +186,9 @@ test("real CLI assembles virtualized windows and preserves evicted image referen
     const result = JSON.parse((await execFileAsync(process.execPath,
       [exporter, share, directory], { env })).stdout);
     assert.equal(result.messageCount, 10);
-    assert.equal(result.observedSettledAtBottom, true);
-    assert.equal(result.observedSettledAtTop, true);
     assert.equal(result.observationComplete, false);
-    assert.equal(result.scrollSource, "nested-element");
+    assert.equal(result.extractionMethod, "dom-prefix");
+    assert.ok(result.observedBoundaryExtensions >= 3);
     assert.ok(result.observedSegmentCaptures >= 4);
     const data = JSON.parse(await fs.readFile(
       path.join(directory, "0001", "conversation.json"), "utf8"));
@@ -230,7 +203,7 @@ test("real CLI assembles virtualized windows and preserves evicted image referen
   });
 });
 
-test("CLI waits at a false top boundary until an earlier segment mounts", async () =>
+test("CLI reloads older segments at a false top boundary using only public DOM/press commands", async () =>
 {
   const render = (numbers) => '<html><head><title>Segments</title></head><body>'
     + numbers.map((i) => '<div data-testid="conversation-turn-' + i + '">'
@@ -246,9 +219,8 @@ test("CLI waits at a false top boundary until an earlier segment mounts", async 
     const result = JSON.parse((await execFileAsync(process.execPath,
       [exporter, share, directory], { env, timeout: 240000 })).stdout);
     assert.equal(result.messageCount, 10);
-    assert.equal(result.observedSettledAtTop, true);
     assert.equal(result.observationComplete, false);
-    assert.ok(result.observedBoundaryExtensions > 0);
+    assert.ok(result.observedBoundaryExtensions >= 3);
     const state = JSON.parse(await fs.readFile(env.SHARE_SCROLL_FILE, "utf8"));
     assert.equal(state.unlocked, true);
     const data = JSON.parse(await fs.readFile(
