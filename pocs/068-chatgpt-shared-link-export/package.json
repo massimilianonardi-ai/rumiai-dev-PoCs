@@ -1,0 +1,17 @@
+{
+  "name": "chatgpt-shared-link-export-poc",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Experimental ChatGPT shared conversation exporter over web-control",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "linkedom": "0.18.13"
+  },
+  "scripts": {
+    "test": "node --test tests/*.mjs",
+    "check": "node --check export.mjs && node --check extract.mjs"
+  }
+}
