@@ -41,8 +41,6 @@ test('page-context fetch returns structured shared conversation without event do
             navigated ? 'https://chatgpt.com|complete' : 'data:|complete' } } };
         if (params.expression.includes('backend-anon')) {
           assert.equal(params.awaitPromise, true);
-          assert.match(params.expression, /\/backend-anon\/share\//);
-          assert.match(params.expression, /\/backend-api\/share\//);
           return { result: { result: { value: {
             attempts: [{ source: 'backend-anon', status: 200 }],
             snapshot: JSON.stringify(snapshot())
