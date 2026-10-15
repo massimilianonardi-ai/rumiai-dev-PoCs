@@ -295,3 +295,67 @@ export function mergeMessageWindows(existing, incoming, direction)
     && left.at(-1).turnIndex + 1 === right[0].turnIndex;
   return { messages: joined, gap: overlap === 0 && !adjacent };
 }
+
+/**
+ * Prepend only demonstrably older turns from a newly rendered DOM window.
+ * A matching text body is not a stable identity: messages can be identical.
+ * With no IDs/indices, require an actual overlapping suffix/prefix.
+ */
+export function prependOlderMessages(existing, incoming)
+{
+  if (!existing.length) return { messages: [...incoming], added: incoming.length, uncertain: false };
+  if (!incoming.length) return { messages: existing, added: 0, uncertain: false };
+
+  const key = (m) => m.messageId
+    ? "id:" + m.messageId
+    : Number.isSafeInteger(m.turnIndex) ? "turn:" + m.turnIndex : null;
+  const seen = new Set(existing.map(key).filter(Boolean));
+  const knownMin = Math.min(...existing.map((m) =>
+    Number.isSafeInteger(m.turnIndex) ? m.turnIndex : Infinity));
+  const indexed = incoming.filter((m) => Number.isSafeInteger(m.turnIndex));
+  const hasIndices = Number.isFinite(knownMin) && indexed.length === incoming.length;
+
+  if (hasIndices)
+  {
+    const older = incoming.filter((m) => m.turnIndex < knownMin && !seen.has(key(m)));
+    const unique = [...new Map(older.map((m) => [m.turnIndex, m])).values()];
+    unique.sort((a, b) => a.turnIndex - b.turnIndex);
+    return { messages: [...unique, ...existing], added: unique.length, uncertain: false };
+  }
+
+  const existingFirst = key(existing[0]);
+  const anchor = existingFirst ? incoming.findIndex((m) => key(m) === existingFirst) : -1;
+  if (anchor >= 0)
+  {
+    const prefix = incoming.slice(0, anchor).filter((m) => key(m) && !seen.has(key(m)));
+    return { messages: [...prefix, ...existing], added: prefix.length, uncertain: false };
+  }
+
+  // Without observed identity, accept only a contiguous overlap. Never
+  // silently append an apparently different whole viewport as a new segment.
+  for (let count = Math.min(existing.length, incoming.length); count > 0; count -= 1)
+  {
+    const matches = incoming.slice(-count).every((m, i) =>
+    {
+      const prior = existing[i];
+      const leftKey = key(m);
+      const rightKey = key(prior);
+      return leftKey && rightKey ? leftKey === rightKey
+        : m.role === prior.role && m.markdown === prior.markdown;
+    });
+    if (matches)
+    {
+      const prefix = incoming.slice(0, incoming.length - count);
+      return { messages: [...prefix, ...existing], added: prefix.length, uncertain: false };
+    }
+  }
+
+  // A completely disjoint window may represent a real skipped segment,
+  // but cannot be ordered/deduplicated conclusively without stronger IDs.
+  if (incoming.every((m) => key(m)) && existing.every((m) => key(m)))
+  {
+    const prefix = incoming.filter((m) => !seen.has(key(m)));
+    return { messages: [...prefix, ...existing], added: prefix.length, uncertain: true };
+  }
+  return { messages: existing, added: 0, uncertain: true };
+}
