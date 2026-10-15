@@ -79,14 +79,90 @@ function classification(message) {
   if (!['user', 'assistant'].includes(role)) return 'internal_role:' + String(role);
   if (INTERNAL_TYPES.has(message.content?.content_type)) return 'internal_reasoning';
   if (role === 'assistant' && message.channel === 'analysis') return 'assistant_analysis';
+  if (role === 'assistant' && message.channel === 'commentary' &&
+      [undefined, null, '', 'all'].includes(message.recipient))
+    return 'assistant_commentary';
   if (role === 'assistant' && ![undefined, null, '', 'all'].includes(message.recipient))
     return 'assistant_tool_invocation';
   return 'visible_candidate';
 }
 
+function auditNode(ordinal, id, msg, content, kind, found, included) {
+  return { ordinal, node_id: id, message_id: msg.id ?? null,
+    role: msg.author?.role ?? null, channel: msg.channel ?? null,
+    recipient: msg.recipient ?? null, content_type: content.content_type ?? null,
+    status: msg.status ?? null, end_turn: msg.end_turn ?? null,
+    weight: msg.weight ?? null,
+    visually_hidden: msg.metadata?.is_visually_hidden_from_conversation === true,
+    thinking_preamble: msg.metadata?.is_thinking_preamble_message === true,
+    message_type: msg.metadata?.message_type ?? null,
+    is_complete: msg.metadata?.is_complete ?? null,
+    classification: kind, included,
+    text_length: found.text.length, non_text_parts: found.nonText.length };
+}
+
+function publicSurface(entry) {
+  return { ordinal: entry.ordinal, node_id: entry.id,
+    message_id: entry.msg.id ?? null, role: entry.role,
+    channel: entry.msg.channel ?? null,
+    content_type: entry.content.content_type ?? null,
+    create_time: entry.msg.create_time ?? null, text: entry.found.text,
+    non_text_parts: entry.found.nonText };
+}
+
+function activitySurface(entry) {
+  const text = ['assistant_commentary', 'assistant_tool_invocation']
+    .includes(entry.kind) ? entry.found.text : null;
+  return { ordinal: entry.ordinal, node_id: entry.id,
+    message_id: entry.msg.id ?? null, kind: entry.kind, role: entry.role,
+    channel: entry.msg.channel ?? null, recipient: entry.msg.recipient ?? null,
+    content_type: entry.content.content_type ?? null,
+    text, text_length: entry.found.text.length,
+    non_text_parts: entry.found.nonText.length };
+}
+
+function deriveTurns(entries) {
+  const turns = [];
+  let turn = null;
+  const close = () => {
+    if (!turn) return;
+    turn.complete = Boolean(turn.user && turn.assistant);
+    turns.push(turn);
+    turn = null;
+  };
+  for (const entry of entries) {
+    if (entry.kind === 'visible_candidate' && entry.role === 'user') {
+      close();
+      turn = { index: turns.length, user: publicSurface(entry),
+        activities: [], assistant: null, hidden_nodes: [],
+        anomalies: [], complete: false };
+      continue;
+    }
+    if (!turn) continue;
+    if (entry.kind === 'visible_candidate' && entry.role === 'assistant') {
+      if (!turn.assistant) turn.assistant = publicSurface(entry);
+      else turn.anomalies.push({ kind: 'additional_visible_assistant',
+        ordinal: entry.ordinal, node_id: entry.id });
+      continue;
+    }
+    if (['assistant_commentary', 'assistant_analysis', 'assistant_tool_invocation',
+      'tool_traffic', 'internal_reasoning'].includes(entry.kind)) {
+      turn.activities.push(activitySurface(entry));
+      continue;
+    }
+    if (['visually_hidden', 'thinking_preamble', 'zero_weight',
+      'empty_assistant_node'].includes(entry.kind)) {
+      turn.hidden_nodes.push({ ordinal: entry.ordinal, node_id: entry.id,
+        message_id: entry.msg.id ?? null, classification: entry.kind });
+    }
+  }
+  close();
+  return turns;
+}
+
 export function deriveTranscript(snapshot) {
   const ids = activeBranch(snapshot);
-  const visible = [], nonTextParts = [], nodes = [], counts = {};
+  const visible = [], nonTextParts = [], nodes = [], counts = {}, entries = [];
   ids.forEach((id, ordinal) => {
     const node = snapshot.mapping[id];
     const msg = node.message;
@@ -103,27 +179,21 @@ export function deriveTranscript(snapshot) {
       kind = 'empty_assistant_node';
     const included = kind === 'visible_candidate';
     counts[kind] = (counts[kind] || 0) + 1;
-    nodes.push({ ordinal, node_id: id, message_id: msg.id ?? null, role,
-      channel: msg.channel ?? null, recipient: msg.recipient ?? null,
-      content_type: content.content_type ?? null, status: msg.status ?? null,
-      end_turn: msg.end_turn ?? null, weight: msg.weight ?? null,
-      visually_hidden: msg.metadata?.is_visually_hidden_from_conversation === true,
-      thinking_preamble: msg.metadata?.is_thinking_preamble_message === true,
-      message_type: msg.metadata?.message_type ?? null,
-      is_complete: msg.metadata?.is_complete ?? null,
-      classification: kind, included,
-      text_length: found.text.length, non_text_parts: found.nonText.length });
+    nodes.push(auditNode(ordinal, id, msg, content, kind, found, included));
+    const entry = { ordinal, id, node, msg, role, content, found, kind };
+    entries.push(entry);
     if (!included) return;
     visible.push({ ordinal, node_id: id, parent: node.parent ?? null,
       message_id: msg.id ?? null, role, channel: msg.channel ?? null,
       recipient: msg.recipient ?? null, content_type: content.content_type ?? null,
       create_time: msg.create_time ?? null, text: found.text, message: msg });
-    for (const entry of found.nonText) nonTextParts.push({
+    for (const item of found.nonText) nonTextParts.push({
       ordinal, node_id: id, message_id: msg.id ?? null, role,
-      content_type: content.content_type ?? null, ...entry
+      content_type: content.content_type ?? null, ...item
     });
   });
-  return { ids, visible, nonTextParts, nodes, counts };
+  const turns = deriveTurns(entries);
+  return { ids, visible, nonTextParts, nodes, counts, turns };
 }
 
 function sha(buffer) { return createHash('sha256').update(buffer).digest('hex'); }
@@ -222,6 +292,9 @@ export async function exportSnapshot(snapshot, selected, outputRoot, source, met
     transcript: { visible_messages: transcript.visible.length,
       visible_user_messages: transcript.visible.filter(x => x.role === 'user').length,
       visible_assistant_messages: transcript.visible.filter(x => x.role === 'assistant').length,
+      turns: transcript.turns.length,
+      complete_turns: transcript.turns.filter(x => x.complete).length,
+      activity_surface_nodes: transcript.turns.reduce((n, x) => n + x.activities.length, 0),
       non_text_parts: transcript.nonTextParts.length, classification_counts: transcript.counts },
     nodes: transcript.nodes
   };
@@ -231,6 +304,7 @@ export async function exportSnapshot(snapshot, selected, outputRoot, source, met
   const items = [
     ['conversation.raw.json.gz', gzipSync(raw, { level: 9, mtime: 0 })],
     ['VISIBLE_MESSAGES.jsonl', Buffer.from(transcript.visible.map(x => JSON.stringify(x)).join('\n') + '\n')],
+    ['TURN_SURFACES.jsonl', Buffer.from(transcript.turns.map(x => JSON.stringify(x)).join('\n') + '\n')],
     ['TRANSCRIPT.md', Buffer.from('# ' + title + '\n\nConversation ID: ' +
       (snapshot.conversation_id || '') + '\n\n' +
       '<!-- Text from structured snapshot; non-text objects in VISIBLE_MESSAGES.jsonl. -->\n\n' + markdown)],
@@ -238,7 +312,9 @@ export async function exportSnapshot(snapshot, selected, outputRoot, source, met
     ['AUDIT.json', Buffer.from(pretty(audit))],
     ['ACQUISITION.json', Buffer.from(pretty(acquisition))],
     ['README.md', Buffer.from('# ChatGPT conversation export\n\n' +
-      'Raw structured snapshot, active-branch transcript and non-text parts are retained.\n' +
+      'Raw structured snapshot, renderer-visible transcript, turn-surface structure and non-text parts are retained.\n' +
+      'TURN_SURFACES.jsonl separates user/final-response surfaces from activity/tool/reasoning metadata.\n' +
+      'Internal reasoning text is not promoted into the readable transcript.\n' +
       'Image references survive as metadata, but images and rendered charts are NOT downloaded.\n')]
   ];
   for (const [name, bytes] of items)

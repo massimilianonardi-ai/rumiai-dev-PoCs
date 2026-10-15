@@ -82,6 +82,45 @@ test('omits renderer-hidden assistant nodes before transcript rendering', () => 
   assert.equal(visible.is_complete, true);
 });
 
+test('separates renderer activity surfaces from the main transcript', () => {
+  const data = { current_node: 'answer', mapping: {
+    user: { parent: null, message: { id: 'u', author: { role: 'user' },
+      content: { parts: ['Question'] }, weight: 1 } },
+    commentary: { parent: 'user', message: { id: 'c', author: { role: 'assistant' },
+      channel: 'commentary', recipient: 'all', content: { parts: ['Checking sources'] },
+      weight: 1 } },
+    toolCall: { parent: 'commentary', message: { id: 'tc', author: { role: 'assistant' },
+      channel: 'commentary', recipient: 'python', content: { content_type: 'code',
+        text: 'print(1)' }, weight: 1 } },
+    toolOut: { parent: 'toolCall', message: { id: 'to', author: { role: 'tool' },
+      channel: 'commentary', recipient: 'all', content: { content_type: 'execution_output',
+        text: '1' }, weight: 1 } },
+    reasoning: { parent: 'toolOut', message: { id: 'r', author: { role: 'assistant' },
+      content: { content_type: 'thoughts', text: 'private reasoning' }, weight: 1 } },
+    hidden: { parent: 'reasoning', message: { id: 'h', author: { role: 'assistant' },
+      channel: 'final', recipient: 'all', content: { parts: ['Hidden draft'] },
+      metadata: { is_visually_hidden_from_conversation: true }, weight: 1 } },
+    answer: { parent: 'hidden', message: { id: 'a', author: { role: 'assistant' },
+      channel: 'final', recipient: 'all', content: { parts: ['Answer'] },
+      metadata: { is_complete: true }, status: 'finished_successfully',
+      end_turn: true, weight: 1 } }
+  } };
+  const derived = deriveTranscript(data);
+  assert.deepEqual(derived.visible.map(x => x.text), ['Question', 'Answer']);
+  assert.equal(derived.counts.assistant_commentary, 1);
+  assert.equal(derived.turns.length, 1);
+  assert.equal(derived.turns[0].complete, true);
+  assert.equal(derived.turns[0].user.text, 'Question');
+  assert.equal(derived.turns[0].assistant.text, 'Answer');
+  assert.deepEqual(derived.turns[0].activities.map(x => x.kind),
+    ['assistant_commentary', 'assistant_tool_invocation', 'tool_traffic', 'internal_reasoning']);
+  assert.equal(derived.turns[0].activities[0].text, 'Checking sources');
+  assert.equal(derived.turns[0].activities[1].text, 'print(1)');
+  assert.equal(derived.turns[0].activities[2].text, null);
+  assert.equal(derived.turns[0].activities[3].text, null);
+  assert.deepEqual(derived.turns[0].hidden_nodes.map(x => x.node_id), ['hidden']);
+});
+
 test('rejects invalid or cycling parent chains', () => {
   const broken = snapshot();
   broken.mapping.user.parent = 'missing';
@@ -103,7 +142,13 @@ test('writes immutable forensic export, gzip, multimodal JSONL and readable ZIP'
       assert.deepEqual(raw, snapshot());
       const zip = readZip(await fs.readFile(result.zip));
       assert.ok(zip.has('TRANSCRIPT.md'));
+      assert.ok(zip.has('TURN_SURFACES.jsonl'));
       assert.ok(zip.has('SHA256SUMS'));
+      const turns = zip.get('TURN_SURFACES.jsonl').toString().trim().split('\n')
+        .filter(Boolean).map(line => JSON.parse(line));
+      assert.equal(turns.length, 1);
+      assert.equal(turns[0].user.text, 'Hello');
+      assert.equal(turns[0].assistant.text, 'Chart ');
       assert.equal(JSON.parse(zip.get('NON_TEXT_PARTS.json')).length, 1);
       assert.equal(result.messageCount, 2);
       assert.equal(result.imagesDownloaded, 0);
