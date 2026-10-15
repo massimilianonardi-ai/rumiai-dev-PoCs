@@ -43,7 +43,13 @@ function _markdown(node, context)
   if (node.nodeType !== 1) return "";
 
   const tag = node.localName.toLowerCase();
-  if (["button", "svg", "script", "style", "noscript", "template"].includes(tag)) return "";
+  if (tag === "svg")
+  {
+    return node.querySelector("path,rect,circle,ellipse,line,polygon,polyline")
+      ? "\n\n[SVG graphic — see conversation.html]\n\n" : "";
+  }
+  if (tag === "canvas") return "\n\n[Canvas graphic — unavailable in DOM export]\n\n";
+  if (["button", "script", "style", "noscript", "template"].includes(tag)) return "";
   if (node.getAttribute("aria-hidden") === "true") return "";
 
   if (tag === "br") return "\n";
@@ -118,7 +124,12 @@ function _messageContent(turn)
   const explicit = turn.querySelectorAll("[data-testid='message-content']");
   if (explicit.length === 1) return explicit[0];
   const markdown = turn.querySelectorAll(".markdown");
-  if (markdown.length === 1) return markdown[0];
+  if (markdown.length === 1)
+  {
+    const separateGraphic = [...turn.querySelectorAll("svg,canvas")].some((graphic) =>
+      !markdown[0].contains(graphic) && !graphic.closest("button,[aria-hidden='true']"));
+    if (!separateGraphic) return markdown[0];
+  }
   if (markdown.length > 1 || explicit.length > 1) return turn;
   return turn.querySelector(".whitespace-pre-wrap") || turn;
 }
@@ -226,74 +237,6 @@ export function relinkImages(conversation, downloaded)
       message.markdown = message.markdown.split("(<" + url + ">)").join("(<" + local + ">)");
     }
   }
-}
-
-/**
- * Merge consecutive virtualized DOM windows while scrolling in one direction.
- * The supplied windows are visible evidence, not a claim of full chat history.
- * Identity from rendered turn attributes takes precedence over repeated text.
- */
-export function mergeMessageWindows(existing, incoming, direction)
-{
-  if (direction !== 1 && direction !== -1) throw new TypeError("invalid scan direction");
-  if (!incoming.length) return { messages: existing, gap: false };
-  if (!existing.length) return { messages: [...incoming], gap: false };
-
-  function same(a, b)
-  {
-    if (a.messageId && b.messageId) return a.messageId === b.messageId;
-    if (a.turnIndex !== null && b.turnIndex !== null)
-    {
-      return a.turnIndex === b.turnIndex;
-    }
-    return a.role === b.role && a.markdown === b.markdown;
-  }
-
-  function richer(a, b)
-  {
-    const score = (m) => m.imageUrls.length * 10000
-      + (m.missingImages.length ? 0 : 1000) + m.markdown.length;
-    return score(b) > score(a) ? b : a;
-  }
-
-  // A scrolling view may be wholly contained in the already observed window.
-  for (let offset = 0; offset <= existing.length - incoming.length; offset += 1)
-  {
-    if (incoming.every((message, index) => same(message, existing[offset + index])))
-    {
-      const merged = [...existing];
-      incoming.forEach((message, index) =>
-      {
-        merged[offset + index] = richer(merged[offset + index], message);
-      });
-      return { messages: merged, gap: false };
-    }
-  }
-
-  const left = direction === 1 ? existing : incoming;
-  const right = direction === 1 ? incoming : existing;
-  let overlap = 0;
-  for (let count = Math.min(left.length, right.length); count > 0; count -= 1)
-  {
-    if (left.slice(-count).every((message, index) => same(message, right[index])))
-    {
-      overlap = count;
-      break;
-    }
-  }
-
-  const joined = left.slice(0, left.length - overlap).concat(right);
-  for (let index = 0; index < overlap; index += 1)
-  {
-    const at = left.length - overlap + index;
-    joined[at] = richer(joined[at], right[index]);
-  }
-
-  const adjacent = !overlap
-    && left.at(-1)?.turnIndex !== null
-    && right[0]?.turnIndex !== null
-    && left.at(-1).turnIndex + 1 === right[0].turnIndex;
-  return { messages: joined, gap: overlap === 0 && !adjacent };
 }
 
 /**
