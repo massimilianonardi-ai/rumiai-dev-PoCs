@@ -5,10 +5,12 @@ set -eu
 [ "$(id -u)" -eq 0 ] || { echo 'requires disposable root container' >&2; exit 77; }
 [ ! -e /m ] || { echo '/m exists: refusing to overwrite runtime content' >&2; exit 77; }
 script_dir=$(CDPATH= cd "$(dirname "$0")" && pwd)
+. "$script_dir/controller.lib.sh"
 base=$(mktemp -d)
 cleanup() { rm -rf -- "$base"; rm -rf -- /m; }
 trap cleanup EXIT HUP INT TERM
 mkdir -p "$base/bin" /m/src/git /m/ai/runtime/ollama/0.35.1-cpu
+cluster_remote_source > "$base/host.sh"
 cat > "$base/bin/systemctl" <<'SYSTEMCTL'
 #!/bin/sh
 case "$1" in is-enabled) echo enabled;; is-active) echo active;; *) exit 1;; esac
@@ -69,19 +71,23 @@ for n in sys ext ai; do ln -s "$n-linux-x86_64" "$root/bin/$n-osarch"; done
 echo 'must-survive' > "$root/operational-state"
 # Any unrelated tracked modification must fail preflight.
 echo unauthorized > "$root/marker"
-if sh "$script_dir/host.sh" check "$pin" "$artifact_sha" gis - > "$base/rejected.log" 2>&1
+if sh "$base/host.sh" check "$pin" "$artifact_sha" gis - > "$base/rejected.log" 2>&1
 then echo 'FAIL: unrelated edit passed' >&2; exit 1; fi
 grep -q 'unmanaged tracked modification' "$base/rejected.log"
 git -C "$root" restore -- marker
 # Expected head must be preserved, exact target applied, untracked state retained.
-sh "$script_dir/host.sh" check "$pin" "$artifact_sha" gis - > "$base/check.log"
+sh "$base/host.sh" check "$pin" "$artifact_sha" gis - > "$base/check.log"
 grep -q "old=$old target=$pin" "$base/check.log"
-sh "$script_dir/host.sh" apply "$pin" "$artifact_sha" gis "$old" > "$base/apply.log"
+sh "$base/host.sh" apply "$pin" "$artifact_sha" gis "$old" > "$base/apply.log"
 [ "$(git -C "$root" rev-parse HEAD)" = "$pin" ]
 [ "$(cat "$root/operational-state")" = 'must-survive' ]
 grep -q 'CLUSTER APPLY OK' "$base/apply.log"
+# Reapply the exact pin. The normal path must not recreate or restart an
+# already healthy, unchanged service; all existing operational state remains.
+sh "$base/host.sh" apply "$pin" "$artifact_sha" gis "$pin" > "$base/idempotent.log"
+grep -q 'CLUSTER APPLY OK' "$base/idempotent.log"
 # A moving expected HEAD must be rejected instead of merging.
-if sh "$script_dir/host.sh" apply "$pin" "$artifact_sha" gis "$old" > "$base/stale.log" 2>&1
+if sh "$base/host.sh" apply "$pin" "$artifact_sha" gis "$old" > "$base/stale.log" 2>&1
 then echo 'FAIL: stale expected HEAD passed' >&2; exit 1; fi
 grep -q 'concurrent runtime revision change' "$base/stale.log"
 echo 'PASS: isolated git safety, pin, idempotent forward update, untracked preservation'
