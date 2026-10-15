@@ -156,7 +156,7 @@ test('writes immutable forensic export, gzip, multimodal JSONL and readable ZIP'
         const manifest = JSON.parse(zip.get('MEDIA.json'));
         assert.equal(manifest[0].status, 'downloaded');
         assert.equal(manifest[0].local_path, 'media/001-file_1.png');
-        assert.match(zip.get('TRANSCRIPT.md').toString(), /!\[immagine 1×1\]\(media\/001-file_1\.png\)/);
+        assert.match(zip.get('TRANSCRIPT.md').toString(), /!\[immagine\]\(media\/001-file_1\.png\)/);
       }
       const turns = zip.get('TURN_SURFACES.jsonl').toString().trim().split('\n')
         .filter(Boolean).map(line => JSON.parse(line));
