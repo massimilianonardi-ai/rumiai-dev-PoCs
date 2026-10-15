@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { extractConversation, markdownDocument, relinkImages } from "../extract.mjs";
+import { extractConversation, markdownDocument, relinkImages, mergeMessageWindows } from "../extract.mjs";
 
 const sharedUrl = "https://chatgpt.com/share/12345678-1234-1234-1234-123456789012";
 
@@ -100,4 +100,59 @@ test("retain user line breaks from whitespace-pre-wrap source", () =>
     + '<div class="whitespace-pre-wrap">first\nsecond</div></div>';
   const result = extractConversation(html, sharedUrl);
   assert.match(result.messages[0].markdown, /first\nsecond/);
+});
+
+test("merge windows from a page that only keeps neighboring turns mounted", () =>
+{
+  const window = (from, to) =>
+  {
+    const nodes = [];
+    for (let i = from; i <= to; i += 1)
+    {
+      nodes.push('<div data-testid="conversation-turn-' + i + '">'
+        + '<article data-message-id="msg-' + i + '" data-message-author-role="'
+        + (i % 2 ? "assistant" : "user") + '"><div class="markdown">'
+        + '<p>Message ' + i + '</p></div></article></div>');
+    }
+    return extractConversation('<html><title>Dynamic share</title><body>'
+      + nodes.join("") + "</body></html>", sharedUrl).messages;
+  };
+
+  let assembled = [];
+  for (const current of [window(6, 9), window(4, 7), window(2, 5), window(0, 3)])
+  {
+    const joined = mergeMessageWindows(assembled, current, -1);
+    assert.equal(joined.gap, false);
+    assembled = joined.messages;
+  }
+  assert.deepEqual(assembled.map((m) => m.messageId),
+    Array.from({ length: 10 }, (_, i) => "msg-" + i));
+  assert.deepEqual(assembled.map((m) => m.turnIndex),
+    Array.from({ length: 10 }, (_, i) => i));
+});
+
+test("repeated identical messages remain distinct when turn identities differ", () =>
+{
+  const first = extractConversation(
+    '<div data-testid="conversation-turn-1">'
+      + '<div data-message-author-role="user"><div class="whitespace-pre-wrap">OK</div></div></div>',
+    sharedUrl).messages;
+  const second = extractConversation(
+    '<div data-testid="conversation-turn-2">'
+      + '<div data-message-author-role="user"><div class="whitespace-pre-wrap">OK</div></div></div>',
+    sharedUrl).messages;
+  const merged = mergeMessageWindows(first, second, 1);
+  assert.deepEqual(merged.messages.map((m) => m.turnIndex), [1, 2]);
+  assert.equal(merged.gap, false);
+});
+
+test("report discontinuities instead of silently claiming full scan", () =>
+{
+  const first = extractConversation(
+    '<div data-testid="conversation-turn-1">'
+      + '<div data-message-author-role="assistant">A</div></div>', sharedUrl).messages;
+  const second = extractConversation(
+    '<div data-testid="conversation-turn-5">'
+      + '<div data-message-author-role="assistant">B</div></div>', sharedUrl).messages;
+  assert.equal(mergeMessageWindows(first, second, 1).gap, true);
 });
