@@ -20,9 +20,17 @@ const kind = args.slice(0, 2).join(" ");
 const windows = process.env.SHARE_WINDOWS_JSON
   ? JSON.parse(process.env.SHARE_WINDOWS_JSON) : null;
 const offsetFile = process.env.SHARE_SCROLL_FILE;
-let offset = windows
-  ? Number(await fs.readFile(offsetFile, "utf8").catch(() => String(windows.length - 1)))
-  : 0;
+const initialState = windows ? JSON.parse(await fs.readFile(offsetFile, "utf8")
+  .catch(() => JSON.stringify({ offset: windows.length - 1, topProbes: 0, unlocked: false })))
+  : { offset: 0, topProbes: 0, unlocked: true };
+let state = initialState;
+let offset = state.offset;
+const minimum = () => process.env.SHARE_LAZY_TOP === "1" && !state.unlocked ? 2 : 0;
+async function saveState()
+{
+  state.offset = offset;
+  await fs.writeFile(offsetFile, JSON.stringify(state));
+}
 let html = windows ? windows[offset] : await fs.readFile(process.env.SHARE_HTML_FILE, "utf8");
 let result;
 
@@ -33,26 +41,45 @@ else if (kind === "page inspect") result = { html };
 else if (kind === "debug cdp")
 {
   const params = JSON.parse(args[4]);
-  const delta = Number(params.expression.match(/\}\)\((-?\d+)\)$/)?.[1] || 0);
-  if (windows)
+  if (args[3] === "Input.dispatchMouseEvent")
   {
-    offset = Math.max(0, Math.min(windows.length - 1,
-      offset + Math.sign(delta)));
-    await fs.writeFile(offsetFile, String(offset));
-  }
-  result = {
-    result: {
-      type: "object",
-      value: {
-        source: windows ? "nested-element" : "document",
-        scrollY: windows ? offset * 450 : 0,
-        documentHeight: windows ? windows.length * 450 : 600,
-        viewportHeight: windows ? 450 : 900,
-        atTop: !windows || offset === 0,
-        atBottom: !windows || offset === windows.length - 1
+    const delta = Number(params.deltaY);
+    if (windows)
+    {
+      // The client may report a top edge of the currently loaded segment.
+      // Multiple wheel attempts at that edge are required to mount the prior
+      // segment and enlarge the scrollable region.
+      if (delta < 0 && offset === minimum() && process.env.SHARE_LAZY_TOP === "1"
+        && !state.unlocked)
+      {
+        state.topProbes += 1;
+        if (state.topProbes >= 6) state.unlocked = true;
       }
+      offset = Math.max(minimum(), Math.min(windows.length - 1,
+        offset + Math.sign(delta)));
+      await saveState();
     }
-  };
+    result = {};
+  }
+  else if (args[3] === "Runtime.evaluate")
+  {
+    result = {
+      result: {
+        type: "object",
+        value: {
+          source: windows ? "nested-element" : "document",
+          scrollY: windows ? (offset - minimum()) * 450 : 0,
+          documentHeight: windows ? (windows.length - minimum()) * 450 : 600,
+          viewportHeight: windows ? 450 : 900,
+          atTop: !windows || offset === minimum(),
+          atBottom: !windows || offset === windows.length - 1,
+          x: 400,
+          y: 300
+        }
+      }
+    };
+  }
+  else throw new Error("unexpected CDP method: " + args[3]);
 }
 else if (kind === "page scroll")
 {
@@ -60,7 +87,7 @@ else if (kind === "page scroll")
   {
     offset = Math.max(0, Math.min(windows.length - 1,
       offset + Math.sign(Number(args[3]))));
-    await fs.writeFile(offsetFile, String(offset));
+    await saveState();
   }
   result = { scrollY: offset * 600, documentHeight: windows?.length * 600 || 600,
     viewportHeight: 600, atBottom: !windows || offset === windows.length - 1 };
@@ -80,7 +107,7 @@ else throw new Error("unhandled simulated command " + JSON.stringify(args));
 process.stdout.write(JSON.stringify(result) + "\n");
 `;
 
-async function fixtureRun(html, run)
+async function fixtureRun(html, run, options = {})
 {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "chatgpt-shared-export-poc-"));
   const htmlPath = path.join(root, "shared.html");
@@ -96,7 +123,8 @@ async function fixtureRun(html, run)
         WEB_CONTROL_CMD: command,
         SHARE_HTML_FILE: htmlPath,
         SHARE_WINDOWS_JSON: Array.isArray(html) ? JSON.stringify(html) : "",
-        SHARE_SCROLL_FILE: path.join(root, "scroll-state")
+        SHARE_SCROLL_FILE: path.join(root, "scroll-state"),
+        SHARE_LAZY_TOP: options.lazyTop ? "1" : ""
       }
     });
   }
@@ -186,7 +214,7 @@ test("real CLI assembles virtualized windows and preserves evicted image referen
     assert.equal(result.messageCount, 10);
     assert.equal(result.observedSettledAtBottom, true);
     assert.equal(result.observedSettledAtTop, true);
-    assert.equal(result.observationComplete, true);
+    assert.equal(result.observationComplete, false);
     assert.equal(result.scrollSource, "nested-element");
     assert.ok(result.observedSegmentCaptures >= 4);
     const data = JSON.parse(await fs.readFile(
@@ -200,4 +228,32 @@ test("real CLI assembles virtualized windows and preserves evicted image referen
     const captured = await fs.readdir(path.join(directory, "0001", "capture", "segments"));
     assert.ok(captured.length >= 4);
   });
+});
+
+test("CLI waits at a false top boundary until an earlier segment mounts", async () =>
+{
+  const render = (numbers) => '<html><head><title>Segments</title></head><body>'
+    + numbers.map((i) => '<div data-testid="conversation-turn-' + i + '">'
+      + '<article data-message-id="msg-' + i + '" data-message-author-role="user">'
+      + '<div class="whitespace-pre-wrap">Turn ' + i
+      + '</div></article></div>').join("") + "</body></html>";
+  const windows = [
+    render([0, 1, 2]), render([2, 3, 4]),
+    render([4, 5, 6]), render([6, 7, 8, 9])
+  ];
+  await fixtureRun(windows, async ({ directory, env }) =>
+  {
+    const result = JSON.parse((await execFileAsync(process.execPath,
+      [exporter, share, directory], { env, timeout: 240000 })).stdout);
+    assert.equal(result.messageCount, 10);
+    assert.equal(result.observedSettledAtTop, true);
+    assert.equal(result.observationComplete, false);
+    assert.ok(result.observedBoundaryExtensions > 0);
+    const state = JSON.parse(await fs.readFile(env.SHARE_SCROLL_FILE, "utf8"));
+    assert.equal(state.unlocked, true);
+    const data = JSON.parse(await fs.readFile(
+      path.join(directory, "0001", "conversation.json"), "utf8"));
+    assert.deepEqual(data.messages.map((message) => message.turnIndex),
+      Array.from({ length: 10 }, (_, i) => i));
+  }, { lazyTop: true });
 });
