@@ -16,6 +16,8 @@ const CSS =
   ".message{padding:.7rem 1.3rem 1.1rem;overflow-wrap:anywhere}",
   ".message .whitespace-pre-wrap{white-space:pre-wrap}",
   ".message img{max-width:100%;height:auto;border-radius:.5rem}",
+  ".message svg{display:block;max-width:100%;height:auto;overflow:visible}",
+  ".message .canvas-placeholder{padding:1rem;border:1px dashed #bbb;background:#fafafa}",
   ".message pre{background:#202532;color:#f3f4f6;padding:1rem;border-radius:.5rem;overflow-x:auto}",
   ".message code{font-family:ui-monospace,Consolas,monospace}",
   ".message :not(pre)>code{background:#e9edf3;padding:.1rem .3rem;border-radius:.2rem}",
@@ -42,17 +44,24 @@ function _safeFragment(fragment, downloaded)
   for (const element of [...root.querySelectorAll("*")])
   {
     const tag = element.localName?.toLowerCase();
-    if (["script", "iframe", "object", "embed", "svg", "style", "link", "form",
+    if (["script", "iframe", "object", "embed", "foreignobject", "animate",
+      "animatemotion", "animatetransform", "set", "style", "link", "form",
       "input", "button", "video", "audio", "source"].includes(tag))
     {
       element.remove();
       continue;
     }
 
+    if (tag === "canvas")
+    {
+      element.outerHTML = '<p class="canvas-placeholder">Canvas graphic: pixel data unavailable in the DOM export.</p>';
+      continue;
+    }
     for (const attr of [...element.attributes])
     {
       const name = attr.name.toLowerCase();
-      if (name.startsWith("on") || ["style", "srcset", "formaction"].includes(name))
+      if (name.startsWith("on") || ["style", "srcset", "formaction"].includes(name)
+        || name.endsWith(":href") && !element.getAttribute(attr.name)?.startsWith("#"))
       {
         element.removeAttribute(attr.name);
       }
