@@ -71,6 +71,6 @@ test("retain fenced source code containing triple backticks", () =>
   const html = '<div data-message-author-role="assistant"><div class="markdown">'
     + "<pre><code>hello\n" + String.fromCharCode(96).repeat(3) + "\nbye</code></pre></div></div>";
   const result = extractConversation(html, sharedUrl);
-  assert.match(result.messages[0].markdown, /^\n*/);
+  assert.equal((result.messages[0].markdown.match(/^\x60{4,}/gm) || []).length, 2);
   assert.match(result.messages[0].markdown, /hello/);
 });
