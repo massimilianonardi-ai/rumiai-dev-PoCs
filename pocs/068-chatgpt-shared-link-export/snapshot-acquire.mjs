@@ -211,10 +211,10 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
     const opened = await control('debug', 'session', 'open', page);
     session = opened.session;
     if (!session) throw new AcquisitionError('share.debug-open-failed', 'missing session handle', stats);
-    for (const domain of ['Runtime', 'Debugger', 'Network', 'Page']) {
-      stats.operation = 'debug session send ' + domain + '.enable';
-      await send(domain + '.enable');
-    }
+    // Keep the initial event stream minimal. Network is the only domain
+    // required while looking for a browser-delivered structured response.
+    stats.operation = 'debug session send Network.enable';
+    await send('Network.enable');
     stats.operation = null;
 
     stats.phase = 'initial-navigation';
@@ -236,6 +236,19 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
     } catch { /* Not every page exposes inline JSON script tags. */ }
 
     stats.phase = 'hook-discovery';
+    stats.operation = 'debug session send Network.disable';
+    await send('Network.disable');
+    requests.clear();
+
+    // Debugger.enable can emit the already-known script set immediately. Start
+    // the event reader first so those scriptParsed events are consumed while
+    // the domain is being enabled instead of competing with navigation events.
+    stats.operation = 'debug session send Debugger.enable';
+    found = await observed(Date.now() + Math.min(seconds, 1) * 1000,
+      null, () => send('Debugger.enable'));
+    stats.operation = null;
+    if (found) return { ...found, stats };
+
     stats.scriptCount = scripts.size;
     let hook = null;
     for (const [id, jsUrl] of scriptsForHook(scripts)) {

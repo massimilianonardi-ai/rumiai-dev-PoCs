@@ -69,7 +69,11 @@ test('structured network snapshot drains before navigation to avoid event overfl
   assert.deepEqual(result.snapshot, snapshot());
   assert.ok(calls.some(x => x.slice(0, 3).join(' ') === 'debug session open'));
   assert.ok(calls.some(x => x.slice(0, 3).join(' ') === 'debug session close'));
-  assert.ok(calls.some(x => x[4] === 'Page.navigate'));
+  const navigation = calls.findIndex(x => x[4] === 'Page.navigate');
+  assert.ok(navigation > 0);
+  assert.ok(calls.slice(0, navigation).some(x => x[4] === 'Network.enable'));
+  for (const method of ['Runtime.enable', 'Debugger.enable', 'Page.enable'])
+    assert.ok(!calls.slice(0, navigation).some(x => x[4] === method));
   assert.ok(!calls.some(x => x.slice(0, 2).join(' ') === 'page navigate'));
   assert.ok(!calls.some(x => x.slice(0, 2).join(' ') === 'debug cdp'));
 });
@@ -84,6 +88,7 @@ test('privacy-safe diagnostics retain shape without values', () => {
 test('original persistent paused-frame snapshot is captured and resumed', async () => {
   const calls = [];
   let navigations = 0;
+  let debuggerEnabled = false;
   let breakpoint = false;
   let scriptDelivered = false;
   let paused = false;
@@ -98,13 +103,14 @@ test('original persistent paused-frame snapshot is captured and resumed', async 
       if (args[4] === 'Runtime.evaluate') return { result: { result: { value: [] } } };
       if (args[4] === 'Debugger.evaluateOnCallFrame')
         return { result: { result: { value: JSON.stringify(snapshot()) } } };
+      if (args[4] === 'Debugger.enable') debuggerEnabled = true;
       if (args[4] === 'Debugger.setBreakpointByUrl') breakpoint = true;
       if (args[4] === 'Page.navigate') navigations++;
       return { result: {} };
     }
     if (cmd === 'debug session events') {
       if (args[6] === '0') return { events: [] };
-      if (navigations && !scriptDelivered) {
+      if (debuggerEnabled && !scriptDelivered) {
         scriptDelivered = true;
         return { events: [{ sequence: 1, method: 'Debugger.scriptParsed', params: {
           scriptId: '1', url: 'https://chatgpt.com/assets/main.js' } }] };
@@ -123,6 +129,11 @@ test('original persistent paused-frame snapshot is captured and resumed', async 
   assert.equal(result.method, 'original-breakpoint');
   assert.deepEqual(result.snapshot, snapshot());
   assert.ok(calls.some(x => x[4] === 'Debugger.resume'));
+  assert.ok(calls.some(x => x[4] === 'Network.disable'));
+  assert.ok(calls.some(x => x[4] === 'Debugger.enable'));
   assert.ok(calls.some(x => x[4] === 'Debugger.setBreakpointByUrl'));
   assert.ok(calls.filter(x => x[4] === 'Page.navigate').length >= 2);
+  const firstNavigation = calls.findIndex(x => x[4] === 'Page.navigate');
+  const debuggerEnable = calls.findIndex(x => x[4] === 'Debugger.enable');
+  assert.ok(debuggerEnable > firstNavigation);
 });
