@@ -172,7 +172,7 @@ export function extractConversation(html, baseUrl)
     const content = _messageContent(node);
     const visible = content.cloneNode(true);
     for (const control of visible.querySelectorAll(
-      "button,svg,script,style,noscript,template,[aria-hidden='true']"))
+      "button,script,style,noscript,template,[aria-hidden='true']"))
     {
       control.remove();
     }
