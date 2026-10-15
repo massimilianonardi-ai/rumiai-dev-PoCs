@@ -1,6 +1,6 @@
-# PoC 068 — ChatGPT shared-link export with web-control
+# PoC 068 — Structured ChatGPT shared-link export with web-control
 
-Status: Experimental. Not a published RumiAI command/package.
+Status: Experimental. The new Node.js web-control 3 path is hosted-fixture tested, not physically validated on a ChatGPT shared page.
 
 ## Objective
 
@@ -8,9 +8,28 @@ Study complete structured snapshot capture for a user-authorized ChatGPT shared 
 
 This is a **site-specific deterministic adapter**, not a web-control provider, web-sense agent, ChatGPT account export, or API integration.
 
-## Persistent CDP snapshot experiment (original exporter reused)
+## Node.js structured-snapshot exporter (web-control 3)
 
-**This is the new active investigation after the physical failures of the DOM-scrolling exporter.** The legacy `node export.mjs` path remains in the repository as a comparison artifact, not as an accepted complete-chat exporter.
+**Current recommended PoC entrypoint:** `export-share.mjs`, implemented entirely in Node.js. It uses the **common** `web-control debug session` API introduced in source compatibility level 3 and implemented by both Playwright/Chromium and Electron. Both provider releases `v0.1.6` now declare facility compatibility `web-control 3` through `pkg-catalog`. There is no external CDP debugger port and no separately launched browser. This path requires an installed `web-control 3` provider/service.
+
+From this PoC directory:
+
+```sh
+node export-share.mjs "https://chatgpt.com/share/<id>" "./archive"
+```
+
+The program checks/starts the normal `web-control` service, opens a dedicated page and debugger session, enables the Chromium debugger domains, navigates the link, inspects actual JSON responses and embedded JSON, and only when available discovers the original semantic `mergeActiveBranch` marker in the loaded JavaScript. If a compatible hook is found, it installs a **persistent** breakpoint and reads the call-frame argument before resuming. It never synthesizes a ChatGPT internal endpoint or reconstructs a virtualized transcript by DOM scrolling.
+
+The Node port preserves the original Python reference's `mapping/current_node` active-branch traversal, visible user/assistant candidate classification, full message objects including non-text parts, RAW gzip, JSONL, Markdown, audit, hashes and a ZIP archive. The ZIP is built with Node standard-library compression; no Python, extra ZIP binary or download-only Node dependency is required for this entrypoint. The original `reference/chatgpt-export-v3.py` remains unchanged for comparison.
+
+A positive acquisition creates an immutable `YYYY-MM-DD title` output directory with the original forensic files plus `ACQUISITION.json`, and a ZIP beside it. This stage preserves **image/graphic object references but does not download image binary contents or reproduce the original rendered HTML**. Failure exits nonzero and writes numbered `share-debug-diagnostic-NNNN.json` evidence with phase, counts and JSON *field names only*, not chat values.
+
+**Validation limitation:** the original Python reference was physically validated against the native macOS ChatGPT application. Neither that app's internal `mergeActiveBranch` hook nor a complete `mapping/current_node` data object has been observed on a real `chatgpt.com/share/` browser page. Hosted fixtures demonstrate the machinery, not real-site export completeness. If the shared site does not expose an equivalent snapshot, the Node adapter fails explicitly and the diagnostic directs further study of observed structured payloads. No second-browser/CDP-port workaround should be substituted for this new public `web-control` interface.
+
+## Superseded separate-browser Python CDP experiment
+
+
+**Historical comparison only. The active Node.js entrypoint above supersedes this standalone-browser Python adapter.** The legacy `node export.mjs` path remains in the repository as a comparison artifact, not as an accepted complete-chat exporter.
 
 The original user-provided, proven macOS script is stored **unchanged** at `reference/chatgpt-export-v3.py`. The browser-share adapter `export-share-cdp.py` imports its existing `WebSocket`, `CDP`, call-frame evaluator, active-branch traversal, forensic export writer and multimodal object preservation. It changes **only** how the browser target is selected, how the shared URL is navigated, and how the *actual* browser renderer's structured snapshot is discovered. The native app's `app://-/index.html` breakpoint is **not** assumed to exist on `chatgpt.com/share/`.
 
