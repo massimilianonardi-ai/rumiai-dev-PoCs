@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { extractConversation, markdownDocument, relinkImages } from "./extract.mjs";
@@ -167,8 +168,22 @@ async function _images(imageUrls, versionDir)
         throw new Error("image-too-large");
       }
 
-      const bytes = Buffer.from(await response.arrayBuffer());
-      if (bytes.length > IMAGE_MAX_BYTES) throw new Error("image-too-large");
+      const parts = [];
+      const reader = response.body.getReader();
+      let length = 0;
+      while (true)
+      {
+        const { done, value } = await reader.read();
+        if (done) break;
+        length += value.byteLength;
+        if (length > IMAGE_MAX_BYTES)
+        {
+          await reader.cancel();
+          throw new Error("image-too-large");
+        }
+        parts.push(Buffer.from(value));
+      }
+      const bytes = Buffer.concat(parts, length);
       await fs.mkdir(assetDir, { recursive: true, mode: 0o700 });
       const filename = "image-" + String(index + 1).padStart(4, "0") + "." + ext;
       await fs.writeFile(path.join(assetDir, filename), bytes, { mode: 0o600 });
@@ -212,7 +227,8 @@ async function _observe(page, sharedUrl)
     }
 
     geometry = await _control("page", "scroll", page, "850");
-    const marker = String(parsed?.messages.length || 0) + ":" + String(html.length);
+    const marker = String(parsed?.messages.length || 0) + ":"
+      + createHash("sha256").update(html).digest("hex");
     if (geometry.atBottom && parsed && marker === previous) stable += 1;
     else stable = 0;
     previous = marker;
@@ -287,7 +303,8 @@ async function exportLink(rawUrl, destination)
       JSON.stringify(data, null, 2) + "\n", { mode: 0o600 });
     return { directory: versionDir, revision: name, messageCount: data.messages.length,
       imagesDownloaded: assets.records.filter((asset) => asset.status === "downloaded").length,
-      imagesUnavailable: assets.records.filter((asset) => asset.status !== "downloaded").length,
+      imagesUnavailable: assets.records.filter((asset) => asset.status !== "downloaded").length
+        + conversation.messages.reduce((sum, message) => sum + message.missingImages.length, 0),
       observedSettledAtBottom: data.observedSettledAtBottom };
   }
   catch (error)
