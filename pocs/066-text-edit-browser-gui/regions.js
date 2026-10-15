@@ -14,6 +14,13 @@
     return;
   }
 
+  const model=globalThis.__regionGeometryPoC;
+  if(!model)
+  {
+    $('warning').textContent='Modulo sperimentale geometria 2D non disponibile.';
+    return;
+  }
+
   const CELL=29;
   const LINE=38;
   const COLUMNS=18;
@@ -32,125 +39,24 @@
   let selected=[];
   let dragging=null;
 
-  function pointAt(offset)
-  {
-    const doc=editor.document;
-    const row=doc.lineAt(offset);
-    return {row,col:offset-doc.lineStart(row)};
-  }
-
-  function region({id,kind,row,col,width,height=1,source=null,label='',policy='touch'})
-  {
-    if(!Number.isSafeInteger(row)||!Number.isSafeInteger(col)||
-       !Number.isSafeInteger(width)||!Number.isSafeInteger(height)||
-       row<0||col<0||width<1||height<1||col+width>COLUMNS)
-      throw new RangeError('invalid experimental region geometry: '+id);
-    return {id,kind,row,col,width,height,source,label,policy};
-  }
-
-  function overlaps(a,b)
-  {
-    return a.col<b.col+b.width&&b.col<a.col+a.width&&
-      a.row<b.row+b.height&&b.row<a.row+a.height;
-  }
-
-  function covers(a,b)
-  {
-    return a.col<=b.col&&a.row<=b.row&&
-      a.col+a.width>=b.col+b.width&&
-      a.row+a.height>=b.row+b.height;
-  }
-
-  function hit(region,request)
-  {
-    if(region.policy==='none')return false;
-    if(region.policy==='full')return covers(request,region);
-    return overlaps(region,request);
-  }
-
-  function clippedRectangle(a,b)
-  {
-    const left=Math.min(a.col,b.col);
-    const right=Math.max(a.col,b.col);
-    const top=Math.min(a.row,b.row);
-    const bottom=Math.max(a.row,b.row);
-    return {row:top,col:left,width:right-left+1,height:bottom-top+1};
-  }
-
   function buildRegions()
   {
-    const doc=editor.document;
-    const replacement=editor.representation.replacements.find(item=>
-      item.text==='[3 folded rows]');
-    const foldStart=replacement?doc.lineAt(replacement.start):-1;
-    const foldEnd=replacement?doc.lineAt(replacement.end):-1;
-    visualRows=[];
-    for(let row=0;row<doc.lineCount;row++)
-    {
-      if(row===foldStart)
+    const projection=model.buildRegions
+    (
+      editor.document,
+      editor.representation,
       {
-        visualRows.push({kind:'fold',sourceRow:row,replacement});
-        row=foldEnd-1;
+        columns:COLUMNS,
+        policies:
+        {
+          tab:policyControls.tab.value,
+          fold:policyControls.fold.value,
+          annotation:policyControls.annotation.value
+        }
       }
-      else visualRows.push({kind:'text',sourceRow:row});
-    }
-
-    regions=[];
-    for(let vrow=0;vrow<visualRows.length;vrow++)
-    {
-      const visible=visualRows[vrow];
-      if(visible.kind==='fold')
-      {
-        regions.push(region({
-          id:'fold',kind:'fold',row:vrow,col:0,width:6,
-          source:{start:visible.replacement.start,end:visible.replacement.end},
-          label:'[3 righe]',policy:policyControls.fold.value
-        }));
-        continue;
-      }
-
-      const row=visible.sourceRow;
-      const info=doc.lineInfo(row);
-      const text=doc.slice(info.start,info.end);
-      for(const item of segmenter.segment(text))
-      {
-        const from=info.start+item.index;
-        const to=from+item.segment.length;
-        const a=editor.representation.sourceToColumn(from);
-        const b=editor.representation.sourceToColumn(to);
-        if(a.kind!=='column'||b.kind!=='column')
-          throw new Error('source and display grapheme geometry disagrees');
-        if(a.col>=COLUMNS)break;
-        const width=b.col-a.col;
-        const isTab=item.segment==='\t';
-        const label=isTab?'⇥'+ '·'.repeat(Math.max(0,width-1)):
-          /^[\x20-\x7e]$/.test(item.segment)?item.segment:'◇';
-        regions.push(region({
-          id:'source:'+row+':'+item.index,kind:isTab?'tab':'text',
-          row:vrow,col:a.col,width:Math.min(width,COLUMNS-a.col),
-          source:{start:from,end:to},label,
-          policy:isTab?policyControls.tab.value:'touch'
-        }));
-      }
-    }
-
-    // The existing representation owns a real source-anchored annotation.
-    // Its 2D extent and source-less semantics are experimental view metadata.
-    const note=editor.representation.annotations.find(a=>a.id==='info');
-    if(note)
-    {
-      const anchorRow=doc.lineAt(note.at);
-      const at=visualRows.findIndex(x=>x.sourceRow===anchorRow);
-      if(at>=0)
-      {
-        regions.push(region({
-          id:'annotation',kind:'annotation',row:at,col:12,
-          width:4,height:Math.min(2,visualRows.length-at),
-          source:null,label:'ℹ nota',policy:policyControls.annotation.value
-        }));
-      }
-    }
-
+    );
+    regions=projection.regions;
+    visualRows=projection.visualRows;
     const grid=$('grid');
     grid.style.width=(COLUMNS*CELL)+'px';
     grid.style.height=(visualRows.length*LINE)+'px';
@@ -160,34 +66,10 @@
 
   function publishPhysical(effective)
   {
-    // The visual selection contains whole regions; physical ranges are the
-    // union of source-associated elements, without duplicated target edits.
-    const intervals=effective.filter(x=>x.source!==null)
-      .map(x=>({...x.source})).sort((a,b)=>a.start-b.start||a.end-b.end);
-    const merged=[];
-    for(const part of intervals)
-    {
-      const last=merged[merged.length-1];
-      if(last&&part.start<=last.end)
-        last.end=Math.max(last.end,part.end);
-      else merged.push({...part});
-    }
-
-    // Merge by physical source position, then restore high-level vertical
-    // traversal order for the index->payload contract of TextEdit.replace([]).
-    if(!direction.vertical)merged.reverse();
-    const physical=[];
-    for(const part of merged)
-    {
-      const value=
-      {
-        start:pointAt(part.start),
-        end:pointAt(part.end),
-        forward:direction.horizontal
-      };
-      physical.push(value);
-    }
-    editor.selections.setSelections(physical);
+    editor.selections.setSelections
+    (
+      model.physicalSelections(editor.document,effective,direction)
+    );
   }
 
   function select(a,b)
@@ -200,9 +82,9 @@
         throw new RangeError('selection point outside the visual grid');
     }
     direction={horizontal:a.col<=b.col,vertical:a.row<=b.row};
-    requested=clippedRectangle(a,b);
+    requested=model.clippedRectangle(a,b);
     $('input-result').textContent='';
-    selected=regions.filter(item=>hit(item,requested));
+    selected=model.selectRegions(regions,requested);
     publishPhysical(selected);
     render();
     return snapshot();
@@ -398,7 +280,7 @@
       buildRegions();
       if(requested)
       {
-        selected=regions.filter(item=>hit(item,requested));
+        selected=model.selectRegions(regions,requested);
         publishPhysical(selected);
       }
       render();

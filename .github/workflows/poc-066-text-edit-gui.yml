@@ -36,8 +36,13 @@ jobs:
         run: |
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/gui.js
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/browser.mjs
+          node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/region-geometry.js
+          node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/regions-headless.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/regions.js
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/regions.mjs
+      - name: Run DOM-independent 2D region tests against actual TextEdit
+        run: |
+          node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/regions-headless.mjs
       - name: Run actual Chromium mouse and keyboard scenario
         run: |
           python3 -m http.server 8765 --bind 127.0.0.1 --directory rumiai-os >/tmp/text-edit-gui-http.log 2>&1 &
