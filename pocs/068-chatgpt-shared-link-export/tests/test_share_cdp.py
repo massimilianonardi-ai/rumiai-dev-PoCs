@@ -118,6 +118,17 @@ class ShareCdpTests(unittest.TestCase):
                              (exported["outdir"] / "TRANSCRIPT.md").read_text())
             self.assertTrue(exported["zip"].is_file())
 
+    def test_diagnostics_record_shapes_but_not_chat_values(self):
+        stats = {"json_shapes": []}
+        raw = json.dumps({"data": {"messages": [{"text": "TOP SECRET"}]},
+                          "secret_id": "private-value"})
+        share._record_json_shape(raw, stats)
+        text = json.dumps(stats)
+        self.assertIn("messages", text)
+        self.assertNotIn("TOP SECRET", text)
+        self.assertNotIn("private-value", text)
+        self.assertEqual(len(stats["json_shapes"]), 1)
+
     def test_no_debugger_is_explicit_failure_not_an_empty_success_export(self):
         with self.assertRaises(share.ExportError):
             share.share_url("https://example.com/not-a-share")
