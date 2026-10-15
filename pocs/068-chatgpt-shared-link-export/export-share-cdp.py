@@ -105,6 +105,41 @@ def _candidate(value, depth: int = 0):
     return None
 
 
+def _record_json_shape(raw: str, stats: dict):
+    """Retain structural hints only; never log conversation values or URLs."""
+    shapes = stats.setdefault("json_shapes", [])
+    if len(shapes) >= 6 or not raw or len(raw) > MAX_JSON_BYTES:
+        return
+    try:
+        value = json.loads(raw)
+    except (ValueError, RecursionError):
+        return
+
+    def safe_keys(value):
+        if not isinstance(value, dict):
+            return []
+        return sorted(k for k in value
+                      if isinstance(k, str)
+                      and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,39}", k))[:16]
+
+    def describe(value):
+        if isinstance(value, list):
+            return {"type": "array", "items": len(value)}
+        if not isinstance(value, dict):
+            return {"type": type(value).__name__}
+        keys = safe_keys(value)
+        return {
+            "type": "object",
+            "keys": keys,
+            "nested": {key: safe_keys(value[key])
+                       for key in keys if isinstance(value[key], dict)},
+        }
+
+    candidate = describe(value)
+    if candidate not in shapes:
+        shapes.append(candidate)
+
+
 def _json_candidate(text: str):
     if not text or len(text.encode("utf-8")) > MAX_JSON_BYTES:
         return None
@@ -197,7 +232,7 @@ def _response_snapshot(cdp, request_id, entry, stats):
     # synthesize authenticated requests, scrape cookies, or guess endpoints.
     if not url.startswith("https://chatgpt.com/"):
         return None
-    if not any(part in mime for part in ("json", "javascript", "text/html")):
+    if not any(part in mime for part in ("json", "text/html")):
         return None
     stats["inspected_responses"] += 1
     try:
@@ -206,7 +241,10 @@ def _response_snapshot(cdp, request_id, entry, stats):
         raw = body.get("body", "")
         if body.get("base64Encoded"):
             raw = base64.b64decode(raw).decode("utf-8", "replace")
-        return _json_candidate(raw)
+        found = _json_candidate(raw)
+        if found is None:
+            _record_json_shape(raw, stats)
+        return found
     except Exception:
         return None
 
@@ -331,6 +369,7 @@ def main(argv=None):
         "hook_found": False,
         "inspected_responses": 0,
         "scripts": {},
+        "json_shapes": [],
     }
     target = None
     cdp = None
@@ -375,6 +414,7 @@ def main(argv=None):
             "hookFound": stats["hook_found"],
             "scriptCount": len(stats["scripts"]),
             "inspectedResponses": stats["inspected_responses"],
+            "observedJsonShapes": stats["json_shapes"],
         }
         file = output / "share-cdp-diagnostic.json"
         file.write_text(json.dumps(diagnostics, indent=2) + "\n",
