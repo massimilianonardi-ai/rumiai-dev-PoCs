@@ -218,6 +218,9 @@ async function _observe(page, sharedUrl, versionDir)
   let title = "";
   let structured = null;
   const MAX_SWEEP_STEPS = 240;
+  // A segment boundary may remain unchanged for several seconds while ChatGPT
+  // requests and mounts the next chunk. Two stable frames are not evidence.
+  const EDGE_QUIET_PROBES = 24;
 
   async function sweep(direction)
   {
@@ -227,6 +230,10 @@ async function _observe(page, sharedUrl, versionDir)
     let reached = false;
     let gapCount = 0;
     let geometry = null;
+    let lastEdgeSignature = "";
+    let sawBoundary = false;
+    let boundaryExtensionCount = 0;
+    let edgeProbeCount = 0;
 
     for (let attempt = 0; attempt < MAX_SWEEP_STEPS; attempt += 1)
     {
@@ -270,14 +277,33 @@ async function _observe(page, sharedUrl, versionDir)
           ]))).digest("hex")
         : "not-yet-rendered";
       const atEdge = direction === 1 ? geometry.atBottom === true : geometry.atTop === true;
+      const signature = [
+        marker, geometry.source, geometry.documentHeight, geometry.viewportHeight,
+        geometry.scrollY
+      ].join(":");
 
-      if (atEdge && marker === previous) stable += 1;
-      else stable = 0;
-      previous = marker;
+      if (atEdge)
+      {
+        edgeProbeCount += 1;
+        // New message IDs or new scroll geometry after reaching a boundary
+        // indicate that ChatGPT appended another virtualized segment.
+        if (sawBoundary && signature !== lastEdgeSignature) boundaryExtensionCount += 1;
+        stable = signature === previous ? stable + 1 : 0;
+        sawBoundary = true;
+        lastEdgeSignature = signature;
+      }
+      else
+      {
+        stable = 0;
+        sawBoundary = false;
+      }
+      previous = signature;
 
-      // A missing or restricted share must terminate with diagnostic evidence,
-      // not spend the entire scan budget waiting for nonexistent turn nodes.
-      if (stable >= (parsed ? 2 : 10))
+      // Keep delivering real wheel events even at scrollTop=0. Segment fetches
+      // can be async, and the scroll container may expand with no immediate
+      // movement. This is a bounded quiet-period heuristic, never proof of
+      // reaching the real source-conversation boundary.
+      if (stable >= (parsed ? EDGE_QUIET_PROBES : 10))
       {
         reached = true;
         break;
@@ -285,7 +311,7 @@ async function _observe(page, sharedUrl, versionDir)
       await _sleep(250);
     }
 
-    return { messages, reached, gapCount, geometry };
+    return { messages, reached, gapCount, geometry, boundaryExtensionCount, edgeProbeCount };
   }
 
   // A shared ChatGPT page may mount just its final visible turns. Visit both
@@ -306,12 +332,12 @@ async function _observe(page, sharedUrl, versionDir)
     observedSettledAtBottom: downward.reached,
     observedSettledAtTop: upward.reached,
     observedSegmentGaps: selected.gapCount,
+    observedBoundaryExtensions: downward.boundaryExtensionCount + upward.boundaryExtensionCount,
+    observedEdgeProbes: downward.edgeProbeCount + upward.edgeProbeCount,
     observedDownwardMessages: downward.messages.length,
     observedUpwardMessages: upward.messages.length,
     observedSegmentCaptures: nextEvidence - 1,
-    observationComplete: structured !== null ||
-      (downward.reached && upward.reached && selected.gapCount === 0
-        && upward.geometry?.source !== "portable-document")
+    observationComplete: structured !== null
   };
 }
 
@@ -385,6 +411,8 @@ async function exportLink(rawUrl, destination)
       extractionMethod: observed.extractionMethod,
       scrollSource: observed.scrollSource,
       observedSegmentGaps: observed.observedSegmentGaps,
+      observedBoundaryExtensions: observed.observedBoundaryExtensions,
+      observedEdgeProbes: observed.observedEdgeProbes,
       observedDownwardMessages: observed.observedDownwardMessages,
       observedUpwardMessages: observed.observedUpwardMessages,
       observedSegmentCaptures: observed.observedSegmentCaptures,
@@ -410,7 +438,9 @@ async function exportLink(rawUrl, destination)
       scrollSource: data.scrollSource,
       extractionMethod: data.extractionMethod,
       observationComplete: data.observationComplete,
-      observedSegmentCaptures: data.observedSegmentCaptures };
+      observedSegmentCaptures: data.observedSegmentCaptures,
+      observedBoundaryExtensions: data.observedBoundaryExtensions,
+      observedEdgeProbes: data.observedEdgeProbes };
   }
   catch (error)
   {
