@@ -1,13 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
-import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { extractConversation, markdownDocument, relinkImages, mergeMessageWindows } from "./extract.mjs";
-import { scrollConversation } from "./scroll.mjs";
+import { extractConversation, markdownDocument, relinkImages, prependOlderMessages } from "./extract.mjs";
 import { renderConversationHtml } from "./render-html.mjs";
-import { snapshotFromRenderedHtml, conversationFromSnapshot } from "./snapshot.mjs";
 
 const execFileAsync = promisify(execFile);
 const WEB_CONTROL = process.env.WEB_CONTROL_CMD || "web-control";
@@ -213,131 +210,134 @@ async function _observe(page, sharedUrl, versionDir)
   const segmentDirectory = path.join(versionDir, "capture", "segments");
   await fs.mkdir(segmentDirectory, { recursive: true, mode: 0o700 });
 
-  let nextEvidence = 1;
-  let lastEvidence = "";
-  let title = "";
-  let structured = null;
-  const MAX_SWEEP_STEPS = 240;
-  // A segment boundary may remain unchanged for several seconds while ChatGPT
-  // requests and mounts the next chunk. Two stable frames are not evidence.
-  const EDGE_QUIET_PROBES = 24;
+  const pollDelay = 250;
+  let conversation = null;
+  let segments = 0;
+  let uncertain = false;
+  let previousHtml = "";
 
-  async function sweep(direction)
+  function parseWindow(html)
   {
-    let messages = [];
-    let previous = "";
-    let stable = 0;
-    let reached = false;
-    let gapCount = 0;
-    let geometry = null;
-    let lastEdgeSignature = "";
-    let sawBoundary = false;
-    let boundaryExtensionCount = 0;
-    let edgeProbeCount = 0;
-
-    for (let attempt = 0; attempt < MAX_SWEEP_STEPS; attempt += 1)
+    try
     {
-      const html = (await _control("page", "inspect", page, "html")).html;
-      if (!structured) structured = snapshotFromRenderedHtml(html);
-      let parsed = null;
+      return extractConversation(html, sharedUrl);
+    }
+    catch (error)
+    {
+      if (!["share-dom-unrecognized", "share-dom-empty"].includes(error.code)) throw error;
+      return null;
+    }
+  }
+
+  async function readWindow()
+  {
+    const html = (await _control("page", "inspect", page, "html")).html;
+    return { html, parsed: parseWindow(html) };
+  }
+
+  async function preserve(html)
+  {
+    if (html === previousHtml) return;
+    previousHtml = html;
+    segments += 1;
+    await fs.writeFile(path.join(segmentDirectory,
+      String(segments).padStart(5, "0") + ".html"), html, { mode: 0o600 });
+  }
+
+  // Navigation can resolve before the application mounts the first turn.
+  for (let probe = 0; probe < 16; probe += 1)
+  {
+    const current = await readWindow();
+    if (current.parsed)
+    {
+      conversation = current.parsed;
+      await preserve(current.html);
+      break;
+    }
+    await _sleep(pollDelay);
+  }
+  if (!conversation)
+  {
+    return {
+      conversation: { title: "ChatGPT shared conversation", messages: [], imageUrls: [] },
+      extractionMethod: "dom-prefix",
+      observedSegmentCaptures: 0,
+      observedBoundaryExtensions: 0,
+      observationComplete: false,
+      uncertain: true
+    };
+  }
+
+  // The current page often opens at the END of the chat. Ask the browser to
+  // jump to the top of the current loaded segment, wait for the DOM to prepend
+  // older turns, keep only the newly observed prefix, then repeat.
+  let expansions = 0;
+  let exhausted = false;
+  for (let step = 0; step < 120; step += 1)
+  {
+    const head = conversation.messages[0];
+    const target = Number.isSafeInteger(head.turnIndex)
+      ? '[data-testid="conversation-turn-' + head.turnIndex + '"]'
+      : head.messageId && /^[A-Za-z0-9_-]+$/.test(head.messageId)
+        ? '[data-message-id="' + head.messageId + '"]' : "body";
+    let changed = false;
+
+    for (const key of ["Home", "PageUp"])
+    {
       try
       {
-        parsed = extractConversation(html, sharedUrl);
+        await _control("page", "press", page, target, key);
       }
       catch (error)
       {
-        if (!["share-dom-unrecognized", "share-dom-empty"].includes(error.code)) throw error;
+        if (target === "body") throw error;
+        await _control("page", "press", page, "body", key);
       }
 
-      if (parsed)
+      // Test for a NEW PREFIX, not arbitrary React DOM churn or full-page
+      // changes; cosmetic updates must never duplicate the conversation.
+      for (let attempt = 0; attempt < 7; attempt += 1)
       {
-        title ||= parsed.title;
-        const combined = mergeMessageWindows(messages, parsed.messages, direction);
-        messages = combined.messages;
-        if (combined.gap) gapCount += 1;
-        const fingerprint = createHash("sha256")
-          .update(JSON.stringify(parsed.messages.map((message) => [
-            message.messageId, message.turnIndex, message.role, message.markdown
-          ]))).digest("hex");
-
-        // Preserve each distinct rendered window before React can unmount it.
-        if (fingerprint !== lastEvidence)
+        const current = await readWindow();
+        if (current.parsed)
         {
-          const name = String(nextEvidence).padStart(5, "0") + ".html";
-          await fs.writeFile(path.join(segmentDirectory, name), html, { mode: 0o600 });
-          nextEvidence += 1;
-          lastEvidence = fingerprint;
+          const merged = prependOlderMessages(conversation.messages, current.parsed.messages);
+          if (merged.added > 0)
+          {
+            conversation.messages = merged.messages;
+            conversation.title = current.parsed.title || conversation.title;
+            uncertain ||= merged.uncertain;
+            await preserve(current.html);
+            expansions += 1;
+            changed = true;
+            break;
+          }
+          uncertain ||= merged.uncertain;
         }
+        await _sleep(pollDelay);
       }
-
-      geometry = await scrollConversation(_control, page, direction * 450);
-      const marker = parsed
-        ? createHash("sha256").update(JSON.stringify(parsed.messages.map((message) => [
-            message.messageId, message.turnIndex, message.markdown
-          ]))).digest("hex")
-        : "not-yet-rendered";
-      const atEdge = direction === 1 ? geometry.atBottom === true : geometry.atTop === true;
-      const signature = [
-        marker, geometry.source, geometry.documentHeight, geometry.viewportHeight,
-        geometry.scrollY
-      ].join(":");
-
-      // The new segment can push the viewport away from its previous edge.
-      // Count that transition too, rather than only changes staying atEdge.
-      if (sawBoundary && signature !== lastEdgeSignature) boundaryExtensionCount += 1;
-      if (atEdge)
-      {
-        edgeProbeCount += 1;
-        stable = signature === previous ? stable + 1 : 0;
-        sawBoundary = true;
-        lastEdgeSignature = signature;
-      }
-      else
-      {
-        stable = 0;
-        sawBoundary = false;
-      }
-      previous = signature;
-
-      // Keep delivering real wheel events even at scrollTop=0. Segment fetches
-      // can be async, and the scroll container may expand with no immediate
-      // movement. This is a bounded quiet-period heuristic, never proof of
-      // reaching the real source-conversation boundary.
-      if (stable >= (parsed ? EDGE_QUIET_PROBES : 10))
-      {
-        reached = true;
-        break;
-      }
-      await _sleep(250);
+      if (changed) break;
     }
 
-    return { messages, reached, gapCount, geometry, boundaryExtensionCount, edgeProbeCount };
+    if (!changed)
+    {
+      exhausted = true;
+      break;
+    }
   }
 
-  // A shared ChatGPT page may mount just its final visible turns. Visit both
-  // directions; a final DOM capture alone is therefore never authoritative.
-  const downward = await sweep(1);
-  const upward = await sweep(-1);
-  const selected = upward.messages.length >= downward.messages.length ? upward : downward;
-  const titleValue = title || "ChatGPT shared conversation";
-  const conversation = structured ? conversationFromSnapshot(structured) : {
-    title: titleValue,
-    messages: selected.messages.map((message, index) => ({ ...message, index: index + 1 })),
-    imageUrls: [...new Set(selected.messages.flatMap((message) => message.imageUrls))]
-  };
+  for (const [index, message] of conversation.messages.entries()) message.index = index + 1;
+  conversation.imageUrls = [...new Set(
+    conversation.messages.flatMap((message) => message.imageUrls)
+  )];
   return {
     conversation,
-    extractionMethod: structured ? "embedded-mapping-snapshot" : "rendered-windows",
-    scrollSource: upward.geometry?.source || null,
-    observedSettledAtBottom: downward.reached,
-    observedSettledAtTop: upward.reached,
-    observedSegmentGaps: selected.gapCount,
-    observedBoundaryExtensions: downward.boundaryExtensionCount + upward.boundaryExtensionCount,
-    observedEdgeProbes: downward.edgeProbeCount + upward.edgeProbeCount,
-    observedDownwardMessages: downward.messages.length,
-    observedUpwardMessages: upward.messages.length,
-    observedSegmentCaptures: nextEvidence - 1,
-    observationComplete: structured !== null
+    extractionMethod: "dom-prefix",
+    observedSegmentCaptures: segments,
+    observedBoundaryExtensions: expansions,
+    observationComplete: false,
+    observedNoEarlierPrefix: exhausted,
+    uncertain
   };
 }
 
@@ -363,17 +363,7 @@ async function exportLink(rawUrl, destination)
 
     const observed = await _observe(page, sharedUrl, versionDir);
     const captureDirectory = path.join(versionDir, "capture");
-    try
-    {
-      // The Playwright provider can preserve the final DOM with its styles
-      // as an MHTML archive. The reconstructed conversation has separate CSS.
-      await _control("page", "capture", page, captureDirectory, "html", "text", "mhtml");
-    }
-    catch (error)
-    {
-      if (!/unsupported capture format|unsupported format/i.test(error.message)) throw error;
-      await _control("page", "capture", page, captureDirectory, "html", "text");
-    }
+    await _control("page", "capture", page, captureDirectory, "html", "text");
 
     const conversation = observed.conversation;
     if (!conversation.messages.length)
@@ -391,32 +381,20 @@ async function exportLink(rawUrl, destination)
       throw error;
     }
 
-    if (observed.extractionMethod === "embedded-mapping-snapshot")
-    {
-      await fs.writeFile(path.join(captureDirectory, "conversation.raw.json"),
-        JSON.stringify(conversation.rawSnapshot, null, 2) + "\n", { mode: 0o600 });
-    }
-
     const assets = await _images(conversation.imageUrls, versionDir);
     relinkImages(conversation, assets.available);
-    delete conversation.rawSnapshot;
     const data = {
       format: "chatgpt-shared-link-export-poc-1",
       source: sharedUrl,
       finalUrl: navigation.url,
       capturedAt,
       revision: name,
-      observedSettledAtBottom: observed.observedSettledAtBottom,
-      observedSettledAtTop: observed.observedSettledAtTop,
       extractionMethod: observed.extractionMethod,
-      scrollSource: observed.scrollSource,
-      observedSegmentGaps: observed.observedSegmentGaps,
-      observedBoundaryExtensions: observed.observedBoundaryExtensions,
-      observedEdgeProbes: observed.observedEdgeProbes,
-      observedDownwardMessages: observed.observedDownwardMessages,
-      observedUpwardMessages: observed.observedUpwardMessages,
       observedSegmentCaptures: observed.observedSegmentCaptures,
-      observationComplete: observed.observationComplete,
+      observedBoundaryExtensions: observed.observedBoundaryExtensions,
+      observedNoEarlierPrefix: observed.observedNoEarlierPrefix,
+      uncertainWindowAlignment: observed.uncertain,
+      observationComplete: false,
       completeness: "scanned-rendered-windows-only; source-chat completeness not verifiable",
       messages: conversation.messages,
       assets: assets.records,
@@ -433,14 +411,11 @@ async function exportLink(rawUrl, destination)
       imagesDownloaded: assets.records.filter((asset) => asset.status === "downloaded").length,
       imagesUnavailable: assets.records.filter((asset) => asset.status !== "downloaded").length
         + conversation.messages.reduce((sum, message) => sum + message.missingImages.length, 0),
-      observedSettledAtBottom: data.observedSettledAtBottom,
-      observedSettledAtTop: data.observedSettledAtTop,
-      scrollSource: data.scrollSource,
       extractionMethod: data.extractionMethod,
-      observationComplete: data.observationComplete,
       observedSegmentCaptures: data.observedSegmentCaptures,
       observedBoundaryExtensions: data.observedBoundaryExtensions,
-      observedEdgeProbes: data.observedEdgeProbes };
+      observedNoEarlierPrefix: data.observedNoEarlierPrefix,
+      uncertainWindowAlignment: data.uncertainWindowAlignment };
   }
   catch (error)
   {
