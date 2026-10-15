@@ -282,7 +282,9 @@ function mediaFiles(assets) {
       mime_type: asset.mime_type ?? null, original_file_name: asset.file_name ?? null,
       downloaded_size_bytes: asset.downloaded_size_bytes ?? null,
       status: asset.base64 ? 'downloaded' : 'missing', local_path: null,
-      sha256: null, references: asset.references || [], attempts: asset.attempts || [] };
+      sha256: null, references: asset.references || [],
+      renderer_references: asset.renderer_references || [],
+      attempts: asset.attempts || [] };
     if (asset.base64) {
       const bytes = Buffer.from(asset.base64, 'base64');
       const filename = String(index + 1).padStart(3, '0') + '-' +
@@ -364,6 +366,7 @@ export async function exportSnapshot(snapshot, selected, outputRoot, source, met
     visible_messages: transcript.visible.length, non_text_parts: transcript.nonTextParts.length,
     media_unique_assets: media.manifest.length,
     media_references: media.manifest.reduce((n, x) => n + x.references.length, 0),
+    renderer_image_references: media.manifest.reduce((n, x) => n + x.renderer_references.length, 0),
     media_binary_downloaded_count: media.manifest.filter(x => x.status === 'downloaded').length,
     media_binary_missing_count: media.manifest.filter(x => x.status !== 'downloaded').length,
     media_binary_downloaded: media.manifest.length > 0 && media.manifest.every(x => x.status === 'downloaded'),
@@ -402,6 +405,7 @@ export async function exportSnapshot(snapshot, selected, outputRoot, source, met
     nonTextParts: transcript.nonTextParts.length,
     imagesReferenced: media.manifest.length,
     imageReferences: media.manifest.reduce((n, x) => n + x.references.length, 0),
+    rendererImageReferences: media.manifest.reduce((n, x) => n + x.renderer_references.length, 0),
     imagesDownloaded: media.manifest.filter(x => x.status === 'downloaded').length,
     imagesMissing: media.manifest.filter(x => x.status !== 'downloaded').length,
     method, observationComplete: false };

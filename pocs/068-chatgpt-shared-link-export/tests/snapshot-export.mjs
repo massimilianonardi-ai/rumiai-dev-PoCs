@@ -144,6 +144,9 @@ test('writes immutable forensic export, gzip, multimodal JSONL and readable ZIP'
           { ordinal: 1, node_id: 'assistant', classification: 'visible_candidate' },
           { ordinal: 2, node_id: 'reuse', classification: 'tool_traffic' }
         ],
+        renderer_references: [
+          { occurrence: 0, aria_label: 'generated 1', natural_width: 1, natural_height: 1 }
+        ],
         attempts: [{ source: 'backend-anon', metadataStatus: 200, binaryStatus: 200 }]
       }];
       const result = await exportSnapshot(snapshot(), {}, dir,
@@ -162,6 +165,7 @@ test('writes immutable forensic export, gzip, multimodal JSONL and readable ZIP'
         assert.equal(manifest[0].status, 'downloaded');
         assert.equal(manifest[0].local_path, 'media/001-file_1.png');
         assert.equal(manifest[0].references.length, 2);
+        assert.equal(manifest[0].renderer_references.length, 1);
         assert.deepEqual(manifest[0].asset_pointers, ['ref-1', 'ref-1-alias']);
         assert.match(zip.get('TRANSCRIPT.md').toString(), /!\[immagine\]\(media\/001-file_1\.png\)/);
       }
@@ -173,6 +177,7 @@ test('writes immutable forensic export, gzip, multimodal JSONL and readable ZIP'
       assert.equal(JSON.parse(zip.get('NON_TEXT_PARTS.json')).length, 1);
       assert.equal(result.messageCount, 2);
       assert.equal(result.imagesDownloaded, index === 2 ? 1 : 0);
+      assert.equal(result.rendererImageReferences, index === 2 ? 1 : 0);
       assert.match(result.directory, new RegExp(index === 1 ? 'Test - conversation$' : 'Test - conversation \\(2\\)$'));
     }
   } finally { await fs.rm(dir, { recursive: true, force: true }); }
