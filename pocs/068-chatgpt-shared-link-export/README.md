@@ -15,7 +15,7 @@ This is a **site-specific deterministic adapter**, not a web-control provider, w
 - A configured web-control **compatibility level 2** provider (pwc-web-control or electron-web-control), with normal profile/service configuration.
 - A public or otherwise accessible ChatGPT conversation sharing link; log in manually with the chosen browser profile if the workspace restricts access.
 
-The exporter starts the configured service through `srv start web-control` when the ordinary `web-control status` call fails. No provider-specific commands or CDP debugger operations are used.
+The exporter starts the configured service through `srv start web-control` when `web-control status` fails. The active implementation uses only the public `page navigate`, `page inspect`, `page press` and `page capture` commands: **no CDP, Playwright internals, private ChatGPT API, or hidden browser script evaluation**. Scrolling inside ChatGPT's nested pane through keyboard navigation is still subject to real-site acceptance testing.
 
 ## Run
 
@@ -39,7 +39,6 @@ archive/
       page.html
       page.txt
       metadata.json
-      page.mhtml  # optional Playwright capture of final segment
       segments/
         00001.html
         00002.html
@@ -50,15 +49,15 @@ archive/
     ...
 ```
 
-Image assets are downloaded **only if** their source is an HTTPS URL from an explicitly accepted OpenAI-owned image host, their response is an image, and fetching succeeds without redirects. Unavailable images remain as remote Markdown links and are listed in `conversation.json` with status/reason. Observed ordinary file hyperlinks are retained but their referenced file bytes are **not** downloaded.
+Image files are attempted only for approved HTTPS OpenAI image hosts; downloads now use four workers with a seven-second per-file timeout rather than a long sequential wait. The caller's Node TLS trust configuration (for example `NODE_EXTRA_CA_CERTS` on the corporate host) still applies. `blob:`/canvas-backed media cannot be downloaded from a serialized DOM using Node fetch alone. Unavailable assets remain marked in `conversation.json` and Markdown. Ordinary attachment links are retained without claiming to have downloaded the attachment bytes.
 
-The exporter scans downward and then **back upward**, capturing each distinct rendered message window before the client removes it from the DOM. ChatGPT may expose only a **segment**, not the whole scrollable chat: a top/bottom scroll coordinate may be the current segment boundary. The Playwright provider's existing `debug cdp` extension therefore emits actual browser wheel events over the closest message-pane scroll container, including at apparent boundaries, and checks whether newly loaded segments extend the scrollable area. Edge-quiescence requires a sustained quiet probing interval rather than two unchanged frames. Neighboring windows are reconciled using observed IDs/turn indices or overlapping role/content. The final HTML is under `capture/page.html`; intermediate windows are in `capture/segments/`.
+The page may open at its last loaded ChatGPT segment. The exporter reads the first DOM window once, sends **Home** to the first observed turn, polls for *new older turns*, prepends only those turns, then repeats. If no older prefix appears it tries **PageUp** once and stops after a bounded poll. It does **not** scan downwards, wait repeatedly for an unchanged scroll coordinate, or merge entire DOM windows. Each successful new prefix creates one evidence file under `capture/segments/`; the final raw DOM is under `capture/page.html`. This is deliberately a fast DOM-first heuristic rather than a guarantee that ChatGPT has loaded all earlier segments.
 
-The JSON contains role, observed turn index/message identity, order, rendered text, extracted Markdown, message HTML, image URLs and links. `observedSettledAtBottom`, `observedSettledAtTop`, `observedBoundaryExtensions`, `observedEdgeProbes` and `observedSegmentGaps` describe **what the scan observed**; even a long quiet period is not a proof of source-chat completeness. `observationComplete` is **false for DOM-only scans**. It is true only if an actually present embedded `mapping/current_node` JSON snapshot has been traversed. `extractionMethod` reports the source of the export. Rendered image URLs are retained from all observed windows; unavailable files are reported instead of fabricated.
+The DOM parser checks two possible identifiers: `data-message-id` and numbered `data-testid="conversation-turn-N"` containers. The output reports `identifiedMessages` and `numberedTurns` so real-site evidence can confirm which attributes actually exist; it does not assert their presence without checking the saved source HTML. When numbers exist only lower-index turns are prepended. Otherwise the prefix algorithm requires ID matches, contiguous overlap, or explicitly records an uncertain alignment. `observedBoundaryExtensions`, `observedSegmentCaptures`, and `observedNoEarlierPrefix` report what was observed. `observationComplete` remains **false**: a lack of newly rendered messages is not proof of source-chat completeness.
 
-The user-supplied native macOS exporter obtains `mapping/current_node` by a breakpoint in the desktop renderer. PoC 068 now reuses its **data traversal and message classification** when such a snapshot is actually found in an `application/json` script on a shared page; it does not assume the native-app breakpoint or invent a remote endpoint. It saves detected raw JSON under `capture/conversation.raw.json`. Otherwise it uses the rendered-window approach. The Playwright `debug cdp` wheel extension is **provider-specific**; Electron's portable document-scroll fallback cannot guarantee navigation of nested/segmented pages.
+The original macOS exporter captures a full structured `mapping/current_node` snapshot by attaching to the native app. This is not the behavior of a shared-link DOM export. The earlier optional snapshot parser and provider-specific CDP scroller have been removed from the active PoC in response to physical-site feedback. No server-internal or app-internal API is guessed or accessed.
 
-A separate styled `conversation.html` contains locally embedded presentation CSS, code block/list/table styling, and relative links to downloaded image assets. This is a readable **reconstruction**, not a pixel-accurate copy of ChatGPT's live stylesheet. Optional Playwright `capture/page.mhtml` retains a browser-native archive of the *final visible DOM segment only*, not the entire conversation. The raw capture and independent reconstructed transcript are intentionally distinct.
+The styled `conversation.html` embeds its own CSS, preserves static SVG charts and HTML markup, and references downloaded image assets. Canvas pixels, `blob:` image data, and other browser-only visuals are marked as unavailable; Markdown includes references/limitations instead of pretending those charts are text. This is a readable reconstruction, not ChatGPT's original stylesheet. Raw DOM captures are separate and do not contain the CSS resources required to reproduce the full application.
 
 On a failed extraction after navigation, captured HTML/text remain under `capture/`, and `failure.json` plus `error.txt` diagnose the failure. A failed attempt may reserve a version directory, and the next run never replaces it.
 
@@ -69,7 +68,7 @@ npm test
 npm run check
 ```
 
-The current tests cover synthetic rendered-HTML extraction, virtualized-window merging (including repeated identical text and gaps), and the real exporter command with a simulated external web-control protocol boundary (including a page whose DOM exposes only a moving subset of the turns, versioned files and failure evidence). They do **not** establish successful navigation through a real web-control provider or fidelity against a real shared link. A user-reported physical-host run of the previous revision captured only the final 10 messages of a real virtualized share page, which motivated the current scan change. The new revision still requires physical-provider revalidation, image/download fidelity checks, large-conversation verification, source share updates and workspace-restricted links.
+Tests cover DOM identity/numbering, prepend-only deduplication (including identical message text and disjoint windows), SVG preservation, styled HTML sanitization, and the public exporter command with a simulated external `web-control` protocol. These tests do not establish real-site completeness or whether Home/PageUp focuses ChatGPT's actual nested scrolling pane. Earlier physical tests were slow, duplicated content, missed images, and flattened charts; the changed revision requires physical revalidation.
 
 ## Opt-in real-provider validation
 
