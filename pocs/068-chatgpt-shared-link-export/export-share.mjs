@@ -17,10 +17,20 @@ export async function webControl(...args) {
   let response;
   try {
     response = await execFileAsync(WEB_CONTROL, args, { maxBuffer: MAX_BUFFER, timeout: 60000 });
-  } catch {
-    // Never log raw CDP payloads, browser HTML, signed URLs, or stderr values.
-    throw new Error('share.web-control-command-failed: command ' + args.slice(0, 3).join(' ') +
-      ' failed (check local provider/service diagnostic logs)');
+  } catch (cause) {
+    // Retain only the provider's first diagnostic identity/message line. Never
+    // persist raw CDP params, browser HTML, signed URLs or stdout payloads.
+    const line = String(cause?.stderr || '').split('\n')
+      .map((value) => value.trim()).find(Boolean) || '';
+    const safe = line
+      .replace(/https?:\/\/\S+/g, '[url]')
+      .replace(/([?&](?:token|key|auth|sig|signature)=)[^&\\s]+/gi, '$1[redacted]')
+      .slice(0, 240);
+    const error = new Error('share.web-control-command-failed: ' +
+      args.slice(0, 3).join(' ') + (safe ? ': ' + safe : ''));
+    error.operation = args.slice(0, 3).join(' ');
+    error.providerDiagnostic = safe || null;
+    throw error;
   }
   try { return JSON.parse(response.stdout); }
   catch { throw new Error('share.web-control-invalid-json: provider returned malformed JSON'); }
