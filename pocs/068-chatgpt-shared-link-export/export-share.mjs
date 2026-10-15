@@ -53,6 +53,8 @@ async function failureRecord(folder, error) {
     status: 'incomplete',
     error: error instanceof AcquisitionError ? error.code : 'share.export-failed',
     phase: error.stats?.phase || 'initialization',
+    operation: error.stats?.operation || null,
+    providerDiagnostic: error.stats?.providerDiagnostic || null,
     hookFound: Boolean(error.stats?.hookFound),
     inspectedResponses: error.stats?.inspectedResponses || 0,
     scriptCount: error.stats?.scriptCount || 0,
