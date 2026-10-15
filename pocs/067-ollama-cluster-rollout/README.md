@@ -1,60 +1,78 @@
-# Ollama fleet update — operator PoC
+# Ollama fleet update — two-file rsudo-admin operator PoC
 
-Status: pre-physical-validation. This does not claim fleet rollout completion.
-
-This is a site-specific rsudo-admin jobs program, not a new m command,
-package installer, provider selector or service supervisor. It reconciles
-the eight ALREADY DEPLOYED hosts described by the active
-rumiai-local-ai-cluster-development handoff. It does not join a new host
-or replace an installed Ollama concrete package root.
+Status: **physical 8/8 fleet success demonstrated by the 2026-10-14 chat-inline
+operator code; this repository consolidation remains pending its own physical
+re-run**. Do not treat the committed code as byte-identical to the code that
+produced the successful log.
 
 ## Operator path
 
-Start rsudo-admin with the required credential groups loaded in its session.
-Choose "rsudo jobs"; select controller.lib.sh as the library and rollout.job
-as the template. The console edits a private copy of the job before execution.
-Review the three pinned SHA values in that temporary job. The template defaults
-to `check` (no checkout/service changes; Git fetch refreshes remote-tracking
-metadata). Edit only the final mode operand to `canary`
-(apply only on gis and apps) or `rollout` (canaries, then remaining six
-workers). The program preflights all eight nodes for every mode.
+The PoC comprises exactly **two operator-selected source files**:
 
-The controller resolves the exact catalog commit and checks for the Ollama
-0.35.1 definition, then preflights all eight hosts before changing any runtime
-checkout or service. It applies first to gis, then the apps worker canary,
-then the other six workers sequentially. Any failure stops later mutations.
+- `controller.lib.sh`: sourced by `rsudo-admin jobs`; embeds the complete
+  remote POSIX shell program, exposes `cluster_rollout` and actually defines
+  `repair_ollama_nfs_worker` for worker apply operations.
+- `rollout.job`: selected as the job template. Its **mandatory first line**
+  is exactly `exec > "/m/src/git/rsudo-jobs.log" 2>&1`.
 
-Each worker preflight requires the pinned installed CPU artifact manifest and
-all its payload content, the exact provider, read-only NFS model mount, declared
-fstab options, mount dependency, and active/enabled system service. The gis
-preflight validates the central CPU artifact and existing system service.
-After a fast-forward update each host reselects linux-x86_64, reconciles its
-existing srv host system registration, restarts, checks its API and model, and
-runs a real bounded Ollama CPU inference with thinking disabled.
+Load the eight rsudo credential groups in the operator's own session. Select
+`controller.lib.sh`, then `rollout.job` in `rsudo-admin jobs`. Review the
+three pinned SHA-1/SHA-256 values in the editable job. The committed job
+defaults to `check`. Edit the final mode operand to `canary` (after global
+preflight, apply gis/apps only) or `rollout` (gis/apps canaries, then six
+remaining workers). The log's absolute path is fixed and truncated on every
+run. Library sourcing and interactive job editing precede log redirection.
 
-The catalog SHA is pinned as a source/reconciliation reference. It is not
-retrospective proof of the catalog revision originally used to construct
-the already-installed concrete provider. The provider identity and installed
-artifact digest/content are instead verified on each worker.
+The controller pins the catalog, checks every host before applying changes,
+preserves tracked/untracked Git state except for the three approved osarch
+selectors, uses Git fast-forward only, and refuses concurrent unexpected
+changes. All seven workers must retain the concrete
+`ollama@v0.35.1!linux-x86_64`; the central CPU artifact is pinned. The
+worker CPU package root is verified against a SHA-256-pinned artifact manifest
+found in the concrete root **or** in the pre-existing local
+`/var/lib/ollama-worker/runtime/0.35.1-cpu/MANIFEST.sha256` **or** in the
+shared read-only `/mnt/rumiai-ai/runtime/MANIFEST.sha256`. A missing
+manifest, a mismatched manifest hash or a mismatched installed payload
+stops the rollout before mutation.
 
-The updater tolerates ONLY the three managed tracked osarch selector changes.
-It rejects other tracked modifications, stale expected HEADs and non-forward
-updates. It preserves untracked runtime/state paths and never calls
-git clean, git reset --hard or force. Git rejects conflicting untracked files.
-If a node fails after a completed fast-forward, stop for diagnosis rather than
-attempting a history rewrite.
+For this persistent PoC, worker model NFS mount, fstab and service mount
+dependency are **validated fail-closed**, rather than changed. The successful
+chat-inline operator version also supported conservative NFS reconciliation;
+that additional behavior has *not* been ported here. Do not represent this
+PoC as a drop-in replacement for its NFS repair behavior. The current
+deployment has already passed these NFS checks and needs no repair.
 
-The job currently assumes the known site and deployment:
-- /m/src/git/rumiai-os on each Ubuntu server
-- gis:/m/ai/runtime/ollama/0.35.1-cpu immutable artifact
-- ollama@v0.35.1!linux-x86_64 and non-login ollama service account
-- model store mounted read-only at /mnt/rumiai-ai/models on workers
-- Ollama 0.35.1 at 127.0.0.1:11435 with qwen3:4b
+On a changed Git revision or an unhealthy service, apply reconciles the system
+service with `srv host system install` and restarts it. On a repeat run with
+the exact pinned revision and healthy service/API, unnecessary service
+restarts are skipped. Each apply verifies enabled/active service, Ollama API
+version, visibility of `qwen3:4b`, and bounded real chat inference.
 
-## Validation boundary
+## Current known fleet
 
-The included isolated Git test checks selected safe-update properties with
-host-manager/API/package external boundaries simulated. It is not a test of
-real rsudo authentication, Ubuntu systemd, NFS, integrated package manifests
-or CPU inference. A first real gis/apps canary and then a recorded fleet run
-are required before this operator PoC can become a validated normal path.
+- Eight hosts: `gis`, `apps`, `apisix`, `keycloak`, `apisix_psn`,
+  `apps_psn`, `keycloak_psn`, `webgisrpr`.
+- 2026-10-14 physically deployed `rumiai-os` pin:
+  `9f4524d9af44cc031ba039b88cfda8d2df0e1c65`.
+- All hosts retain the local `/m/src/git/rumiai-os` checkout.
+- Read-only NFS model store on workers:
+  `/mnt/rumiai-ai/models`.
+- Ollama v0.35.1 API endpoint:
+  `127.0.0.1:11435`.
+
+## Validation and remaining evidence
+
+`test-controller.sh` exercises the **simulated rsudo sequencing boundary**;
+`test-git-safety.sh` exercises real local Git in a disposable root Linux
+environment while mocking OS/service/API dependencies;
+`test-worker-manifest.sh` exercises real SHA-256 commands against an
+isolated extracted worker-manifest verifier. Run with POSIX `sh`.
+The isolated test host must permit a disposable `/m`; the Git safety
+test refuses to run if `/m` already exists. It must not be run on the
+user's production hosts.
+
+The recorded 2026-10-14 run validated an earlier, **chat-inline** two-file
+operator with global preflight 8/8, canaries gis/apps, then six successful
+applies. It did not validate this exact committed PoC, an additional actual
+post-update reboot, or a repeat run. The separate historical `rsudo-admin`
+terminal closure issue is also unresolved as an independent question.
