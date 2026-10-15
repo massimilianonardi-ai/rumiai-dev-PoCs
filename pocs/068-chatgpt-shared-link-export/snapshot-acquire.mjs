@@ -1,4 +1,4 @@
-import { activeBranch, findSnapshot, parseSnapshot } from './snapshot-export.mjs';
+import { deriveTranscript, findSnapshot, parseSnapshot } from './snapshot-export.mjs';
 
 const MAX_JSON_BYTES = 24 * 1024 * 1024;
 const MAX_ASSET_BYTES = 32 * 1024 * 1024;
@@ -105,8 +105,8 @@ async function waitForShareDocument(send, deadline) {
 
 function imageAssets(snapshot) {
   const assets = new Map();
-  for (const id of activeBranch(snapshot)) {
-    const parts = snapshot.mapping[id]?.message?.content?.parts;
+  for (const item of deriveTranscript(snapshot).visible) {
+    const parts = item.message?.content?.parts;
     if (!Array.isArray(parts)) continue;
     for (const part of parts) {
       if (!part || typeof part !== 'object' ||
@@ -129,56 +129,112 @@ function imageAssets(snapshot) {
 function assetFetchExpression(asset, shareId, conversationId) {
   return `(async () => {
     const attempts = [];
-    const urls = [
-      ['backend-anon', '/backend-anon/files/download/' + ${JSON.stringify(asset.file_id)} +
-        '?post_id=&shared_conversation_id=' + encodeURIComponent(${JSON.stringify(shareId)}) +
-        '&inline=false&download_intent=false'],
-      ['backend-api', '/backend-api/files/download/' + ${JSON.stringify(asset.file_id)} +
-        '?conversation_id=' + encodeURIComponent(${JSON.stringify(conversationId || '')}) +
-        '&inline=false']
-    ];
-    for (const [source, url] of urls) {
+
+    const readBinary = async (response, attempt, meta = {}) => {
+      attempt.binaryStatus = response.status;
+      if (!response.ok) return null;
+      const buffer = await response.arrayBuffer();
+      if (buffer.byteLength > ${MAX_ASSET_BYTES}) {
+        attempt.tooLarge = true;
+        return null;
+      }
+      const bytes = new Uint8Array(buffer);
+      let binaryString = '';
+      for (let offset = 0; offset < bytes.length; offset += 32768)
+        binaryString += String.fromCharCode(...bytes.subarray(offset, offset + 32768));
+      return {
+        attempts, base64: btoa(binaryString), byteLength: bytes.length,
+        mimeType: response.headers.get('content-type') || meta.mime_type || null,
+        fileName: meta.file_name || null
+      };
+    };
+
+    const resolve = async (source, url, options) => {
       try {
-        const metaResponse = await fetch(url, {
-          credentials: 'include', headers: { accept: 'application/json' }
-        });
-        const attempt = { source, metadataStatus: metaResponse.status };
+        const response = await fetch(url, options);
+        const attempt = { source, metadataStatus: response.status };
         attempts.push(attempt);
-        if (!metaResponse.ok) continue;
-        const meta = await metaResponse.json();
+        if (!response.ok) return null;
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          attempt.directBinary = true;
+          return await readBinary(response, attempt);
+        }
+        let meta;
+        try { meta = await response.json(); }
+        catch {
+          attempt.invalidJson = true;
+          return null;
+        }
         if (!meta?.download_url) {
           attempt.noDownloadUrl = true;
-          continue;
+          return null;
         }
         try {
-          const binary = await fetch(meta.download_url, { credentials: 'omit' });
-          attempt.binaryStatus = binary.status;
-          if (!binary.ok) continue;
-          const buffer = await binary.arrayBuffer();
-          if (buffer.byteLength > ${MAX_ASSET_BYTES}) {
-            attempt.tooLarge = true;
-            continue;
-          }
-          const bytes = new Uint8Array(buffer);
-          let binaryString = '';
-          for (let offset = 0; offset < bytes.length; offset += 32768)
-            binaryString += String.fromCharCode(...bytes.subarray(offset, offset + 32768));
-          return {
-            attempts, base64: btoa(binaryString), byteLength: bytes.length,
-            mimeType: binary.headers.get('content-type') || meta.mime_type || null,
-            fileName: meta.file_name || null
-          };
+          const signed = new URL(meta.download_url, location.origin);
+          const sameOrigin = signed.origin === location.origin;
+          const binaryHeaders = sameOrigin && options?.headers?.Authorization
+            ? { Authorization: options.headers.Authorization } : undefined;
+          const binary = await fetch(signed.href, {
+            credentials: sameOrigin ? 'include' : 'omit',
+            headers: binaryHeaders
+          });
+          return await readBinary(binary, attempt, meta);
         } catch {
           attempt.binaryFailed = true;
+          return null;
         }
       } catch {
         attempts.push({ source, metadataStatus: null, failed: true });
+        return null;
       }
+    };
+
+    const anon = await resolve(
+      'backend-anon',
+      '/backend-anon/files/download/' + ${JSON.stringify(asset.file_id)} +
+        '?post_id=&shared_conversation_id=' + encodeURIComponent(${JSON.stringify(shareId)}) +
+        '&inline=false&download_intent=false',
+      { credentials: 'omit', headers: { accept: 'application/json' } }
+    );
+    if (anon?.base64) return anon;
+
+    let accessToken = null;
+    try {
+      const sessionResponse = await fetch('/api/auth/session', { credentials: 'include' });
+      const sessionAttempt = { source: 'auth-session', metadataStatus: sessionResponse.status };
+      attempts.push(sessionAttempt);
+      if (sessionResponse.ok) {
+        const session = await sessionResponse.json();
+        if (typeof session?.accessToken === 'string' && session.accessToken) {
+          accessToken = session.accessToken;
+          sessionAttempt.authenticated = true;
+        } else sessionAttempt.authenticated = false;
+      }
+    } catch {
+      attempts.push({ source: 'auth-session', metadataStatus: null, failed: true });
+    }
+    if (!accessToken) return { attempts, base64: null };
+
+    const auth = { credentials: 'include', headers: {
+      accept: 'application/json', Authorization: 'Bearer ' + accessToken
+    } };
+    const endpoints = [
+      ['backend-api-files-download',
+        '/backend-api/files/download/' + ${JSON.stringify(asset.file_id)}],
+      ['backend-api-files-download-alt',
+        '/backend-api/files/' + ${JSON.stringify(asset.file_id)} + '/download'],
+      ['backend-api-conversation-attachment',
+        '/backend-api/conversation/' + encodeURIComponent(${JSON.stringify(conversationId || '')}) +
+          '/attachment/' + ${JSON.stringify(asset.file_id)} + '/download']
+    ];
+    for (const [source, url] of endpoints) {
+      const result = await resolve(source, url, auth);
+      if (result?.base64) return result;
     }
     return { attempts, base64: null };
   })()`;
 }
-
 async function captureImageAssets(send, snapshot, shareId, stats) {
   const found = [];
   for (const asset of imageAssets(snapshot)) {
