@@ -11,7 +11,7 @@
     "linkedom": "0.18.13"
   },
   "scripts": {
-    "test": "node --test tests/*.mjs",
+    "test": "node --test tests/*.mjs && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_share_cdp.py' -v",
     "check": "node --check export.mjs && node --check extract.mjs && node --check render-html.mjs"
   }
 }
