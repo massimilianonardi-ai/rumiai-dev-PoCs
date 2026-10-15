@@ -146,6 +146,85 @@ function imageAssets(snapshot) {
   }
   return [...assets.values()];
 }
+function rendererImageExpression() {
+  return `(async () => {
+    const images = [...document.querySelectorAll(
+      'button[data-testid="generated-image-preview"] img[src]'
+    )];
+    const resources = new Map();
+    images.forEach((img, occurrence) => {
+      const src = img.currentSrc || img.src;
+      if (!src) return;
+      let item = resources.get(src);
+      if (!item) {
+        item = { src, occurrences: [] };
+        resources.set(src, item);
+      }
+      item.occurrences.push({
+        occurrence,
+        aria_label: img.closest('button[data-testid="generated-image-preview"]')
+          ?.getAttribute('aria-label') || null,
+        natural_width: Number.isSafeInteger(img.naturalWidth) && img.naturalWidth > 0
+          ? img.naturalWidth : null,
+        natural_height: Number.isSafeInteger(img.naturalHeight) && img.naturalHeight > 0
+          ? img.naturalHeight : null
+      });
+    });
+    const result = [];
+    for (const item of resources.values()) {
+      try {
+        const response = await fetch(item.src, { credentials: 'include' });
+        const entry = {
+          occurrences: item.occurrences,
+          status: response.status,
+          mimeType: response.headers.get('content-type') || null
+        };
+        if (!response.ok) {
+          result.push(entry);
+          continue;
+        }
+        const buffer = await response.arrayBuffer();
+        entry.byteLength = buffer.byteLength;
+        if (buffer.byteLength > ${MAX_ASSET_BYTES}) {
+          entry.tooLarge = true;
+          result.push(entry);
+          continue;
+        }
+        const bytes = new Uint8Array(buffer);
+        let binaryString = '';
+        for (let offset = 0; offset < bytes.length; offset += 32768)
+          binaryString += String.fromCharCode(...bytes.subarray(offset, offset + 32768));
+        entry.base64 = btoa(binaryString);
+        result.push(entry);
+      } catch {
+        result.push({ occurrences: item.occurrences, status: null, failed: true });
+      }
+    }
+    return result;
+  })()`;
+}
+
+async function captureRendererImages(send, expected, deadline) {
+  let last = [];
+  while (Date.now() < deadline) {
+    try {
+      const response = await send('Runtime.evaluate', {
+        expression: rendererImageExpression(),
+        awaitPromise: true, returnByValue: true, silent: true
+      });
+      const value = response?.result?.value;
+      if (Array.isArray(value)) {
+        last = value;
+        const loaded = value.filter(item =>
+          typeof item?.base64 === 'string' && Number.isSafeInteger(item?.byteLength)).length;
+        if (loaded >= expected) break;
+      }
+    } catch { /* Renderer may still be materializing image blobs. */ }
+    await new Promise(resolve => setTimeout(resolve, 150));
+  }
+  return last;
+}
+
 function assetFetchExpression(asset, shareId) {
   return `(async () => {
     const attempts = [];
@@ -220,9 +299,49 @@ function assetFetchExpression(asset, shareId) {
     }
   })()`;
 }
+
+function rendererMatch(asset, renderer) {
+  return renderer.filter(item => {
+    if (typeof item?.base64 !== 'string' || !Number.isSafeInteger(item?.byteLength)) return false;
+    if (Number.isSafeInteger(asset.expected_size_bytes) &&
+        item.byteLength !== asset.expected_size_bytes) return false;
+    const occurrence = Array.isArray(item.occurrences) ? item.occurrences[0] : null;
+    if (Number.isSafeInteger(asset.width) && Number.isSafeInteger(occurrence?.natural_width) &&
+        occurrence.natural_width !== asset.width) return false;
+    if (Number.isSafeInteger(asset.height) && Number.isSafeInteger(occurrence?.natural_height) &&
+        occurrence.natural_height !== asset.height) return false;
+    return true;
+  });
+}
+
 async function captureImageAssets(send, snapshot, shareId, stats) {
+  const assets = imageAssets(snapshot);
+  const renderer = await captureRendererImages(send, assets.length, Date.now() + 5000);
+  stats.rendererImageResources = renderer.length;
+  stats.rendererImageOccurrences = renderer.reduce((n, item) =>
+    n + (Array.isArray(item?.occurrences) ? item.occurrences.length : 0), 0);
   const found = [];
-  for (const asset of imageAssets(snapshot)) {
+  for (const asset of assets) {
+    const matches = rendererMatch(asset, renderer);
+    if (matches.length === 1) {
+      const item = matches[0];
+      const attempts = [{
+        source: 'renderer-generated-image',
+        status: item.status ?? 200,
+        byteLength: item.byteLength,
+        occurrences: Array.isArray(item.occurrences) ? item.occurrences.length : 0
+      }];
+      stats.assetAttempts.push({ fileId: asset.file_id, attempts });
+      found.push({ ...asset,
+        renderer_references: item.occurrences || [],
+        mime_type: typeof item.mimeType === 'string' ? item.mimeType : null,
+        file_name: null,
+        downloaded_size_bytes: item.byteLength,
+        base64: item.base64,
+        attempts });
+      continue;
+    }
+
     let result = null;
     try {
       const response = await send('Runtime.evaluate', {
@@ -233,9 +352,14 @@ async function captureImageAssets(send, snapshot, shareId, stats) {
     } catch {
       result = { attempts: [{ source: 'web-control', failed: true }], base64: null };
     }
-    const attempts = Array.isArray(result?.attempts) ? result.attempts : [];
+    const attempts = [{
+      source: 'renderer-generated-image',
+      matches: matches.length,
+      availableResources: renderer.length
+    }, ...(Array.isArray(result?.attempts) ? result.attempts : [])];
     stats.assetAttempts.push({ fileId: asset.file_id, attempts });
     found.push({ ...asset,
+      renderer_references: matches.length === 1 ? matches[0].occurrences || [] : [],
       mime_type: typeof result?.mimeType === 'string' ? result.mimeType : null,
       file_name: typeof result?.fileName === 'string' ? result.fileName : null,
       downloaded_size_bytes: Number.isSafeInteger(result?.byteLength) ? result.byteLength : null,
@@ -257,7 +381,7 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
     throw new AcquisitionError('share.invalid-seconds', 'seconds must be 1..120');
   const stats = { phase: 'page-creation', operation: null, providerDiagnostic: null,
     hookFound: false, scriptCount: 0, inspectedResponses: 0, jsonShapes: [],
-    sourceAttempts: [], assetAttempts: [] };
+    sourceAttempts: [], assetAttempts: [], rendererImageResources: 0, rendererImageOccurrences: 0 };
   let page, session;
 
   async function send(method, params = {}) {

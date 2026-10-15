@@ -67,7 +67,7 @@ test('page-context fetch returns structured shared conversation without event do
   assert.ok(!calls.some(x => x.slice(0, 3).join(' ') === 'debug session events'));
 });
 
-test('page-context media acquisition inventories active-branch image references and stays anonymous', async () => {
+test('page-context media acquisition maps renderer generated images to raw asset identity', async () => {
   const imageSnapshot = { conversation_id: 'conv-1', current_node: 'answer', mapping: {
     user1: { parent: null, message: { id: 'u1', author: { role: 'user' },
       content: { parts: ['prompt one'] }, weight: 1 } },
@@ -76,20 +76,15 @@ test('page-context media acquisition inventories active-branch image references 
         content_type: 'image_asset_pointer',
         asset_pointer: 'sediment://file_image1?shared_conversation_id=share-1',
         size_bytes: 3, width: 1536, height: 1024
-      }] }, weight: 1 } },
+      }] }, weight: 0 } },
     user2: { parent: 'toolImage1', message: { id: 'u2', author: { role: 'user' },
-      content: { content_type: 'multimodal_text', parts: [
-        { content_type: 'image_asset_pointer',
-          asset_pointer: 'sediment://file_image1?shared_conversation_id=share-1',
-          size_bytes: 3, width: 1536, height: 1024 },
-        'edit it'
-      ] }, weight: 1 } },
+      content: { parts: ['prompt two'] }, weight: 1 } },
     toolImage2: { parent: 'user2', message: { id: 't2', author: { role: 'tool' },
       content: { content_type: 'multimodal_text', parts: [{
         content_type: 'image_asset_pointer',
         asset_pointer: 'sediment://file_image2?shared_conversation_id=share-1',
         size_bytes: 4, width: 1536, height: 1024
-      }] }, weight: 1 } },
+      }] }, weight: 0 } },
     answer: { parent: 'toolImage2', message: { id: 'a', author: { role: 'assistant' },
       channel: 'final', recipient: 'all', content: { parts: ['done'] },
       metadata: { is_complete: true }, end_turn: true, weight: 1 } }
@@ -110,14 +105,20 @@ test('page-context media acquisition inventories active-branch image references 
       if (params.expression === "location.origin + '|' + document.readyState")
         return { result: { result: { value:
           navigated ? 'https://chatgpt.com|complete' : 'data:|complete' } } };
-      if (params.expression.includes('/files/download/')) {
-        const file = params.expression.includes('file_image1') ? 'one' : 'two';
-        return { result: { result: { value: {
-          attempts: [{ source: 'backend-anon', metadataStatus: 200, binaryStatus: 200 }],
-          base64: Buffer.from(file).toString('base64'),
-          byteLength: Buffer.byteLength(file), mimeType: 'image/png', fileName: file + '.png'
-        } } } };
+      if (params.expression.includes('generated-image-preview')) {
+        return { result: { result: { value: [
+          { status: 200, byteLength: 3, mimeType: 'image/png',
+            base64: Buffer.from('one').toString('base64'),
+            occurrences: [{ occurrence: 0, aria_label: 'generated 1',
+              natural_width: 1536, natural_height: 1024 }] },
+          { status: 200, byteLength: 4, mimeType: 'image/png',
+            base64: Buffer.from('four').toString('base64'),
+            occurrences: [{ occurrence: 1, aria_label: 'generated 1',
+              natural_width: 1536, natural_height: 1024 }] }
+        ] } } };
       }
+      if (params.expression.includes('/files/download/'))
+        throw new Error('backend-anon file endpoint must not be used when renderer assets match');
       if (params.expression.includes('backend-anon'))
         return { result: { result: { value: {
           attempts: [{ source: 'backend-anon', status: 200 }],
@@ -130,15 +131,16 @@ test('page-context media acquisition inventories active-branch image references 
     'https://chatgpt.com/share/share-1', { seconds: 1 });
   assert.equal(result.assets.length, 2);
   assert.deepEqual(result.assets.map(x => x.file_id), ['file_image1', 'file_image2']);
-  assert.equal(result.assets[0].references.length, 2);
-  assert.deepEqual(result.assets[0].references.map(x => x.classification),
-    ['tool_traffic', 'visible_candidate']);
-  assert.equal(result.assets[1].references.length, 1);
-  assert.equal(result.assets[0].mime_type, 'image/png');
-  assert.ok(expressions.some(x => x.includes("credentials: 'include'")));
+  assert.deepEqual(result.assets.map(x => x.downloaded_size_bytes), [3, 4]);
+  assert.deepEqual(result.assets.map(x => x.attempts[0].source),
+    ['renderer-generated-image', 'renderer-generated-image']);
+  assert.deepEqual(result.assets.map(x => x.references[0].classification),
+    ['zero_weight', 'zero_weight']);
+  assert.equal(result.stats.rendererImageResources, 2);
+  assert.equal(result.stats.rendererImageOccurrences, 2);
+  assert.ok(expressions.some(x => x.includes('generated-image-preview')));
   assert.ok(!expressions.some(x => x.includes('/api/auth/session')));
   assert.ok(!expressions.some(x => x.includes('Authorization')));
-  assert.equal(result.stats.assetAttempts.length, 2);
 });
 
 test('backend-api is represented as safe fallback evidence', async () => {
