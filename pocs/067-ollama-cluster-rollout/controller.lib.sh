@@ -182,6 +182,9 @@ repair_ollama_nfs_worker()
 cluster_rollout()
 (
   set +x
+  # Fleet probes and applies must never inherit rsudo-admin interactive mode.
+  RSUDO_INTERACTIVE=false
+  RSUDO_AS_USER=
   [ "$#" -ge 3 ] && [ "$#" -le 4 ] || { printf '%s\n' 'expected runtime, catalog, manifest pins and optional check|canary|rollout mode' >&2; return 1; }
   cluster_runtime=$1 cluster_catalog=$2 cluster_artifact=$3 cluster_mode=${4:-rollout}
   case "$cluster_mode" in check|canary|rollout) ;; *) printf '%s\n' 'invalid rollout mode' >&2; return 15 ;; esac
