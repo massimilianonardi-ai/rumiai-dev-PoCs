@@ -67,6 +67,53 @@ test('page-context fetch returns structured shared conversation without event do
   assert.ok(!calls.some(x => x.slice(0, 3).join(' ') === 'debug session events'));
 });
 
+test('page-context media acquisition resolves public share image bytes', async () => {
+  const imageSnapshot = { conversation_id: 'conv-1', current_node: 'u', mapping: {
+    u: { parent: null, message: { author: { role: 'user' }, content: {
+      content_type: 'multimodal_text', parts: [
+        { content_type: 'image_asset_pointer',
+          asset_pointer: 'sediment://file_abc123?shared_conversation_id=share-1',
+          size_bytes: 3, width: 1, height: 1 },
+        'hello'
+      ] } } }
+  } };
+  let navigated = false;
+  const control = async (...args) => {
+    const cmd = args.slice(0, 3).join(' ');
+    if (cmd === 'page new') return { id: 'page-1' };
+    if (cmd === 'debug session open') return { session: 'debug-1' };
+    if (cmd === 'debug session close') return { closed: true };
+    if (cmd === 'debug session send' && args[4] === 'Page.navigate') {
+      navigated = true; return { result: {} };
+    }
+    if (cmd === 'debug session send' && args[4] === 'Runtime.evaluate') {
+      const params = JSON.parse(args[5]);
+      if (params.expression.includes('location.origin'))
+        return { result: { result: { value:
+          navigated ? 'https://chatgpt.com|complete' : 'data:|complete' } } };
+      if (params.expression.includes('/files/download/'))
+        return { result: { result: { value: {
+          attempts: [{ source: 'backend-anon', metadataStatus: 200, binaryStatus: 200 }],
+          base64: Buffer.from('png').toString('base64'), byteLength: 3,
+          mimeType: 'image/png', fileName: 'upload.png'
+        } } } };
+      if (params.expression.includes('backend-anon'))
+        return { result: { result: { value: {
+          attempts: [{ source: 'backend-anon', status: 200 }],
+          snapshot: JSON.stringify(imageSnapshot)
+        } } } };
+    }
+    return {};
+  };
+  const result = await captureStructuredSnapshot(control,
+    'https://chatgpt.com/share/share-1', { seconds: 1 });
+  assert.equal(result.assets.length, 1);
+  assert.equal(result.assets[0].file_id, 'file_abc123');
+  assert.equal(result.assets[0].mime_type, 'image/png');
+  assert.equal(result.assets[0].base64, Buffer.from('png').toString('base64'));
+  assert.equal(result.stats.assetAttempts.length, 1);
+});
+
 test('backend-api is represented as safe fallback evidence', async () => {
   const control = async (...args) => {
     const cmd = args.slice(0, 3).join(' ');

@@ -135,15 +135,29 @@ test('writes immutable forensic export, gzip, multimodal JSONL and readable ZIP'
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'chatgpt-node-snapshot-'));
   try {
     for (const index of [1, 2]) {
+      const assets = index === 1 ? [] : [{
+        asset_pointer: 'ref-1', file_id: 'file_1', mime_type: 'image/png',
+        file_name: 'x.png', expected_size_bytes: 3, width: 1, height: 1,
+        downloaded_size_bytes: 3, base64: Buffer.from('png').toString('base64'),
+        attempts: [{ source: 'backend-anon', metadataStatus: 200, binaryStatus: 200 }]
+      }];
       const result = await exportSnapshot(snapshot(), {}, dir,
-        'https://chatgpt.com/share/example', 'test-fixture');
+        'https://chatgpt.com/share/example', 'test-fixture', assets);
       const raw = JSON.parse(gunzipSync(await fs.readFile(path.join(result.directory,
         'conversation.raw.json.gz'))));
       assert.deepEqual(raw, snapshot());
       const zip = readZip(await fs.readFile(result.zip));
       assert.ok(zip.has('TRANSCRIPT.md'));
       assert.ok(zip.has('TURN_SURFACES.jsonl'));
+      assert.ok(zip.has('MEDIA.json'));
       assert.ok(zip.has('SHA256SUMS'));
+      if (index === 2) {
+        assert.ok(zip.has('media/001-file_1.png'));
+        const manifest = JSON.parse(zip.get('MEDIA.json'));
+        assert.equal(manifest[0].status, 'downloaded');
+        assert.equal(manifest[0].local_path, 'media/001-file_1.png');
+        assert.match(zip.get('TRANSCRIPT.md').toString(), /!\[immagine 1×1\]\(media\/001-file_1\.png\)/);
+      }
       const turns = zip.get('TURN_SURFACES.jsonl').toString().trim().split('\n')
         .filter(Boolean).map(line => JSON.parse(line));
       assert.equal(turns.length, 1);
@@ -151,7 +165,7 @@ test('writes immutable forensic export, gzip, multimodal JSONL and readable ZIP'
       assert.equal(turns[0].assistant.text, 'Chart ');
       assert.equal(JSON.parse(zip.get('NON_TEXT_PARTS.json')).length, 1);
       assert.equal(result.messageCount, 2);
-      assert.equal(result.imagesDownloaded, 0);
+      assert.equal(result.imagesDownloaded, index === 2 ? 1 : 0);
       assert.match(result.directory, new RegExp(index === 1 ? 'Test - conversation$' : 'Test - conversation \\(2\\)$'));
     }
   } finally { await fs.rm(dir, { recursive: true, force: true }); }

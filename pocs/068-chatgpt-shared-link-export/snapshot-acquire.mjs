@@ -1,6 +1,7 @@
-import { findSnapshot, parseSnapshot } from './snapshot-export.mjs';
+import { activeBranch, findSnapshot, parseSnapshot } from './snapshot-export.mjs';
 
 const MAX_JSON_BYTES = 24 * 1024 * 1024;
+const MAX_ASSET_BYTES = 32 * 1024 * 1024;
 
 export class AcquisitionError extends Error {
   constructor(code, message, stats) {
@@ -102,6 +103,107 @@ async function waitForShareDocument(send, deadline) {
   }
 }
 
+function imageAssets(snapshot) {
+  const assets = new Map();
+  for (const id of activeBranch(snapshot)) {
+    const parts = snapshot.mapping[id]?.message?.content?.parts;
+    if (!Array.isArray(parts)) continue;
+    for (const part of parts) {
+      if (!part || typeof part !== 'object' ||
+          part.content_type !== 'image_asset_pointer' ||
+          typeof part.asset_pointer !== 'string' ||
+          !part.asset_pointer.startsWith('sediment://')) continue;
+      const match = part.asset_pointer.match(/^sediment:\/\/(file[-_][A-Za-z0-9]+)/);
+      if (!match || assets.has(part.asset_pointer)) continue;
+      assets.set(part.asset_pointer, {
+        asset_pointer: part.asset_pointer, file_id: match[1],
+        expected_size_bytes: Number.isSafeInteger(part.size_bytes) ? part.size_bytes : null,
+        width: Number.isSafeInteger(part.width) ? part.width : null,
+        height: Number.isSafeInteger(part.height) ? part.height : null
+      });
+    }
+  }
+  return [...assets.values()];
+}
+
+function assetFetchExpression(asset, shareId, conversationId) {
+  return `(async () => {
+    const attempts = [];
+    const urls = [
+      ['backend-anon', '/backend-anon/files/download/' + ${JSON.stringify(asset.file_id)} +
+        '?post_id=&shared_conversation_id=' + encodeURIComponent(${JSON.stringify(shareId)}) +
+        '&inline=false&download_intent=false'],
+      ['backend-api', '/backend-api/files/download/' + ${JSON.stringify(asset.file_id)} +
+        '?conversation_id=' + encodeURIComponent(${JSON.stringify(conversationId || '')}) +
+        '&inline=false']
+    ];
+    for (const [source, url] of urls) {
+      try {
+        const metaResponse = await fetch(url, {
+          credentials: 'include', headers: { accept: 'application/json' }
+        });
+        const attempt = { source, metadataStatus: metaResponse.status };
+        attempts.push(attempt);
+        if (!metaResponse.ok) continue;
+        const meta = await metaResponse.json();
+        if (!meta?.download_url) {
+          attempt.noDownloadUrl = true;
+          continue;
+        }
+        try {
+          const binary = await fetch(meta.download_url, { credentials: 'omit' });
+          attempt.binaryStatus = binary.status;
+          if (!binary.ok) continue;
+          const buffer = await binary.arrayBuffer();
+          if (buffer.byteLength > ${MAX_ASSET_BYTES}) {
+            attempt.tooLarge = true;
+            continue;
+          }
+          const bytes = new Uint8Array(buffer);
+          let binaryString = '';
+          for (let offset = 0; offset < bytes.length; offset += 32768)
+            binaryString += String.fromCharCode(...bytes.subarray(offset, offset + 32768));
+          return {
+            attempts, base64: btoa(binaryString), byteLength: bytes.length,
+            mimeType: binary.headers.get('content-type') || meta.mime_type || null,
+            fileName: meta.file_name || null
+          };
+        } catch {
+          attempt.binaryFailed = true;
+        }
+      } catch {
+        attempts.push({ source, metadataStatus: null, failed: true });
+      }
+    }
+    return { attempts, base64: null };
+  })()`;
+}
+
+async function captureImageAssets(send, snapshot, shareId, stats) {
+  const found = [];
+  for (const asset of imageAssets(snapshot)) {
+    let result = null;
+    try {
+      const response = await send('Runtime.evaluate', {
+        expression: assetFetchExpression(asset, shareId, snapshot.conversation_id),
+        awaitPromise: true, returnByValue: true, silent: true
+      });
+      result = response?.result?.value || null;
+    } catch {
+      result = { attempts: [{ source: 'web-control', failed: true }], base64: null };
+    }
+    const attempts = Array.isArray(result?.attempts) ? result.attempts : [];
+    stats.assetAttempts.push({ fileId: asset.file_id, attempts });
+    found.push({ ...asset,
+      mime_type: typeof result?.mimeType === 'string' ? result.mimeType : null,
+      file_name: typeof result?.fileName === 'string' ? result.fileName : null,
+      downloaded_size_bytes: Number.isSafeInteger(result?.byteLength) ? result.byteLength : null,
+      base64: typeof result?.base64 === 'string' ? result.base64 : null,
+      attempts });
+  }
+  return found;
+}
+
 // Control is the portable public web-control client adapter: one command per
 // request. The persistent session is used only as the common privileged CDP
 // transport for page navigation and Runtime.evaluate. No debugger or network
@@ -114,7 +216,7 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
     throw new AcquisitionError('share.invalid-seconds', 'seconds must be 1..120');
   const stats = { phase: 'page-creation', operation: null, providerDiagnostic: null,
     hookFound: false, scriptCount: 0, inspectedResponses: 0, jsonShapes: [],
-    sourceAttempts: [] };
+    sourceAttempts: [], assetAttempts: [] };
   let page, session;
 
   async function send(method, params = {}) {
@@ -154,8 +256,11 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
       if (typeof fetched.snapshot === 'string') {
         const snapshot = parseSnapshot(fetched.snapshot);
         if (snapshot) {
+          stats.phase = 'media-acquisition';
+          stats.operation = 'debug session send Runtime.evaluate';
+          const assets = await captureImageAssets(send, snapshot, shareId, stats);
           stats.operation = null;
-          return { snapshot, method: 'page-fetch', stats };
+          return { snapshot, assets, method: 'page-fetch', stats };
         }
       }
     }
@@ -175,8 +280,11 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
         if (typeof raw !== 'string') continue;
         const snapshot = fromJson(raw, stats);
         if (snapshot) {
+          stats.phase = 'media-acquisition';
+          stats.operation = 'debug session send Runtime.evaluate';
+          const assets = await captureImageAssets(send, snapshot, shareId, stats);
           stats.operation = null;
-          return { snapshot, method: 'embedded-json', stats };
+          return { snapshot, assets, method: 'embedded-json', stats };
         }
       }
     } catch { /* Not every page exposes inline JSON script tags. */ }

@@ -262,7 +262,65 @@ export function zipFiles(files) {
   return Buffer.concat([...local, ...central, end]);
 }
 
-export async function exportSnapshot(snapshot, selected, outputRoot, source, method) {
+function mediaExtension(asset) {
+  const mime = String(asset.mime_type || '').toLowerCase().split(';')[0];
+  const known = { 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp',
+    'image/gif': '.gif', 'image/svg+xml': '.svg' };
+  if (known[mime]) return known[mime];
+  const match = String(asset.file_name || '').match(/(\.[A-Za-z0-9]{1,8})$/);
+  return match ? match[1].toLowerCase() : '.bin';
+}
+
+function mediaFiles(assets) {
+  const files = [], manifest = [], byPointer = new Map();
+  assets.forEach((asset, index) => {
+    const item = { asset_pointer: asset.asset_pointer, file_id: asset.file_id,
+      expected_size_bytes: asset.expected_size_bytes ?? null,
+      width: asset.width ?? null, height: asset.height ?? null,
+      mime_type: asset.mime_type ?? null, original_file_name: asset.file_name ?? null,
+      downloaded_size_bytes: asset.downloaded_size_bytes ?? null,
+      status: asset.base64 ? 'downloaded' : 'missing', local_path: null,
+      sha256: null, attempts: asset.attempts || [] };
+    if (asset.base64) {
+      const bytes = Buffer.from(asset.base64, 'base64');
+      const filename = String(index + 1).padStart(3, '0') + '-' +
+        safeName(asset.file_id || 'asset') + mediaExtension(asset);
+      item.local_path = 'media/' + filename;
+      item.downloaded_size_bytes = bytes.length;
+      item.sha256 = sha(bytes);
+      files.push([item.local_path, bytes]);
+      byPointer.set(asset.asset_pointer, item.local_path);
+    }
+    manifest.push(item);
+  });
+  return { files, manifest, byPointer };
+}
+
+function markdownMessage(item, mediaByPointer) {
+  const parts = item.message?.content?.parts;
+  if (!Array.isArray(parts)) return item.text ||
+    '[contenuto non testuale; vedi VISIBLE_MESSAGES.jsonl]';
+  const rendered = [];
+  for (const part of parts) {
+    if (typeof part === 'string') {
+      rendered.push(part);
+      continue;
+    }
+    if (part?.content_type === 'image_asset_pointer' &&
+        typeof part.asset_pointer === 'string') {
+      const local = mediaByPointer.get(part.asset_pointer);
+      if (local) {
+        const dims = part.width && part.height ? ` ${part.width}×${part.height}` : '';
+        rendered.push(`![immagine${dims}](${local})`);
+      } else rendered.push('[immagine non scaricata; vedi NON_TEXT_PARTS.json]');
+      continue;
+    }
+    rendered.push('[contenuto non testuale; vedi NON_TEXT_PARTS.json]');
+  }
+  return rendered.join('\n\n');
+}
+
+export async function exportSnapshot(snapshot, selected, outputRoot, source, method, assets = []) {
   const title = String(snapshot.title || selected.display_title ||
     snapshot.conversation_id || 'Shared conversation');
   const transcript = deriveTranscript(snapshot);
@@ -276,10 +334,11 @@ export async function exportSnapshot(snapshot, selected, outputRoot, source, met
     catch (error) { if (error.code !== 'EEXIST') throw error; }
   }
   const raw = Buffer.from(JSON.stringify(snapshot), 'utf8');
+  const media = mediaFiles(assets);
   const markdown = transcript.visible.map(item =>
     '## ' + (item.role === 'user' ? 'USER' :
       item.channel === 'commentary' ? 'ASSISTANT — commentary' : 'ASSISTANT') +
-    '\n\n' + (item.text || '[contenuto non testuale; vedi VISIBLE_MESSAGES.jsonl]') +
+    '\n\n' + markdownMessage(item, media.byPointer) +
     '\n\n').join('');
   const audit = {
     source: { kind: 'ChatGPT renderer conversation snapshot via web-control CDP session',
@@ -300,7 +359,11 @@ export async function exportSnapshot(snapshot, selected, outputRoot, source, met
   };
   const acquisition = { source, method, captured_mapping_nodes: audit.conversation.mapping_nodes,
     visible_messages: transcript.visible.length, non_text_parts: transcript.nonTextParts.length,
-    media_binary_downloaded: false, physical_site_completeness_verified: false };
+    media_references: media.manifest.length,
+    media_binary_downloaded_count: media.manifest.filter(x => x.status === 'downloaded').length,
+    media_binary_missing_count: media.manifest.filter(x => x.status !== 'downloaded').length,
+    media_binary_downloaded: media.manifest.length > 0 && media.manifest.every(x => x.status === 'downloaded'),
+    physical_site_completeness_verified: false };
   const items = [
     ['conversation.raw.json.gz', gzipSync(raw, { level: 9, mtime: 0 })],
     ['VISIBLE_MESSAGES.jsonl', Buffer.from(transcript.visible.map(x => JSON.stringify(x)).join('\n') + '\n')],
@@ -309,25 +372,31 @@ export async function exportSnapshot(snapshot, selected, outputRoot, source, met
       (snapshot.conversation_id || '') + '\n\n' +
       '<!-- Text from structured snapshot; non-text objects in VISIBLE_MESSAGES.jsonl. -->\n\n' + markdown)],
     ['NON_TEXT_PARTS.json', Buffer.from(pretty(transcript.nonTextParts))],
+    ['MEDIA.json', Buffer.from(pretty(media.manifest))],
     ['AUDIT.json', Buffer.from(pretty(audit))],
     ['ACQUISITION.json', Buffer.from(pretty(acquisition))],
     ['README.md', Buffer.from('# ChatGPT conversation export\n\n' +
       'Raw structured snapshot, renderer-visible transcript, turn-surface structure and non-text parts are retained.\n' +
       'TURN_SURFACES.jsonl separates user/final-response surfaces from activity/tool/reasoning metadata.\n' +
       'Internal reasoning text is not promoted into the readable transcript.\n' +
-      'Image references survive as metadata, but images and rendered charts are NOT downloaded.\n')]
+      'MEDIA.json records resolved and unresolved image assets; downloaded binaries live under media/.\n' +
+      'Missing media remains explicit and does not make the export silently complete.\n')]
   ];
-  for (const [name, bytes] of items)
+  if (media.files.length)
+    await fs.mkdir(path.join(directory, 'media'), { recursive: true, mode: 0o700 });
+  for (const [name, bytes] of [...items, ...media.files])
     await fs.writeFile(path.join(directory, name), bytes, { mode: 0o600, flag: 'wx' });
   const checksums = [sha(raw) + '  conversation.raw.json (uncompressed captured snapshot)',
-    ...items.map(([name, bytes]) => sha(bytes) + '  ' + name)].join('\n') + '\n';
+    ...[...items, ...media.files].map(([name, bytes]) => sha(bytes) + '  ' + name)].join('\n') + '\n';
   const sums = Buffer.from(checksums);
   await fs.writeFile(path.join(directory, 'SHA256SUMS'), sums, { mode: 0o600, flag: 'wx' });
   const archive = path.join(outputRoot, folder + '.zip');
-  await fs.writeFile(archive, zipFiles([...items, ['SHA256SUMS', sums]]),
+  await fs.writeFile(archive, zipFiles([...items, ...media.files, ['SHA256SUMS', sums]]),
     { mode: 0o600, flag: 'wx' });
   return { directory, zip: archive, title, messageCount: transcript.visible.length,
     mappingNodes: audit.conversation.mapping_nodes,
     nonTextParts: transcript.nonTextParts.length,
-    imagesDownloaded: 0, method, observationComplete: false };
+    imagesDownloaded: media.manifest.filter(x => x.status === 'downloaded').length,
+    imagesMissing: media.manifest.filter(x => x.status !== 'downloaded').length,
+    method, observationComplete: false };
 }

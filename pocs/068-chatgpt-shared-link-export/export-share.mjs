@@ -59,7 +59,8 @@ async function failureRecord(folder, error) {
     inspectedResponses: error.stats?.inspectedResponses || 0,
     scriptCount: error.stats?.scriptCount || 0,
     observedJsonShapes: error.stats?.jsonShapes || [],
-    sourceAttempts: error.stats?.sourceAttempts || []
+    sourceAttempts: error.stats?.sourceAttempts || [],
+    assetAttempts: error.stats?.assetAttempts || []
   };
   for (let n = 1; n < 100000; n++) {
     const file = path.join(folder, 'share-debug-diagnostic-' + String(n).padStart(4, '0') + '.json');
@@ -74,11 +75,11 @@ async function failureRecord(folder, error) {
 export async function exportSharedLink(input, directory, seconds = 20, controller = webControl) {
   const url = shareUrl(input);
   await controllerReadyIfRequired(controller);
-  const { snapshot, method } = await captureStructuredSnapshot(controller, url, { seconds });
+  const { snapshot, assets = [], method } = await captureStructuredSnapshot(controller, url, { seconds });
   return exportSnapshot(snapshot, {
     display_title: snapshot.title || 'Shared conversation',
     source_created_at: snapshot.create_time
-  }, directory, url, method);
+  }, directory, url, method, assets);
 }
 
 async function controllerReadyIfRequired(control) {
