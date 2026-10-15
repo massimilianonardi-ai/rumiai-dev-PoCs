@@ -11,6 +11,9 @@ cleanup() { rm -rf -- "$base"; rm -rf -- /m; }
 trap cleanup EXIT HUP INT TERM
 mkdir -p "$base/bin" /m/src/git /m/ai/runtime/ollama/0.35.1-cpu
 cluster_remote_source > "$base/host.sh"
+RUMIAI_MOCK_SRV_LOG="$base/srv-actions.log"
+export RUMIAI_MOCK_SRV_LOG
+: > "$RUMIAI_MOCK_SRV_LOG"
 cat > "$base/bin/systemctl" <<'SYSTEMCTL'
 #!/bin/sh
 case "$1" in is-enabled) echo enabled;; is-active) echo active;; *) exit 1;; esac
@@ -45,7 +48,7 @@ case "$1 $2 $3" in
       rm -f "${0%/*}/bin/$n-osarch"
       ln -s "$n-linux-x86_64" "${0%/*}/bin/$n-osarch"
     done ;;
-  'srv host system') exit 0 ;;
+  'srv host system') printf '%s\n' "$*" >> "$RUMIAI_MOCK_SRV_LOG"; exit 0 ;;
   *) exit 1 ;;
 esac
 M
@@ -82,10 +85,12 @@ sh "$base/host.sh" apply "$pin" "$artifact_sha" gis "$old" > "$base/apply.log"
 [ "$(git -C "$root" rev-parse HEAD)" = "$pin" ]
 [ "$(cat "$root/operational-state")" = 'must-survive' ]
 grep -q 'CLUSTER APPLY OK' "$base/apply.log"
+[ "$(wc -l < "$RUMIAI_MOCK_SRV_LOG")" -eq 2 ]
 # Reapply the exact pin. The normal path must not recreate or restart an
 # already healthy, unchanged service; all existing operational state remains.
 sh "$base/host.sh" apply "$pin" "$artifact_sha" gis "$pin" > "$base/idempotent.log"
 grep -q 'CLUSTER APPLY OK' "$base/idempotent.log"
+[ "$(wc -l < "$RUMIAI_MOCK_SRV_LOG")" -eq 2 ] || { echo 'FAIL: repeat apply unnecessarily reconciled service' >&2; exit 1; }
 # A moving expected HEAD must be rejected instead of merging.
 if sh "$base/host.sh" apply "$pin" "$artifact_sha" gis "$old" > "$base/stale.log" 2>&1
 then echo 'FAIL: stale expected HEAD passed' >&2; exit 1; fi
