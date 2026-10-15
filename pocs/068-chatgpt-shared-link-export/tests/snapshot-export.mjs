@@ -136,9 +136,14 @@ test('writes immutable forensic export, gzip, multimodal JSONL and readable ZIP'
   try {
     for (const index of [1, 2]) {
       const assets = index === 1 ? [] : [{
-        asset_pointer: 'ref-1', file_id: 'file_1', mime_type: 'image/png',
+        asset_pointer: 'ref-1', asset_pointers: ['ref-1', 'ref-1-alias'],
+        file_id: 'file_1', mime_type: 'image/png',
         file_name: 'x.png', expected_size_bytes: 3, width: 1, height: 1,
         downloaded_size_bytes: 3, base64: Buffer.from('png').toString('base64'),
+        references: [
+          { ordinal: 1, node_id: 'assistant', classification: 'visible_candidate' },
+          { ordinal: 2, node_id: 'reuse', classification: 'tool_traffic' }
+        ],
         attempts: [{ source: 'backend-anon', metadataStatus: 200, binaryStatus: 200 }]
       }];
       const result = await exportSnapshot(snapshot(), {}, dir,
@@ -156,6 +161,8 @@ test('writes immutable forensic export, gzip, multimodal JSONL and readable ZIP'
         const manifest = JSON.parse(zip.get('MEDIA.json'));
         assert.equal(manifest[0].status, 'downloaded');
         assert.equal(manifest[0].local_path, 'media/001-file_1.png');
+        assert.equal(manifest[0].references.length, 2);
+        assert.deepEqual(manifest[0].asset_pointers, ['ref-1', 'ref-1-alias']);
         assert.match(zip.get('TRANSCRIPT.md').toString(), /!\[immagine\]\(media\/001-file_1\.png\)/);
       }
       const turns = zip.get('TURN_SURFACES.jsonl').toString().trim().split('\n')

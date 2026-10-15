@@ -274,13 +274,15 @@ function mediaExtension(asset) {
 function mediaFiles(assets) {
   const files = [], manifest = [], byPointer = new Map();
   assets.forEach((asset, index) => {
-    const item = { asset_pointer: asset.asset_pointer, file_id: asset.file_id,
+    const item = { asset_pointer: asset.asset_pointer,
+      asset_pointers: Array.isArray(asset.asset_pointers) ? asset.asset_pointers : [asset.asset_pointer],
+      file_id: asset.file_id,
       expected_size_bytes: asset.expected_size_bytes ?? null,
       width: asset.width ?? null, height: asset.height ?? null,
       mime_type: asset.mime_type ?? null, original_file_name: asset.file_name ?? null,
       downloaded_size_bytes: asset.downloaded_size_bytes ?? null,
       status: asset.base64 ? 'downloaded' : 'missing', local_path: null,
-      sha256: null, attempts: asset.attempts || [] };
+      sha256: null, references: asset.references || [], attempts: asset.attempts || [] };
     if (asset.base64) {
       const bytes = Buffer.from(asset.base64, 'base64');
       const filename = String(index + 1).padStart(3, '0') + '-' +
@@ -289,7 +291,8 @@ function mediaFiles(assets) {
       item.downloaded_size_bytes = bytes.length;
       item.sha256 = sha(bytes);
       files.push([item.local_path, bytes]);
-      byPointer.set(asset.asset_pointer, item.local_path);
+      for (const pointer of item.asset_pointers)
+        if (typeof pointer === 'string') byPointer.set(pointer, item.local_path);
     }
     manifest.push(item);
   });
@@ -359,7 +362,8 @@ export async function exportSnapshot(snapshot, selected, outputRoot, source, met
   };
   const acquisition = { source, method, captured_mapping_nodes: audit.conversation.mapping_nodes,
     visible_messages: transcript.visible.length, non_text_parts: transcript.nonTextParts.length,
-    media_references: media.manifest.length,
+    media_unique_assets: media.manifest.length,
+    media_references: media.manifest.reduce((n, x) => n + x.references.length, 0),
     media_binary_downloaded_count: media.manifest.filter(x => x.status === 'downloaded').length,
     media_binary_missing_count: media.manifest.filter(x => x.status !== 'downloaded').length,
     media_binary_downloaded: media.manifest.length > 0 && media.manifest.every(x => x.status === 'downloaded'),
@@ -396,6 +400,8 @@ export async function exportSnapshot(snapshot, selected, outputRoot, source, met
   return { directory, zip: archive, title, messageCount: transcript.visible.length,
     mappingNodes: audit.conversation.mapping_nodes,
     nonTextParts: transcript.nonTextParts.length,
+    imagesReferenced: media.manifest.length,
+    imageReferences: media.manifest.reduce((n, x) => n + x.references.length, 0),
     imagesDownloaded: media.manifest.filter(x => x.status === 'downloaded').length,
     imagesMissing: media.manifest.filter(x => x.status !== 'downloaded').length,
     method, observationComplete: false };

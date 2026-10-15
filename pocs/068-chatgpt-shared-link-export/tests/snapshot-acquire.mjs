@@ -67,25 +67,35 @@ test('page-context fetch returns structured shared conversation without event do
   assert.ok(!calls.some(x => x.slice(0, 3).join(' ') === 'debug session events'));
 });
 
-test('page-context media acquisition uses visible assets and authenticated fallback', async () => {
-  const imageSnapshot = { conversation_id: 'conv-1', current_node: 'visible', mapping: {
-    hiddenUser: { parent: null, message: { id: 'hidden-user', author: { role: 'user' },
+test('page-context media acquisition inventories active-branch image references and stays anonymous', async () => {
+  const imageSnapshot = { conversation_id: 'conv-1', current_node: 'answer', mapping: {
+    user1: { parent: null, message: { id: 'u1', author: { role: 'user' },
+      content: { parts: ['prompt one'] }, weight: 1 } },
+    toolImage1: { parent: 'user1', message: { id: 't1', author: { role: 'tool' },
       content: { content_type: 'multimodal_text', parts: [{
-        content_type: 'image_asset_pointer', asset_pointer: 'sediment://file_hidden',
-        size_bytes: 9, width: 9, height: 9
-      }] }, metadata: { is_visually_hidden_from_conversation: true }, weight: 1 } },
-    user: { parent: 'hiddenUser', message: { id: 'u', author: { role: 'user' }, content: {
-      content_type: 'multimodal_text', parts: [
+        content_type: 'image_asset_pointer',
+        asset_pointer: 'sediment://file_image1?shared_conversation_id=share-1',
+        size_bytes: 3, width: 1536, height: 1024
+      }] }, weight: 1 } },
+    user2: { parent: 'toolImage1', message: { id: 'u2', author: { role: 'user' },
+      content: { content_type: 'multimodal_text', parts: [
         { content_type: 'image_asset_pointer',
-          asset_pointer: 'sediment://file_abc123?shared_conversation_id=share-1',
-          size_bytes: 3, width: 1, height: 1 },
-        'hello'
+          asset_pointer: 'sediment://file_image1?shared_conversation_id=share-1',
+          size_bytes: 3, width: 1536, height: 1024 },
+        'edit it'
       ] }, weight: 1 } },
-    visible: { parent: 'user', message: { id: 'a', author: { role: 'assistant' },
-      channel: 'final', recipient: 'all', content: { parts: ['answer'] },
+    toolImage2: { parent: 'user2', message: { id: 't2', author: { role: 'tool' },
+      content: { content_type: 'multimodal_text', parts: [{
+        content_type: 'image_asset_pointer',
+        asset_pointer: 'sediment://file_image2?shared_conversation_id=share-1',
+        size_bytes: 4, width: 1536, height: 1024
+      }] }, weight: 1 } },
+    answer: { parent: 'toolImage2', message: { id: 'a', author: { role: 'assistant' },
+      channel: 'final', recipient: 'all', content: { parts: ['done'] },
       metadata: { is_complete: true }, end_turn: true, weight: 1 } }
   } };
   let navigated = false;
+  const expressions = [];
   const control = async (...args) => {
     const cmd = args.slice(0, 3).join(' ');
     if (cmd === 'page new') return { id: 'page-1' };
@@ -96,21 +106,16 @@ test('page-context media acquisition uses visible assets and authenticated fallb
     }
     if (cmd === 'debug session send' && args[4] === 'Runtime.evaluate') {
       const params = JSON.parse(args[5]);
+      expressions.push(params.expression);
       if (params.expression === "location.origin + '|' + document.readyState")
         return { result: { result: { value:
           navigated ? 'https://chatgpt.com|complete' : 'data:|complete' } } };
       if (params.expression.includes('/files/download/')) {
-        assert.ok(params.expression.includes('/api/auth/session'));
-        assert.ok(params.expression.includes('backend-api-files-download'));
-        assert.ok(!params.expression.includes('file_hidden'));
+        const file = params.expression.includes('file_image1') ? 'one' : 'two';
         return { result: { result: { value: {
-          attempts: [
-            { source: 'backend-anon', metadataStatus: 401 },
-            { source: 'auth-session', metadataStatus: 200, authenticated: true },
-            { source: 'backend-api-files-download', metadataStatus: 200, binaryStatus: 200 }
-          ],
-          base64: Buffer.from('png').toString('base64'), byteLength: 3,
-          mimeType: 'image/png', fileName: 'upload.png'
+          attempts: [{ source: 'backend-anon', metadataStatus: 200, binaryStatus: 200 }],
+          base64: Buffer.from(file).toString('base64'),
+          byteLength: Buffer.byteLength(file), mimeType: 'image/png', fileName: file + '.png'
         } } } };
       }
       if (params.expression.includes('backend-anon'))
@@ -123,13 +128,17 @@ test('page-context media acquisition uses visible assets and authenticated fallb
   };
   const result = await captureStructuredSnapshot(control,
     'https://chatgpt.com/share/share-1', { seconds: 1 });
-  assert.equal(result.assets.length, 1);
-  assert.equal(result.assets[0].file_id, 'file_abc123');
+  assert.equal(result.assets.length, 2);
+  assert.deepEqual(result.assets.map(x => x.file_id), ['file_image1', 'file_image2']);
+  assert.equal(result.assets[0].references.length, 2);
+  assert.deepEqual(result.assets[0].references.map(x => x.classification),
+    ['tool_traffic', 'visible_candidate']);
+  assert.equal(result.assets[1].references.length, 1);
   assert.equal(result.assets[0].mime_type, 'image/png');
-  assert.equal(result.assets[0].base64, Buffer.from('png').toString('base64'));
-  assert.deepEqual(result.stats.assetAttempts[0].attempts.map(x => x.source), [
-    'backend-anon', 'auth-session', 'backend-api-files-download'
-  ]);
+  assert.ok(expressions.some(x => x.includes("credentials: 'include'")));
+  assert.ok(!expressions.some(x => x.includes('/api/auth/session')));
+  assert.ok(!expressions.some(x => x.includes('Authorization')));
+  assert.equal(result.stats.assetAttempts.length, 2);
 });
 
 test('backend-api is represented as safe fallback evidence', async () => {
