@@ -1,0 +1,30 @@
+name: Ollama cluster operator PoC
+on:
+  push:
+    paths:
+      - 'pocs/067-ollama-cluster-rollout/**'
+      - '.github/workflows/ollama-cluster-rollout-poc.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  operator-regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: POSIX shell syntax
+        run: |
+          for source in pocs/067-ollama-cluster-rollout/controller.lib.sh pocs/067-ollama-cluster-rollout/rollout.job pocs/067-ollama-cluster-rollout/test-controller.sh pocs/067-ollama-cluster-rollout/test-git-safety.sh pocs/067-ollama-cluster-rollout/test-worker-manifest.sh
+          do
+            sh -n "$source"
+            dash -n "$source"
+            bash -n "$source"
+          done
+      - name: Fleet sequencing boundary
+        run: sh pocs/067-ollama-cluster-rollout/test-controller.sh
+      - name: CPU manifest to integrated package integrity
+        run: sh pocs/067-ollama-cluster-rollout/test-worker-manifest.sh
+      - name: Disposable Git fast-forward and repeat run
+        run: sudo sh pocs/067-ollama-cluster-rollout/test-git-safety.sh
