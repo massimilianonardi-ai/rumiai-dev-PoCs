@@ -143,64 +143,75 @@ async function _images(imageUrls, versionDir)
     ({ index: index + 1, url, status: "unavailable" }));
   const available = new Map();
   const assetDir = path.join(versionDir, "assets");
-  let next = 0;
+  let cursor = 0;
 
   async function worker()
   {
-    while (next < imageUrls.length)
+    while (cursor < imageUrls.length)
     {
-      const index = next++;
+      const index = cursor++;
       const url = imageUrls[index];
       const item = records[index];
 
-    if (!_trustedAssetUrl(url))
-    {
-      item.reason = "source-origin-not-allowed";
-      continue;
-    }
-
-    try
-    {
-      const response = await fetch(url, {
-        redirect: "error",
-        signal: AbortSignal.timeout(7000)
-      });
-      if (!response.ok) throw new Error("HTTP " + response.status);
-      const ext = _extension(response.headers.get("content-type"));
-      if (!ext) throw new Error("unsupported-image-media-type");
-      if (Number(response.headers.get("content-length")) > IMAGE_MAX_BYTES)
+      try
       {
-        throw new Error("image-too-large");
-      }
-
-      const parts = [];
-      const reader = response.body.getReader();
-      let length = 0;
-      while (true)
-      {
-        const { done, value } = await reader.read();
-        if (done) break;
-        length += value.byteLength;
-        if (length > IMAGE_MAX_BYTES)
+        let bytes;
+        let extension;
+        const inline = /^data:image\/(png|jpeg|gif|webp|avif);base64,([A-Za-z0-9+/=]+)$/i.exec(url);
+        if (inline)
         {
-          await reader.cancel();
-          throw new Error("image-too-large");
+          extension = _extension("image/" + inline[1].toLowerCase());
+          bytes = Buffer.from(inline[2], "base64");
+          if (bytes.length > IMAGE_MAX_BYTES) throw new Error("image-too-large");
         }
-        parts.push(Buffer.from(value));
+        else
+        {
+          if (!_trustedAssetUrl(url))
+          {
+            item.reason = "source-origin-not-allowed";
+            continue;
+          }
+          const response = await fetch(url, {
+            redirect: "error",
+            signal: AbortSignal.timeout(7000)
+          });
+          if (!response.ok) throw new Error("HTTP " + response.status);
+          extension = _extension(response.headers.get("content-type"));
+          if (!extension) throw new Error("unsupported-image-media-type");
+          if (Number(response.headers.get("content-length")) > IMAGE_MAX_BYTES)
+          {
+            throw new Error("image-too-large");
+          }
+          const chunks = [];
+          const reader = response.body.getReader();
+          let length = 0;
+          while (true)
+          {
+            const { done, value } = await reader.read();
+            if (done) break;
+            length += value.byteLength;
+            if (length > IMAGE_MAX_BYTES)
+            {
+              await reader.cancel();
+              throw new Error("image-too-large");
+            }
+            chunks.push(Buffer.from(value));
+          }
+          bytes = Buffer.concat(chunks, length);
+        }
+
+        await fs.mkdir(assetDir, { recursive: true, mode: 0o700 });
+        const filename = "image-" + String(index + 1).padStart(4, "0") + "." + extension;
+        await fs.writeFile(path.join(assetDir, filename), bytes, { mode: 0o600 });
+        item.status = "downloaded";
+        item.path = "assets/" + filename;
+        available.set(url, item.path);
       }
-      const bytes = Buffer.concat(parts, length);
-      await fs.mkdir(assetDir, { recursive: true, mode: 0o700 });
-      const filename = "image-" + String(index + 1).padStart(4, "0") + "." + ext;
-      await fs.writeFile(path.join(assetDir, filename), bytes, { mode: 0o600 });
-      item.status = "downloaded";
-      item.path = "assets/" + filename;
-      available.set(url, item.path);
-    }
-    catch (error)
-    {
-      // Deliberately avoid logging asset URLs: they can contain signed tokens.
-      item.reason = String(error.message || error);
-    }
+      catch (error)
+      {
+        // Deliberately avoid printing original asset URLs or signed query values.
+        item.reason = String(error.message || error);
+      }
     }
   }
   await Promise.all(Array.from({ length: Math.min(4, imageUrls.length) }, () => worker()));
