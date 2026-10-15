@@ -12,6 +12,6 @@
   },
   "scripts": {
     "test": "node --test tests/*.mjs",
-    "check": "node --check export.mjs && node --check extract.mjs"
+    "check": "node --check export.mjs && node --check extract.mjs && node --check scroll.mjs && node --check snapshot.mjs && node --check render-html.mjs"
   }
 }
