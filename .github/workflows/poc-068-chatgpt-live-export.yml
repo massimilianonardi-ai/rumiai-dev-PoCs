@@ -1,0 +1,91 @@
+name: PoC 068 live shared-link validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      share_url:
+        description: "ChatGPT sharing URL (do not use confidential conversations)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  live-export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exporter
+        uses: actions/checkout@v4
+
+      - name: Checkout verified web-control provider revision
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/pwc-web-control
+          ref: 5f3c8d298ac916be72ea59461a167ac31610ca61
+          path: pwc-web-control
+
+      - name: Prepare Node.js 26
+        uses: actions/setup-node@v4
+        with:
+          node-version: "26"
+
+      - name: Select Chromium-class browser
+        shell: bash
+        run: |
+          set -eu
+          browser=$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || :)
+          test -n "$browser"
+          printf 'WEB_CONTROL_BROWSER_EXECUTABLE=%s\n' "$browser" >> "$GITHUB_ENV"
+          "$browser" --version
+
+      - name: Install browser controller dependencies
+        working-directory: pwc-web-control
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+        run: npm install --no-audit --no-fund
+
+      - name: Install exporter dependencies
+        working-directory: pocs/068-chatgpt-shared-link-export
+        run: npm install --no-audit --no-fund
+
+      - name: Export shared page through real web-control
+        shell: bash
+        env:
+          CHATGPT_SHARED_URL: ${{ inputs.share_url }}
+          WEB_CONTROL_HOME: ${{ runner.temp }}/web-control-profile
+          WEB_CONTROL_HEADLESS: "0"
+        run: |
+          set -euo pipefail
+          export WEB_CONTROL_CMD="$GITHUB_WORKSPACE/pwc-web-control/bin/web-control"
+          mkdir -p "$RUNNER_TEMP/share-export"
+
+          # Keep all captured messages/HTML local to this disposable runner.
+          # Do not print the URL, provider logs or captured contents to public CI logs.
+          if ! xvfb-run -a bash -euo pipefail <<'LIVE'
+          controller="$GITHUB_WORKSPACE/pwc-web-control/bin/web-control-service"
+          "$controller" > "$RUNNER_TEMP/web-control-service.log" 2>&1 &
+          controller_pid=$!
+          trap 'kill "$controller_pid" 2>/dev/null || :; wait "$controller_pid" 2>/dev/null || :' EXIT
+          node "$GITHUB_WORKSPACE/pocs/068-chatgpt-shared-link-export/export.mjs" \
+            "$CHATGPT_SHARED_URL" "$RUNNER_TEMP/share-export" \
+            > "$RUNNER_TEMP/export-summary.json" 2> "$RUNNER_TEMP/export-stderr.log"
+          LIVE
+          then
+            echo 'Real shared-link export did not complete. Contents and diagnostic logs were not uploaded.'
+            exit 1
+          fi
+
+          # A summary without the conversation URL/text/assets is all that leaves the runner.
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const summary = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/export-summary.json", "utf8"));
+            console.log(JSON.stringify({
+              result: "exported",
+              messageCount: summary.messageCount,
+              imagesDownloaded: summary.imagesDownloaded,
+              imagesUnavailable: summary.imagesUnavailable,
+              observedSettledAtBottom: summary.observedSettledAtBottom
+            }, null, 2));
+          '
