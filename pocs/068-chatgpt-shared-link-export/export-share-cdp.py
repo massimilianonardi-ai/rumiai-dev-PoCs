@@ -416,9 +416,18 @@ def main(argv=None):
             "inspectedResponses": stats["inspected_responses"],
             "observedJsonShapes": stats["json_shapes"],
         }
-        file = output / "share-cdp-diagnostic.json"
-        file.write_text(json.dumps(diagnostics, indent=2) + "\n",
-                        encoding="utf-8")
+        # Failure evidence is forward-only too: never replace an earlier run.
+        for count in range(1, 100000):
+            file = output / f"share-cdp-diagnostic-{count:04d}.json"
+            try:
+                with file.open("x", encoding="utf-8") as stream:
+                    stream.write(json.dumps(diagnostics, indent=2) + "\n")
+                break
+            except FileExistsError:
+                continue
+        else:
+            raise ExportError("share.diagnostic-exhausted",
+                              "cannot allocate unique diagnostic file")
         print(f"{error}\nDiagnostic: {file}", file=sys.stderr)
         return 1
     finally:
