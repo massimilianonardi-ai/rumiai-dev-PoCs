@@ -414,3 +414,108 @@ test('waits for full document load before reading the share snapshot', async () 
   assert.equal(readyPolls,3);
   assert.equal(shareRequested,true);
 });
+
+test('multiple lazy generated images load sequentially without viewport thrashing', async () => {
+  const ids=[
+    'file_11111111111111111111111111111111',
+    'file_22222222222222222222222222222222'
+  ];
+  const urls=ids.map(fileId=>{
+    const hex=fileId.slice(5);
+    const uuid=[hex.slice(0,8),hex.slice(8,12),hex.slice(12,16),
+      hex.slice(16,20),hex.slice(20)].join('-');
+    return 'https://sdmntprnortheu.oaiusercontent.com/files/'+uuid+
+      '/raw?se=short-lived&sig=secret';
+  });
+  const html=ids.map((fileId,index)=>
+    '<div data-image-gen-result><div id="image-'+index+
+    '"><img width="1536" height="1024" src="'+
+    urls[index].replaceAll('&','&amp;')+'"></div></div>').join('');
+  const {document}=parseHTML(html);
+  const scrolls=[],stationary=[0,0];
+  let active=-1;
+  for(let index=0;index<2;index++){
+    const root=document.querySelector('#image-'+index);
+    root.scrollIntoView=()=>{
+      if(index===1) assert.ok(stationary[0]>=3,
+        'second image must not be visited until first image finishes');
+      scrolls.push(index);active=index;
+    };
+    const img=root.querySelector('img');
+    const loaded=()=>stationary[index]>=3;
+    Object.defineProperty(img,'complete',{get:loaded});
+    Object.defineProperty(img,'naturalWidth',{get:()=>loaded()?1536:0});
+    Object.defineProperty(img,'naturalHeight',{get:()=>loaded()?1024:0});
+  }
+  const image=Buffer.concat([
+    Buffer.from([137,80,78,71,13,10,26,10]),Buffer.alloc(12)
+  ]);
+  const content=fileId=>({content_type:'multimodal_text',parts:[{
+    content_type:'image_asset_pointer',
+    asset_pointer:'sediment://'+fileId+'?shared_conversation_id=two',
+    size_bytes:image.length,width:1536,height:1024
+  }]});
+  const snapshot={
+    conversation_id:'two',current_node:'assistant',
+    mapping:{
+      user:{parent:null,message:{id:'user',author:{role:'user'},
+        content:{parts:['Make two images']},weight:1}},
+      tool1:{parent:'user',message:{id:'tool1',author:{role:'tool'},
+        content:content(ids[0]),weight:0}},
+      tool2:{parent:'tool1',message:{id:'tool2',author:{role:'tool'},
+        content:content(ids[1]),weight:0}},
+      assistant:{parent:'tool2',message:{id:'assistant',
+        author:{role:'assistant'},content:{parts:['Two images']},
+        weight:1,end_turn:true}}
+    }
+  };
+  const control=async(...args)=>{
+    if(args[0]==='page'&&args[1]==='new')return{id:'page'};
+    if(args[0]==='page'&&args[1]==='close')return{closed:true};
+    if(args[0]==='debug'&&args[1]==='session'&&args[2]==='open')
+      return{session:'session'};
+    if(args[0]==='debug'&&args[1]==='session'&&args[2]==='close')
+      return{closed:true};
+    if(args[0]!=='debug'||args[1]!=='session'||args[2]!=='send')
+      throw Error('unexpected control operation');
+    const method=args[4],params=JSON.parse(args[5]);
+    if(method==='Page.navigate')return{result:{}};
+    if(method!=='Runtime.evaluate')throw Error('unexpected CDP method');
+    if(params.expression==="location.origin + '|' + document.readyState")
+      return{result:{result:{value:'https://chatgpt.com|complete'}}};
+    if(params.expression.includes('function scan(index,shouldActivate)')){
+      if(params.expression.endsWith(',false)')&&active>=0)
+        stationary[active]++;
+      return{result:{result:{value:runInNewContext(params.expression,{
+        document,location:{href:'https://chatgpt.com/share/two'},URL
+      })}}};
+    }
+    if(params.expression.includes('backend-anon'))
+      return{result:{result:{value:{
+        attempts:[{source:'backend-anon',status:200}],
+        snapshot:JSON.stringify(snapshot)
+      }}}};
+    if(params.expression.includes('return { candidates: urls.size'))
+      return{result:{result:{value:{candidates:2,images:2}}}};
+    throw Error('unexpected image expression');
+  };
+  const requested=[];
+  const fetchImage=async src=>{
+    requested.push(src);
+    return new Response(image,{status:200,headers:{
+      'content-type':'image/png','content-length':String(image.length)
+    }});
+  };
+  const result=await captureStructuredSnapshot(control,
+    'https://chatgpt.com/share/two',{seconds:3,fetchImage});
+  assert.deepEqual(scrolls,[0,1],'each surface should be activated only once');
+  assert.ok(stationary.every(n=>n>=3));
+  assert.equal(result.stats.generatedImageDom.expected,2);
+  assert.equal(result.stats.generatedImageDom.identified,2);
+  assert.equal(result.stats.generatedImageDom.downloaded,2);
+  assert.equal(result.stats.generatedImageDom.activated,2);
+  assert.deepEqual(result.stats.generatedImageDom.statuses.map(s=>s.status),
+    ['loaded','loaded']);
+  assert.deepEqual(requested,urls,'download paths retain identity despite identical byte sizes');
+  assert.deepEqual(result.assets.map(asset=>asset.file_id),ids);
+});
