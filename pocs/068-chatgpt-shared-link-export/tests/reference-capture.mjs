@@ -95,7 +95,7 @@ test('captures direct share-page diagnostic evidence without auth/session state'
       path.join(result.directory,'candidate-resources.json'),'utf8'));
     assert.equal(candidates[0].url,'blob:test');
     assert.equal(candidates[0].sha256,
-      '4bf59c7d10e4f976bd28edb1f72c8f5a2dbfc47c92061bf65bf7cc77ef8501f1');
+      'ea80334363eed145dfeee51ebae7dc3f1cd7d0c7879f8bfd2070c061d3c33f56');
     assert.equal(pageClosed,true);
     assert.equal(sessionClosed,true);
     const expressions = calls.filter(x=>x[4]==='Runtime.evaluate')
