@@ -363,9 +363,50 @@ test('anonymous generated-image DOM resolves stable file id and deduplicates thr
   assert.equal(result.assets[0].renderer_references[0].root_id,'image-real');
   assert.equal(result.assets[0].renderer_references[0].was_loaded,true);
   assert.ok(scrollCount>=2,'lazy image must be scrolled into view before acquisition');
-  assert.deepEqual(result.stats.generatedImageDom,
-    {identified:1,downloaded:1,expected:1,settled:true,polls:3});
+  assert.equal(result.stats.generatedImageDom.identified,1);
+  assert.equal(result.stats.generatedImageDom.downloaded,1);
+  assert.equal(result.stats.generatedImageDom.expected,1);
+  assert.equal(result.stats.generatedImageDom.settled,true);
+  assert.ok(result.stats.generatedImageDom.polls>=3);
   assert.ok(!expressions.some(x=>x.includes('/backend-anon/files/download/')));
   assert.ok(!JSON.stringify(result.stats).includes('sig='));
   assert.ok(!JSON.stringify(result.assets[0].renderer_references).includes('sig='));
+});
+
+test('waits for full document load before reading the share snapshot', async () => {
+  let readyPolls=0;
+  let shareRequested=false;
+  const control=async(...args)=>{
+    if(args[0]==='page' && args[1]==='new')return{id:'page'};
+    if(args[0]==='page' && args[1]==='close')return{closed:true};
+    if(args[0]==='debug' && args[1]==='session' && args[2]==='open')
+      return{session:'session'};
+    if(args[0]==='debug' && args[1]==='session' && args[2]==='close')
+      return{closed:true};
+    if(args[0]==='debug' && args[1]==='session' && args[2]==='send'){
+      const method=args[4],params=JSON.parse(args[5]);
+      if(method==='Page.navigate')return{result:{}};
+      if(method!=='Runtime.evaluate')throw Error('unexpected method');
+      if(params.expression==="location.origin + '|' + document.readyState"){
+        readyPolls++;
+        return{result:{result:{value:'https://chatgpt.com|'+
+          (readyPolls<3?'interactive':'complete')}}};
+      }
+      if(params.expression.includes('/share/')){
+        assert.ok(readyPolls>=3,'snapshot queried only after full load');
+        shareRequested=true;
+        return{result:{result:{value:{
+          attempts:[{source:'backend-anon',status:200}],
+          snapshot:JSON.stringify(snapshot())
+        }}}};
+      }
+      return{result:{result:{value:[]}}};
+    }
+    throw Error('unexpected control call');
+  };
+  const result=await captureStructuredSnapshot(control,
+    'https://chatgpt.com/share/abc',{seconds:1});
+  assert.equal(result.method,'page-fetch');
+  assert.equal(readyPolls,3);
+  assert.equal(shareRequested,true);
 });
