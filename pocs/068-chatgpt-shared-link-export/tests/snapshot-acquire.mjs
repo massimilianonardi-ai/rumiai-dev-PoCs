@@ -323,6 +323,8 @@ test('anonymous generated-image DOM resolves stable file id and deduplicates thr
       if(method==='Page.navigate')return{result:{}};
       if(method!=='Runtime.evaluate')throw Error('unexpected CDP method');
       expressions.push(params.expression);
+      if (params.expression === 'navigator.userAgent')
+        return {result:{result:{value:'Mozilla/5.0 Chrome/152.0.7977.130 Safari/537.36'}}};
       if(params.expression==="location.origin + '|' + document.readyState")
         return{result:{result:{value:'https://chatgpt.com|complete'}}};
       if(params.expression.includes("return { candidates: urls.size"))
@@ -481,6 +483,8 @@ test('multiple lazy generated images load sequentially without viewport thrashin
     const method=args[4],params=JSON.parse(args[5]);
     if(method==='Page.navigate')return{result:{}};
     if(method!=='Runtime.evaluate')throw Error('unexpected CDP method');
+    if(params.expression==='navigator.userAgent')
+      return{result:{result:{value:'Mozilla/5.0 Chrome/152.0.7977.130 Safari/537.36'}}};
     if(params.expression==="location.origin + '|' + document.readyState")
       return{result:{result:{value:'https://chatgpt.com|complete'}}};
     if(params.expression.includes('function scan(index,shouldActivate)')){
