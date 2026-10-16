@@ -331,6 +331,8 @@ function mediaExtension(asset) {
 function mediaFiles(assets) {
   const files = [], manifest = [], byPointer = new Map();
   assets.forEach((asset, index) => {
+    const uploadOnly = asset.references?.length > 0 &&
+      asset.references.every(reference => reference.role === 'user');
     const item = { asset_pointer: asset.asset_pointer,
       asset_pointers: Array.isArray(asset.asset_pointers) ? asset.asset_pointers : [asset.asset_pointer],
       file_id: asset.file_id,
@@ -338,7 +340,10 @@ function mediaFiles(assets) {
       width: asset.width ?? null, height: asset.height ?? null,
       mime_type: asset.mime_type ?? null, original_file_name: asset.file_name ?? null,
       downloaded_size_bytes: asset.downloaded_size_bytes ?? null,
-      status: asset.base64 ? 'downloaded' : 'missing', local_path: null,
+      status: asset.base64 ? 'downloaded'
+        : uploadOnly ? 'deferred-authenticated' : 'missing',
+      availability_class: uploadOnly ? 'user-upload' : 'public-image',
+      local_path: null,
       sha256: null, references: asset.references || [],
       renderer_references: asset.renderer_references || [],
       attempts: asset.attempts || [] };
@@ -429,6 +434,10 @@ export async function exportSnapshot(
     renderer_image_references: media.manifest.reduce((n, x) => n + x.renderer_references.length, 0),
     media_binary_downloaded_count: media.manifest.filter(x => x.status === 'downloaded').length,
     media_binary_missing_count: media.manifest.filter(x => x.status !== 'downloaded').length,
+    media_binary_deferred_authenticated_count:
+      media.manifest.filter(x => x.status === 'deferred-authenticated').length,
+    media_binary_unresolved_public_count:
+      media.manifest.filter(x => x.status === 'missing').length,
     media_binary_downloaded: media.manifest.length > 0 && media.manifest.every(x => x.status === 'downloaded'),
     sandbox_files_referenced: files.manifest.length,
     sandbox_files_downloaded_count: files.manifest.filter(x => x.status === 'downloaded').length,
@@ -452,7 +461,7 @@ export async function exportSnapshot(
       'Raw structured snapshot, renderer-visible transcript, turn-surface structure and non-text parts are retained.\n' +
       'TURN_SURFACES.jsonl separates user/final-response surfaces from activity/tool/reasoning metadata.\n' +
       'Internal reasoning text is not promoted into the readable transcript.\n' +
-      'MEDIA.json records resolved and unresolved image assets; downloaded binaries live under media/.\n' +
+      'MEDIA.json separates public image retrieval from user-upload assets deferred to authenticated export. Downloaded binaries live under media/.\n' +
       'FILES.json records assistant sandbox files; downloaded binaries live under files/.\n' +
       'Missing artifacts remain explicit and do not make the export silently complete.\n')]
   ];
@@ -479,6 +488,10 @@ export async function exportSnapshot(
     rendererImageReferences: media.manifest.reduce((n, x) => n + x.renderer_references.length, 0),
     imagesDownloaded: media.manifest.filter(x => x.status === 'downloaded').length,
     imagesMissing: media.manifest.filter(x => x.status !== 'downloaded').length,
+    imagesDeferredAuthenticated:
+      media.manifest.filter(x => x.status === 'deferred-authenticated').length,
+    imagesPublicUnresolved:
+      media.manifest.filter(x => x.status === 'missing').length,
     filesReferenced: files.manifest.length,
     filesDownloaded: files.manifest.filter(x => x.status === 'downloaded').length,
     filesMissing: files.manifest.filter(x => x.status !== 'downloaded').length,
