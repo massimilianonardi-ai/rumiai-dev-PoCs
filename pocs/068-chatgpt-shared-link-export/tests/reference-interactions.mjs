@@ -3,6 +3,8 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { runInNewContext } from 'node:vm';
+import { parseHTML } from 'linkedom';
 import { captureReferenceInteractions } from '../reference-interactions.mjs';
 
 test('artifact interaction probe records post-click network evidence and response body', async () => {
@@ -167,3 +169,152 @@ test('artifact interaction probe records post-click network evidence and respons
     await fs.rm(root,{recursive:true,force:true});
   }
 });
+
+
+test
+(
+  'evaluates renderer upload labels and selects their exact occurrences',
+  async () =>
+  {
+    const html = [
+      '<section data-turn-id="user-image">',
+      '<div data-message-id="user-image" data-message-author-role="user">',
+      "<span>Ha caricato un'immagine</span>",
+      '</div></section>',
+      '<section data-turn-id="user-files">',
+      '<div data-message-id="user-files" data-message-author-role="user">',
+      '<span>Ha caricato un file</span>',
+      '<span>Ha caricato un file</span>',
+      '</div></section>'
+    ].join('');
+    const { document } = parseHTML(html);
+    const root = await fs.mkdtemp
+    (
+      path.join(os.tmpdir(), 'reference-user-upload-')
+    );
+    let pageIndex = 0;
+    let sessionIndex = 0;
+    const clicked = [];
+    const control = async (...args) =>
+    {
+      if (args[0] === 'page' && args[1] === 'new')
+        return { id:'page-' + (++pageIndex) };
+      if (args[0] === 'page' && args[1] === 'navigate')
+        return { page:args[2] };
+      if (args[0] === 'page' && args[1] === 'close')
+        return { closed:true };
+      if (args[0] === 'page' && args[1] === 'click')
+      {
+        const target = document.querySelector(args[3]);
+        assert.ok(target, 'tagged upload label exists');
+        clicked.push(target.textContent.trim());
+        return { clicked:true };
+      }
+      if (args[0] === 'debug' && args[1] === 'session')
+      {
+        if (args[2] === 'open')
+          return { session:'debug-' + (++sessionIndex) };
+        if (args[2] === 'close')
+          return { closed:true };
+        if (args[2] === 'events')
+        {
+          const after = Number(args[4]);
+          return { after, lastSequence:after, events:[] };
+        }
+        if (args[2] !== 'send')
+          throw new Error('unexpected debugger operation');
+      }
+      else
+      {
+        throw new Error('unexpected web-control operation');
+      }
+
+      const method = args[4];
+      const params = JSON.parse(args[5]);
+      if (['Network.enable','Network.disable','Page.enable','Page.disable']
+        .includes(method))
+        return { result:{} };
+      if (method === 'Page.captureScreenshot')
+        return { result:{data:Buffer.from('screen').toString('base64')} };
+      if (method !== 'Runtime.evaluate')
+        throw new Error('unexpected CDP method ' + method);
+
+      let value;
+      if (params.expression.includes('reference-interaction-inventory') ||
+          params.expression.includes('reference-interaction-target'))
+      {
+        value = runInNewContext
+        (
+          params.expression,
+          { document, getComputedStyle:() => ({ cursor:'auto' }) }
+        );
+      }
+      else if (params.expression.includes('reference-interaction-settle'))
+      {
+        value =
+        {
+          marker:'reference-interaction-settle',
+          href:'https://chatgpt.com/share/example',
+          readyState:'complete',htmlLength:html.length,resourceCount:0
+        };
+      }
+      else if (params.expression.includes('reference-interaction-state'))
+      {
+        value =
+        {
+          marker:'reference-interaction-state',
+          href:'https://chatgpt.com/share/example',
+          title:'Fixture',images:[],resources:[],dialogs:[]
+        };
+      }
+      else
+      {
+        throw new Error('unknown page expression');
+      }
+      return { result:{ result:{value} } };
+    };
+
+    try
+    {
+      const result = await captureReferenceInteractions
+      (
+        control,'https://chatgpt.com/share/example',root,{seconds:1}
+      );
+      assert.equal(result.inventory.length,3);
+      assert.deepEqual
+      (
+        result.inventory.map(item => item.kind),
+        ['user-upload-image','user-upload-file','user-upload-file']
+      );
+      assert.deepEqual
+      (
+        result.selected.map(item => [item.kind,item.index,item.message_id]),
+        [
+          ['user-upload-image',0,'user-image'],
+          ['user-upload-file',1,'user-files']
+        ]
+      );
+      assert.deepEqual
+      (
+        result.interactions.map(item => item.status),
+        ['complete','complete']
+      );
+      assert.deepEqual
+      (
+        clicked,
+        ["Ha caricato un'immagine",'Ha caricato un file']
+      );
+      assert.ok(result.interactions.every(item =>
+        item.tagged.found && item.tagged.tag === 'span' &&
+        item.tagged.actionable === false
+      ));
+      assert.ok(result.interactions.every(item =>
+        item.network.length === 0 && item.bodies.length === 0
+      ));
+    }
+    finally
+    {
+      await fs.rm(root,{recursive:true,force:true});
+    }
+  }
+);
