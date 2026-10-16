@@ -65,7 +65,8 @@ async function failureRecord(folder, error) {
     rendererImageCandidates: error.stats?.rendererImageCandidates || 0,
     rendererImageResources: error.stats?.rendererImageResources || 0,
     rendererImageOccurrences: error.stats?.rendererImageOccurrences || 0,
-    rendererImageFetch: error.stats?.rendererImageFetch || null
+    rendererImageFetch: error.stats?.rendererImageFetch || null,
+    generatedImageDom: error.stats?.generatedImageDom || null
   };
   for (let n = 1; n < 100000; n++) {
     const file = path.join(folder, 'share-debug-diagnostic-' + String(n).padStart(4, '0') + '.json');
@@ -91,7 +92,8 @@ export async function exportSharedLink(input, directory, seconds = 20, controlle
     rendererImageCandidates: stats?.rendererImageCandidates ?? 0,
     rendererImageResources: stats?.rendererImageResources ?? 0,
     rendererImageOccurrences: stats?.rendererImageOccurrences ?? 0,
-    rendererImageFetch: stats?.rendererImageFetch ?? null
+    rendererImageFetch: stats?.rendererImageFetch ?? null,
+    generatedImageDom: stats?.generatedImageDom ?? null
   };
 }
 
