@@ -487,116 +487,162 @@ async function captureRendererImages(send, assets, deadline) {
   return { resources, observation };
 }
 
-function observedGeneratedImageExpression(scrollIndex=0){
-  function scan(index){
+function observedGeneratedImageExpression(scrollIndex=null,activate=false) {
+  function scan(index,shouldActivate) {
     const surfaces=[...document.querySelectorAll('[data-image-gen-result]')];
-    if(surfaces.length){
-      // A lazy image may not even request its bytes until it enters the viewport.
-      const surface=surfaces[index%surfaces.length];
+    if (shouldActivate && Number.isSafeInteger(index) && index>=0 &&
+        index<surfaces.length) {
+      const surface=surfaces[index];
       const root=surface.querySelector('[id^="image-"]')||surface;
       root.scrollIntoView?.({block:'center',behavior:'instant'});
     }
-    const results=[];
-    for(const surface of document.querySelectorAll('[data-image-gen-result]')){
-      const root=surface.querySelector('[id^="image-"]');
-      if(!root)continue;
-      for(const img of root.querySelectorAll('img[src]')){
+    const records=[];
+    const states=[];
+    for (const [surfaceIndex,surface] of surfaces.entries()) {
+      const root=surface.querySelector('[id^="image-"]')||surface;
+      const imgs=[...root.querySelectorAll('img')];
+      states.push({
+        index:surfaceIndex,
+        image_elements:imgs.length,
+        loaded_elements:imgs.filter(img=>
+          img.complete && img.naturalWidth>0 && img.naturalHeight>0).length
+      });
+      for (const img of imgs) {
+        if (!img.hasAttribute('src')) continue;
         let url;
-        try{url=new URL(img.currentSrc||img.src,location.href);}catch{continue;}
-        if(url.protocol!=='https:' || !(url.hostname==='oaiusercontent.com'||url.hostname.endsWith('.oaiusercontent.com')))continue;
+        try{url=new URL(img.currentSrc||img.src,location.href);}
+        catch{continue;}
+        if (url.protocol!=='https:' ||
+            !(url.hostname==='oaiusercontent.com' ||
+              url.hostname.endsWith('.oaiusercontent.com'))) continue;
         const match=/^\/files\/([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})\/raw$/i.exec(url.pathname);
-        if(!match)continue;
-        results.push({
+        if (!match)continue;
+        records.push({
+          surface_index:surfaceIndex,
           file_id:'file_'+match[1].replaceAll('-','').toLowerCase(),
-          src:url.href,root_id:root.id,
+          src:url.href,root_id:root.id||null,
           loaded:Boolean(img.complete && img.naturalWidth>0 && img.naturalHeight>0),
-          natural_width:img.naturalWidth||null,natural_height:img.naturalHeight||null,
-          declared_width:Number(img.getAttribute('width'))||null,
-          declared_height:Number(img.getAttribute('height'))||null
+          natural_width:img.naturalWidth||null,natural_height:img.naturalHeight||null
         });
       }
     }
-    return results;
+    return {surface_count:surfaces.length,records,states};
   }
-  return '('+scan.toString()+')('+JSON.stringify(scrollIndex)+')';
+  return '('+scan.toString()+')('+JSON.stringify(scrollIndex)+','+JSON.stringify(activate)+')';
 }
 
-async function captureObservedGeneratedImages(send,assets,fetchImage,seconds,stats){
+async function captureObservedGeneratedImages(send,assets,fetchImage,seconds,stats) {
   const byId=new Map(assets.map(asset=>[asset.file_id,asset]));
   const candidates=new Map();
-  const deadline=Date.now()+Math.min(seconds*1000,20000);
-  let polls=0,stable=0,previousSignature=null;
-
-  // Network-idle alone is not a completion signal on an SPA: background
-  // requests may be persistent and off-screen lazy images may never start.
-  // Wait for the precise expected image elements to finish loading instead.
-  do{
-    try{
-      const response=await send('Runtime.evaluate',{
-        expression:observedGeneratedImageExpression(polls),
-        returnByValue:true,silent:true
-      });
-      const list=response?.result?.value;
-      if(Array.isArray(list))for(const entry of list){
-        if(!entry||!byId.has(entry.file_id)||!entry.loaded||
-          typeof entry.src!=='string')continue;
-        const asset=byId.get(entry.file_id);
-        if(Number.isSafeInteger(asset.width)&&entry.natural_width!==asset.width)continue;
-        if(Number.isSafeInteger(asset.height)&&entry.natural_height!==asset.height)continue;
-        const prior=candidates.get(entry.file_id);
-        if(!prior || prior.src===entry.src)
-          candidates.set(entry.file_id,entry);
-      }
-      const signature=[...candidates].sort(([a],[b])=>a.localeCompare(b))
-        .map(([id,entry])=>id+':'+entry.src).join('|');
-      if(candidates.size===assets.length){
-        stable=signature===previousSignature?stable+1:1;
-        if(stable>=2)break;
-      }else stable=0;
-      previousSignature=signature;
-    }catch{/* Lazy renderer may replace the execution context transiently. */}
+  const perSurfaceMs=Math.min(seconds*1000,30000);
+  const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  let polls=0;
+  let latest={surface_count:0,records:[],states:[]};
+  async function sample(index=null,activate=false) {
     polls++;
-    if(Date.now()<deadline)
-      await new Promise(resolve=>setTimeout(resolve,250));
-  }while(Date.now()<deadline);
+    const response=await send('Runtime.evaluate',{
+      expression:observedGeneratedImageExpression(index,activate),
+      returnByValue:true,silent:true
+    });
+    const data=response?.result?.value;
+    if (!data || !Array.isArray(data.records) ||
+        !Number.isSafeInteger(data.surface_count)) return latest;
+    latest=data;
+    for (const record of data.records) {
+      if (!record.loaded || typeof record.src!=='string' ||
+          !byId.has(record.file_id)) continue;
+      const asset=byId.get(record.file_id);
+      if (Number.isSafeInteger(asset.width) &&
+          asset.width!==record.natural_width)continue;
+      if (Number.isSafeInteger(asset.height) &&
+          asset.height!==record.natural_height)continue;
+      if (!candidates.has(record.file_id))candidates.set(record.file_id,record);
+    }
+    return latest;
+  }
+
+  // First allow the SPA to materialize the image surfaces. No scrolling yet.
+  const initialDeadline=Date.now()+perSurfaceMs;
+  do {
+    try {await sample();}
+    catch { /* Navigation/hydration can briefly replace the JS context. */ }
+    if (latest.surface_count>0)break;
+    if (Date.now()<initialDeadline)await pause(350);
+  }while(Date.now()<initialDeadline);
+
+  // Hold each surface still until its image loads or its own deadline passes.
+  // Switching viewport every poll starves lazy loading on the real browser.
+  const statuses=[];
+  let activated=0;
+  for (let index=0; index<latest.surface_count; index++) {
+    if (candidates.size===assets.length)break;
+    activated++;
+    let stable=0;
+    let previous=null;
+    let state='timeout';
+    const deadline=Date.now()+perSurfaceMs;
+    try {await sample(index,true);}
+    catch { /* Keep the same viewport target while its page settles. */ }
+    do {
+      let result;
+      try {result=await sample();}
+      catch {result=null;}
+      const atIndex=result?.states?.find(item=>item.index===index);
+      const loaded=atIndex?.loaded_elements||0;
+      const allLoaded=loaded>0 && result.records.some(record=>
+        record.surface_index===index && record.loaded && byId.has(record.file_id));
+      const signature=allLoaded?result.records.filter(record=>
+        record.surface_index===index && record.loaded && byId.has(record.file_id))
+        .map(record=>record.file_id).sort().join('|'):null;
+      stable=signature && signature===previous?stable+1:signature?1:0;
+      previous=signature;
+      if (stable>=2) {state='loaded';break;}
+      if (Date.now()<deadline)await pause(350);
+    }while(Date.now()<deadline);
+    statuses.push({
+      index,status:state,
+      image_elements:latest.states?.find(item=>item.index===index)?.image_elements||0,
+      loaded_elements:latest.states?.find(item=>item.index===index)?.loaded_elements||0
+    });
+  }
 
   const outcomes=new Map();
-  for(const [fileId,entry] of candidates){
+  for (const [fileId,entry] of candidates) {
     const asset=byId.get(fileId);
     const attempt={source:'anonymous-generated-image-img-src',observed:true};
     let base64=null,mimeType=null,byteLength=null;
-    try{
+    try {
       const url=new URL(entry.src);
       const match=/^\/files\/([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})\/raw$/i.exec(url.pathname);
-      if(url.protocol!=='https:'||url.port||url.username||url.password||
-        !(url.hostname==='oaiusercontent.com'||url.hostname.endsWith('.oaiusercontent.com'))||
-        !match||'file_'+match[1].replaceAll('-','').toLowerCase()!==fileId)
+      if (url.protocol!=='https:'||url.port||url.username||url.password||
+          !(url.hostname==='oaiusercontent.com' ||
+            url.hostname.endsWith('.oaiusercontent.com'))||
+          !match||'file_'+match[1].replaceAll('-','').toLowerCase()!==fileId)
         throw Error('untrusted-source');
       const response=await fetchImage(url.href,{
         redirect:'error',signal:AbortSignal.timeout(12000)
       });
       attempt.status=response.status;
-      if(!response.ok)throw Error('not-ok');
+      if (!response.ok)throw Error('not-ok');
       mimeType=(response.headers.get('content-type')||'').split(';')[0].trim().toLowerCase();
-      if(!['image/png','image/jpeg','image/webp','image/gif'].includes(mimeType))
+      if (!['image/png','image/jpeg','image/webp','image/gif'].includes(mimeType))
         throw Error('not-image');
-      if(Number(response.headers.get('content-length'))>MAX_ASSET_BYTES)
+      if (Number(response.headers.get('content-length'))>MAX_ASSET_BYTES)
         throw Error('too-large');
       const bytes=Buffer.from(await response.arrayBuffer());
-      if(bytes.length===0||bytes.length>MAX_ASSET_BYTES)throw Error('invalid-size');
-      if(Number.isSafeInteger(asset.expected_size_bytes)&&bytes.length!==asset.expected_size_bytes)
-        throw Error('size-mismatch');
-      const signatureOK=mimeType==='image/png'
+      if (bytes.length===0||bytes.length>MAX_ASSET_BYTES)throw Error('invalid-size');
+      if (Number.isSafeInteger(asset.expected_size_bytes)&&
+          bytes.length!==asset.expected_size_bytes)throw Error('size-mismatch');
+      const valid=mimeType==='image/png'
         ? bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))
         : mimeType==='image/jpeg' ? bytes[0]===255&&bytes[1]===216
         : mimeType==='image/gif' ? ['GIF87a','GIF89a'].includes(bytes.toString('ascii',0,6))
-        : bytes.toString('ascii',0,4)==='RIFF'&&bytes.toString('ascii',8,12)==='WEBP';
-      if(!signatureOK)throw Error('invalid-image-signature');
+        : bytes.toString('ascii',0,4)==='RIFF'&&
+          bytes.toString('ascii',8,12)==='WEBP';
+      if (!valid)throw Error('invalid-image-signature');
       byteLength=bytes.length;base64=bytes.toString('base64');
       attempt.binaryStatus='downloaded';attempt.byteLength=byteLength;
-    }catch{
-      attempt.binaryStatus='unavailable-or-invalid';
-    }
+    }catch {attempt.binaryStatus='unavailable-or-invalid';}
     outcomes.set(fileId,{
       attempt,base64,mimeType,byteLength,
       renderer_references:[{
@@ -607,10 +653,11 @@ async function captureObservedGeneratedImages(send,assets,fetchImage,seconds,sta
     });
   }
   stats.generatedImageDom={
+    expected:assets.length,
     identified:candidates.size,
-    downloaded:[...outcomes.values()].filter(x=>x.base64).length,
-    expected:assets.length,settled:stable>=2,
-    polls:polls+1
+    downloaded:[...outcomes.values()].filter(item=>item.base64).length,
+    settled:candidates.size===assets.length,
+    polls,surfaces:latest.surface_count,activated,statuses
   };
   return outcomes;
 }
@@ -741,7 +788,7 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
     rendererImageOccurrences: 0, rendererImageCandidates: 0,
     rendererImageFetch: { attempted: 0, fetched: 0, failed: 0,
       size_matched: 0, size_mismatched: 0 },
-    generatedImageDom:{identified:0,downloaded:0,expected:0,settled:false,polls:0} };
+    generatedImageDom:{identified:0,downloaded:0,expected:0,settled:false,polls:0,surfaces:0,activated:0,statuses:[]} };
   let page, session;
 
   async function send(method, params = {}) {
