@@ -22,11 +22,11 @@ The command checks/starts the normal `web-control` service, creates a share page
 
 The exporter preserves the active branch, structured message objects (including non-text parts), raw compressed JSON, JSONL, Markdown, audit evidence, checksums and a Node-created ZIP. Every successful export creates an immutable directory and ZIP rather than overwriting a previous run. Assistant-generated `sandbox:/mnt/data/` files are recovered using the physically observed public `file_from_message` route, indexed in `FILES.json`, and linked locally when downloaded.
 
-**Known incompleteness:** generated-image binary retrieval and user-upload attachment retrieval are not yet physically established. Identified but missing assets remain explicit. The readable HTML is still not accepted as ChatGPT-faithful, and `observationComplete` remains false. A structural snapshot or passing fixture test does not prove artifact completeness.
+**Anonymous phase:** export all structured shared conversation content and publicly accessible artifact binaries without requiring a signed-in session. A real unsigned-session check established that user-uploaded attachments cannot be viewed/downloaded from the public share. Preserve their raw metadata and identify their unavailable binaries; defer authenticated retrieval to a separate second phase after the anonymous export is final. **Known incompleteness:** generated-image binary acquisition and ChatGPT-faithful HTML remain unaccepted; `observationComplete` remains false for full-fidelity export. A structural snapshot or passing fixture test does not prove artifact completeness.
 
 ## Public-share reference interaction diagnostic
 
-The independent diagnostic captures renderer and click evidence without changing the exporter:
+The independent diagnostic captures renderer and click evidence without changing the exporter. If the navigation settles on a login or any other page instead of the requested share, it emits `reference.share-page-not-loaded`, saves `failure.json` in its allocated directory and exits non-zero rather than returning misleading successful evidence:\n\n<!-- capture command -->\n\nThe independent diagnostic captures renderer and click evidence without changing the exporter:
 
 ```sh
 node capture-share-reference.mjs "https://chatgpt.com/share/<id>" "./reference-captures" --seconds 8
