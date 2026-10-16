@@ -25,7 +25,7 @@ test('artifact interaction probe records post-click network evidence and respons
       return { page:args[2],closed:true };
     if (args[0] === 'page' && args[1] === 'click') {
       assert.match(args[3],/data-rumiai-reference-target/);
-      clicked = sessionCounter === 2;
+      clicked = sessionCounter === 5;
       return { page:args[2],target:args[3] };
     }
     if (args[0] === 'debug' && args[1] === 'session' && args[2] === 'open')
@@ -84,6 +84,10 @@ test('artifact interaction probe records post-click network evidence and respons
       return {result:{result:{value:{
         marker:'reference-interaction-inventory',
         results:[
+          ...Array.from({length:4},(_,index) => ({
+            kind:'image-gen',index,label:'image-' + index,
+            root_id:'image-' + index,turn_id:'turn-' + index,message_id:null
+          })),
           {
             kind:'sandbox-file',index:0,label:'Markdown 0008',
             icon_key:'text',turn_id:'turn-1',message_id:'message-1'
@@ -120,20 +124,16 @@ test('artifact interaction probe records post-click network evidence and respons
     const result = await captureReferenceInteractions(
       control,'https://chatgpt.com/share/abc',root,{seconds:1}
     );
-    assert.equal(result.inventory.length,3);
-    assert.deepEqual(result.selected.map(item => item.kind),[
-      'sandbox-file','user-upload-image','user-upload-file'
+    assert.equal(result.inventory.length,7);
+    assert.deepEqual(result.selected.map(item => [item.kind,item.index]),[
+      ['image-gen',0],['image-gen',1],['image-gen',3],['sandbox-file',0]
     ]);
-    assert.equal(result.interactions.length,3);
-    assert.deepEqual(result.interactions.map(item => item.status),[
-      'complete','complete','complete'
-    ]);
-    assert.deepEqual(result.interactions.slice(1).map(item => item.tagged.actionable),
-      [false,false]);
-    assert.deepEqual(result.interactions.slice(1).map(item => item.network),[
-      [],[]
-    ]);
-    const interaction = result.interactions[0];
+    assert.equal(result.interactions.length,4);
+    assert.ok(result.interactions.every(item => item.status === 'complete'));
+    assert.ok(result.interactions.slice(0,3).every(item =>
+      item.bodies.length === 0
+    ));
+    const interaction = result.interactions[3];
     assert.equal(interaction.status,'complete');
     assert.equal(interaction.target.kind,'sandbox-file');
     assert.equal(interaction.bodies.length,1);
@@ -152,18 +152,18 @@ test('artifact interaction probe records post-click network evidence and respons
     assert.ok(manifest.includes('https://files.example/download/file.md'));
     assert.equal(calls.filter(args =>
       args[0] === 'page' && args[1] === 'click'
-    ).length,3);
+    ).length,4);
     const targetProbes = calls.filter(args =>
       args[0] === 'debug' && args[1] === 'session' &&
       args[2] === 'send' && args[4] === 'Runtime.evaluate' &&
       JSON.parse(args[5]).expression.includes('reference-interaction-target')
     ).map(args => JSON.parse(args[5]).expression);
     assert.ok(targetProbes.some(expression =>
-      expression.includes('"message_id":"user-image"')
+      expression.includes('"kind":"image-gen"') &&
+      expression.includes('"index":3')
     ));
-    assert.ok(targetProbes.some(expression =>
-      expression.includes('"message_id":"user-files"') &&
-      expression.includes('"index":1')
+    assert.ok(!targetProbes.some(expression =>
+      expression.includes('"kind":"user-upload-')
     ));
   } finally {
     await fs.rm(root,{recursive:true,force:true});
@@ -173,7 +173,7 @@ test('artifact interaction probe records post-click network evidence and respons
 
 test
 (
-  'evaluates renderer upload labels and selects their exact occurrences',
+  'evaluates renderer upload labels without clicking them anonymously',
   async () =>
   {
     const html =
@@ -287,31 +287,13 @@ test
         Array.from(result.inventory, item => item.kind),
         ['user-upload-image','user-upload-file','user-upload-file']
       );
-      assert.deepEqual
-      (
-        result.selected.map(item => [item.kind,item.index,item.message_id]),
-        [
-          ['user-upload-image',0,'user-image'],
-          ['user-upload-file',1,'user-files']
-        ]
-      );
-      assert.deepEqual
-      (
-        result.interactions.map(item => item.status),
-        ['complete','complete']
-      );
-      assert.deepEqual
-      (
-        clicked,
-        ["Ha caricato un'immagine",'Ha caricato un file']
-      );
-      assert.ok(result.interactions.every(item =>
-        item.tagged.found && item.tagged.tag === 'span' &&
-        item.tagged.actionable === false
-      ));
-      assert.ok(result.interactions.every(item =>
-        item.network.length === 0 && item.bodies.length === 0
-      ));
+      assert.deepEqual(result.selected,[]);
+      assert.deepEqual(result.interactions,[]);
+      assert.deepEqual(clicked,[]);
+      // Retain all three exact DOM-labelled upload occurrences in inventory,
+      // but do not click them before the authenticated second phase.
+      assert.equal(result.inventory[2].index,1);
+      assert.equal(result.inventory[2].message_id,'user-files');
     }
     finally
     {
