@@ -106,8 +106,8 @@ async function prepareAnonymousShareUserAgent(send, stats)
   if (typeof original !== 'string') return;
 
   const normalized = original
-    .replace(/(?:^|\\s)Electron\\/[^\\s]+(?=\\s|$)/g, '')
-    .replace(/\\s{2,}/g, ' ')
+    .replace(/(?:^|\s)Electron\/[^\s]+(?=\s|$)/g, '')
+    .replace(/\s{2,}/g, ' ')
     .trim();
 
   if (normalized === original) return;
