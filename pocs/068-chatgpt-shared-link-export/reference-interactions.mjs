@@ -191,7 +191,32 @@ function stateExpression() {
     )].slice(0,50).map((node,index) => ({
       index,role:node.getAttribute('role'),testid:node.getAttribute('data-testid'),
       text:(node.innerText || '').slice(0,2000)
-    }))
+    })),
+    generated_image_surfaces:[...document.querySelectorAll(
+      '[data-image-gen-result]'
+    )].map((node,index) => {
+      const root = node.querySelector('[id^="image-"]');
+      const imgs = [...(root?.querySelectorAll('img') || [])];
+      const imageLike = [...(root?.querySelectorAll('*') || [])].slice(0,100);
+      const backgroundImages = imageLike.filter(element => {
+        try { return getComputedStyle(element).backgroundImage !== 'none'; }
+        catch { return false; }
+      }).length;
+      return {
+        index, root_id:root?.id || null,
+        image_elements:imgs.length,
+        loaded_image_elements:imgs.filter(img =>
+          img.complete && img.naturalWidth > 0 && img.naturalHeight > 0
+        ).length,
+        canvas_elements:root?.querySelectorAll('canvas').length || 0,
+        video_elements:root?.querySelectorAll('video').length || 0,
+        css_background_elements:backgroundImages,
+        overlay_action_elements:root?.querySelectorAll(
+          '[data-testid^="image-gen-overlay"] button'
+        ).length || 0,
+        clickable_elements:root?.querySelectorAll('.cursor-pointer').length || 0
+      };
+    })
   }))()`;
 }
 
@@ -357,17 +382,19 @@ async function discover(control, url, seconds) {
 
 function selectRepresentatives(inventory) {
   const selected = [];
-  const kinds =
-  [
-    'image-gen','sandbox-file','sandbox-photo',
-    'user-upload-image','user-upload-file'
-  ];
-  for (const kind of kinds)
-  {
-    const items = inventory.filter(x => x.kind === kind);
-    if (!items.length) continue;
-    selected.push(items.at(-1));
+  const images = inventory.filter(item => item.kind === 'image-gen');
+  // Sample the whole anonymous image-generation class, not just its final
+  // occurrence. Each click still uses a separate freshly navigated page.
+  if (images.length <= 3) selected.push(...images);
+  else selected.push(images[0], images[Math.floor((images.length - 1) / 2)],
+    images.at(-1));
+
+  for (const kind of ['sandbox-file','sandbox-photo']) {
+    const items = inventory.filter(item => item.kind === kind);
+    if (items.length) selected.push(items.at(-1));
   }
+  // Uploaded-user files are indexed only. They cannot be opened anonymously
+  // in the user's verified public-share scenario; authenticated work is later.
   return selected;
 }
 
