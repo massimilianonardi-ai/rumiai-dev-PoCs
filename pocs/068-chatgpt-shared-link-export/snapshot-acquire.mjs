@@ -87,6 +87,39 @@ function shareFetchExpression(shareId) {
   })()`;
 }
 
+// ChatGPT's anonymous generated-image renderer fails to create <img> nodes
+// under Electron's default UA on the tested ARM64 VM. Preserve the embedded
+// Chromium identity and version, removing only the Electron product token.
+// This compatibility adjustment belongs to this site adapter, not web-control.
+async function prepareAnonymousShareUserAgent(send, stats)
+{
+  const evaluated = await send
+  (
+    'Runtime.evaluate',
+    {
+      expression: 'navigator.userAgent',
+      returnByValue: true,
+      silent: true
+    }
+  );
+  const original = evaluated?.result?.value;
+  if (typeof original !== 'string') return;
+
+  const normalized = original
+    .replace(/(?:^|\\s)Electron\\/[^\\s]+(?=\\s|$)/g, '')
+    .replace(/\\s{2,}/g, ' ')
+    .trim();
+
+  if (normalized === original) return;
+
+  await send
+  (
+    'Emulation.setUserAgentOverride',
+    { userAgent: normalized }
+  );
+  stats.electronUserAgentNormalized = true;
+}
+
 async function waitForShareDocument(send, deadline) {
   while (Date.now() < deadline) {
     try {
@@ -788,7 +821,8 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
     rendererImageOccurrences: 0, rendererImageCandidates: 0,
     rendererImageFetch: { attempted: 0, fetched: 0, failed: 0,
       size_matched: 0, size_mismatched: 0 },
-    generatedImageDom:{identified:0,downloaded:0,expected:0,settled:false,polls:0,surfaces:0,activated:0,statuses:[]} };
+    generatedImageDom:{identified:0,downloaded:0,expected:0,settled:false,polls:0,surfaces:0,activated:0,statuses:[]},
+    electronUserAgentNormalized: false };
   let page, session;
 
   async function send(method, params = {}) {
@@ -808,6 +842,10 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
     session = opened.session;
     if (!session)
       throw new AcquisitionError('share.debug-open-failed', 'missing session handle', stats);
+
+    stats.phase = 'browser-compatibility';
+    stats.operation = 'anonymous share Electron UA normalization';
+    await prepareAnonymousShareUserAgent(send, stats);
 
     stats.phase = 'initial-navigation';
     stats.operation = 'debug session send Page.navigate';
