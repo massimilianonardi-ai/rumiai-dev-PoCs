@@ -909,7 +909,12 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
 
     stats.phase = 'initial-navigation';
     stats.operation = 'debug session send Page.navigate';
-    await send('Page.navigate', { url });
+    const navigation = await send('Page.navigate', { url });
+    if (typeof navigation?.errorText === 'string' &&
+        navigation.errorText.length) {
+      throw new AcquisitionError('share.navigation-failed',
+        'CDP navigation failed before the share document loaded',stats);
+    }
 
     stats.phase = 'share-json';
     stats.operation = 'debug session send Runtime.evaluate';
