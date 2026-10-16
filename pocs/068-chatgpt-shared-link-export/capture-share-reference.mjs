@@ -105,9 +105,10 @@ async function waitForStablePage(send, seconds) {
   return last;
 }
 
-function evidenceExpression() {
+function evidenceProbeExpression(kind) {
   return `(() => {
-    const marker = 'page-reference-evidence';
+    const marker = 'page-reference-probe';
+    const kind = ${JSON.stringify(kind)};
     const rect = element => {
       const r = element.getBoundingClientRect();
       return { x:r.x, y:r.y, width:r.width, height:r.height,
@@ -124,19 +125,32 @@ function evidenceExpression() {
     };
     const splitSrcset = value => String(value || '').split(',').map(part =>
       part.trim().split(/\\s+/)[0]).filter(Boolean);
-    const candidates = new Map();
-    const addCandidate = (url, evidence) => {
-      if (typeof url !== 'string' || !url) return;
-      let item = candidates.get(url);
-      if (!item) {
-        item = { url, evidence: [] };
-        candidates.set(url, item);
+
+    if (kind === 'meta') return { marker, kind, value: {
+      href: location.href, title: document.title, readyState: document.readyState,
+      visibilityState: document.visibilityState, userAgent: navigator.userAgent,
+      viewport: { width: innerWidth, height: innerHeight, devicePixelRatio },
+      document: {
+        scrollWidth: document.documentElement?.scrollWidth || 0,
+        scrollHeight: document.documentElement?.scrollHeight || 0
       }
-      item.evidence.push(evidence);
+    } };
+
+    if (kind === 'html')
+      return { marker, kind, value: document.documentElement?.outerHTML || '' };
+    if (kind === 'text')
+      return { marker, kind, value: document.body?.innerText || '' };
+
+    if (kind === 'turns') return { marker, kind, value:
+      [...document.querySelectorAll(
+        '[data-turn-key],[data-testid^="conversation-turn-"]'
+      )].map((node, index) => ({
+        index, attributes: attrs(node), text: node.innerText || '', rect: rect(node)
+      }))
     };
 
-    const images = [...document.querySelectorAll('img')].map((img, index) => {
-      const item = {
+    if (kind === 'images') return { marker, kind, value:
+      [...document.querySelectorAll('img')].map((img, index) => ({
         index, attributes: attrs(img), currentSrc: img.currentSrc || null,
         src: img.src || null, srcset: img.getAttribute('srcset'),
         alt: img.alt || null, complete: Boolean(img.complete),
@@ -146,133 +160,185 @@ function evidenceExpression() {
           const button = img.closest('button');
           return button ? { attributes: attrs(button), text: button.innerText || '' } : null;
         })()
-      };
-      addCandidate(img.currentSrc, { kind:'img-currentSrc', index });
-      addCandidate(img.src, { kind:'img-src', index });
-      for (const url of splitSrcset(img.getAttribute('srcset')))
-        addCandidate(url, { kind:'img-srcset', index });
-      return item;
-    });
+      }))
+    };
 
-    const sources = [...document.querySelectorAll('source')].map((node, index) => {
-      for (const url of splitSrcset(node.getAttribute('srcset')))
-        addCandidate(url, { kind:'source-srcset', index });
-      if (node.src) addCandidate(node.src, { kind:'source-src', index });
-      return { index, attributes: attrs(node), src: node.src || null,
-        srcset: node.getAttribute('srcset'), context: context(node) };
-    });
+    if (kind === 'sources') return { marker, kind, value:
+      [...document.querySelectorAll('source')].map((node, index) => ({
+        index, attributes: attrs(node), src: node.src || null,
+        srcset: node.getAttribute('srcset'), context: context(node)
+      }))
+    };
 
-    const links = [...document.querySelectorAll('a[href]')].map((node, index) => {
-      const item = { index, href: node.href, text: node.innerText || '',
-        attributes: attrs(node), rect: rect(node), context: context(node) };
-      const signal = [
-        node.getAttribute('download') || '', node.innerText || '', node.href || '',
-        node.getAttribute('aria-label') || '', node.getAttribute('data-testid') || ''
-      ].join(' ');
-      if (node.hasAttribute('download') ||
-          /download|attachment|file_|\\.(?:png|jpe?g|webp|gif|svg|pdf|md|txt|zip|docx?|xlsx?|pptx?)(?:$|[?#])/i.test(signal))
-        addCandidate(node.href, { kind:'link', index });
-      return item;
-    });
+    if (kind === 'links') return { marker, kind, value:
+      [...document.querySelectorAll('a[href]')].map((node, index) => ({
+        index, href: node.href, text: node.innerText || '',
+        attributes: attrs(node), rect: rect(node), context: context(node)
+      }))
+    };
 
-    const buttons = [...document.querySelectorAll('button')].map((node, index) => ({
-      index, text: node.innerText || '', attributes: attrs(node),
-      rect: rect(node), context: context(node)
-    }));
+    if (kind === 'buttons') return { marker, kind, value:
+      [...document.querySelectorAll('button')].map((node, index) => ({
+        index, text: node.innerText || '', attributes: attrs(node),
+        rect: rect(node), context: context(node)
+      }))
+    };
 
-    const svgs = [...document.querySelectorAll('svg')].map((node, index) => {
-      const outerHTML = node.outerHTML;
-      return { index, attributes: attrs(node), rect: rect(node), context: context(node),
-        outerHTML: outerHTML.length <= 2 * 1024 * 1024 ? outerHTML : null,
-        outerHTMLLength: outerHTML.length };
-    });
+    if (kind === 'media') return { marker, kind, value:
+      [...document.querySelectorAll('video,audio')].map((node, index) => ({
+        index, tag: node.tagName.toLowerCase(), attributes: attrs(node),
+        currentSrc: node.currentSrc || null, src: node.src || null,
+        rect: rect(node), context: context(node)
+      }))
+    };
 
-    const canvases = [...document.querySelectorAll('canvas')].map((node, index) => {
-      let dataUrl = null, error = null;
-      try {
-        const value = node.toDataURL('image/png');
-        if (value.length <= 12 * 1024 * 1024) dataUrl = value;
-        else error = 'canvas-data-url-too-large';
-      } catch (cause) { error = String(cause?.message || cause).slice(0, 200); }
-      return { index, width: node.width, height: node.height,
-        attributes: attrs(node), rect: rect(node), context: context(node),
-        dataUrl, error };
-    });
+    if (kind === 'iframes') return { marker, kind, value:
+      [...document.querySelectorAll('iframe')].map((node, index) => ({
+        index, attributes: attrs(node), src: node.src || null,
+        rect: rect(node), context: context(node)
+      }))
+    };
 
-    const media = [...document.querySelectorAll('video,audio')].map((node, index) => ({
-      index, tag: node.tagName.toLowerCase(), attributes: attrs(node),
-      currentSrc: node.currentSrc || null, src: node.src || null,
-      rect: rect(node), context: context(node)
-    }));
-
-    const iframes = [...document.querySelectorAll('iframe')].map((node, index) => ({
-      index, attributes: attrs(node), src: node.src || null,
-      rect: rect(node), context: context(node)
-    }));
-
-    const interestingAttributes = [];
-    const attrPattern = /file|asset|attach|download|message|turn|testid|reference/i;
-    const valuePattern = /sediment:\/\/|file[-_][A-Za-z0-9]+|blob:|download|attachment|\\.(?:md|pdf|png|jpe?g|webp|svg|zip|docx?|xlsx?|pptx?)(?:$|[?#])/i;
-    for (const node of document.querySelectorAll('*')) {
-      const selected = {};
-      for (const attribute of node.attributes) {
-        if (attrPattern.test(attribute.name) || valuePattern.test(attribute.value))
-          selected[attribute.name] = attribute.value;
+    if (kind === 'attributes') {
+      const value = [];
+      const attrPattern = /file|asset|attach|download|message|turn|testid|reference/i;
+      const valuePattern = /sediment:\\/\\/|file[-_][A-Za-z0-9]+|blob:|download|attachment|\\.(?:md|pdf|png|jpe?g|webp|svg|zip|docx?|xlsx?|pptx?)(?:$|[?#])/i;
+      for (const node of document.querySelectorAll('*')) {
+        const selected = {};
+        for (const attribute of node.attributes) {
+          if (attrPattern.test(attribute.name) || valuePattern.test(attribute.value))
+            selected[attribute.name] = attribute.value;
+        }
+        if (Object.keys(selected).length)
+          value.push({ tag: node.tagName.toLowerCase(),
+            attributes: selected, context: context(node) });
+        if (value.length >= 5000) break;
       }
-      if (Object.keys(selected).length)
-        interestingAttributes.push({
-          tag: node.tagName.toLowerCase(), attributes: selected, context: context(node)
-        });
-      if (interestingAttributes.length >= 5000) break;
+      return { marker, kind, value };
     }
 
-    const resources = performance.getEntriesByType('resource').map((entry, index) => {
-      if (entry.initiatorType === 'img')
-        addCandidate(entry.name, { kind:'performance-img', index });
-      return {
+    if (kind === 'resources') return { marker, kind, value:
+      performance.getEntriesByType('resource').map((entry, index) => ({
         index, name: entry.name, initiatorType: entry.initiatorType,
         startTime: entry.startTime, duration: entry.duration,
         transferSize: entry.transferSize, encodedBodySize: entry.encodedBodySize,
         decodedBodySize: entry.decodedBodySize,
         nextHopProtocol: entry.nextHopProtocol || null,
         responseStatus: Number.isFinite(entry.responseStatus) ? entry.responseStatus : null
-      };
-    });
-
-    const turns = [...document.querySelectorAll(
-      '[data-turn-key],[data-testid^="conversation-turn-"]'
-    )].map((node, index) => ({
-      index, attributes: attrs(node), text: node.innerText || '',
-      rect: rect(node)
-    }));
-
-    const inlineJsonScripts = [...document.querySelectorAll(
-      'script[type="application/json"]'
-    )].map((node, index) => ({
-      index, id: node.id || null, attributes: attrs(node),
-      text: node.textContent || ''
-    }));
-
-    return {
-      marker,
-      meta: {
-        href: location.href, title: document.title, readyState: document.readyState,
-        visibilityState: document.visibilityState,
-        userAgent: navigator.userAgent,
-        viewport: { width: innerWidth, height: innerHeight, devicePixelRatio },
-        document: {
-          scrollWidth: document.documentElement?.scrollWidth || 0,
-          scrollHeight: document.documentElement?.scrollHeight || 0
-        }
-      },
-      html: document.documentElement?.outerHTML || '',
-      text: document.body?.innerText || '',
-      turns, images, sources, links, buttons, svgs, canvases, media, iframes,
-      interestingAttributes, resources,
-      candidates: [...candidates.values()],
-      inlineJsonScripts
+      }))
     };
+
+    if (kind === 'candidates') {
+      const candidates = new Map();
+      const add = (url, evidence) => {
+        if (typeof url !== 'string' || !url) return;
+        let item = candidates.get(url);
+        if (!item) { item = { url, evidence: [] }; candidates.set(url, item); }
+        item.evidence.push(evidence);
+      };
+      [...document.querySelectorAll('img')].forEach((img,index) => {
+        add(img.currentSrc,{kind:'img-currentSrc',index});
+        add(img.src,{kind:'img-src',index});
+        for (const url of splitSrcset(img.getAttribute('srcset')))
+          add(url,{kind:'img-srcset',index});
+      });
+      [...document.querySelectorAll('source')].forEach((node,index) => {
+        add(node.src,{kind:'source-src',index});
+        for (const url of splitSrcset(node.getAttribute('srcset')))
+          add(url,{kind:'source-srcset',index});
+      });
+      [...document.querySelectorAll('a[href]')].forEach((node,index) => {
+        const signal = [
+          node.getAttribute('download') || '', node.innerText || '', node.href || '',
+          node.getAttribute('aria-label') || '', node.getAttribute('data-testid') || ''
+        ].join(' ');
+        if (node.hasAttribute('download') ||
+            /download|attachment|file_|\\.(?:png|jpe?g|webp|gif|svg|pdf|md|txt|zip|docx?|xlsx?|pptx?)(?:$|[?#])/i.test(signal))
+          add(node.href,{kind:'link',index});
+      });
+      try {
+        performance.getEntriesByType('resource').forEach((entry,index) => {
+          if (entry.initiatorType === 'img')
+            add(entry.name,{kind:'performance-img',index});
+        });
+      } catch {}
+      return { marker, kind, value:[...candidates.values()] };
+    }
+
+    if (kind === 'svg-inventory') return { marker, kind, value:
+      [...document.querySelectorAll('svg')].map((node,index) => ({
+        index, attributes: attrs(node), rect: rect(node), context: context(node),
+        outerHTMLLength: node.outerHTML.length
+      }))
+    };
+
+    if (kind === 'canvas-inventory') return { marker, kind, value:
+      [...document.querySelectorAll('canvas')].map((node,index) => ({
+        index, width: node.width, height: node.height,
+        attributes: attrs(node), rect: rect(node), context: context(node)
+      }))
+    };
+
+    if (kind === 'inline-json-inventory') return { marker, kind, value:
+      [...document.querySelectorAll('script[type="application/json"]')].map((node,index) => ({
+        index, id: node.id || null, attributes: attrs(node),
+        textLength: (node.textContent || '').length
+      }))
+    };
+
+    return { marker, kind, unsupported:true, value:null };
   })()`;
+}
+
+function indexedBodyExpression(kind, index) {
+  if (kind === 'svg') return `(() => {
+    const node = document.querySelectorAll('svg')[${index}];
+    return node ? { marker:'page-reference-body', kind:'svg',
+      index:${index}, value:node.outerHTML } : null;
+  })()`;
+  if (kind === 'canvas') return `(() => {
+    const node = document.querySelectorAll('canvas')[${index}];
+    if (!node) return null;
+    try { return { marker:'page-reference-body', kind:'canvas',
+      index:${index}, value:node.toDataURL('image/png') }; }
+    catch (cause) { return { marker:'page-reference-body', kind:'canvas',
+      index:${index}, error:String(cause?.message || cause).slice(0,200) }; }
+  })()`;
+  if (kind === 'inline-json') return `(() => {
+    const node = document.querySelectorAll('script[type="application/json"]')[${index}];
+    return node ? { marker:'page-reference-body', kind:'inline-json',
+      index:${index}, value:node.textContent || '' } : null;
+  })()`;
+  throw new Error('reference.unsupported-indexed-body');
+}
+
+async function runProbe(send, kind) {
+  const response = await safeSend(send,'Runtime.evaluate',{
+    expression:evidenceProbeExpression(kind),
+    returnByValue:true, silent:true
+  });
+  if (!response.ok)
+    return { ok:false, error:response.error || 'runtime-evaluate-failed' };
+  const result = response.value?.result;
+  const value = result?.value;
+  if (!value || value.marker !== 'page-reference-probe' || value.kind !== kind)
+    return { ok:false, error:'probe-result-unavailable',
+      result_type:result?.type || null, result_subtype:result?.subtype || null,
+      description:result?.description || null };
+  return { ok:true, value:value.value };
+}
+
+async function runIndexedBody(send, kind, index) {
+  const response = await safeSend(send,'Runtime.evaluate',{
+    expression:indexedBodyExpression(kind,index),
+    returnByValue:true, silent:true
+  });
+  if (!response.ok) return { ok:false, error:response.error || 'runtime-evaluate-failed' };
+  const value = response.value?.result?.value;
+  if (!value || value.marker !== 'page-reference-body')
+    return { ok:false, error:'body-result-unavailable' };
+  if (value.error) return { ok:false, error:value.error };
+  return { ok:true, value:value.value };
 }
 
 function shareFetchExpression(shareId) {
@@ -387,66 +453,99 @@ export async function captureReferencePage(inputUrl, outputRoot, options = {}) {
     await send('Page.navigate', { url });
     const settled = await waitForStablePage(send, seconds);
 
-    const observed = await send('Runtime.evaluate', {
-      expression: evidenceExpression(),
-      returnByValue: true, silent: true
-    });
-    const evidence = observed?.result?.value;
-    if (!evidence || typeof evidence !== 'object')
-      throw new Error('reference.page-evidence-unavailable');
+    const probeKinds = [
+      'meta','html','text','turns','images','sources','links','buttons',
+      'media','iframes','attributes','resources','candidates',
+      'svg-inventory','canvas-inventory','inline-json-inventory'
+    ];
+    const probes = {};
+    const probeStatus = {};
+    for (const kind of probeKinds) {
+      const result = await runProbe(send,kind);
+      probeStatus[kind] = result.ok
+        ? { ok:true, type:Array.isArray(result.value) ? 'array' : typeof result.value,
+            count:Array.isArray(result.value) ? result.value.length : null }
+        : { ok:false, error:result.error, result_type:result.result_type || null,
+            result_subtype:result.result_subtype || null,
+            description:result.description || null };
+      if (result.ok) probes[kind] = result.value;
+      await writeJson(path.join(directory,'probe-' + safeLeaf(kind) + '.json'),
+        result.ok ? { ok:true, value:result.value } : probeStatus[kind]);
+    }
 
-    await fs.writeFile(path.join(directory,'page.html'), evidence.html || '',
-      { mode:0o600 });
-    await fs.writeFile(path.join(directory,'page.txt'), evidence.text || '',
-      { mode:0o600 });
+    if (typeof probes.html === 'string')
+      await fs.writeFile(path.join(directory,'page.html'),probes.html,{mode:0o600});
+    if (typeof probes.text === 'string')
+      await fs.writeFile(path.join(directory,'page.txt'),probes.text,{mode:0o600});
 
     const elementEvidence = {
-      meta:evidence.meta, turns:evidence.turns, images:evidence.images,
-      sources:evidence.sources, links:evidence.links, buttons:evidence.buttons,
-      media:evidence.media, iframes:evidence.iframes,
-      interestingAttributes:evidence.interestingAttributes
+      meta:probes.meta || null,
+      turns:Array.isArray(probes.turns) ? probes.turns : [],
+      images:Array.isArray(probes.images) ? probes.images : [],
+      sources:Array.isArray(probes.sources) ? probes.sources : [],
+      links:Array.isArray(probes.links) ? probes.links : [],
+      buttons:Array.isArray(probes.buttons) ? probes.buttons : [],
+      media:Array.isArray(probes.media) ? probes.media : [],
+      iframes:Array.isArray(probes.iframes) ? probes.iframes : [],
+      interestingAttributes:Array.isArray(probes.attributes) ? probes.attributes : []
     };
-    await writeJson(path.join(directory,'elements.json'), elementEvidence);
-    await writeJson(path.join(directory,'resources.json'), evidence.resources || []);
+    await writeJson(path.join(directory,'elements.json'),elementEvidence);
+    await writeJson(path.join(directory,'resources.json'),
+      Array.isArray(probes.resources) ? probes.resources : []);
+    await writeJson(path.join(directory,'PROBES.json'),probeStatus);
 
     const inlineDir = path.join(directory,'inline-json');
     await fs.mkdir(inlineDir,{mode:0o700});
     const inlineManifest = [];
-    for (const item of evidence.inlineJsonScripts || []) {
-      const file = String(item.index + 1).padStart(3,'0') + '.json.txt';
-      await fs.writeFile(path.join(inlineDir,file), item.text || '', {mode:0o600});
-      inlineManifest.push({ ...item, text:undefined, local_path:'inline-json/' + file,
-        byte_length:Buffer.byteLength(item.text || '') });
+    for (const item of Array.isArray(probes['inline-json-inventory'])
+      ? probes['inline-json-inventory'] : []) {
+      const body = await runIndexedBody(send,'inline-json',item.index);
+      let local = null, byteLength = null;
+      if (body.ok && typeof body.value === 'string') {
+        const file = String(item.index + 1).padStart(3,'0') + '.json.txt';
+        await fs.writeFile(path.join(inlineDir,file),body.value,{mode:0o600});
+        local = 'inline-json/' + file;
+        byteLength = Buffer.byteLength(body.value);
+      }
+      inlineManifest.push({ ...item, local_path:local, byte_length:byteLength,
+        capture_error:body.ok ? null : body.error });
     }
-    await writeJson(path.join(directory,'inline-json.json'), inlineManifest);
+    await writeJson(path.join(directory,'inline-json.json'),inlineManifest);
 
     const svgDir = path.join(directory,'svg');
     await fs.mkdir(svgDir,{mode:0o700});
     const svgManifest = [];
-    for (const item of evidence.svgs || []) {
+    for (const item of Array.isArray(probes['svg-inventory'])
+      ? probes['svg-inventory'] : []) {
+      const body = await runIndexedBody(send,'svg',item.index);
       let local = null;
-      if (typeof item.outerHTML === 'string') {
+      if (body.ok && typeof body.value === 'string') {
         const file = String(item.index + 1).padStart(3,'0') + '.svg';
-        await fs.writeFile(path.join(svgDir,file), item.outerHTML, {mode:0o600});
+        await fs.writeFile(path.join(svgDir,file),body.value,{mode:0o600});
         local = 'svg/' + file;
       }
-      svgManifest.push({ ...item, outerHTML:undefined, local_path:local });
+      svgManifest.push({ ...item, local_path:local,
+        capture_error:body.ok ? null : body.error });
     }
-    await writeJson(path.join(directory,'svg.json'), svgManifest);
+    await writeJson(path.join(directory,'svg.json'),svgManifest);
 
     const canvasDir = path.join(directory,'canvas');
     await fs.mkdir(canvasDir,{mode:0o700});
     const canvasManifest = [];
-    for (const item of evidence.canvases || []) {
+    for (const item of Array.isArray(probes['canvas-inventory'])
+      ? probes['canvas-inventory'] : []) {
+      const body = await runIndexedBody(send,'canvas',item.index);
       let local = null;
-      if (typeof item.dataUrl === 'string' &&
-          item.dataUrl.startsWith('data:image/png;base64,')) {
-        const bytes = Buffer.from(item.dataUrl.slice('data:image/png;base64,'.length),'base64');
+      if (body.ok && typeof body.value === 'string' &&
+          body.value.startsWith('data:image/png;base64,')) {
+        const bytes = Buffer.from(
+          body.value.slice('data:image/png;base64,'.length),'base64');
         const file = String(item.index + 1).padStart(3,'0') + '.png';
         await fs.writeFile(path.join(canvasDir,file),bytes,{mode:0o600});
         local = 'canvas/' + file;
       }
-      canvasManifest.push({ ...item, dataUrl:undefined, local_path:local });
+      canvasManifest.push({ ...item, local_path:local,
+        capture_error:body.ok ? null : body.error });
     }
     await writeJson(path.join(directory,'canvas.json'),canvasManifest);
 
@@ -498,7 +597,8 @@ export async function captureReferencePage(inputUrl, outputRoot, options = {}) {
     const candidateDir = path.join(directory,'candidate-resources');
     await fs.mkdir(candidateDir,{mode:0o700});
     const candidateManifest = [];
-    for (const [index,candidate] of (evidence.candidates || []).slice(0,MAX_CANDIDATES).entries()) {
+    for (const [index,candidate] of (Array.isArray(probes.candidates)
+      ? probes.candidates : []).slice(0,MAX_CANDIDATES).entries()) {
       const response = await send('Runtime.evaluate',{
         expression:resourceFetchExpression(candidate.url),
         awaitPromise:true, returnByValue:true, silent:true
@@ -528,21 +628,24 @@ export async function captureReferencePage(inputUrl, outputRoot, options = {}) {
     const summary = {
       source:url, share_id:shareId, captured_at:new Date().toISOString(),
       settled,
-      title:evidence.meta?.title || null,
-      final_url:evidence.meta?.href || null,
+      title:probes.meta?.title || null,
+      final_url:probes.meta?.href || null,
       counts:{
-        turns:(evidence.turns || []).length,
-        images:(evidence.images || []).length,
-        sources:(evidence.sources || []).length,
-        links:(evidence.links || []).length,
-        buttons:(evidence.buttons || []).length,
-        svg:(evidence.svgs || []).length,
-        canvas:(evidence.canvases || []).length,
-        resources:(evidence.resources || []).length,
-        candidates:(evidence.candidates || []).length,
+        turns:Array.isArray(probes.turns) ? probes.turns.length : 0,
+        images:Array.isArray(probes.images) ? probes.images.length : 0,
+        sources:Array.isArray(probes.sources) ? probes.sources.length : 0,
+        links:Array.isArray(probes.links) ? probes.links.length : 0,
+        buttons:Array.isArray(probes.buttons) ? probes.buttons.length : 0,
+        svg:Array.isArray(probes['svg-inventory']) ? probes['svg-inventory'].length : 0,
+        canvas:Array.isArray(probes['canvas-inventory']) ? probes['canvas-inventory'].length : 0,
+        resources:Array.isArray(probes.resources) ? probes.resources.length : 0,
+        candidates:Array.isArray(probes.candidates) ? probes.candidates.length : 0,
         candidates_captured:candidateManifest.length,
         candidates_downloaded:candidateManifest.filter(x=>x.local_path).length,
-        inline_json:(evidence.inlineJsonScripts || []).length
+        inline_json:Array.isArray(probes['inline-json-inventory'])
+          ? probes['inline-json-inventory'].length : 0,
+        probes_ok:Object.values(probeStatus).filter(x=>x.ok).length,
+        probes_failed:Object.values(probeStatus).filter(x=>!x.ok).length
       },
       cdp:{
         dom_snapshot:domSnapshot.ok,
