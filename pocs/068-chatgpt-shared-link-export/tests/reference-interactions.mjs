@@ -176,7 +176,8 @@ test
   'evaluates renderer upload labels and selects their exact occurrences',
   async () =>
   {
-    const html = [
+    const html =
+    [
       '<section data-turn-id="user-image">',
       '<div data-message-id="user-image" data-message-author-role="user">',
       "<span>Ha caricato un'immagine</span>",
@@ -283,7 +284,7 @@ test
       assert.equal(result.inventory.length,3);
       assert.deepEqual
       (
-        result.inventory.map(item => item.kind),
+        Array.from(result.inventory, item => item.kind),
         ['user-upload-image','user-upload-file','user-upload-file']
       );
       assert.deepEqual
