@@ -579,7 +579,7 @@ function observedGeneratedImageExpression(scrollIndex=null,activate=false) {
         ready:document.readyState || null,
         shareOrigin:location.origin === 'https://chatgpt.com',
         electronUAToken:typeof navigator==='object' &&
-          /Electron\\/\\d/.test(navigator.userAgent||''),
+          /Electron\/\d/.test(navigator.userAgent||''),
         imageResourceEntries:imageRequests
       }
     };
