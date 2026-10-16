@@ -828,6 +828,25 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
     generatedImageDom:{identified:0,downloaded:0,expected:0,settled:false,polls:0,surfaces:0,activated:0,statuses:[]},
     electronUserAgentNormalized: false };
   let page, session;
+  const cleanupTimeoutMs = options.cleanupTimeoutMs ?? 5000;
+  if (!Number.isSafeInteger(cleanupTimeoutMs) || cleanupTimeoutMs < 1 ||
+      cleanupTimeoutMs > 30000)
+    throw new AcquisitionError('share.invalid-cleanup-timeout',
+      'cleanupTimeoutMs must be 1..30000');
+  stats.cleanup = { page: 'not-created', session: 'not-opened', verified: false };
+
+  async function boundedCleanup(label, args) {
+    let timer;
+    const result = await Promise.race([
+      Promise.resolve().then(() => control(...args)).then(
+        () => 'acknowledged', () => 'failed'),
+      new Promise(resolve => {
+        timer = setTimeout(() => resolve('timed-out'), cleanupTimeoutMs);
+      })
+    ]);
+    clearTimeout(timer);
+    stats.cleanup[label] = result;
+  }
 
   async function send(method, params = {}) {
     const result = await control('debug', 'session', 'send', session, method, JSON.stringify(params));
@@ -930,7 +949,27 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
       'browser command or page-context fetch failed: ' +
       String(error.message || error).split('\n')[0].slice(0, 180), stats);
   } finally {
-    if (session) await control('debug', 'session', 'close', session).catch(() => {});
-    if (page) await control('page', 'close', page).catch(() => {});
+    // Always issue the page-close request, even if debugger detachment hangs.
+    // An acknowledged close is not proof that the provider removed the page.
+    const operations = [];
+    if (page) operations.push(boundedCleanup('page', ['page', 'close', page]));
+    if (session) operations.push(boundedCleanup('session',
+      ['debug', 'session', 'close', session]));
+    await Promise.all(operations);
+
+    if (page) {
+      try {
+        const listed = await Promise.race([
+          control('page', 'list'),
+          new Promise(resolve => setTimeout(() => resolve(null), cleanupTimeoutMs))
+        ]);
+        if (Array.isArray(listed)) {
+          stats.cleanup.verified = true;
+          stats.cleanup.pagePresent = listed.some(item => item?.id === page);
+        }
+      } catch {
+        stats.cleanup.verified = false;
+      }
+    }
   }
 }
