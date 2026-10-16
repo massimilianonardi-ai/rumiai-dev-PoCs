@@ -26,7 +26,7 @@ The exporter preserves the active branch, structured message objects (including 
 
 ## Public-share reference interaction diagnostic
 
-The independent diagnostic captures renderer and click evidence without changing the exporter. If the navigation settles on a login or any other page instead of the requested share, it emits `reference.share-page-not-loaded`, saves `failure.json` in its allocated directory and exits non-zero rather than returning misleading successful evidence:\n\n<!-- capture command -->\n\nThe independent diagnostic captures renderer and click evidence without changing the exporter:
+The independent diagnostic captures renderer and click evidence without changing the exporter. If navigation settles on a login or any other page instead of the requested share, it emits `reference.share-page-not-loaded`, saves `failure.json` in its allocated directory and exits non-zero rather than reporting a successful capture:
 
 ```sh
 node capture-share-reference.mjs "https://chatgpt.com/share/<id>" "./reference-captures" --seconds 8
