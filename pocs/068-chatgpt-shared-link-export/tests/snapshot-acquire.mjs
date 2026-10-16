@@ -315,6 +315,7 @@ test('anonymous generated-image DOM resolves stable file id and deduplicates thr
   const requests=[],expressions=[];
   const control=async(...args)=>{
     if(args[0]==='page'&&args[1]==='new')return{id:'page'};
+    if(args[0]==='page'&&args[1]==='navigate')return{page:args[2],url:args[3]};
     if(args[0]==='page'&&args[1]==='close')return{closed:true};
     if(args[0]==='debug'&&args[1]==='session'&&args[2]==='open')return{session:'session'};
     if(args[0]==='debug'&&args[1]==='session'&&args[2]==='close')return{closed:true};
@@ -384,6 +385,7 @@ test('waits for full document load before reading the share snapshot', async () 
   let shareRequested=false;
   const control=async(...args)=>{
     if(args[0]==='page' && args[1]==='new')return{id:'page'};
+    if(args[0]==='page' && args[1]==='navigate')return{page:args[2],url:args[3]};
     if(args[0]==='page' && args[1]==='close')return{closed:true};
     if(args[0]==='debug' && args[1]==='session' && args[2]==='open')
       return{session:'session'};
@@ -473,6 +475,7 @@ test('multiple lazy generated images load sequentially without viewport thrashin
   };
   const control=async(...args)=>{
     if(args[0]==='page'&&args[1]==='new')return{id:'page'};
+    if(args[0]==='page'&&args[1]==='navigate')return{page:args[2],url:args[3]};
     if(args[0]==='page'&&args[1]==='close')return{closed:true};
     if(args[0]==='debug'&&args[1]==='session'&&args[2]==='open')
       return{session:'session'};
@@ -542,7 +545,7 @@ test('ChatGPT anonymous share normalizes only Electron product token before navi
     {
       const command = args.slice(0, 3).join(' ');
       if (command === 'page new') return { id: 'page-1' };
-      if (command === 'page navigate')
+      if (args[0] === 'page' && args[1] === 'navigate')
       {
         assert.equal(args[2], 'page-1');
         assert.match(args[3], /^data:text\/html;charset=utf-8,/);
