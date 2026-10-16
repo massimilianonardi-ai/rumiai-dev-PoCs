@@ -567,7 +567,7 @@ async function captureObservedGeneratedImages(send,assets,fetchImage,seconds,sta
     let base64=null,mimeType=null,byteLength=null;
     try{
       const url=new URL(entry.src);
-      const match=/^\\/files\\/([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})\\/raw$/i.exec(url.pathname);
+      const match=/^\/files\/([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})\/raw$/i.exec(url.pathname);
       if(url.protocol!=='https:'||url.port||url.username||url.password||
         !(url.hostname==='oaiusercontent.com'||url.hostname.endsWith('.oaiusercontent.com'))||
         !match||'file_'+match[1].replaceAll('-','').toLowerCase()!==fileId)
