@@ -503,7 +503,9 @@ function observedGeneratedImageExpression(){
           file_id:'file_'+match[1].replaceAll('-','').toLowerCase(),
           src:url.href,root_id:root.id,
           loaded:Boolean(img.complete && img.naturalWidth>0 && img.naturalHeight>0),
-          natural_width:img.naturalWidth||null,natural_height:img.naturalHeight||null
+          natural_width:img.naturalWidth||null,natural_height:img.naturalHeight||null,
+          declared_width:Number(img.getAttribute('width'))||null,
+          declared_height:Number(img.getAttribute('height'))||null
         });
       }
     }
@@ -515,7 +517,6 @@ function observedGeneratedImageExpression(){
 async function captureObservedGeneratedImages(send,assets,fetchImage,seconds,stats){
   const byId=new Map(assets.map(asset=>[asset.file_id,asset]));
   const candidates=new Map();
-  const conflicts=new Set();
   const deadline=Date.now()+Math.min(seconds*1000,10000);
   do{
     try{
@@ -524,16 +525,15 @@ async function captureObservedGeneratedImages(send,assets,fetchImage,seconds,sta
       });
       const list=response?.result?.value;
       if(Array.isArray(list))for(const entry of list){
-        if(!entry || !byId.has(entry.file_id) || !entry.loaded || typeof entry.src!=='string'
-          || conflicts.has(entry.file_id))continue;
+        if(!entry || !byId.has(entry.file_id) || typeof entry.src!=='string')continue;
         const asset=byId.get(entry.file_id);
-        if(Number.isSafeInteger(asset.width)&&entry.natural_width!==asset.width)continue;
-        if(Number.isSafeInteger(asset.height)&&entry.natural_height!==asset.height)continue;
+        const width=entry.natural_width||entry.declared_width;
+        const height=entry.natural_height||entry.declared_height;
+        if(Number.isSafeInteger(asset.width)&&width!==asset.width)continue;
+        if(Number.isSafeInteger(asset.height)&&height!==asset.height)continue;
         const prior=candidates.get(entry.file_id);
-        if(prior && (prior.src!==entry.src || prior.root_id!==entry.root_id)){
-          candidates.delete(entry.file_id);conflicts.add(entry.file_id);continue;
-        }
-        if(!prior)candidates.set(entry.file_id,entry);
+        if(!prior || (!prior.loaded && entry.loaded))
+          candidates.set(entry.file_id,entry);
       }
     }catch{/* Lazy renderer is not necessarily ready yet. */}
     if(candidates.size===assets.length)break;
@@ -580,7 +580,9 @@ async function captureObservedGeneratedImages(send,assets,fetchImage,seconds,sta
       attempt,base64,mimeType,byteLength,
       renderer_references:[{
         source:'image-gen-dom',root_id:entry.root_id,
-        natural_width:entry.natural_width,natural_height:entry.natural_height
+        natural_width:entry.natural_width||entry.declared_width,
+        natural_height:entry.natural_height||entry.declared_height,
+        was_loaded:entry.loaded
       }]
     });
   }
