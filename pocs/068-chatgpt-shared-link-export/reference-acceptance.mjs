@@ -155,7 +155,7 @@ async function run()
   }
   catch
   {
-    process.stderr.write('acceptance.pwc-controller-unreachable: start the isolated PWC controller first\\n');
+    process.stderr.write('acceptance.pwc-controller-unreachable: start the isolated PWC controller first\n');
     return 2;
   }
   process.umask(0o077);
