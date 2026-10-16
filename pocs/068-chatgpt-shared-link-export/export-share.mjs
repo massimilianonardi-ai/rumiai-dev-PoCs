@@ -60,7 +60,11 @@ async function failureRecord(folder, error) {
     scriptCount: error.stats?.scriptCount || 0,
     observedJsonShapes: error.stats?.jsonShapes || [],
     sourceAttempts: error.stats?.sourceAttempts || [],
-    assetAttempts: error.stats?.assetAttempts || []
+    assetAttempts: error.stats?.assetAttempts || [],
+    rendererImageCandidates: error.stats?.rendererImageCandidates || 0,
+    rendererImageResources: error.stats?.rendererImageResources || 0,
+    rendererImageOccurrences: error.stats?.rendererImageOccurrences || 0,
+    rendererImageFetch: error.stats?.rendererImageFetch || null
   };
   for (let n = 1; n < 100000; n++) {
     const file = path.join(folder, 'share-debug-diagnostic-' + String(n).padStart(4, '0') + '.json');
@@ -75,11 +79,19 @@ async function failureRecord(folder, error) {
 export async function exportSharedLink(input, directory, seconds = 20, controller = webControl) {
   const url = shareUrl(input);
   await controllerReadyIfRequired(controller);
-  const { snapshot, assets = [], method } = await captureStructuredSnapshot(controller, url, { seconds });
-  return exportSnapshot(snapshot, {
+  const { snapshot, assets = [], method, stats } =
+    await captureStructuredSnapshot(controller, url, { seconds });
+  const result = await exportSnapshot(snapshot, {
     display_title: snapshot.title || 'Shared conversation',
     source_created_at: snapshot.create_time
   }, directory, url, method, assets);
+  return {
+    ...result,
+    rendererImageCandidates: stats?.rendererImageCandidates ?? 0,
+    rendererImageResources: stats?.rendererImageResources ?? 0,
+    rendererImageOccurrences: stats?.rendererImageOccurrences ?? 0,
+    rendererImageFetch: stats?.rendererImageFetch ?? null
+  };
 }
 
 async function controllerReadyIfRequired(control) {

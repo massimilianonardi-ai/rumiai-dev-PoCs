@@ -151,6 +151,10 @@ test('page-context media acquisition maps renderer generated images to raw asset
   assert.equal(result.stats.rendererImageCandidates, 4);
   assert.equal(result.stats.rendererImageResources, 2);
   assert.equal(result.stats.rendererImageOccurrences, 3);
+  assert.deepEqual(result.stats.rendererImageFetch, {
+    attempted: 4, fetched: 4, failed: 0,
+    size_matched: 3, size_mismatched: 1
+  });
   assert.ok(expressions.some(x => x.includes("expectedSizes = new Set")));
   assert.ok(expressions.some(x => x.includes("return { candidates: urls.size")));
   assert.ok(!expressions.some(x => x.includes('/api/auth/session')));

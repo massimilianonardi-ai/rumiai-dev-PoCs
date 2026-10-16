@@ -277,7 +277,11 @@ function rendererImageProbeExpression() {
 }
 
 async function captureRendererImages(send, assets, deadline) {
-  let last = [];
+  let resources = [];
+  let observation = {
+    attempted: 0, fetched: 0, failed: 0,
+    size_matched: 0, size_mismatched: 0
+  };
   while (Date.now() < deadline) {
     try {
       const response = await send('Runtime.evaluate', {
@@ -286,13 +290,23 @@ async function captureRendererImages(send, assets, deadline) {
       });
       const value = response?.result?.value;
       if (Array.isArray(value)) {
-        last = collapseRendererImages(value);
-        if (last.length >= assets.length) break;
+        observation = {
+          attempted: value.length,
+          fetched: value.filter(item => Number.isSafeInteger(item?.status) &&
+            item.status >= 200 && item.status < 300).length,
+          failed: value.filter(item => item?.failed === true ||
+            (Number.isSafeInteger(item?.status) &&
+             (item.status < 200 || item.status >= 300))).length,
+          size_matched: value.filter(item => item?.size_match === true).length,
+          size_mismatched: value.filter(item => item?.size_match === false).length
+        };
+        resources = collapseRendererImages(value);
+        if (resources.length >= assets.length) break;
       }
     } catch { /* Renderer may still be materializing image resources. */ }
     await new Promise(resolve => setTimeout(resolve, 150));
   }
-  return last;
+  return { resources, observation };
 }
 
 function assetFetchExpression(asset, shareId) {
@@ -394,7 +408,9 @@ async function captureImageAssets(send, snapshot, shareId, stats) {
     stats.rendererImageCandidates =
       Number.isSafeInteger(probe?.result?.value?.candidates) ? probe.result.value.candidates : 0;
   } catch {}
-  const renderer = await captureRendererImages(send, assets, Date.now() + 10000);
+  const captured = await captureRendererImages(send, assets, Date.now() + 10000);
+  const renderer = captured.resources;
+  stats.rendererImageFetch = captured.observation;
   stats.rendererImageResources = renderer.length;
   stats.rendererImageOccurrences = renderer.reduce((n, item) =>
     n + (Array.isArray(item?.occurrences) ? item.occurrences.length : 0), 0);
@@ -433,7 +449,9 @@ async function captureImageAssets(send, snapshot, shareId, stats) {
     const attempts = [{
       source: 'renderer-generated-image',
       matches: matches.length,
-      availableResources: renderer.length
+      availableResources: renderer.length,
+      candidateResources: stats.rendererImageCandidates,
+      fetchObservation: stats.rendererImageFetch
     }, ...(Array.isArray(result?.attempts) ? result.attempts : [])];
     stats.assetAttempts.push({ fileId: asset.file_id, attempts });
     found.push({ ...asset,
@@ -460,7 +478,9 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
   const stats = { phase: 'page-creation', operation: null, providerDiagnostic: null,
     hookFound: false, scriptCount: 0, inspectedResponses: 0, jsonShapes: [],
     sourceAttempts: [], assetAttempts: [], rendererImageResources: 0,
-    rendererImageOccurrences: 0, rendererImageCandidates: 0 };
+    rendererImageOccurrences: 0, rendererImageCandidates: 0,
+    rendererImageFetch: { attempted: 0, fetched: 0, failed: 0,
+      size_matched: 0, size_mismatched: 0 } };
   let page, session;
 
   async function send(method, params = {}) {
