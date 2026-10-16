@@ -97,11 +97,11 @@ async function waitForShareDocument(send, deadline) {
       });
       const value = result?.result?.value;
       if (typeof value === 'string' &&
-          value.startsWith('https://chatgpt.com|') &&
-          !value.endsWith('|loading')) return;
+          value === 'https://chatgpt.com|complete') return true;
     } catch { /* Navigation can transiently replace the execution context. */ }
     await new Promise(resolve => setTimeout(resolve, 100));
   }
+  return false;
 }
 
 function sandboxFiles(snapshot) {
@@ -487,8 +487,15 @@ async function captureRendererImages(send, assets, deadline) {
   return { resources, observation };
 }
 
-function observedGeneratedImageExpression(){
-  function scan(){
+function observedGeneratedImageExpression(scrollIndex=0){
+  function scan(index){
+    const surfaces=[...document.querySelectorAll('[data-image-gen-result]')];
+    if(surfaces.length){
+      // A lazy image may not even request its bytes until it enters the viewport.
+      const surface=surfaces[index%surfaces.length];
+      const root=surface.querySelector('[id^="image-"]')||surface;
+      root.scrollIntoView?.({block:'center',behavior:'instant'});
+    }
     const results=[];
     for(const surface of document.querySelectorAll('[data-image-gen-result]')){
       const root=surface.querySelector('[id^="image-"]');
@@ -511,42 +518,56 @@ function observedGeneratedImageExpression(){
     }
     return results;
   }
-  return '('+scan.toString()+')()';
+  return '('+scan.toString()+')('+JSON.stringify(scrollIndex)+')';
 }
 
 async function captureObservedGeneratedImages(send,assets,fetchImage,seconds,stats){
   const byId=new Map(assets.map(asset=>[asset.file_id,asset]));
   const candidates=new Map();
-  const deadline=Date.now()+Math.min(seconds*1000,10000);
+  const deadline=Date.now()+Math.min(seconds*1000,20000);
+  let polls=0,stable=0,previousSignature=null;
+
+  // Network-idle alone is not a completion signal on an SPA: background
+  // requests may be persistent and off-screen lazy images may never start.
+  // Wait for the precise expected image elements to finish loading instead.
   do{
     try{
       const response=await send('Runtime.evaluate',{
-        expression:observedGeneratedImageExpression(),returnByValue:true,silent:true
+        expression:observedGeneratedImageExpression(polls),
+        returnByValue:true,silent:true
       });
       const list=response?.result?.value;
       if(Array.isArray(list))for(const entry of list){
-        if(!entry || !byId.has(entry.file_id) || typeof entry.src!=='string')continue;
+        if(!entry||!byId.has(entry.file_id)||!entry.loaded||
+          typeof entry.src!=='string')continue;
         const asset=byId.get(entry.file_id);
-        const width=entry.natural_width||entry.declared_width;
-        const height=entry.natural_height||entry.declared_height;
-        if(Number.isSafeInteger(asset.width)&&width!==asset.width)continue;
-        if(Number.isSafeInteger(asset.height)&&height!==asset.height)continue;
+        if(Number.isSafeInteger(asset.width)&&entry.natural_width!==asset.width)continue;
+        if(Number.isSafeInteger(asset.height)&&entry.natural_height!==asset.height)continue;
         const prior=candidates.get(entry.file_id);
-        if(!prior || (!prior.loaded && entry.loaded))
+        if(!prior || prior.src===entry.src)
           candidates.set(entry.file_id,entry);
       }
-    }catch{/* Lazy renderer is not necessarily ready yet. */}
-    if(candidates.size===assets.length)break;
-    await new Promise(resolve=>setTimeout(resolve,250));
+      const signature=[...candidates].sort(([a],[b])=>a.localeCompare(b))
+        .map(([id,entry])=>id+':'+entry.src).join('|');
+      if(candidates.size===assets.length){
+        stable=signature===previousSignature?stable+1:1;
+        if(stable>=2)break;
+      }else stable=0;
+      previousSignature=signature;
+    }catch{/* Lazy renderer may replace the execution context transiently. */}
+    polls++;
+    if(Date.now()<deadline)
+      await new Promise(resolve=>setTimeout(resolve,250));
   }while(Date.now()<deadline);
-  const results=new Map();
+
+  const outcomes=new Map();
   for(const [fileId,entry] of candidates){
     const asset=byId.get(fileId);
     const attempt={source:'anonymous-generated-image-img-src',observed:true};
     let base64=null,mimeType=null,byteLength=null;
     try{
       const url=new URL(entry.src);
-      const match=/^\/files\/([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})\/raw$/i.exec(url.pathname);
+      const match=/^\\/files\\/([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})\\/raw$/i.exec(url.pathname);
       if(url.protocol!=='https:'||url.port||url.username||url.password||
         !(url.hostname==='oaiusercontent.com'||url.hostname.endsWith('.oaiusercontent.com'))||
         !match||'file_'+match[1].replaceAll('-','').toLowerCase()!==fileId)
@@ -576,18 +597,22 @@ async function captureObservedGeneratedImages(send,assets,fetchImage,seconds,sta
     }catch{
       attempt.binaryStatus='unavailable-or-invalid';
     }
-    results.set(fileId,{
+    outcomes.set(fileId,{
       attempt,base64,mimeType,byteLength,
       renderer_references:[{
         source:'image-gen-dom',root_id:entry.root_id,
-        natural_width:entry.natural_width||entry.declared_width,
-        natural_height:entry.natural_height||entry.declared_height,
+        natural_width:entry.natural_width,natural_height:entry.natural_height,
         was_loaded:entry.loaded
       }]
     });
   }
-  stats.generatedImageDom={identified:candidates.size,downloaded:[...results.values()].filter(x=>x.base64).length};
-  return results;
+  stats.generatedImageDom={
+    identified:candidates.size,
+    downloaded:[...outcomes.values()].filter(x=>x.base64).length,
+    expected:assets.length,settled:stable>=2,
+    polls:polls+1
+  };
+  return outcomes;
 }
 
 function rendererMatch(asset, renderer) {
@@ -716,7 +741,7 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
     rendererImageOccurrences: 0, rendererImageCandidates: 0,
     rendererImageFetch: { attempted: 0, fetched: 0, failed: 0,
       size_matched: 0, size_mismatched: 0 },
-    generatedImageDom:{identified:0,downloaded:0} };
+    generatedImageDom:{identified:0,downloaded:0,expected:0,settled:false,polls:0} };
   let page, session;
 
   async function send(method, params = {}) {
@@ -743,7 +768,13 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
 
     stats.phase = 'share-json';
     stats.operation = 'debug session send Runtime.evaluate';
-    await waitForShareDocument(send, Date.now() + Math.min(seconds, 10) * 1000);
+    const documentReady=await waitForShareDocument(
+      send,Date.now()+Math.min(seconds,20)*1000
+    );
+    if(!documentReady){
+      throw new AcquisitionError('share.document-not-ready',
+        'shared page did not reach document.readyState=complete',stats);
+    }
     const result = await send('Runtime.evaluate', {
       expression: shareFetchExpression(shareId),
       awaitPromise: true,
