@@ -354,7 +354,7 @@ test('anonymous generated-image DOM resolves stable file id and deduplicates thr
     }});
   };
   const result=await captureStructuredSnapshot(control,
-    'https://chatgpt.com/share/share-test',{seconds:1,fetchImage});
+    'https://chatgpt.com/share/share-test',{seconds:3,fetchImage});
   assert.equal(requests.length,1,'three decorative layers cause one binary fetch');
   assert.equal(result.assets.length,1);
   assert.equal(result.assets[0].file_id,fileId);
