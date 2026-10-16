@@ -133,7 +133,8 @@ function tagTargetExpression(target, token) {
       (
         '[data-message-author-role="user"][data-message-id]'
       );
-      const message = [...userMessages].find(
+      const message = [...userMessages].find
+      (
         item => item.getAttribute('data-message-id') === spec.message_id
       );
       const uploadLabel =
@@ -155,7 +156,7 @@ function tagTargetExpression(target, token) {
     if (!node) return { marker, found:false };
     node.setAttribute('data-rumiai-reference-target', ${JSON.stringify(token)});
     const actionable = node.closest('a,button,[role="button"]');
-    return
+    const result =
     {
       marker, found:true, tag:node.tagName.toLowerCase(),
       aria_label:node.getAttribute('aria-label') || null,
@@ -165,6 +166,7 @@ function tagTargetExpression(target, token) {
       actionable_tag:actionable?.tagName?.toLowerCase() || null,
       cursor:getComputedStyle(node).cursor
     };
+    return result;
   })()`;
 }
 
