@@ -9,8 +9,9 @@ function fixtureControl(options = {}) {
   const calls = [];
   let pageClosed = false, sessionClosed = false;
   const png = Buffer.from('png-bytes');
+  const observedUrl = options.redirectHref || 'https://chatgpt.com/share/abc';
   const probes = {
-    meta: { href:'https://chatgpt.com/share/abc', title:'Fixture',
+    meta: { href:observedUrl, title:'Fixture',
       readyState:'complete', visibilityState:'visible' },
     html: '<html><body><img src="blob:test"></body></html>',
     text: 'fixture text',
@@ -65,7 +66,7 @@ function fixtureControl(options = {}) {
 
     if (params.expression.includes('page-reference-settle'))
       return {result:{result:{value:{
-        marker:'page-reference-settle',href:'https://chatgpt.com/share/abc',
+        marker:'page-reference-settle',href:observedUrl,
         title:'Fixture',readyState:'complete',htmlLength:100,textLength:10,
         imageCount:1,resourceCount:1,turnCount:1
       }}}};
@@ -184,6 +185,34 @@ test('one unavailable evidence probe does not discard other page evidence', asyn
     assert.equal(elements.images.length,1);
     assert.ok((await fs.stat(path.join(result.directory,'page.html'))).size > 0);
     assert.deepEqual(fixture.closed(),{pageClosed:true,sessionClosed:true});
+  } finally {
+    await fs.rm(root,{recursive:true,force:true});
+  }
+});
+
+test('rejects a login redirect before probing the unrelated page', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(),'share-reference-login-'));
+  const loginUrl =
+    'https://chatgpt.com/auth/login?next=%2Fshare%2Fabc';
+  const fixture = fixtureControl({redirectHref:loginUrl});
+  try {
+    await assert.rejects(
+      captureReferencePage('https://chatgpt.com/share/abc',root,
+        {seconds:1,controller:fixture.control}),
+      /reference.share-page-not-loaded/
+    );
+    const folders = await fs.readdir(root);
+    assert.equal(folders.length,1);
+    const failure = JSON.parse(await fs.readFile(
+      path.join(root,folders[0],'failure.json'),'utf8'));
+    assert.equal(failure.error,'reference.share-page-not-loaded');
+    assert.equal(failure.observed_url,loginUrl);
+    assert.equal(failure.source,'https://chatgpt.com/share/abc');
+    assert.deepEqual(fixture.closed(),{pageClosed:true,sessionClosed:true});
+    const expressions = fixture.calls.filter(x=>x[4]==='Runtime.evaluate')
+      .map(x=>JSON.parse(x[5]).expression);
+    assert.ok(!expressions.some(x=>x.includes('page-reference-probe')));
+    assert.ok(!expressions.some(x=>x.includes('page-reference-share-fetch')));
   } finally {
     await fs.rm(root,{recursive:true,force:true});
   }
