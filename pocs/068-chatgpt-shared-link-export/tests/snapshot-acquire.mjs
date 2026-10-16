@@ -536,13 +536,27 @@ test('ChatGPT anonymous share normalizes only Electron product token before navi
     [[electronAgent, true], [chromeAgent, false]])
   {
     const calls = [];
+    const sequence = [];
     let navigated = false;
     const control = async (...args) =>
     {
       const command = args.slice(0, 3).join(' ');
       if (command === 'page new') return { id: 'page-1' };
+      if (command === 'page navigate')
+      {
+        assert.equal(args[2], 'page-1');
+        assert.match(args[3], /^data:text\/html;charset=utf-8,/);
+        assert.match(decodeURIComponent(args[3]), /<!doctype html>/);
+        sequence.push('document-ready');
+        return { page: 'page-1', url: args[3] };
+      }
       if (command === 'page close') return { closed: true };
-      if (command === 'debug session open') return { session: 'debug-1' };
+      if (command === 'debug session open')
+      {
+        assert.deepEqual(sequence, ['document-ready']);
+        sequence.push('attached');
+        return { session: 'debug-1' };
+      }
       if (command === 'debug session close') return { closed: true };
 
       if (command === 'debug session send')
@@ -551,9 +565,18 @@ test('ChatGPT anonymous share normalizes only Electron product token before navi
         const params = JSON.parse(args[5]);
         calls.push({ method, params });
         if (method === 'Emulation.setUserAgentOverride')
+        {
+          assert.deepEqual(sequence, ['document-ready', 'attached']);
+          sequence.push('override');
           return { result: {} };
+        }
         if (method === 'Page.navigate')
         {
+          const expected = shouldNormalize ?
+            ['document-ready', 'attached', 'override'] :
+            ['document-ready', 'attached'];
+          assert.deepEqual(sequence, expected);
+          sequence.push('share-navigation');
           navigated = true;
           return { result: {} };
         }
@@ -584,6 +607,9 @@ test('ChatGPT anonymous share normalizes only Electron product token before navi
       { seconds: 1 }
     );
     assert.equal(outcome.method, 'page-fetch');
+    assert.equal(sequence[0], 'document-ready');
+    assert.equal(sequence[1], 'attached');
+    assert.equal(sequence.at(-1), 'share-navigation');
     assert.equal(outcome.stats.electronUserAgentNormalized, shouldNormalize);
     const overrides = calls.filter(call => call.method === 'Emulation.setUserAgentOverride');
     assert.equal(overrides.length, shouldNormalize ? 1 : 0);
