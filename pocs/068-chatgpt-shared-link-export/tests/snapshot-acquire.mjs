@@ -519,3 +519,79 @@ test('multiple lazy generated images load sequentially without viewport thrashin
   assert.deepEqual(requested,urls,'download paths retain identity despite identical byte sizes');
   assert.deepEqual(result.assets.map(asset=>asset.file_id),ids);
 });
+
+
+test('ChatGPT anonymous share normalizes only Electron product token before navigation', async () =>
+{
+  const electronAgent =
+    'Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) ' +
+    'Chrome/152.0.7977.130 Electron/44.7.0 Safari/537.36';
+  const chromeAgent = electronAgent.replace(' Electron/44.7.0', '');
+
+  for (const [agent, shouldNormalize] of
+    [[electronAgent, true], [chromeAgent, false]])
+  {
+    const calls = [];
+    let navigated = false;
+    const control = async (...args) =>
+    {
+      const command = args.slice(0, 3).join(' ');
+      if (command === 'page new') return { id: 'page-1' };
+      if (command === 'page close') return { closed: true };
+      if (command === 'debug session open') return { session: 'debug-1' };
+      if (command === 'debug session close') return { closed: true };
+
+      if (command === 'debug session send')
+      {
+        const method = args[4];
+        const params = JSON.parse(args[5]);
+        calls.push({ method, params });
+        if (method === 'Emulation.setUserAgentOverride')
+          return { result: {} };
+        if (method === 'Page.navigate')
+        {
+          navigated = true;
+          return { result: {} };
+        }
+        if (method === 'Runtime.evaluate')
+        {
+          if (params.expression === 'navigator.userAgent')
+            return { result: { result: { value: agent } } };
+          if (params.expression === "location.origin + '|' + document.readyState")
+            return { result: { result: { value:
+              navigated ? 'https://chatgpt.com|complete' : 'data:|complete'
+            } } };
+          if (params.expression.includes('backend-anon'))
+            return { result: { result: { value: {
+              attempts: [{ source: 'backend-anon', status: 200 }],
+              snapshot: JSON.stringify(snapshot())
+            } } } };
+          return { result: { result: { value: [] } } };
+        }
+        throw new Error('unexpected method: ' + method);
+      }
+      throw new Error('unexpected web-control call: ' + command);
+    };
+
+    const outcome = await captureStructuredSnapshot
+    (
+      control,
+      'https://chatgpt.com/share/abc',
+      { seconds: 1 }
+    );
+    assert.equal(outcome.method, 'page-fetch');
+    assert.equal(outcome.stats.electronUserAgentNormalized, shouldNormalize);
+    const overrides = calls.filter(call => call.method === 'Emulation.setUserAgentOverride');
+    assert.equal(overrides.length, shouldNormalize ? 1 : 0);
+    if (shouldNormalize)
+    {
+      assert.deepEqual(overrides[0].params, { userAgent: chromeAgent });
+      assert.ok
+      (
+        calls.findIndex(call => call.method === 'Emulation.setUserAgentOverride') <
+        calls.findIndex(call => call.method === 'Page.navigate')
+      );
+    }
+    assert.equal(calls.some(call => call.method === 'Network.enable'), false);
+  }
+});
