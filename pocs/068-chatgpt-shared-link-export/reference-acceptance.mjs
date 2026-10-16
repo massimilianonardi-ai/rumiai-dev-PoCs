@@ -146,6 +146,18 @@ async function run()
     process.stderr.write('acceptance.invalid-seconds: expected 1..30\n');
     return 2;
   }
+  // Check the explicitly chosen isolated client before the exporter can
+  // invoke its normal provider-independent srv fallback.
+  try
+  {
+    await execFileAsync(process.env.WEB_CONTROL_CMD, ['status'],
+      { timeout: 10000, maxBuffer: 1024 * 1024 });
+  }
+  catch
+  {
+    process.stderr.write('acceptance.pwc-controller-unreachable: start the isolated PWC controller first\\n');
+    return 2;
+  }
   process.umask(0o077);
   await fs.mkdir(output, { recursive: true, mode: 0o700 });
   const results = [];
