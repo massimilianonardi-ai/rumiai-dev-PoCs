@@ -3,6 +3,10 @@ import { activeBranch, deriveTranscript, findSnapshot, parseSnapshot } from './s
 
 const MAX_JSON_BYTES = 24 * 1024 * 1024;
 const MAX_ASSET_BYTES = 32 * 1024 * 1024;
+// A committed renderer target is required before the Electron managed
+// debugger can apply the share-only user-agent override reliably.
+const INITIAL_PAGE_URL = 'data:text/html;charset=utf-8,' +
+  encodeURIComponent('<!doctype html><title>ChatGPT shared-link export</title>');
 
 export class AcquisitionError extends Error {
   constructor(code, message, stats) {
@@ -835,6 +839,14 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
     page = created.id;
     if (!page)
       throw new AcquisitionError('share.page-create-failed', 'provider did not return page ID', stats);
+
+    // Establish a fully committed local document before attaching the
+    // persistent debugger. The standalone ARM64 Electron experiment showed
+    // that applying Emulation.setUserAgentOverride to a fresh uncommitted
+    // target does not reliably initialize navigation/rendering.
+    stats.phase = 'browser-initialization';
+    stats.operation = 'page navigate initial document';
+    await control('page', 'navigate', page, INITIAL_PAGE_URL);
 
     stats.phase = 'debug-attach';
     stats.operation = 'debug session open';
