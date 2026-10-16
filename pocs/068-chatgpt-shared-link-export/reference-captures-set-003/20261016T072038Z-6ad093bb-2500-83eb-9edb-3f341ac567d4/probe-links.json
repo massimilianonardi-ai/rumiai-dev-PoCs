@@ -1,0 +1,461 @@
+{
+  "ok": true,
+  "value": [
+    {
+      "attributes": {
+        "class": "interactive-bg-secondary behavior-btn interactive-label-secondary pointer-events-auto rounded-2xl px-4 py-2 text-base print:hidden",
+        "data-skip-to-content": "",
+        "href": "#main"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/share/6ad093bb-2500-83eb-9edb-3f341ac567d4#main",
+      "index": 0,
+      "rect": {
+        "bottom": 15,
+        "height": 16,
+        "left": -71.9375,
+        "right": 70.9375,
+        "top": -1,
+        "width": 142.875,
+        "x": -71.9375,
+        "y": -1
+      },
+      "text": "Vai ai contenuti"
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2 touch:size-10 mx-2 size-9 justify-center p-0",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "data-testid": "create-new-chat-button",
+        "href": "/",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/",
+      "index": 1,
+      "rect": {
+        "bottom": 96,
+        "height": 36,
+        "left": 8,
+        "right": 44,
+        "top": 60,
+        "width": 36,
+        "x": 8,
+        "y": 60
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2 touch:size-10 mx-2 size-9 justify-center p-0",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "data-testid": "sidebar-item-library",
+        "href": "/images",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/images",
+      "index": 2,
+      "rect": {
+        "bottom": 168,
+        "height": 36,
+        "left": 8,
+        "right": 44,
+        "top": 132,
+        "width": 36,
+        "x": 8,
+        "y": 132
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Home",
+        "class": "text-token-text-primary contrast-high:not-dark:keyboard-focused:focus-ring no-draggable hover:bg-token-surface-hover keyboard-focused:bg-token-surface-hover touch:h-10 touch:w-10 flex h-9 w-9 items-center justify-center rounded-lg outline-none disabled:opacity-50 not-keyboard-focused:hover:bg-transparent!",
+        "data-discover": "true",
+        "data-sidebar-item": "true",
+        "href": "/"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/",
+      "index": 3,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 8,
+        "right": 44,
+        "top": 8,
+        "width": 36,
+        "x": 8,
+        "y": 8
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-revealed": "",
+        "data-sidebar-item": "true",
+        "data-testid": "create-new-chat-button",
+        "href": "/",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/",
+      "index": 4,
+      "rect": {
+        "bottom": 96,
+        "height": 36,
+        "left": 6,
+        "right": 254,
+        "top": 60,
+        "width": 248,
+        "x": 6,
+        "y": 60
+      },
+      "text": "Nuova chat"
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "data-testid": "sidebar-item-library",
+        "href": "/images",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/images",
+      "index": 5,
+      "rect": {
+        "bottom": 132,
+        "height": 36,
+        "left": 6,
+        "right": 254,
+        "top": 96,
+        "width": 248,
+        "x": 6,
+        "y": 96
+      },
+      "text": "Immagini"
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "data-testid": "plugins-button",
+        "href": "/plugins",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/plugins",
+      "index": 6,
+      "rect": {
+        "bottom": 168,
+        "height": 36,
+        "left": 6,
+        "right": 254,
+        "top": 132,
+        "width": 248,
+        "x": 6,
+        "y": 132
+      },
+      "text": "Plugin"
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "data-testid": "sidebar-item-places",
+        "href": "/maps",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/maps",
+      "index": 7,
+      "rect": {
+        "bottom": 240,
+        "height": 36,
+        "left": 6,
+        "right": 254,
+        "top": 204,
+        "width": 248,
+        "x": 6,
+        "y": 204
+      },
+      "text": "Mappe\nNUOVO"
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "href": "https://openai.com/chatgpt/pricing/",
+        "rel": "noopener noreferrer",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0",
+        "target": "_blank"
+      },
+      "context": null,
+      "href": "https://openai.com/chatgpt/pricing/",
+      "index": 8,
+      "rect": {
+        "bottom": 418,
+        "height": 36,
+        "left": 6,
+        "right": 254,
+        "top": 382,
+        "width": 248,
+        "x": 6,
+        "y": 382
+      },
+      "text": "Visualizza piani e tariffe"
+    },
+    {
+      "attributes": {
+        "class": "decorated-link",
+        "data-end": "1656",
+        "data-start": "1529",
+        "href": "https://github.com/massimilianonardi-ai/rumiai-dev/blob/main/chats/2026-10-14-github-chat-mirror/chat.md",
+        "rel": "noopener",
+        "target": "_new"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "fb87ed29-2d51-44a8-aa07-e47dc2c0ba40",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "href": "https://github.com/massimilianonardi-ai/rumiai-dev/blob/main/chats/2026-10-14-github-chat-mirror/chat.md",
+      "index": 9,
+      "rect": {
+        "bottom": -12432,
+        "height": 19,
+        "left": 731.484375,
+        "right": 895,
+        "top": -12451,
+        "width": 163.515625,
+        "x": 731.484375,
+        "y": -12451
+      },
+      "text": "Markdown della chat"
+    },
+    {
+      "attributes": {
+        "class": "Uwo0ZW_Link",
+        "data-d-component": "link",
+        "href": "https://drive.google.com/file/d/10D-cAJNqPvquHsmk94n6nt0SFb9h8Pwj/view",
+        "referrerpolicy": "no-referrer",
+        "rel": "noopener",
+        "role": "link",
+        "tabindex": "0",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "571484b2-97bb-46f1-955c-42f270ec3b68",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "href": "https://drive.google.com/file/d/10D-cAJNqPvquHsmk94n6nt0SFb9h8Pwj/view",
+      "index": 10,
+      "rect": {
+        "bottom": -3921,
+        "height": 26,
+        "left": 488.625,
+        "right": 679.46875,
+        "top": -3947,
+        "width": 190.84375,
+        "x": 488.625,
+        "y": -3947
+      },
+      "text": "chat.md su Google Drive"
+    },
+    {
+      "attributes": {
+        "class": "Uwo0ZW_Link",
+        "data-d-component": "link",
+        "href": "https://drive.google.com/drive/folders/1giqQeQ0wAHKM8dVTrDiOaTSSP2FIP4Ro",
+        "referrerpolicy": "no-referrer",
+        "rel": "noopener",
+        "role": "link",
+        "tabindex": "0",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "571484b2-97bb-46f1-955c-42f270ec3b68",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "href": "https://drive.google.com/drive/folders/1giqQeQ0wAHKM8dVTrDiOaTSSP2FIP4Ro",
+      "index": 11,
+      "rect": {
+        "bottom": -3580,
+        "height": 26,
+        "left": 450,
+        "right": 618.5625,
+        "top": -3606,
+        "width": 168.5625,
+        "x": 450,
+        "y": -3606
+      },
+      "text": "Cartella Google Drive"
+    },
+    {
+      "attributes": {
+        "alt": "https://help.openai.com/it-it/articles/7925741-sharing-conversations-and-scheduled-tasks-in-chatgpt?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://help.openai.com/it-it/articles/7925741-sharing-conversations-and-scheduled-tasks-in-chatgpt?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 105px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "href": "https://help.openai.com/it-it/articles/7925741-sharing-conversations-and-scheduled-tasks-in-chatgpt?utm_source=chatgpt.com",
+      "index": 12,
+      "rect": {
+        "bottom": -460.640625,
+        "height": 18,
+        "left": 967.8125,
+        "right": 1071.9375,
+        "top": -478.640625,
+        "width": 104.125,
+        "x": 967.8125,
+        "y": -478.640625
+      },
+      "text": "OpenAI Help Center"
+    },
+    {
+      "attributes": {
+        "alt": "https://help.openai.com/it-it/articles/7925741-chatgpt-shared-links-faq?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://help.openai.com/it-it/articles/7925741-chatgpt-shared-links-faq?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 105px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "href": "https://help.openai.com/it-it/articles/7925741-chatgpt-shared-links-faq?utm_source=chatgpt.com",
+      "index": 13,
+      "rect": {
+        "bottom": -270.640625,
+        "height": 18,
+        "left": 782.125,
+        "right": 886.25,
+        "top": -288.640625,
+        "width": 104.125,
+        "x": 782.125,
+        "y": -288.640625
+      },
+      "text": "OpenAI Help Center"
+    },
+    {
+      "attributes": {
+        "class": "decorated-link",
+        "data-end": "1240",
+        "data-start": "1141",
+        "href": "https://drive.google.com/file/d/10D-cAJNqPvquHsmk94n6nt0SFb9h8Pwj/view",
+        "rel": "noopener",
+        "target": "_new"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "href": "https://drive.google.com/file/d/10D-cAJNqPvquHsmk94n6nt0SFb9h8Pwj/view",
+      "index": 14,
+      "rect": {
+        "bottom": -134.140625,
+        "height": 45,
+        "left": 450,
+        "right": 1077.875,
+        "top": -179.140625,
+        "width": 627.875,
+        "x": 450,
+        "y": -179.140625
+      },
+      "text": "chat.md su Google Drive"
+    },
+    {
+      "attributes": {
+        "class": "underline underline-offset-2",
+        "href": "https://openai.com/policies/cookie-policy/",
+        "rel": "noreferrer",
+        "target": "_blank"
+      },
+      "context": null,
+      "href": "https://openai.com/policies/cookie-policy/",
+      "index": 15,
+      "rect": {
+        "bottom": 808,
+        "height": 17,
+        "left": 368.40625,
+        "right": 479.359375,
+        "top": 791,
+        "width": 110.953125,
+        "x": 368.40625,
+        "y": 791
+      },
+      "text": "politica sui cookie"
+    }
+  ]
+}

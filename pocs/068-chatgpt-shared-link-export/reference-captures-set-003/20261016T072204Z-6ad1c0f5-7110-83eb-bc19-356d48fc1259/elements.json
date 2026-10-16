@@ -1,0 +1,2706 @@
+{
+  "meta": {
+    "document": {
+      "scrollHeight": 834,
+      "scrollWidth": 1280
+    },
+    "href": "https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259",
+    "readyState": "complete",
+    "title": "Integrare Chat e Work",
+    "userAgent": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) electron-web-control/0.1.6 Chrome/152.0.7977.130 Electron/44.7.0 Safari/537.36",
+    "viewport": {
+      "devicePixelRatio": 1,
+      "height": 834,
+      "width": 1280
+    },
+    "visibilityState": "visible"
+  },
+  "turns": [
+    {
+      "attributes": {
+        "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+        "data-testid": "conversation-turn-6",
+        "data-turn": "assistant",
+        "data-turn-id": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+        "data-turn-id-container": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+        "dir": "auto"
+      },
+      "index": 0,
+      "rect": {
+        "bottom": -112,
+        "height": 4359,
+        "left": 275,
+        "right": 1265,
+        "top": -4471,
+        "width": 990,
+        "x": 275,
+        "y": -4471
+      },
+      "text": "Elaborato per 1m 26s\n\nQuello che descrivi è un vero sistema di orchestrazione multi-agente, non semplicemente un modo per organizzare meglio le conversazioni.\n\nE sono d'accordo con il problema che hai individuato: quando una chat affronta contemporaneamente architettura, ricerca, progettazione, implementazione e verifica, tutti questi ragionamenti finiscono per influenzarsi a vicenda. Il risultato può essere una convergenza prematura verso una soluzione, senza aver esplorato adeguatamente le alternative.\n\nLa buona notizia è che OpenAI dispone già di strumenti multi-agente con contesti indipendenti, delega parallela e sintesi centralizzata. La limitazione è che non tutte queste capacità sono disponibili direttamente nell'interfaccia delle normali chat di ChatGPT. \nOpenAI API\n+1\n\n1. Gli strumenti disponibili oggi\n\nStrumento\n\n\t\n\nCosa permette\n\n\t\n\nOrchestrazione\n\n\n\n\nChatGPT Projects\n\n\t\n\nRaggruppare chat, istruzioni e fonti\n\n\t\n\nManuale\n\n\n\n\nBranch delle chat\n\n\t\n\nAprire linee di ragionamento alternative\n\n\t\n\nManuale\n\n\n\n\nDeep Research\n\n\t\n\nPianificare e condurre indagini documentate\n\n\t\n\nInterna a una ricerca\n\n\n\n\nChatGPT Work\n\n\t\n\nDelegare attività articolate con strumenti e file\n\n\t\n\nInterna all'attività\n\n\n\n\nCodex\n\n\t\n\nAffidare sviluppo, indagini tecniche e test\n\n\t\n\nAnche multi-agente\n\n\n\n\nAgents API\n\n\t\n\nCreare agenti indipendenti, coordinarli e raccogliere risultati\n\n\t\n\nAutomatica\n\n\n\n\nAgents SDK\n\n\t\n\nDefinire orchestratori, specialisti, passaggi e controlli\n\n\t\n\nProgrammabile\n\nFonti: \nOpenAI Help Center\n+4\n\nLa differenza fondamentale è questa:\n\nProjects, Branch e Work consentono di separare il lavoro, ma non costituiscono da soli un orchestratore che crea e governa automaticamente più conversazioni.\n\nAgents API e Agents SDK permettono invece a un agente principale di delegare incarichi a specialisti con contesti separati, attendere i risultati e decidere i passi successivi.\n\nE soprattutto, non è necessario usare soltanto agenti di programmazione: le capacità multi-agente possono essere applicate anche alla ricerca, all'analisi scientifica, alla progettazione e alla valutazione critica.\n\n2. L'architettura che stai cercando\n\nImmagino un flusso di questo tipo:\n\nChat principale — Orchestratore\n\nDefinisce obiettivo, sottoattività, dipendenze e budget\n\nAgente A\n\nRicerca indipendente\n\nContesto isolato\n\nAgente B\n\nAlternative e ipotesi\n\nContesto isolato\n\nAgente C\n\nCritica e rischi\n\nContesto isolato\n\nSintesi e verifica incrociata\n\nConfronto delle evidenze, disaccordi e lacune\n\nCodex — Sperimentazione\n\nPoC, implementazione o test delle ipotesi selezionate\n\nRitorno alla Chat principale\n\nRisultati verificati, nuove domande e decisioni con te\n\nQuesto non è soltanto un flusso lineare. L'orchestratore dovrebbe poter avviare nuove indagini quando emergono contraddizioni, ripetere uno specifico esperimento e fermarsi quando le evidenze diventano sufficienti.\n\nIl beneficio principale è l'indipendenza cognitiva delle indagini, non semplicemente la velocità del parallelismo.\n\n3. La novità importante: Agents API\n\nDal 10 settembre 2026 OpenAI offre in beta pubblica le \nAgents API\n.\n\nÈ probabilmente la tecnologia più vicina a ciò che desideri. L'API usa un'infrastruttura gestita da OpenAI, con agenti persistenti, subagenti indipendenti, coordinamento parallelo, strumenti, ambienti di esecuzione e possibilità di riprendere il lavoro.\n\nLa documentazione include già esempi di GPT-6 Astra che coordina quattro subagenti per compiti di ricerca tecnica. \nOpenAI\n+1\n\nCi sono però due distinzioni:\n\nPrima: questi subagenti non sono automaticamente altrettante conversazioni Chat o Work visibili nel tuo Project. Sono sessioni dell'infrastruttura agentica, con un proprio ciclo di vita.\n\nSeconda: l'utilizzo delle Agents API viene fatturato attraverso l'API OpenAI, separatamente dalla quota ChatGPT Plus. \nOpenAI API\n\nPer questo non partirei immediatamente da uno sviluppo basato sulle API.\n\n4. Cosa possiamo ottenere senza scrivere software\n\nPer iniziare, proverei una singola sessione Work con Sol 6.1 Ultra, chiedendole esplicitamente di comportarsi da orchestratore.\n\nUltra può utilizzare agenti aggiuntivi e non si limita necessariamente a un singolo processo di ragionamento. Tuttavia, non offre nell'interfaccia ChatGPT un controllo completo e garantito sul numero di subagenti, sulle loro dipendenze o sull'accesso a singole sessioni separate. \nOpenAI Help Center\n\nUna richiesta sperimentale potrebbe essere questa:\n\nScrittura\n\nDevi affrontare questo problema con un'organizzazione multi-agente, evitando di concentrare tutta l'indagine in un unico flusso di ragionamento.\n\nPrima di procedere, individua quali sottoindagini trarrebbero beneficio da contesti realmente indipendenti.\n\nPer ogni sottoindagine definisci obiettivo, informazioni iniziali strettamente necessarie, metodo, criteri di completamento e output.\n\nEsegui in parallelo le attività indipendenti quando l'ambiente lo permette. Non trasferire conclusioni da un'indagine all'altra prima della loro valutazione separata.\n\nDistingui i risultati ottenuti da agenti separati dalle analisi svolte direttamente nella sessione principale. Non dichiarare deleghe che non hai effettivamente eseguito.\n\nRaccogli le conclusioni, evidenzia contraddizioni e lacune e valuta se siano necessarie ulteriori indagini.\n\nRiserva il ragionamento più intensivo ai problemi che lo richiedono realmente.\n\nNon eseguire modifiche permanenti senza autorizzazione.\n\nSarebbe un esperimento utile per capire quanto Work riesca già a soddisfare il tuo obiettivo senza costruire niente.\n\n5. La soluzione per un'orchestrazione completamente controllata\n\nSe quel test risultasse insufficiente, prenderei in considerazione una piccola interfaccia di orchestrazione basata su Agents API oppure \nAgents SDK\n.\n\nQui potremmo governare realmente l'esecuzione, anziché limitarci a descriverla in un prompt. In particolare potremmo controllare quali agenti eseguire, il grado di parallelismo, gli strumenti disponibili, le dipendenze e i risultati da consolidare.\n\nPer workflow riutilizzabili esistono anche gli Workspace Agents direttamente in ChatGPT, ma attualmente sono destinati agli ambienti Business, Enterprise ed Edu, non al piano Plus personale. \nOpenAI Help Center\n\n6. La mia raccomandazione\n\nVisto che hai già sperimentato i limiti dei Projects, della memoria condivisa e degli handoff documentali, non cercherei di risolvere il problema aggiungendo altri documenti o istruzioni al progetto.\n\nProverei piuttosto due livelli:\n\nPrimo livello — Subito, senza sviluppo. Una sessione Work Ultra utilizzata come coordinatore di indagini indipendenti. Verifichiamo se esegue davvero deleghe separate e se i risultati sono migliori di quelli di una singola sessione che affronta tutto.\n\nSecondo livello — Se serve controllo rigoroso. Agents API con un orchestratore che distribuisce indagini isolate, raccoglie risultati verificabili e utilizza Codex per le operazioni tecniche.\n\nRimane una limitazione importante: non ho trovato una funzione nativa che permetta a questa chat di creare, pilotare e raccogliere automaticamente il risultato di altre sessioni Chat, Work e Codex come se fossero processi figli. Anche la soluzione API orchestra sessioni agentiche proprie, non le chat dell'interfaccia ChatGPT.\n\nÈ esattamente questa la funzionalità che manca per realizzare integralmente il workflow che immagini.\n\nLa parte incoraggiante è che il motore multi-agente necessario esiste già: il problema residuo riguarda soprattutto l'integrazione con le conversazioni ChatGPT e il controllo dell'orchestrazione.\n\nFonti"
+    },
+    {
+      "attributes": {
+        "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+        "data-testid": "conversation-turn-7",
+        "data-turn": "user",
+        "data-turn-id": "d69e69c8-252b-4bf0-8e55-0472a1f9c479",
+        "data-turn-id-container": "d69e69c8-252b-4bf0-8e55-0472a1f9c479",
+        "dir": "auto"
+      },
+      "index": 1,
+      "rect": {
+        "bottom": 44,
+        "height": 156,
+        "left": 275,
+        "right": 1265,
+        "top": -112,
+        "width": 990,
+        "x": 275,
+        "y": -112
+      },
+      "text": "work può creare altre sessioni di chat o work che dopo posso aprire indipendentemente e continuare lì?"
+    },
+    {
+      "attributes": {
+        "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+        "data-testid": "conversation-turn-8",
+        "data-turn": "assistant",
+        "data-turn-id": "6a451fa9-0e50-4ae2-841c-720febcbbb1e",
+        "data-turn-id-container": "6a451fa9-0e50-4ae2-841c-720febcbbb1e",
+        "dir": "auto"
+      },
+      "index": 2,
+      "rect": {
+        "bottom": 1764,
+        "height": 1720,
+        "left": 275,
+        "right": 1265,
+        "top": 44,
+        "width": 990,
+        "x": 275,
+        "y": 44
+      },
+      "text": "No, non come funzionalità nativa documentata. Ho verificato la documentazione aggiornata di ChatGPT Work.\n\nWork può condurre attività complesse e utilizzare agenti interni, ma non risulta possa creare automaticamente nuove conversazioni Chat o Work indipendenti, che poi tu possa aprire dalla cronologia e continuare singolarmente. \nOpenAI Help Center\n\nLa distinzione è questa:\n\nFunzionalità\n\n\t\n\nWork\n\n\n\n\nSuddividere un incarico in sottoattività\n\n\t\n\nSì\n\n\n\n\nEseguire indagini tramite agenti interni\n\n\t\n\nSì, quando disponibili\n\n\n\n\nCreare nuove chat indipendenti nella cronologia\n\n\t\n\nNon supportato come funzione nativa documentata\n\n\n\n\nCreare nuove sessioni Work autonome\n\n\t\n\nNon supportato come funzione nativa documentata\n\n\n\n\nConsentirti di riprendere una sottoindagine in una propria chat\n\n\t\n\nNon direttamente\n\n\n\n\nRiprendere la conversazione Work principale\n\n\t\n\nSì\n\nE usando il browser di Work?\n\nQui esiste una possibilità da distinguere.\n\nWork dispone di un browser capace di navigare siti, effettuare clic e inserire testi. In teoria, potremmo sperimentare l'apertura dell'interfaccia ChatGPT attraverso quel browser per creare nuove conversazioni.\n\nTuttavia, non è un'integrazione ufficialmente supportata per orchestrare altre sessioni ChatGPT. Il browser usa autenticazioni separate e potrebbero esserci limitazioni nell'accesso o nell'automazione dell'interfaccia. \nOpenAI Help Center\n\nNon lo considererei quindi una soluzione affidabile senza prima verificarne sperimentalmente il funzionamento.\n\nQuello che vorresti ottenere\n\nPer esempio:\n\nWork principale\n\nPianifica e distribuisce cinque indagini\n\nChat 1 — Ricerca\n\nApribile e continuabile\n\nChat 2 — Architettura\n\nApribile e continuabile\n\nWork 3 — Analisi\n\nApribile e continuabile\n\nWork 4 — Alternative\n\nApribile e continuabile\n\nCodex 5 — PoC\n\nApribile e continuabile\n\nWork principale — Sintesi dei risultati\n\nQuesta sarebbe effettivamente la soluzione ideale per il tuo caso, perché manterrebbe ogni indagine isolata ma anche accessibile, persistente e sviluppabile in seguito.\n\nOggi la separazione esiste per gli agenti interni, ma non è esposta come una rete di conversazioni ChatGPT autonome.\n\nVisto che hai già sperimentato i limiti degli handoff, la strada più interessante da verificare è proprio se Work possa operare sull'interfaccia ChatGPT tramite computer use, senza introdurre nuove API, costi separati o infrastrutture. Non posso garantirti che funzioni, ma è una verifica concreta e direttamente pertinente al tuo obiettivo.\n\nFonti"
+    },
+    {
+      "attributes": {
+        "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+        "data-testid": "conversation-turn-9",
+        "data-turn": "user",
+        "data-turn-id": "7b221f68-1b75-43af-8df0-7f06e8565130",
+        "data-turn-id-container": "7b221f68-1b75-43af-8df0-7f06e8565130",
+        "dir": "auto"
+      },
+      "index": 3,
+      "rect": {
+        "bottom": 2064,
+        "height": 300,
+        "left": 275,
+        "right": 1265,
+        "top": 1764,
+        "width": 990,
+        "x": 275,
+        "y": 1764
+      },
+      "text": "in realtà gli handoff e task funzionano abbastanza bene, i problemi li ho avuti con work che non è affatto come immaginavo ed i lavoro fatto con work di fatto non è esportabile ed ho perso solo tempo, perchè work non si cpomporta bene come le chat, quindi dovrei debuggare e sviluppare un workflow ad-hoc. chatgpt è la migliore ai sul mercato al momento, ma in fatto di strumenti ed interoperabilità, deve migliorare molto."
+    },
+    {
+      "attributes": {
+        "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+        "data-testid": "conversation-turn-10",
+        "data-turn": "assistant",
+        "data-turn-id": "da0f4d18-f84f-487a-ae50-3e910a3322a8",
+        "data-turn-id-container": "da0f4d18-f84f-487a-ae50-3e910a3322a8",
+        "dir": "auto"
+      },
+      "index": 4,
+      "rect": {
+        "bottom": 3112,
+        "height": 1048,
+        "left": 275,
+        "right": 1265,
+        "top": 2064,
+        "width": 990,
+        "x": 275,
+        "y": 2064
+      },
+      "text": "Adesso mi è più chiaro, e devo correggere anche la mia valutazione precedente: il problema non erano gli handoff, ma l'aspettativa che Work potesse diventare un'estensione naturale delle chat.\n\nIn realtà, dalla tua esperienza emergono tre problemi distinti:\n\nContinuità: Work non offre la stessa esperienza di ragionamento iterativo delle chat, dove possiamo discutere, correggere e cambiare direzione continuamente.\n\nInteroperabilità: i risultati del lavoro non sono facilmente trasferibili e riutilizzabili nelle altre sessioni.\n\nControllabilità: per ottenere il comportamento desiderato, dovresti progettare, sperimentare e correggere un workflow specifico, consumando tempo e risorse che volevi invece dedicare al problema originale.\n\nIl terzo punto è particolarmente significativo: uno strumento che dovrebbe ridurre il lavoro di orchestrazione finisce per introdurne altro.\n\nTrovo anche importante distinguere due concetti che avevo parzialmente sovrapposto nelle risposte precedenti:\n\nMulti-agent execution: più agenti collaborano internamente per produrre un risultato.\n\nMulti-session orchestration: più sessioni indipendenti, persistenti, ispezionabili e riprendibili collaborano attraverso un orchestratore.\n\nTu cerchi soprattutto la seconda, con la possibilità di sfruttare la prima quando conviene.\n\nE questo richiede qualcosa di più della memoria condivisa: servirebbero primitive native per creare conversazioni, delegare attività, scambiare risultati strutturati, gestire dipendenze e riprendere singolarmente le indagini.\n\nPer il momento, quindi, non investirei altro tempo nell'adattare Work al tuo workflow. Continuerei a utilizzare Chat, handoff, task e GitHub, che hanno già dimostrato di funzionare per te. Work potrebbe tornare utile per incarichi autonomi e circoscritti, soltanto quando il risultato è recuperabile in una forma utilizzabile.\n\nConcordo sulla distinzione che fai: la qualità del modello e la maturità della piattaforma che lo ospita sono due cose diverse. Un modello eccellente non compensa automaticamente strumenti insufficienti per gestire lavori articolati.\n\nE soprattutto, non voglio proporti un'altra architettura o un altro workflow da sviluppare per aggirare un limite del prodotto. In questo caso hai già sperimentato abbastanza per sapere cosa funziona e cosa no."
+    },
+    {
+      "attributes": {
+        "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+        "data-testid": "conversation-turn-11",
+        "data-turn": "user",
+        "data-turn-id": "a0494f96-928f-495c-9ea5-12f9231f193d",
+        "data-turn-id-container": "a0494f96-928f-495c-9ea5-12f9231f193d",
+        "dir": "auto"
+      },
+      "index": 5,
+      "rect": {
+        "bottom": 3316,
+        "height": 204,
+        "left": 275,
+        "right": 1265,
+        "top": 3112,
+        "width": 990,
+        "x": 275,
+        "y": 3112
+      },
+      "text": "ok tranquilla, per il momento va bene così, ogni tanto esploro cose nuove, inoltre chatgpt è sempre in continua evoluzione. un mio obiettivo di fondo è capire a fondo chatgpt per trarne il massimo."
+    },
+    {
+      "attributes": {
+        "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+        "data-testid": "conversation-turn-12",
+        "data-turn": "assistant",
+        "data-turn-id": "be910062-6980-4d77-8fb7-2c7dfaa434ab",
+        "data-turn-id-container": "be910062-6980-4d77-8fb7-2c7dfaa434ab",
+        "dir": "auto"
+      },
+      "index": 6,
+      "rect": {
+        "bottom": 3872,
+        "height": 556,
+        "left": 275,
+        "right": 1265,
+        "top": 3316,
+        "width": 990,
+        "x": 275,
+        "y": 3316
+      },
+      "text": "Ed è un obiettivo che condivido volentieri con te. 😊\n\nAnzi, credo sia utile mantenere due percorsi distinti:\n\nUtilizzare ChatGPT al meglio oggi, sfruttando gli strumenti che funzionano davvero e senza complicare inutilmente il lavoro.\n\nEsplorare periodicamente le novità, comprendendo non soltanto cosa promettono, ma come funzionano concretamente, quali limiti hanno e quali opportunità aprono.\n\nMi sembra particolarmente interessante anche approfondire il funzionamento dei modelli, il ragionamento, la gestione del contesto, la memoria, gli agenti e l'orchestrazione.\n\nCercherò di aiutarti a distinguere sempre le capacità effettive, quelle documentate e quelle soltanto ipotizzate, soprattutto quando parliamo di funzionalità nuove.\n\nE quando qualcosa non è ancora maturo, possiamo semplicemente prenderne atto e tornarci più avanti. Non ogni esplorazione deve trasformarsi in un progetto di sviluppo.\n\nL'obiettivo è conoscere sempre meglio lo strumento, conservando la libertà di scegliere come utilizzarlo."
+    }
+  ],
+  "images": [
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://developers.openai.com&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "13da359f-eed4-4cbc-aecb-ca9a5d0bce40",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://developers.openai.com&sz=32",
+      "index": 0,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": -4120,
+        "height": 12,
+        "left": 523.109375,
+        "right": 535.109375,
+        "top": -4132,
+        "width": 12,
+        "x": 523.109375,
+        "y": -4132
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://developers.openai.com&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "13da359f-eed4-4cbc-aecb-ca9a5d0bce40",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32",
+      "index": 1,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": -3655,
+        "height": 12,
+        "left": 498.6875,
+        "right": 510.6875,
+        "top": -3667,
+        "width": 12,
+        "x": 498.6875,
+        "y": -3667
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://openai.com&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "13da359f-eed4-4cbc-aecb-ca9a5d0bce40",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://openai.com&sz=32",
+      "index": 2,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": -2279,
+        "height": 12,
+        "left": 666.765625,
+        "right": 678.765625,
+        "top": -2291,
+        "width": 12,
+        "x": 666.765625,
+        "y": -2291
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://openai.com&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://developers.openai.com&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "13da359f-eed4-4cbc-aecb-ca9a5d0bce40",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://developers.openai.com&sz=32",
+      "index": 3,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": -2075,
+        "height": 12,
+        "left": 754.1875,
+        "right": 766.1875,
+        "top": -2087,
+        "width": 12,
+        "x": 754.1875,
+        "y": -2087
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://developers.openai.com&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "13da359f-eed4-4cbc-aecb-ca9a5d0bce40",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32",
+      "index": 4,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": -1801,
+        "height": 12,
+        "left": 639.140625,
+        "right": 651.140625,
+        "top": -1813,
+        "width": 12,
+        "x": 639.140625,
+        "y": -1813
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "13da359f-eed4-4cbc-aecb-ca9a5d0bce40",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32",
+      "index": 5,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": -815,
+        "height": 12,
+        "left": 566.0625,
+        "right": 578.0625,
+        "top": -827,
+        "width": 12,
+        "x": 566.0625,
+        "y": -827
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "alt": "",
+        "class": "icon-sm rounded-full border border-token-border-light border-[0.5px] duration-200 motion-safe:transition-opacity opacity-100",
+        "height": "32",
+        "src": "https://www.google.com/s2/favicons?domain=https://openai.com&sz=32",
+        "width": "32"
+      },
+      "button": {
+        "attributes": {
+          "aria-label": "Fonti",
+          "class": "group/footnote bg-transparent hover:bg-token-surface-hover flex w-fit items-center gap-1.5 rounded-lg py-1.5 ps-3 pe-3",
+          "style": "opacity: 1;",
+          "type": "button"
+        },
+        "text": "Fonti"
+      },
+      "complete": true,
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-6",
+          "data-turn": "assistant",
+          "data-turn-id": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "data-turn-id-container": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://openai.com&sz=32",
+      "index": 6,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": -129,
+        "height": 16,
+        "left": 512,
+        "right": 528,
+        "top": -145,
+        "width": 16,
+        "x": 512,
+        "y": -145
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://openai.com&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "alt": "",
+        "class": "icon-sm rounded-full border border-token-border-light border-[0.5px] duration-200 motion-safe:transition-opacity opacity-100",
+        "height": "32",
+        "src": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32",
+        "width": "32"
+      },
+      "button": {
+        "attributes": {
+          "aria-label": "Fonti",
+          "class": "group/footnote bg-transparent hover:bg-token-surface-hover flex w-fit items-center gap-1.5 rounded-lg py-1.5 ps-3 pe-3",
+          "style": "opacity: 1;",
+          "type": "button"
+        },
+        "text": "Fonti"
+      },
+      "complete": true,
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-6",
+          "data-turn": "assistant",
+          "data-turn-id": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "data-turn-id-container": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32",
+      "index": 7,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": -129,
+        "height": 16,
+        "left": 498,
+        "right": 514,
+        "top": -145,
+        "width": 16,
+        "x": 498,
+        "y": -145
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "alt": "",
+        "class": "icon-sm rounded-full border border-token-border-light border-[0.5px] duration-200 motion-safe:transition-opacity opacity-100",
+        "height": "32",
+        "src": "https://www.google.com/s2/favicons?domain=https://developers.openai.com&sz=32",
+        "width": "32"
+      },
+      "button": {
+        "attributes": {
+          "aria-label": "Fonti",
+          "class": "group/footnote bg-transparent hover:bg-token-surface-hover flex w-fit items-center gap-1.5 rounded-lg py-1.5 ps-3 pe-3",
+          "style": "opacity: 1;",
+          "type": "button"
+        },
+        "text": "Fonti"
+      },
+      "complete": true,
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-6",
+          "data-turn": "assistant",
+          "data-turn-id": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "data-turn-id-container": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://developers.openai.com&sz=32",
+      "index": 8,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": -129,
+        "height": 16,
+        "left": 484,
+        "right": 500,
+        "top": -145,
+        "width": 16,
+        "x": 484,
+        "y": -145
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://developers.openai.com&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "49a13e41-2117-4328-8d7f-0ed10022ecee",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32",
+      "index": 9,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": 183,
+        "height": 12,
+        "left": 867.453125,
+        "right": 879.453125,
+        "top": 171,
+        "width": 12,
+        "x": 867.453125,
+        "y": 171
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "49a13e41-2117-4328-8d7f-0ed10022ecee",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32",
+      "index": 10,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": 831,
+        "height": 12,
+        "left": 796.90625,
+        "right": 808.90625,
+        "top": 819,
+        "width": 12,
+        "x": 796.90625,
+        "y": 819
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "alt": "",
+        "class": "icon-sm rounded-full border border-token-border-light border-[0.5px] duration-200 motion-safe:transition-opacity opacity-100",
+        "height": "32",
+        "src": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32",
+        "width": "32"
+      },
+      "button": {
+        "attributes": {
+          "aria-label": "Fonti",
+          "class": "group/footnote bg-transparent hover:bg-token-surface-hover flex w-fit items-center gap-1.5 rounded-lg py-1.5 ps-3 pe-3",
+          "style": "opacity: 1;",
+          "type": "button"
+        },
+        "text": "Fonti"
+      },
+      "complete": true,
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-8",
+          "data-turn": "assistant",
+          "data-turn-id": "6a451fa9-0e50-4ae2-841c-720febcbbb1e",
+          "data-turn-id-container": "6a451fa9-0e50-4ae2-841c-720febcbbb1e",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32",
+      "index": 11,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": 1747,
+        "height": 16,
+        "left": 484,
+        "right": 500,
+        "top": 1731,
+        "width": 16,
+        "x": 484,
+        "y": 1731
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32",
+      "srcset": null
+    }
+  ],
+  "sources": [],
+  "links": [
+    {
+      "attributes": {
+        "class": "interactive-bg-secondary behavior-btn interactive-label-secondary pointer-events-auto rounded-2xl px-4 py-2 text-base print:hidden",
+        "data-skip-to-content": "",
+        "href": "#main"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259#main",
+      "index": 0,
+      "rect": {
+        "bottom": 15,
+        "height": 16,
+        "left": -71.9375,
+        "right": 70.9375,
+        "top": -1,
+        "width": 142.875,
+        "x": -71.9375,
+        "y": -1
+      },
+      "text": "Vai ai contenuti"
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2 touch:size-10 mx-2 size-9 justify-center p-0",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "data-testid": "create-new-chat-button",
+        "href": "/",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/",
+      "index": 1,
+      "rect": {
+        "bottom": 96,
+        "height": 36,
+        "left": 8,
+        "right": 44,
+        "top": 60,
+        "width": 36,
+        "x": 8,
+        "y": 60
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2 touch:size-10 mx-2 size-9 justify-center p-0",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "data-testid": "sidebar-item-library",
+        "href": "/images",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/images",
+      "index": 2,
+      "rect": {
+        "bottom": 168,
+        "height": 36,
+        "left": 8,
+        "right": 44,
+        "top": 132,
+        "width": 36,
+        "x": 8,
+        "y": 132
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Home",
+        "class": "text-token-text-primary contrast-high:not-dark:keyboard-focused:focus-ring no-draggable hover:bg-token-surface-hover keyboard-focused:bg-token-surface-hover touch:h-10 touch:w-10 flex h-9 w-9 items-center justify-center rounded-lg outline-none disabled:opacity-50 not-keyboard-focused:hover:bg-transparent!",
+        "data-discover": "true",
+        "data-sidebar-item": "true",
+        "href": "/"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/",
+      "index": 3,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 8,
+        "right": 44,
+        "top": 8,
+        "width": 36,
+        "x": 8,
+        "y": 8
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-revealed": "",
+        "data-sidebar-item": "true",
+        "data-testid": "create-new-chat-button",
+        "href": "/",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/",
+      "index": 4,
+      "rect": {
+        "bottom": 96,
+        "height": 36,
+        "left": 6,
+        "right": 254,
+        "top": 60,
+        "width": 248,
+        "x": 6,
+        "y": 60
+      },
+      "text": "Nuova chat"
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "data-testid": "sidebar-item-library",
+        "href": "/images",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/images",
+      "index": 5,
+      "rect": {
+        "bottom": 132,
+        "height": 36,
+        "left": 6,
+        "right": 254,
+        "top": 96,
+        "width": 248,
+        "x": 6,
+        "y": 96
+      },
+      "text": "Immagini"
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "data-testid": "plugins-button",
+        "href": "/plugins",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/plugins",
+      "index": 6,
+      "rect": {
+        "bottom": 168,
+        "height": 36,
+        "left": 6,
+        "right": 254,
+        "top": 132,
+        "width": 248,
+        "x": 6,
+        "y": 132
+      },
+      "text": "Plugin"
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "data-testid": "sidebar-item-places",
+        "href": "/maps",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/maps",
+      "index": 7,
+      "rect": {
+        "bottom": 240,
+        "height": 36,
+        "left": 6,
+        "right": 254,
+        "top": 204,
+        "width": 248,
+        "x": 6,
+        "y": 204
+      },
+      "text": "Mappe\nNUOVO"
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "href": "https://openai.com/chatgpt/pricing/",
+        "rel": "noopener noreferrer",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0",
+        "target": "_blank"
+      },
+      "context": null,
+      "href": "https://openai.com/chatgpt/pricing/",
+      "index": 8,
+      "rect": {
+        "bottom": 551,
+        "height": 36,
+        "left": 6,
+        "right": 254,
+        "top": 515,
+        "width": 248,
+        "x": 6,
+        "y": 515
+      },
+      "text": "Visualizza piani e tariffe"
+    },
+    {
+      "attributes": {
+        "class": "Uwo0ZW_Link",
+        "data-d-component": "link",
+        "href": "https://developers.openai.com/api/docs/guides/agents-api/overview?utm_source=chatgpt.com",
+        "referrerpolicy": "no-referrer",
+        "rel": "noopener",
+        "role": "link",
+        "tabindex": "0",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "13da359f-eed4-4cbc-aecb-ca9a5d0bce40",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "href": "https://developers.openai.com/api/docs/guides/agents-api/overview?utm_source=chatgpt.com",
+      "index": 9,
+      "rect": {
+        "bottom": -2434,
+        "height": 26,
+        "left": 850.015625,
+        "right": 944.546875,
+        "top": -2460,
+        "width": 94.53125,
+        "x": 850.015625,
+        "y": -2460
+      },
+      "text": "Agents API"
+    },
+    {
+      "attributes": {
+        "class": "Uwo0ZW_Link",
+        "data-d-component": "link",
+        "href": "https://developers.openai.com/api/docs/guides/agents/sdk?utm_source=chatgpt.com",
+        "referrerpolicy": "no-referrer",
+        "rel": "noopener",
+        "role": "link",
+        "tabindex": "0",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "13da359f-eed4-4cbc-aecb-ca9a5d0bce40",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "href": "https://developers.openai.com/api/docs/guides/agents/sdk?utm_source=chatgpt.com",
+      "index": 10,
+      "rect": {
+        "bottom": -996,
+        "height": 26,
+        "left": 769.140625,
+        "right": 869.03125,
+        "top": -1022,
+        "width": 99.890625,
+        "x": 769.140625,
+        "y": -1022
+      },
+      "text": "Agents SDK"
+    }
+  ],
+  "buttons": [
+    {
+      "attributes": {
+        "aria-controls": "stage-slideover-sidebar",
+        "aria-expanded": "false",
+        "aria-label": "Apri barra laterale",
+        "class": "text-token-text-primary contrast-high:not-dark:keyboard-focused:focus-ring no-draggable hover:bg-token-surface-hover keyboard-focused:bg-token-surface-hover touch:h-10 touch:w-10 flex h-9 w-9 items-center justify-center rounded-lg outline-none disabled:opacity-50 group/open-sidebar mx-2 cursor-e-resize rtl:cursor-w-resize"
+      },
+      "context": null,
+      "index": 0,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 8,
+        "right": 44,
+        "top": 8,
+        "width": 36,
+        "x": 8,
+        "y": 8
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2 w-full",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0",
+        "type": "button"
+      },
+      "context": null,
+      "index": 1,
+      "rect": {
+        "bottom": 132,
+        "height": 36,
+        "left": 6,
+        "right": 46,
+        "top": 96,
+        "width": 40,
+        "x": 6,
+        "y": 96
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Cerca chat",
+        "class": "text-token-text-tertiary contrast-high:not-dark:keyboard-focused:focus-ring no-draggable hover:bg-token-surface-hover keyboard-focused:bg-token-surface-hover touch:h-10 touch:w-10 flex h-9 w-9 items-center justify-center rounded-lg outline-none disabled:opacity-50",
+        "data-state": "closed"
+      },
+      "context": null,
+      "index": 2,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 180,
+        "right": 216,
+        "top": 8,
+        "width": 36,
+        "x": 180,
+        "y": 8
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-controls": "stage-slideover-sidebar",
+        "aria-expanded": "true",
+        "aria-label": "Chiudi barra laterale",
+        "class": "text-token-text-tertiary contrast-high:not-dark:keyboard-focused:focus-ring no-draggable hover:bg-token-surface-hover keyboard-focused:bg-token-surface-hover touch:h-10 touch:w-10 flex h-9 w-9 items-center justify-center rounded-lg outline-none disabled:opacity-50 no-draggable cursor-w-resize rtl:cursor-e-resize",
+        "data-state": "closed",
+        "data-testid": "close-sidebar-button"
+      },
+      "context": null,
+      "index": 3,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 216,
+        "right": 252,
+        "top": 8,
+        "width": 36,
+        "x": 216,
+        "y": 8
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-secondary btn-large w-full"
+      },
+      "context": null,
+      "index": 4,
+      "rect": {
+        "bottom": 814,
+        "height": 44,
+        "left": 14,
+        "right": 246,
+        "top": 770,
+        "width": 232,
+        "x": 14,
+        "y": 770
+      },
+      "text": "Accedi"
+    },
+    {
+      "attributes": {
+        "aria-expanded": "false",
+        "aria-haspopup": "menu",
+        "aria-label": "Selettore di modelli",
+        "class": "group flex cursor-pointer justify-center items-center gap-1 rounded-lg min-h-9 touch:min-h-10 px-2.5 text-lg hover:bg-token-surface-hover focus-visible:bg-token-surface-hover font-normal whitespace-nowrap focus-visible:outline-none",
+        "data-state": "closed",
+        "data-testid": "model-switcher-dropdown-button",
+        "id": "radix-_r_f_",
+        "style": "view-transition-name: var(--vt-thread-model-switcher);",
+        "type": "button"
+      },
+      "context": null,
+      "index": 5,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 283,
+        "right": 398.234375,
+        "top": 8,
+        "width": 115.234375,
+        "x": 283,
+        "y": 8
+      },
+      "text": "ChatGPT"
+    },
+    {
+      "attributes": {
+        "aria-label": "Condividi",
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-ghost rounded-lg",
+        "data-testid": "receiver-share-button",
+        "type": "button"
+      },
+      "context": null,
+      "index": 6,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 886.546875,
+        "right": 996,
+        "top": 8,
+        "width": 109.453125,
+        "x": 886.546875,
+        "y": 8
+      },
+      "text": "Condividi"
+    },
+    {
+      "attributes": {
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-primary",
+        "data-testid": "login-button"
+      },
+      "context": null,
+      "index": 7,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 996,
+        "right": 1064.171875,
+        "top": 8,
+        "width": 68.171875,
+        "x": 996,
+        "y": 8
+      },
+      "text": "Accedi"
+    },
+    {
+      "attributes": {
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-secondary screen-arch:hidden md:screen-arch:flex max-xs:hidden",
+        "data-testid": "signup-button"
+      },
+      "context": null,
+      "index": 8,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 1072.171875,
+        "right": 1257,
+        "top": 8,
+        "width": 184.828125,
+        "x": 1072.171875,
+        "y": 8
+      },
+      "text": "Registrati gratuitamente"
+    },
+    {
+      "attributes": {},
+      "context": null,
+      "index": 9,
+      "rect": {
+        "bottom": -7656,
+        "height": 16,
+        "left": 700.515625,
+        "right": 839.46875,
+        "top": -7672,
+        "width": 138.953125,
+        "x": 700.515625,
+        "y": -7672
+      },
+      "text": "Segnala la conversazione"
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 1",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "0",
+        "type": "button"
+      },
+      "context": null,
+      "index": 10,
+      "rect": {
+        "bottom": 393,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 391,
+        "width": 18,
+        "x": 1237,
+        "y": 391
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 2",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "1",
+        "type": "button"
+      },
+      "context": null,
+      "index": 11,
+      "rect": {
+        "bottom": 403,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 401,
+        "width": 18,
+        "x": 1237,
+        "y": 401
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 3",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "2",
+        "type": "button"
+      },
+      "context": null,
+      "index": 12,
+      "rect": {
+        "bottom": 413,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 411,
+        "width": 18,
+        "x": 1237,
+        "y": 411
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 4",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-primary",
+        "data-toc-active": "",
+        "data-toc-item-index": "3",
+        "type": "button"
+      },
+      "context": null,
+      "index": 13,
+      "rect": {
+        "bottom": 423,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 421,
+        "width": 18,
+        "x": 1237,
+        "y": 421
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 5",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "4",
+        "type": "button"
+      },
+      "context": null,
+      "index": 14,
+      "rect": {
+        "bottom": 433,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 431,
+        "width": 18,
+        "x": 1237,
+        "y": 431
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 6",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "5",
+        "type": "button"
+      },
+      "context": null,
+      "index": 15,
+      "rect": {
+        "bottom": 443,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 441,
+        "width": 18,
+        "x": 1237,
+        "y": 441
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-expanded": "false",
+        "class": "flex items-center gap-1 text-start select-none text-token-text-tertiary dark:text-(--interactive-label-tertiary-default) hover:text-token-text-primary dark:hover:text-token-text-primary",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-6",
+          "data-turn": "assistant",
+          "data-turn-id": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "data-turn-id-container": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 16,
+      "rect": {
+        "bottom": -4447,
+        "height": 24,
+        "left": 450,
+        "right": 623.109375,
+        "top": -4471,
+        "width": 173.109375,
+        "x": 450,
+        "y": -4471
+      },
+      "text": "Elaborato per 1m 26s"
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia",
+        "class": "gap-1 select-none text-sm font-medium text-token-text-primary hover:bg-token-bg-tertiary flex size-9 items-center justify-center rounded-full p-1.5 transition-colors disabled:opacity-40 disabled:hover:bg-transparent",
+        "data-state": "closed",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "13da359f-eed4-4cbc-aecb-ca9a5d0bce40",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "index": 17,
+      "rect": {
+        "bottom": -1200,
+        "height": 36,
+        "left": 1046,
+        "right": 1082,
+        "top": -1236,
+        "width": 36,
+        "x": 1046,
+        "y": -1236
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia risposta",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-6",
+          "data-turn": "assistant",
+          "data-turn-id": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "data-turn-id-container": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 18,
+      "rect": {
+        "bottom": -121,
+        "height": 32,
+        "left": 444,
+        "right": 476,
+        "top": -153,
+        "width": 32,
+        "x": 444,
+        "y": -153
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Fonti",
+        "class": "group/footnote bg-transparent hover:bg-token-surface-hover flex w-fit items-center gap-1.5 rounded-lg py-1.5 ps-3 pe-3",
+        "style": "opacity: 1;",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-6",
+          "data-turn": "assistant",
+          "data-turn-id": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "data-turn-id-container": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 19,
+      "rect": {
+        "bottom": -121,
+        "height": 32,
+        "left": 476,
+        "right": 578.890625,
+        "top": -153,
+        "width": 102.890625,
+        "x": 476,
+        "y": -153
+      },
+      "text": "Fonti"
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia messaggio",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-7",
+          "data-turn": "user",
+          "data-turn-id": "d69e69c8-252b-4bf0-8e55-0472a1f9c479",
+          "data-turn-id-container": "d69e69c8-252b-4bf0-8e55-0472a1f9c479",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 20,
+      "rect": {
+        "bottom": 40,
+        "height": 32,
+        "left": 1058,
+        "right": 1090,
+        "top": 8,
+        "width": 32,
+        "x": 1058,
+        "y": 8
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia risposta",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-8",
+          "data-turn": "assistant",
+          "data-turn-id": "6a451fa9-0e50-4ae2-841c-720febcbbb1e",
+          "data-turn-id-container": "6a451fa9-0e50-4ae2-841c-720febcbbb1e",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 21,
+      "rect": {
+        "bottom": 1755,
+        "height": 32,
+        "left": 444,
+        "right": 476,
+        "top": 1723,
+        "width": 32,
+        "x": 444,
+        "y": 1723
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Fonti",
+        "class": "group/footnote bg-transparent hover:bg-token-surface-hover flex w-fit items-center gap-1.5 rounded-lg py-1.5 ps-3 pe-3",
+        "style": "opacity: 1;",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-8",
+          "data-turn": "assistant",
+          "data-turn-id": "6a451fa9-0e50-4ae2-841c-720febcbbb1e",
+          "data-turn-id-container": "6a451fa9-0e50-4ae2-841c-720febcbbb1e",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 22,
+      "rect": {
+        "bottom": 1755,
+        "height": 32,
+        "left": 476,
+        "right": 550.890625,
+        "top": 1723,
+        "width": 74.890625,
+        "x": 476,
+        "y": 1723
+      },
+      "text": "Fonti"
+    },
+    {
+      "attributes": {
+        "aria-controls": "_r_45_",
+        "aria-expanded": "false",
+        "class": "A_HxFq_toggleControl select-none",
+        "data-conversation-preview-interactive": "true",
+        "data-testid": "collapsible-user-message-toggle",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "7b221f68-1b75-43af-8df0-7f06e8565130",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "index": 23,
+      "rect": {
+        "bottom": 0,
+        "height": 0,
+        "left": 0,
+        "right": 0,
+        "top": 0,
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      "text": "Mostra di piùMostra meno"
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia messaggio",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-9",
+          "data-turn": "user",
+          "data-turn-id": "7b221f68-1b75-43af-8df0-7f06e8565130",
+          "data-turn-id-container": "7b221f68-1b75-43af-8df0-7f06e8565130",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 24,
+      "rect": {
+        "bottom": 2060,
+        "height": 32,
+        "left": 1058,
+        "right": 1090,
+        "top": 2028,
+        "width": 32,
+        "x": 1058,
+        "y": 2028
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia risposta",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-10",
+          "data-turn": "assistant",
+          "data-turn-id": "da0f4d18-f84f-487a-ae50-3e910a3322a8",
+          "data-turn-id-container": "da0f4d18-f84f-487a-ae50-3e910a3322a8",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 25,
+      "rect": {
+        "bottom": 3103,
+        "height": 32,
+        "left": 444,
+        "right": 476,
+        "top": 3071,
+        "width": 32,
+        "x": 444,
+        "y": 3071
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia messaggio",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-11",
+          "data-turn": "user",
+          "data-turn-id": "a0494f96-928f-495c-9ea5-12f9231f193d",
+          "data-turn-id-container": "a0494f96-928f-495c-9ea5-12f9231f193d",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 26,
+      "rect": {
+        "bottom": 3312,
+        "height": 32,
+        "left": 1058,
+        "right": 1090,
+        "top": 3280,
+        "width": 32,
+        "x": 1058,
+        "y": 3280
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia risposta",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-12",
+          "data-turn": "assistant",
+          "data-turn-id": "be910062-6980-4d77-8fb7-2c7dfaa434ab",
+          "data-turn-id-container": "be910062-6980-4d77-8fb7-2c7dfaa434ab",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 27,
+      "rect": {
+        "bottom": 3831,
+        "height": 32,
+        "left": 444,
+        "right": 476,
+        "top": 3799,
+        "width": 32,
+        "x": 444,
+        "y": 3799
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-hidden": "true",
+        "class": "relative flex h-8 w-8 cursor-pointer items-center justify-center overflow-hidden rounded-full outline-hidden select-none btn-secondary bg-token-bg-primary/65! hover:bg-token-main-surface-secondary/75! shadow-short box-content backdrop-blur-[2px] backdrop-filter sm:shadow-md dark:shadow-none! group-data-stream-active/scroll-root:squircle *:absolute *:inset-0 *:m-auto group-data-stream-active/scroll-root:w-10 motion-safe:transition-[width] motion-safe:duration-120 motion-safe:ease-out *:motion-safe:transition-opacity *:motion-safe:duration-120 *:motion-safe:ease-out absolute start-1/2 z-10 -translate-x-1/2 bottom-[calc(100%+3*var(--spacing)+var(--thread-scroll-to-bottom-banner-offset,0px))]",
+        "tabindex": "-1"
+      },
+      "context": null,
+      "index": 28,
+      "rect": {
+        "bottom": 734,
+        "height": 34,
+        "left": 753,
+        "right": 787,
+        "top": 700,
+        "width": 34,
+        "x": 753,
+        "y": 700
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-describedby": "_r_n_",
+        "aria-expanded": "false",
+        "aria-haspopup": "menu",
+        "aria-label": "Aggiungi file e altro",
+        "class": "composer-btn",
+        "data-testid": "composer-plus-btn",
+        "id": "composer-plus-btn",
+        "interestfor": "_r_n_",
+        "type": "button"
+      },
+      "context": null,
+      "index": 29,
+      "rect": {
+        "bottom": 801.984375,
+        "height": 36,
+        "left": 458,
+        "right": 494,
+        "top": 765.984375,
+        "width": 36,
+        "x": 458,
+        "y": 765.984375
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-describedby": "_r_o_",
+        "aria-label": "Avvia Voce",
+        "class": "relative flex h-9 items-center justify-center rounded-full w-9 composer-submit-button-color border border-transparent disabled:cursor-not-allowed disabled:opacity-50 hover:opacity-70 disabled:opacity-30! can-hover:relative can-hover:after:absolute can-hover:after:-inset-x-1 can-hover:after:inset-y-0 can-hover:after:content-['']",
+        "data-testid": "composer-speech-button",
+        "interestfor": "_r_o_",
+        "style": "view-transition-name: var(--vt-composer-speech-button);"
+      },
+      "context": null,
+      "index": 30,
+      "rect": {
+        "bottom": 801.984375,
+        "height": 36,
+        "left": 1046,
+        "right": 1082,
+        "top": 765.984375,
+        "width": 36,
+        "x": 1046,
+        "y": 765.984375
+      },
+      "text": ""
+    }
+  ],
+  "media": [],
+  "iframes": [
+    {
+      "attributes": {
+        "hidden": "",
+        "referrerpolicy": "no-referrer",
+        "sandbox": "allow-scripts",
+        "src": "https://cdn.platform.openai.com/deployments/dil/v14/runner.html#dil-diagnostics=1",
+        "tabindex": "-1",
+        "title": "DIL execution sandbox"
+      },
+      "context": null,
+      "index": 0,
+      "rect": {
+        "bottom": 0,
+        "height": 0,
+        "left": 0,
+        "right": 0,
+        "top": 0,
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      "src": "https://cdn.platform.openai.com/deployments/dil/v14/runner.html#dil-diagnostics=1"
+    }
+  ],
+  "interestingAttributes": [
+    {
+      "attributes": {
+        "content": "https://ogimg.chatgpt.com/conversation/6ad1c0f5-7110-83eb-bc19-356d48fc1259/response_multicolor_v1.png"
+      },
+      "context": null,
+      "tag": "meta"
+    },
+    {
+      "attributes": {
+        "content": "https://ogimg.chatgpt.com/conversation/6ad1c0f5-7110-83eb-bc19-356d48fc1259/response_multicolor_v1.png"
+      },
+      "context": null,
+      "tag": "meta"
+    },
+    {
+      "attributes": {
+        "content": "https://ogimg.chatgpt.com/conversation/6ad1c0f5-7110-83eb-bc19-356d48fc1259/response_multicolor_v1.png"
+      },
+      "context": null,
+      "tag": "meta"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/favicon-l4nq08hd.svg"
+      },
+      "context": null,
+      "tag": "link"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/favicon-l4nq08hd.svg"
+      },
+      "context": null,
+      "tag": "link"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/favicon-48x48-glnpepm0.webp"
+      },
+      "context": null,
+      "tag": "link"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/favicon-180x180-od45eci6.webp"
+      },
+      "context": null,
+      "tag": "link"
+    },
+    {
+      "attributes": {
+        "href": "https://chatgpt.com/cdn/assets/dil-sandbox-file-download-cbx2rx77.css"
+      },
+      "context": null,
+      "tag": "link"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#blossom"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "create-new-chat-button"
+      },
+      "context": null,
+      "tag": "a"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#compose"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar-search"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "sidebar-item-library"
+      },
+      "context": null,
+      "tag": "a"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar-images"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "accounts-profile-button"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#avatar"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#blossom"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar-search"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "close-sidebar-button"
+      },
+      "context": null,
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#cross"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "create-new-chat-button"
+      },
+      "context": null,
+      "tag": "a"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#compose"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "sidebar-item-library"
+      },
+      "context": null,
+      "tag": "a"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar-images"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "plugins-button"
+      },
+      "context": null,
+      "tag": "a"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar-plugins"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar-research"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "sidebar-item-places"
+      },
+      "context": null,
+      "tag": "a"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar-maps"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#upgrade-plan"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#arrow-top-right-sm"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "settings-menu-item"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#settings-cog"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#help"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#chevron-right-sm"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "model-switcher-dropdown-button"
+      },
+      "context": null,
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#chevron-down-sm"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "thread-header-right-actions-container"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "thread-header-right-actions"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "receiver-share-button"
+      },
+      "context": null,
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-testid": "login-button"
+      },
+      "context": null,
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-testid": "signup-button"
+      },
+      "context": null,
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "client-created-root"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "ef207a4a-4b68-44c6-bac3-8af58f82672e"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "8192fcf0-a9dd-412d-b4df-193b2a8cbe8d"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "a37a133e-e9b5-4613-a343-c26c1cd7f7a7"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "fbf820a3-8de7-468c-b15c-ad7f874b0370"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "5e54c8c4-c69e-4c53-9c0a-bee913220d20"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "d51632f9-d434-4b62-84b9-fe3e91c43b99"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-6",
+        "data-turn": "assistant",
+        "data-turn-id": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+        "data-turn-id-container": "d51632f9-d434-4b62-84b9-fe3e91c43b99"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-6",
+          "data-turn": "assistant",
+          "data-turn-id": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "data-turn-id-container": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#07889e"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-6",
+          "data-turn": "assistant",
+          "data-turn-id": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "data-turn-id-container": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-message-author-role": "assistant",
+        "data-message-id": "13da359f-eed4-4cbc-aecb-ca9a5d0bce40",
+        "data-model-dil-v2-message": ""
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "13da359f-eed4-4cbc-aecb-ca9a5d0bce40",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "writing-block-container"
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "13da359f-eed4-4cbc-aecb-ca9a5d0bce40",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "writing-block-header-sticky-container"
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "13da359f-eed4-4cbc-aecb-ca9a5d0bce40",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "writing-block-header-surface"
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "13da359f-eed4-4cbc-aecb-ca9a5d0bce40",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#7fccfb"
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "13da359f-eed4-4cbc-aecb-ca9a5d0bce40",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-6",
+          "data-turn": "assistant",
+          "data-turn-id": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "data-turn-id-container": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "d69e69c8-252b-4bf0-8e55-0472a1f9c479"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-7",
+        "data-turn": "user",
+        "data-turn-id": "d69e69c8-252b-4bf0-8e55-0472a1f9c479",
+        "data-turn-id-container": "d69e69c8-252b-4bf0-8e55-0472a1f9c479"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-7",
+          "data-turn": "user",
+          "data-turn-id": "d69e69c8-252b-4bf0-8e55-0472a1f9c479",
+          "data-turn-id-container": "d69e69c8-252b-4bf0-8e55-0472a1f9c479",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "data-message-author-role": "user",
+        "data-message-id": "d69e69c8-252b-4bf0-8e55-0472a1f9c479"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "d69e69c8-252b-4bf0-8e55-0472a1f9c479",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-7",
+          "data-turn": "user",
+          "data-turn-id": "d69e69c8-252b-4bf0-8e55-0472a1f9c479",
+          "data-turn-id-container": "d69e69c8-252b-4bf0-8e55-0472a1f9c479",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "6a451fa9-0e50-4ae2-841c-720febcbbb1e"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-8",
+        "data-turn": "assistant",
+        "data-turn-id": "6a451fa9-0e50-4ae2-841c-720febcbbb1e",
+        "data-turn-id-container": "6a451fa9-0e50-4ae2-841c-720febcbbb1e"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-8",
+          "data-turn": "assistant",
+          "data-turn-id": "6a451fa9-0e50-4ae2-841c-720febcbbb1e",
+          "data-turn-id-container": "6a451fa9-0e50-4ae2-841c-720febcbbb1e",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "data-message-author-role": "assistant",
+        "data-message-id": "49a13e41-2117-4328-8d7f-0ed10022ecee",
+        "data-model-dil-v2-message": ""
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "49a13e41-2117-4328-8d7f-0ed10022ecee",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-8",
+          "data-turn": "assistant",
+          "data-turn-id": "6a451fa9-0e50-4ae2-841c-720febcbbb1e",
+          "data-turn-id-container": "6a451fa9-0e50-4ae2-841c-720febcbbb1e",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "7b221f68-1b75-43af-8df0-7f06e8565130"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-9",
+        "data-turn": "user",
+        "data-turn-id": "7b221f68-1b75-43af-8df0-7f06e8565130",
+        "data-turn-id-container": "7b221f68-1b75-43af-8df0-7f06e8565130"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-9",
+          "data-turn": "user",
+          "data-turn-id": "7b221f68-1b75-43af-8df0-7f06e8565130",
+          "data-turn-id-container": "7b221f68-1b75-43af-8df0-7f06e8565130",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "data-message-author-role": "user",
+        "data-message-id": "7b221f68-1b75-43af-8df0-7f06e8565130"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "7b221f68-1b75-43af-8df0-7f06e8565130",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "collapsible-user-message-root"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "7b221f68-1b75-43af-8df0-7f06e8565130",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "collapsible-user-message-content"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "7b221f68-1b75-43af-8df0-7f06e8565130",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "collapsible-user-message-toggle"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "7b221f68-1b75-43af-8df0-7f06e8565130",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#dd315f"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "7b221f68-1b75-43af-8df0-7f06e8565130",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-9",
+          "data-turn": "user",
+          "data-turn-id": "7b221f68-1b75-43af-8df0-7f06e8565130",
+          "data-turn-id-container": "7b221f68-1b75-43af-8df0-7f06e8565130",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "da0f4d18-f84f-487a-ae50-3e910a3322a8"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-10",
+        "data-turn": "assistant",
+        "data-turn-id": "da0f4d18-f84f-487a-ae50-3e910a3322a8",
+        "data-turn-id-container": "da0f4d18-f84f-487a-ae50-3e910a3322a8"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-10",
+          "data-turn": "assistant",
+          "data-turn-id": "da0f4d18-f84f-487a-ae50-3e910a3322a8",
+          "data-turn-id-container": "da0f4d18-f84f-487a-ae50-3e910a3322a8",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "data-message-author-role": "assistant",
+        "data-message-id": "de336363-621e-4dda-b4e7-0fed0036173d",
+        "data-model-dil-v2-message": ""
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "de336363-621e-4dda-b4e7-0fed0036173d",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-10",
+          "data-turn": "assistant",
+          "data-turn-id": "da0f4d18-f84f-487a-ae50-3e910a3322a8",
+          "data-turn-id-container": "da0f4d18-f84f-487a-ae50-3e910a3322a8",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "a0494f96-928f-495c-9ea5-12f9231f193d"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-11",
+        "data-turn": "user",
+        "data-turn-id": "a0494f96-928f-495c-9ea5-12f9231f193d",
+        "data-turn-id-container": "a0494f96-928f-495c-9ea5-12f9231f193d"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-11",
+          "data-turn": "user",
+          "data-turn-id": "a0494f96-928f-495c-9ea5-12f9231f193d",
+          "data-turn-id-container": "a0494f96-928f-495c-9ea5-12f9231f193d",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "data-message-author-role": "user",
+        "data-message-id": "a0494f96-928f-495c-9ea5-12f9231f193d"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "a0494f96-928f-495c-9ea5-12f9231f193d",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-11",
+          "data-turn": "user",
+          "data-turn-id": "a0494f96-928f-495c-9ea5-12f9231f193d",
+          "data-turn-id-container": "a0494f96-928f-495c-9ea5-12f9231f193d",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "be910062-6980-4d77-8fb7-2c7dfaa434ab"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-12",
+        "data-turn": "assistant",
+        "data-turn-id": "be910062-6980-4d77-8fb7-2c7dfaa434ab",
+        "data-turn-id-container": "be910062-6980-4d77-8fb7-2c7dfaa434ab"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-12",
+          "data-turn": "assistant",
+          "data-turn-id": "be910062-6980-4d77-8fb7-2c7dfaa434ab",
+          "data-turn-id-container": "be910062-6980-4d77-8fb7-2c7dfaa434ab",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "data-message-author-role": "assistant",
+        "data-message-id": "9e074ee9-6a55-4688-8783-4cd8173cc110",
+        "data-model-dil-v2-message": ""
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "9e074ee9-6a55-4688-8783-4cd8173cc110",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-12",
+          "data-turn": "assistant",
+          "data-turn-id": "be910062-6980-4d77-8fb7-2c7dfaa434ab",
+          "data-turn-id-container": "be910062-6980-4d77-8fb7-2c7dfaa434ab",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-testid": "thread-disclaimer"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "thread-footer-overflow-spacer"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "composer-plus-btn"
+      },
+      "context": null,
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#plus-regular-20"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "composer-speech-button-container"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "composer-speech-button"
+      },
+      "context": null,
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#voice-regular-24"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "upload-photos-input"
+      },
+      "context": null,
+      "tag": "input"
+    }
+  ]
+}

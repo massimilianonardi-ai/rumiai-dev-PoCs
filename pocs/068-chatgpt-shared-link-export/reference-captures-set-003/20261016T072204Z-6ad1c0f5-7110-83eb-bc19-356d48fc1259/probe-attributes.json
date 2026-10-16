@@ -1,0 +1,964 @@
+{
+  "ok": true,
+  "value": [
+    {
+      "attributes": {
+        "content": "https://ogimg.chatgpt.com/conversation/6ad1c0f5-7110-83eb-bc19-356d48fc1259/response_multicolor_v1.png"
+      },
+      "context": null,
+      "tag": "meta"
+    },
+    {
+      "attributes": {
+        "content": "https://ogimg.chatgpt.com/conversation/6ad1c0f5-7110-83eb-bc19-356d48fc1259/response_multicolor_v1.png"
+      },
+      "context": null,
+      "tag": "meta"
+    },
+    {
+      "attributes": {
+        "content": "https://ogimg.chatgpt.com/conversation/6ad1c0f5-7110-83eb-bc19-356d48fc1259/response_multicolor_v1.png"
+      },
+      "context": null,
+      "tag": "meta"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/favicon-l4nq08hd.svg"
+      },
+      "context": null,
+      "tag": "link"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/favicon-l4nq08hd.svg"
+      },
+      "context": null,
+      "tag": "link"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/favicon-48x48-glnpepm0.webp"
+      },
+      "context": null,
+      "tag": "link"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/favicon-180x180-od45eci6.webp"
+      },
+      "context": null,
+      "tag": "link"
+    },
+    {
+      "attributes": {
+        "href": "https://chatgpt.com/cdn/assets/dil-sandbox-file-download-cbx2rx77.css"
+      },
+      "context": null,
+      "tag": "link"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#blossom"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "create-new-chat-button"
+      },
+      "context": null,
+      "tag": "a"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#compose"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar-search"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "sidebar-item-library"
+      },
+      "context": null,
+      "tag": "a"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar-images"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "accounts-profile-button"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#avatar"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#blossom"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar-search"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "close-sidebar-button"
+      },
+      "context": null,
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#cross"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "create-new-chat-button"
+      },
+      "context": null,
+      "tag": "a"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#compose"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "sidebar-item-library"
+      },
+      "context": null,
+      "tag": "a"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar-images"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "plugins-button"
+      },
+      "context": null,
+      "tag": "a"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar-plugins"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar-research"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "sidebar-item-places"
+      },
+      "context": null,
+      "tag": "a"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar-maps"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#upgrade-plan"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#arrow-top-right-sm"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "settings-menu-item"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#settings-cog"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#help"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#chevron-right-sm"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "model-switcher-dropdown-button"
+      },
+      "context": null,
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#chevron-down-sm"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "thread-header-right-actions-container"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "thread-header-right-actions"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "receiver-share-button"
+      },
+      "context": null,
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-testid": "login-button"
+      },
+      "context": null,
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-testid": "signup-button"
+      },
+      "context": null,
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "client-created-root"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "ef207a4a-4b68-44c6-bac3-8af58f82672e"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "8192fcf0-a9dd-412d-b4df-193b2a8cbe8d"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "a37a133e-e9b5-4613-a343-c26c1cd7f7a7"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "fbf820a3-8de7-468c-b15c-ad7f874b0370"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "5e54c8c4-c69e-4c53-9c0a-bee913220d20"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "d51632f9-d434-4b62-84b9-fe3e91c43b99"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-6",
+        "data-turn": "assistant",
+        "data-turn-id": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+        "data-turn-id-container": "d51632f9-d434-4b62-84b9-fe3e91c43b99"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-6",
+          "data-turn": "assistant",
+          "data-turn-id": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "data-turn-id-container": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#07889e"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-6",
+          "data-turn": "assistant",
+          "data-turn-id": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "data-turn-id-container": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-message-author-role": "assistant",
+        "data-message-id": "13da359f-eed4-4cbc-aecb-ca9a5d0bce40",
+        "data-model-dil-v2-message": ""
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "13da359f-eed4-4cbc-aecb-ca9a5d0bce40",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "writing-block-container"
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "13da359f-eed4-4cbc-aecb-ca9a5d0bce40",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "writing-block-header-sticky-container"
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "13da359f-eed4-4cbc-aecb-ca9a5d0bce40",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "writing-block-header-surface"
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "13da359f-eed4-4cbc-aecb-ca9a5d0bce40",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#7fccfb"
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "13da359f-eed4-4cbc-aecb-ca9a5d0bce40",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-6",
+          "data-turn": "assistant",
+          "data-turn-id": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "data-turn-id-container": "d51632f9-d434-4b62-84b9-fe3e91c43b99",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "d69e69c8-252b-4bf0-8e55-0472a1f9c479"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-7",
+        "data-turn": "user",
+        "data-turn-id": "d69e69c8-252b-4bf0-8e55-0472a1f9c479",
+        "data-turn-id-container": "d69e69c8-252b-4bf0-8e55-0472a1f9c479"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-7",
+          "data-turn": "user",
+          "data-turn-id": "d69e69c8-252b-4bf0-8e55-0472a1f9c479",
+          "data-turn-id-container": "d69e69c8-252b-4bf0-8e55-0472a1f9c479",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "data-message-author-role": "user",
+        "data-message-id": "d69e69c8-252b-4bf0-8e55-0472a1f9c479"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "d69e69c8-252b-4bf0-8e55-0472a1f9c479",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-7",
+          "data-turn": "user",
+          "data-turn-id": "d69e69c8-252b-4bf0-8e55-0472a1f9c479",
+          "data-turn-id-container": "d69e69c8-252b-4bf0-8e55-0472a1f9c479",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "6a451fa9-0e50-4ae2-841c-720febcbbb1e"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-8",
+        "data-turn": "assistant",
+        "data-turn-id": "6a451fa9-0e50-4ae2-841c-720febcbbb1e",
+        "data-turn-id-container": "6a451fa9-0e50-4ae2-841c-720febcbbb1e"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-8",
+          "data-turn": "assistant",
+          "data-turn-id": "6a451fa9-0e50-4ae2-841c-720febcbbb1e",
+          "data-turn-id-container": "6a451fa9-0e50-4ae2-841c-720febcbbb1e",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "data-message-author-role": "assistant",
+        "data-message-id": "49a13e41-2117-4328-8d7f-0ed10022ecee",
+        "data-model-dil-v2-message": ""
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "49a13e41-2117-4328-8d7f-0ed10022ecee",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-8",
+          "data-turn": "assistant",
+          "data-turn-id": "6a451fa9-0e50-4ae2-841c-720febcbbb1e",
+          "data-turn-id-container": "6a451fa9-0e50-4ae2-841c-720febcbbb1e",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "7b221f68-1b75-43af-8df0-7f06e8565130"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-9",
+        "data-turn": "user",
+        "data-turn-id": "7b221f68-1b75-43af-8df0-7f06e8565130",
+        "data-turn-id-container": "7b221f68-1b75-43af-8df0-7f06e8565130"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-9",
+          "data-turn": "user",
+          "data-turn-id": "7b221f68-1b75-43af-8df0-7f06e8565130",
+          "data-turn-id-container": "7b221f68-1b75-43af-8df0-7f06e8565130",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "data-message-author-role": "user",
+        "data-message-id": "7b221f68-1b75-43af-8df0-7f06e8565130"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "7b221f68-1b75-43af-8df0-7f06e8565130",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "collapsible-user-message-root"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "7b221f68-1b75-43af-8df0-7f06e8565130",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "collapsible-user-message-content"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "7b221f68-1b75-43af-8df0-7f06e8565130",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "collapsible-user-message-toggle"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "7b221f68-1b75-43af-8df0-7f06e8565130",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#dd315f"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "7b221f68-1b75-43af-8df0-7f06e8565130",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-9",
+          "data-turn": "user",
+          "data-turn-id": "7b221f68-1b75-43af-8df0-7f06e8565130",
+          "data-turn-id-container": "7b221f68-1b75-43af-8df0-7f06e8565130",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "da0f4d18-f84f-487a-ae50-3e910a3322a8"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-10",
+        "data-turn": "assistant",
+        "data-turn-id": "da0f4d18-f84f-487a-ae50-3e910a3322a8",
+        "data-turn-id-container": "da0f4d18-f84f-487a-ae50-3e910a3322a8"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-10",
+          "data-turn": "assistant",
+          "data-turn-id": "da0f4d18-f84f-487a-ae50-3e910a3322a8",
+          "data-turn-id-container": "da0f4d18-f84f-487a-ae50-3e910a3322a8",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "data-message-author-role": "assistant",
+        "data-message-id": "de336363-621e-4dda-b4e7-0fed0036173d",
+        "data-model-dil-v2-message": ""
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "de336363-621e-4dda-b4e7-0fed0036173d",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-10",
+          "data-turn": "assistant",
+          "data-turn-id": "da0f4d18-f84f-487a-ae50-3e910a3322a8",
+          "data-turn-id-container": "da0f4d18-f84f-487a-ae50-3e910a3322a8",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "a0494f96-928f-495c-9ea5-12f9231f193d"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-11",
+        "data-turn": "user",
+        "data-turn-id": "a0494f96-928f-495c-9ea5-12f9231f193d",
+        "data-turn-id-container": "a0494f96-928f-495c-9ea5-12f9231f193d"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-11",
+          "data-turn": "user",
+          "data-turn-id": "a0494f96-928f-495c-9ea5-12f9231f193d",
+          "data-turn-id-container": "a0494f96-928f-495c-9ea5-12f9231f193d",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "data-message-author-role": "user",
+        "data-message-id": "a0494f96-928f-495c-9ea5-12f9231f193d"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "a0494f96-928f-495c-9ea5-12f9231f193d",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-11",
+          "data-turn": "user",
+          "data-turn-id": "a0494f96-928f-495c-9ea5-12f9231f193d",
+          "data-turn-id-container": "a0494f96-928f-495c-9ea5-12f9231f193d",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "be910062-6980-4d77-8fb7-2c7dfaa434ab"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-12",
+        "data-turn": "assistant",
+        "data-turn-id": "be910062-6980-4d77-8fb7-2c7dfaa434ab",
+        "data-turn-id-container": "be910062-6980-4d77-8fb7-2c7dfaa434ab"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-12",
+          "data-turn": "assistant",
+          "data-turn-id": "be910062-6980-4d77-8fb7-2c7dfaa434ab",
+          "data-turn-id-container": "be910062-6980-4d77-8fb7-2c7dfaa434ab",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "data-message-author-role": "assistant",
+        "data-message-id": "9e074ee9-6a55-4688-8783-4cd8173cc110",
+        "data-model-dil-v2-message": ""
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "9e074ee9-6a55-4688-8783-4cd8173cc110",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-12",
+          "data-turn": "assistant",
+          "data-turn-id": "be910062-6980-4d77-8fb7-2c7dfaa434ab",
+          "data-turn-id-container": "be910062-6980-4d77-8fb7-2c7dfaa434ab",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-testid": "thread-disclaimer"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "thread-footer-overflow-spacer"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "composer-plus-btn"
+      },
+      "context": null,
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#plus-regular-20"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "composer-speech-button-container"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "composer-speech-button"
+      },
+      "context": null,
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#voice-regular-24"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "upload-photos-input"
+      },
+      "context": null,
+      "tag": "input"
+    }
+  ]
+}

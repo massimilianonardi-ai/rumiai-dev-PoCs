@@ -1,0 +1,43 @@
+{
+  "directory": "/m/src/git/rumiai-os_TEST/src/rumiai-dev-PoCs/pocs/068-chatgpt-shared-link-export/reference-captures-set-003/20261016T072038Z-6ad093bb-2500-83eb-9edb-3f341ac567d4",
+  "source": "https://chatgpt.com/share/6ad093bb-2500-83eb-9edb-3f341ac567d4",
+  "share_id": "6ad093bb-2500-83eb-9edb-3f341ac567d4",
+  "captured_at": "2026-10-16T07:21:04.847Z",
+  "settled": {
+    "href": "https://chatgpt.com/share/6ad093bb-2500-83eb-9edb-3f341ac567d4",
+    "htmlLength": 2648962,
+    "imageCount": 3,
+    "marker": "page-reference-settle",
+    "readyState": "complete",
+    "resourceCount": 58,
+    "textLength": 10854,
+    "title": "Mirror chat su GitHub",
+    "turnCount": 10
+  },
+  "title": "Mirror chat su GitHub",
+  "final_url": "https://chatgpt.com/share/6ad093bb-2500-83eb-9edb-3f341ac567d4",
+  "counts": {
+    "turns": 10,
+    "images": 3,
+    "sources": 0,
+    "links": 16,
+    "buttons": 65,
+    "svg": 69,
+    "canvas": 0,
+    "resources": 59,
+    "candidates": 2,
+    "candidates_captured": 2,
+    "candidates_downloaded": 0,
+    "inline_json": 1,
+    "probes_ok": 16,
+    "probes_failed": 0
+  },
+  "cdp": {
+    "dom_snapshot": true,
+    "accessibility_tree": true,
+    "frame_tree": true,
+    "layout_metrics": true,
+    "mhtml": true,
+    "screenshot": true
+  }
+}

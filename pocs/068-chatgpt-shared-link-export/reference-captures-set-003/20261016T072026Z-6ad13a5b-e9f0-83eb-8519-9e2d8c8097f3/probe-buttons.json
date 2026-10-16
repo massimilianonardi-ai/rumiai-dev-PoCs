@@ -1,0 +1,492 @@
+{
+  "ok": true,
+  "value": [
+    {
+      "attributes": {
+        "aria-controls": "stage-slideover-sidebar",
+        "aria-expanded": "false",
+        "aria-label": "Apri barra laterale",
+        "class": "text-token-text-primary contrast-high:not-dark:keyboard-focused:focus-ring no-draggable hover:bg-token-surface-hover keyboard-focused:bg-token-surface-hover touch:h-10 touch:w-10 flex h-9 w-9 items-center justify-center rounded-lg outline-none disabled:opacity-50 group/open-sidebar mx-2 cursor-e-resize rtl:cursor-w-resize"
+      },
+      "context": null,
+      "index": 0,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 8,
+        "right": 44,
+        "top": 8,
+        "width": 36,
+        "x": 8,
+        "y": 8
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2 w-full",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0",
+        "type": "button"
+      },
+      "context": null,
+      "index": 1,
+      "rect": {
+        "bottom": 132,
+        "height": 36,
+        "left": 6,
+        "right": 46,
+        "top": 96,
+        "width": 40,
+        "x": 6,
+        "y": 96
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Cerca chat",
+        "class": "text-token-text-tertiary contrast-high:not-dark:keyboard-focused:focus-ring no-draggable hover:bg-token-surface-hover keyboard-focused:bg-token-surface-hover touch:h-10 touch:w-10 flex h-9 w-9 items-center justify-center rounded-lg outline-none disabled:opacity-50",
+        "data-state": "closed"
+      },
+      "context": null,
+      "index": 2,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 180,
+        "right": 216,
+        "top": 8,
+        "width": 36,
+        "x": 180,
+        "y": 8
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-controls": "stage-slideover-sidebar",
+        "aria-expanded": "true",
+        "aria-label": "Chiudi barra laterale",
+        "class": "text-token-text-tertiary contrast-high:not-dark:keyboard-focused:focus-ring no-draggable hover:bg-token-surface-hover keyboard-focused:bg-token-surface-hover touch:h-10 touch:w-10 flex h-9 w-9 items-center justify-center rounded-lg outline-none disabled:opacity-50 no-draggable cursor-w-resize rtl:cursor-e-resize",
+        "data-state": "closed",
+        "data-testid": "close-sidebar-button"
+      },
+      "context": null,
+      "index": 3,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 216,
+        "right": 252,
+        "top": 8,
+        "width": 36,
+        "x": 216,
+        "y": 8
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-secondary btn-large w-full"
+      },
+      "context": null,
+      "index": 4,
+      "rect": {
+        "bottom": 681,
+        "height": 44,
+        "left": 14,
+        "right": 246,
+        "top": 637,
+        "width": 232,
+        "x": 14,
+        "y": 637
+      },
+      "text": "Accedi"
+    },
+    {
+      "attributes": {
+        "aria-label": "Condividi",
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-ghost rounded-lg",
+        "data-testid": "receiver-share-button",
+        "type": "button"
+      },
+      "context": null,
+      "index": 5,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 886.546875,
+        "right": 996,
+        "top": 8,
+        "width": 109.453125,
+        "x": 886.546875,
+        "y": 8
+      },
+      "text": "Condividi"
+    },
+    {
+      "attributes": {
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-primary",
+        "data-testid": "login-button"
+      },
+      "context": null,
+      "index": 6,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 996,
+        "right": 1064.171875,
+        "top": 8,
+        "width": 68.171875,
+        "x": 996,
+        "y": 8
+      },
+      "text": "Accedi"
+    },
+    {
+      "attributes": {
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-secondary screen-arch:hidden md:screen-arch:flex max-xs:hidden",
+        "data-testid": "signup-button"
+      },
+      "context": null,
+      "index": 7,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 1072.171875,
+        "right": 1257,
+        "top": 8,
+        "width": 184.828125,
+        "x": 1072.171875,
+        "y": 8
+      },
+      "text": "Registrati gratuitamente"
+    },
+    {
+      "attributes": {},
+      "context": null,
+      "index": 8,
+      "rect": {
+        "bottom": -1307,
+        "height": 16,
+        "left": 700.515625,
+        "right": 839.46875,
+        "top": -1323,
+        "width": 138.953125,
+        "x": 700.515625,
+        "y": -1323
+      },
+      "text": "Segnala la conversazione"
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia risposta",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-2",
+          "data-turn": "assistant",
+          "data-turn-id": "d2f8cffd-36c7-435b-a7a9-9b9404784086",
+          "data-turn-id-container": "d2f8cffd-36c7-435b-a7a9-9b9404784086",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 9,
+      "rect": {
+        "bottom": -696,
+        "height": 32,
+        "left": 444,
+        "right": 476,
+        "top": -728,
+        "width": 32,
+        "x": 444,
+        "y": -728
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia messaggio",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-3",
+          "data-turn": "user",
+          "data-turn-id": "8bb0e010-ee27-4320-9cc4-ab0e46fcfcb2",
+          "data-turn-id-container": "8bb0e010-ee27-4320-9cc4-ab0e46fcfcb2",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 10,
+      "rect": {
+        "bottom": -387,
+        "height": 32,
+        "left": 1058,
+        "right": 1090,
+        "top": -419,
+        "width": 32,
+        "x": 1058,
+        "y": -419
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia risposta",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-4",
+          "data-turn": "assistant",
+          "data-turn-id": "065e4746-c8de-4cba-bc55-ce6a01320b92",
+          "data-turn-id-container": "065e4746-c8de-4cba-bc55-ce6a01320b92",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 11,
+      "rect": {
+        "bottom": -10,
+        "height": 32,
+        "left": 444,
+        "right": 476,
+        "top": -42,
+        "width": 32,
+        "x": 444,
+        "y": -42
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia messaggio",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-5",
+          "data-turn": "user",
+          "data-turn-id": "eeb480cc-4449-4858-b03d-d49761fe5b25",
+          "data-turn-id-container": "eeb480cc-4449-4858-b03d-d49761fe5b25",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 12,
+      "rect": {
+        "bottom": 251,
+        "height": 32,
+        "left": 1058,
+        "right": 1090,
+        "top": 219,
+        "width": 32,
+        "x": 1058,
+        "y": 219
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia risposta",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-6",
+          "data-turn": "assistant",
+          "data-turn-id": "a31446a2-c578-46c7-a058-39a9fe9f2c9e",
+          "data-turn-id-container": "a31446a2-c578-46c7-a058-39a9fe9f2c9e",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 13,
+      "rect": {
+        "bottom": 628,
+        "height": 32,
+        "left": 444,
+        "right": 476,
+        "top": 596,
+        "width": 32,
+        "x": 444,
+        "y": 596
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-hidden": "true",
+        "class": "relative flex h-8 w-8 cursor-pointer items-center justify-center overflow-hidden rounded-full outline-hidden select-none btn-secondary bg-token-bg-primary/65! hover:bg-token-main-surface-secondary/75! shadow-short box-content backdrop-blur-[2px] backdrop-filter sm:shadow-md dark:shadow-none! group-data-stream-active/scroll-root:squircle *:absolute *:inset-0 *:m-auto group-data-stream-active/scroll-root:w-10 motion-safe:transition-[width] motion-safe:duration-120 motion-safe:ease-out *:motion-safe:transition-opacity *:motion-safe:duration-120 *:motion-safe:ease-out absolute start-1/2 z-10 -translate-x-1/2 bottom-[calc(100%+3*var(--spacing)+var(--thread-scroll-to-bottom-banner-offset,0px))]",
+        "tabindex": "-1"
+      },
+      "context": null,
+      "index": 14,
+      "rect": {
+        "bottom": 663,
+        "height": 17,
+        "left": 761.5,
+        "right": 778.5,
+        "top": 646,
+        "width": 17,
+        "x": 761.5,
+        "y": 646
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-describedby": "_r_l_",
+        "aria-expanded": "false",
+        "aria-haspopup": "menu",
+        "aria-label": "Aggiungi file e altro",
+        "class": "composer-btn",
+        "data-testid": "composer-plus-btn",
+        "id": "composer-plus-btn",
+        "interestfor": "_r_l_",
+        "type": "button"
+      },
+      "context": null,
+      "index": 15,
+      "rect": {
+        "bottom": 0,
+        "height": 0,
+        "left": 0,
+        "right": 0,
+        "top": 0,
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-describedby": "_r_m_",
+        "aria-label": "Avvia Voce",
+        "class": "relative flex h-9 items-center justify-center rounded-full w-9 composer-submit-button-color border border-transparent disabled:cursor-not-allowed disabled:opacity-50 hover:opacity-70 disabled:opacity-30! can-hover:relative can-hover:after:absolute can-hover:after:-inset-x-1 can-hover:after:inset-y-0 can-hover:after:content-['']",
+        "data-testid": "composer-speech-button",
+        "interestfor": "_r_m_",
+        "style": "view-transition-name: var(--vt-composer-speech-button);"
+      },
+      "context": null,
+      "index": 16,
+      "rect": {
+        "bottom": 0,
+        "height": 0,
+        "left": 0,
+        "right": 0,
+        "top": 0,
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Chiudi",
+        "class": "flex h-9 w-9 items-center justify-center rounded-lg hover:bg-token-surface-hover dark:hover:bg-token-main-surface-tertiary keyboard-focused:bg-token-surface-hover bg-transparent text-token-text-tertiary -m-2",
+        "data-testid": "close-button",
+        "type": "button"
+      },
+      "context": null,
+      "index": 17,
+      "rect": {
+        "bottom": 748,
+        "height": 36,
+        "left": 1236,
+        "right": 1272,
+        "top": 712,
+        "width": 36,
+        "x": 1236,
+        "y": 712
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "class": "cursor-pointer underline underline-offset-2",
+        "type": "button"
+      },
+      "context": null,
+      "index": 18,
+      "rect": {
+        "bottom": 790,
+        "height": 20,
+        "left": 305.921875,
+        "right": 353.90625,
+        "top": 770,
+        "width": 47.984375,
+        "x": 305.921875,
+        "y": 770
+      },
+      "text": "Gestisci"
+    },
+    {
+      "attributes": {
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-secondary",
+        "type": "button"
+      },
+      "context": null,
+      "index": 19,
+      "rect": {
+        "bottom": 798,
+        "height": 36,
+        "left": 982.921875,
+        "right": 1144.234375,
+        "top": 762,
+        "width": 161.3125,
+        "x": 982.921875,
+        "y": 762
+      },
+      "text": "Rifiuta non essenziali"
+    },
+    {
+      "attributes": {
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-primary",
+        "type": "button"
+      },
+      "context": null,
+      "index": 20,
+      "rect": {
+        "bottom": 798,
+        "height": 36,
+        "left": 1152.234375,
+        "right": 1264,
+        "top": 762,
+        "width": 111.765625,
+        "x": 1152.234375,
+        "y": 762
+      },
+      "text": "Accetta tutto"
+    }
+  ]
+}

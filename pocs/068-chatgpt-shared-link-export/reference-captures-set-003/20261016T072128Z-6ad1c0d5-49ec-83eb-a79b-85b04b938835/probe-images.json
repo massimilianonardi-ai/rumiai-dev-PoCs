@@ -1,0 +1,1165 @@
+{
+  "ok": true,
+  "value": [
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://huggingface.co&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "58d84028-32df-4e09-9739-e993bb9fa66a",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://huggingface.co&sz=32",
+      "index": 0,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": -1023,
+        "height": 12,
+        "left": 820.21875,
+        "right": 832.21875,
+        "top": -1035,
+        "width": 12,
+        "x": 820.21875,
+        "y": -1035
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://huggingface.co&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://huggingface.co&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "58d84028-32df-4e09-9739-e993bb9fa66a",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://huggingface.co&sz=32",
+      "index": 1,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": -496,
+        "height": 12,
+        "left": 671.59375,
+        "right": 683.59375,
+        "top": -508,
+        "width": 12,
+        "x": 671.59375,
+        "y": -508
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://huggingface.co&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://huggingface.co&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "58d84028-32df-4e09-9739-e993bb9fa66a",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://huggingface.co&sz=32",
+      "index": 2,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": -324,
+        "height": 12,
+        "left": 503.53125,
+        "right": 515.53125,
+        "top": -336,
+        "width": 12,
+        "x": 503.53125,
+        "y": -336
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://huggingface.co&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "alt": "",
+        "class": "icon-sm rounded-full border border-token-border-light border-[0.5px] duration-200 motion-safe:transition-opacity opacity-100",
+        "height": "32",
+        "src": "https://www.google.com/s2/favicons?domain=https://www.nature.com&sz=32",
+        "width": "32"
+      },
+      "button": {
+        "attributes": {
+          "aria-label": "Fonti",
+          "class": "group/footnote bg-transparent hover:bg-token-surface-hover flex w-fit items-center gap-1.5 rounded-lg py-1.5 ps-3 pe-3",
+          "style": "opacity: 1;",
+          "type": "button"
+        },
+        "text": "Fonti"
+      },
+      "complete": true,
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-36",
+          "data-turn": "assistant",
+          "data-turn-id": "7b37d263-7060-4d96-a0cd-7db5cc96b550",
+          "data-turn-id-container": "7b37d263-7060-4d96-a0cd-7db5cc96b550",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://www.nature.com&sz=32",
+      "index": 3,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": -57.5,
+        "height": 16,
+        "left": 498,
+        "right": 514,
+        "top": -73.5,
+        "width": 16,
+        "x": 498,
+        "y": -73.5
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://www.nature.com&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "alt": "",
+        "class": "icon-sm rounded-full border border-token-border-light border-[0.5px] duration-200 motion-safe:transition-opacity opacity-100",
+        "height": "32",
+        "src": "https://www.google.com/s2/favicons?domain=https://huggingface.co&sz=32",
+        "width": "32"
+      },
+      "button": {
+        "attributes": {
+          "aria-label": "Fonti",
+          "class": "group/footnote bg-transparent hover:bg-token-surface-hover flex w-fit items-center gap-1.5 rounded-lg py-1.5 ps-3 pe-3",
+          "style": "opacity: 1;",
+          "type": "button"
+        },
+        "text": "Fonti"
+      },
+      "complete": true,
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-36",
+          "data-turn": "assistant",
+          "data-turn-id": "7b37d263-7060-4d96-a0cd-7db5cc96b550",
+          "data-turn-id-container": "7b37d263-7060-4d96-a0cd-7db5cc96b550",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://huggingface.co&sz=32",
+      "index": 4,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": -57.5,
+        "height": 16,
+        "left": 484,
+        "right": 500,
+        "top": -73.5,
+        "width": 16,
+        "x": 484,
+        "y": -73.5
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://huggingface.co&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://research.google&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "3df8fab6-511d-4fd6-8ad0-df01268c5e51",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://research.google&sz=32",
+      "index": 5,
+      "naturalHeight": 20,
+      "naturalWidth": 20,
+      "rect": {
+        "bottom": 614.5,
+        "height": 12,
+        "left": 987.46875,
+        "right": 999.46875,
+        "top": 602.5,
+        "width": 12,
+        "x": 987.46875,
+        "y": 602.5
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://research.google&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://arxiv.org&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "3df8fab6-511d-4fd6-8ad0-df01268c5e51",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://arxiv.org&sz=32",
+      "index": 6,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": 813.5,
+        "height": 12,
+        "left": 951.015625,
+        "right": 963.015625,
+        "top": 801.5,
+        "width": 12,
+        "x": 951.015625,
+        "y": 801.5
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://arxiv.org&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://github.com&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "3df8fab6-511d-4fd6-8ad0-df01268c5e51",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://github.com&sz=32",
+      "index": 7,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": 1042.5,
+        "height": 12,
+        "left": 821.984375,
+        "right": 833.984375,
+        "top": 1030.5,
+        "width": 12,
+        "x": 821.984375,
+        "y": 1030.5
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://github.com&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://github.com&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "3df8fab6-511d-4fd6-8ad0-df01268c5e51",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://github.com&sz=32",
+      "index": 8,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": 1245.5,
+        "height": 12,
+        "left": 940.359375,
+        "right": 952.359375,
+        "top": 1233.5,
+        "width": 12,
+        "x": 940.359375,
+        "y": 1233.5
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://github.com&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://github.com&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "3df8fab6-511d-4fd6-8ad0-df01268c5e51",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://github.com&sz=32",
+      "index": 9,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": 1500.5,
+        "height": 12,
+        "left": 834.453125,
+        "right": 846.453125,
+        "top": 1488.5,
+        "width": 12,
+        "x": 834.453125,
+        "y": 1488.5
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://github.com&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://www.nature.com&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "3df8fab6-511d-4fd6-8ad0-df01268c5e51",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://www.nature.com&sz=32",
+      "index": 10,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": 2711.375,
+        "height": 12,
+        "left": 712.921875,
+        "right": 724.921875,
+        "top": 2699.375,
+        "width": 12,
+        "x": 712.921875,
+        "y": 2699.375
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://www.nature.com&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "alt": "",
+        "class": "icon-sm rounded-full border border-token-border-light border-[0.5px] duration-200 motion-safe:transition-opacity opacity-100",
+        "height": "32",
+        "src": "https://www.google.com/s2/favicons?domain=https://arxiv.org&sz=32",
+        "width": "32"
+      },
+      "button": {
+        "attributes": {
+          "aria-label": "Fonti",
+          "class": "group/footnote bg-transparent hover:bg-token-surface-hover flex w-fit items-center gap-1.5 rounded-lg py-1.5 ps-3 pe-3",
+          "style": "opacity: 1;",
+          "type": "button"
+        },
+        "text": "Fonti"
+      },
+      "complete": true,
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-38",
+          "data-turn": "assistant",
+          "data-turn-id": "95e8474c-b9c9-43f0-97a8-d730b0c518df",
+          "data-turn-id-container": "95e8474c-b9c9-43f0-97a8-d730b0c518df",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://arxiv.org&sz=32",
+      "index": 11,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": 3003.375,
+        "height": 16,
+        "left": 512,
+        "right": 528,
+        "top": 2987.375,
+        "width": 16,
+        "x": 512,
+        "y": 2987.375
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://arxiv.org&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "alt": "",
+        "class": "icon-sm rounded-full border border-token-border-light border-[0.5px] duration-200 motion-safe:transition-opacity opacity-100",
+        "height": "32",
+        "src": "https://www.google.com/s2/favicons?domain=https://research.google&sz=32",
+        "width": "32"
+      },
+      "button": {
+        "attributes": {
+          "aria-label": "Fonti",
+          "class": "group/footnote bg-transparent hover:bg-token-surface-hover flex w-fit items-center gap-1.5 rounded-lg py-1.5 ps-3 pe-3",
+          "style": "opacity: 1;",
+          "type": "button"
+        },
+        "text": "Fonti"
+      },
+      "complete": true,
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-38",
+          "data-turn": "assistant",
+          "data-turn-id": "95e8474c-b9c9-43f0-97a8-d730b0c518df",
+          "data-turn-id-container": "95e8474c-b9c9-43f0-97a8-d730b0c518df",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://research.google&sz=32",
+      "index": 12,
+      "naturalHeight": 20,
+      "naturalWidth": 20,
+      "rect": {
+        "bottom": 3003.375,
+        "height": 16,
+        "left": 484,
+        "right": 500,
+        "top": 2987.375,
+        "width": 16,
+        "x": 484,
+        "y": 2987.375
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://research.google&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://research.google&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "adf65a47-7e2b-43de-a09b-0d0e0c558952",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://research.google&sz=32",
+      "index": 13,
+      "naturalHeight": 20,
+      "naturalWidth": 20,
+      "rect": {
+        "bottom": 4099.375,
+        "height": 12,
+        "left": 532.109375,
+        "right": 544.109375,
+        "top": 4087.375,
+        "width": 12,
+        "x": 532.109375,
+        "y": 4087.375
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://research.google&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://github.com&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "adf65a47-7e2b-43de-a09b-0d0e0c558952",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://github.com&sz=32",
+      "index": 14,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": 4637.59375,
+        "height": 12,
+        "left": 1025.53125,
+        "right": 1037.53125,
+        "top": 4625.59375,
+        "width": 12,
+        "x": 1025.53125,
+        "y": 4625.59375
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://github.com&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://huggingface.co&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "adf65a47-7e2b-43de-a09b-0d0e0c558952",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://huggingface.co&sz=32",
+      "index": 15,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": 4842.59375,
+        "height": 12,
+        "left": 797.90625,
+        "right": 809.90625,
+        "top": 4830.59375,
+        "width": 12,
+        "x": 797.90625,
+        "y": 4830.59375
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://huggingface.co&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://huggingface.co&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "adf65a47-7e2b-43de-a09b-0d0e0c558952",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://huggingface.co&sz=32",
+      "index": 16,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": 5047.59375,
+        "height": 12,
+        "left": 600.453125,
+        "right": 612.453125,
+        "top": 5035.59375,
+        "width": 12,
+        "x": 600.453125,
+        "y": 5035.59375
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://huggingface.co&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://arxiv.org&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "adf65a47-7e2b-43de-a09b-0d0e0c558952",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://arxiv.org&sz=32",
+      "index": 17,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": 5991.59375,
+        "height": 12,
+        "left": 839.359375,
+        "right": 851.359375,
+        "top": 5979.59375,
+        "width": 12,
+        "x": 839.359375,
+        "y": 5979.59375
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://arxiv.org&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://github.com&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "adf65a47-7e2b-43de-a09b-0d0e0c558952",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://github.com&sz=32",
+      "index": 18,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": 6111.59375,
+        "height": 12,
+        "left": 981.78125,
+        "right": 993.78125,
+        "top": 6099.59375,
+        "width": 12,
+        "x": 981.78125,
+        "y": 6099.59375
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://github.com&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "alt": "",
+        "data-d-component": "svg",
+        "decoding": "async",
+        "src": "data:image/svg+xml;charset=utf-8,%3Csvg%20font-family%3D%22-apple-system-body%2C%20ui-sans-serif%2C%20-apple-system%2C%20system-ui%2C%20%26quot%3BSegoe%20UI%26quot%3B%2C%20Helvetica%2C%20%26quot%3BApple%20Color%20Emoji%26quot%3B%2C%20Arial%2C%20sans-serif%2C%20%26quot%3BSegoe%20UI%20Emoji%26quot%3B%2C%20%26quot%3BSegoe%20UI%20Symbol%26quot%3B%22%20font-weight%3D%22400%22%20data-d-component%3D%22svg%22%20fill%3D%22currentColor%22%20style%3D%22color%3Argb(13%2C%2013%2C%2013)%22%20viewBox%3D%220%200%20340%20190%22%20width%3D%22100%25%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cline%20x1%3D%2245%22%20y1%3D%2249%22%20x2%3D%22163%22%20y2%3D%2231%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2249%22%20x2%3D%22163%22%20y2%3D%2268%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2249%22%20x2%3D%22163%22%20y2%3D%22105%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2249%22%20x2%3D%22163%22%20y2%3D%22142%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2292%22%20x2%3D%22163%22%20y2%3D%2231%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2292%22%20x2%3D%22163%22%20y2%3D%2268%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2292%22%20x2%3D%22163%22%20y2%3D%22105%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2292%22%20x2%3D%22163%22%20y2%3D%22142%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%22135%22%20x2%3D%22163%22%20y2%3D%2231%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%22135%22%20x2%3D%22163%22%20y2%3D%2268%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%22135%22%20x2%3D%22163%22%20y2%3D%22105%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%22135%22%20x2%3D%22163%22%20y2%3D%22142%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2231%22%20x2%3D%22292%22%20y2%3D%2249%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2231%22%20x2%3D%22292%22%20y2%3D%2292%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2231%22%20x2%3D%22292%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2268%22%20x2%3D%22292%22%20y2%3D%2249%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2268%22%20x2%3D%22292%22%20y2%3D%2292%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2268%22%20x2%3D%22292%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22105%22%20x2%3D%22292%22%20y2%3D%2249%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22105%22%20x2%3D%22292%22%20y2%3D%2292%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22105%22%20x2%3D%22292%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22142%22%20x2%3D%22292%22%20y2%3D%2249%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22142%22%20x2%3D%22292%22%20y2%3D%2292%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22142%22%20x2%3D%22292%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Ccircle%20cx%3D%2245%22%20cy%3D%2249%22%20r%3D%2211%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%22292%22%20cy%3D%2249%22%20r%3D%2211%22%20fill%3D%22%230d9488%22%2F%3E%3Ccircle%20cx%3D%2245%22%20cy%3D%2292%22%20r%3D%2211%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%22292%22%20cy%3D%2292%22%20r%3D%2211%22%20fill%3D%22%230d9488%22%2F%3E%3Ccircle%20cx%3D%2245%22%20cy%3D%22135%22%20r%3D%2211%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%22292%22%20cy%3D%22135%22%20r%3D%2211%22%20fill%3D%22%230d9488%22%2F%3E%3Ccircle%20cx%3D%22163%22%20cy%3D%2231%22%20r%3D%2212%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%22163%22%20cy%3D%2268%22%20r%3D%2212%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%22163%22%20cy%3D%22105%22%20r%3D%2212%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%22163%22%20cy%3D%22142%22%20r%3D%2212%22%20fill%3D%22%232563eb%22%2F%3E%3Cpath%20d%3D%22M%20163%2019%20C%20205%20-2%2C%20228%208%2C%20224%2048%20C%20222%2067%2C%20204%2068%2C%20181%2064%22%20stroke%3D%22%23d97706%22%20stroke-width%3D%222.5%22%20stroke-dasharray%3D%225%203%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M181%2064%20L190%2053%20L192%2068%20Z%22%20fill%3D%22%23d97706%22%2F%3E%3Ctext%20x%3D%2245%22%20y%3D%22181%22%20fill%3D%22currentColor%22%20font-size%3D%2211%22%20text-anchor%3D%22middle%22%3EInput%3C%2Ftext%3E%3Ctext%20x%3D%22163%22%20y%3D%22181%22%20fill%3D%22currentColor%22%20font-size%3D%2211%22%20text-anchor%3D%22middle%22%3ENeuroni%20con%20stato%3C%2Ftext%3E%3Ctext%20x%3D%22292%22%20y%3D%22181%22%20fill%3D%22currentColor%22%20font-size%3D%2211%22%20text-anchor%3D%22middle%22%3EOutput%3C%2Ftext%3E%3Ctext%20x%3D%22241%22%20y%3D%2215%22%20fill%3D%22%23d97706%22%20font-size%3D%2210%22%20text-anchor%3D%22middle%22%3ERetroazione%3C%2Ftext%3E%3C%2Fsvg%3E",
+        "style": "aspect-ratio: auto 340 / 190; color: var(--color-text-prose); width: 100%;"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "adf65a47-7e2b-43de-a09b-0d0e0c558952",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "data:image/svg+xml;charset=utf-8,%3Csvg%20font-family%3D%22-apple-system-body%2C%20ui-sans-serif%2C%20-apple-system%2C%20system-ui%2C%20%26quot%3BSegoe%20UI%26quot%3B%2C%20Helvetica%2C%20%26quot%3BApple%20Color%20Emoji%26quot%3B%2C%20Arial%2C%20sans-serif%2C%20%26quot%3BSegoe%20UI%20Emoji%26quot%3B%2C%20%26quot%3BSegoe%20UI%20Symbol%26quot%3B%22%20font-weight%3D%22400%22%20data-d-component%3D%22svg%22%20fill%3D%22currentColor%22%20style%3D%22color%3Argb(13%2C%2013%2C%2013)%22%20viewBox%3D%220%200%20340%20190%22%20width%3D%22100%25%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cline%20x1%3D%2245%22%20y1%3D%2249%22%20x2%3D%22163%22%20y2%3D%2231%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2249%22%20x2%3D%22163%22%20y2%3D%2268%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2249%22%20x2%3D%22163%22%20y2%3D%22105%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2249%22%20x2%3D%22163%22%20y2%3D%22142%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2292%22%20x2%3D%22163%22%20y2%3D%2231%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2292%22%20x2%3D%22163%22%20y2%3D%2268%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2292%22%20x2%3D%22163%22%20y2%3D%22105%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2292%22%20x2%3D%22163%22%20y2%3D%22142%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%22135%22%20x2%3D%22163%22%20y2%3D%2231%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%22135%22%20x2%3D%22163%22%20y2%3D%2268%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%22135%22%20x2%3D%22163%22%20y2%3D%22105%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%22135%22%20x2%3D%22163%22%20y2%3D%22142%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2231%22%20x2%3D%22292%22%20y2%3D%2249%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2231%22%20x2%3D%22292%22%20y2%3D%2292%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2231%22%20x2%3D%22292%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2268%22%20x2%3D%22292%22%20y2%3D%2249%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2268%22%20x2%3D%22292%22%20y2%3D%2292%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2268%22%20x2%3D%22292%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22105%22%20x2%3D%22292%22%20y2%3D%2249%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22105%22%20x2%3D%22292%22%20y2%3D%2292%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22105%22%20x2%3D%22292%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22142%22%20x2%3D%22292%22%20y2%3D%2249%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22142%22%20x2%3D%22292%22%20y2%3D%2292%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22142%22%20x2%3D%22292%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Ccircle%20cx%3D%2245%22%20cy%3D%2249%22%20r%3D%2211%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%22292%22%20cy%3D%2249%22%20r%3D%2211%22%20fill%3D%22%230d9488%22%2F%3E%3Ccircle%20cx%3D%2245%22%20cy%3D%2292%22%20r%3D%2211%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%22292%22%20cy%3D%2292%22%20r%3D%2211%22%20fill%3D%22%230d9488%22%2F%3E%3Ccircle%20cx%3D%2245%22%20cy%3D%22135%22%20r%3D%2211%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%22292%22%20cy%3D%22135%22%20r%3D%2211%22%20fill%3D%22%230d9488%22%2F%3E%3Ccircle%20cx%3D%22163%22%20cy%3D%2231%22%20r%3D%2212%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%22163%22%20cy%3D%2268%22%20r%3D%2212%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%22163%22%20cy%3D%22105%22%20r%3D%2212%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%22163%22%20cy%3D%22142%22%20r%3D%2212%22%20fill%3D%22%232563eb%22%2F%3E%3Cpath%20d%3D%22M%20163%2019%20C%20205%20-2%2C%20228%208%2C%20224%2048%20C%20222%2067%2C%20204%2068%2C%20181%2064%22%20stroke%3D%22%23d97706%22%20stroke-width%3D%222.5%22%20stroke-dasharray%3D%225%203%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M181%2064%20L190%2053%20L192%2068%20Z%22%20fill%3D%22%23d97706%22%2F%3E%3Ctext%20x%3D%2245%22%20y%3D%22181%22%20fill%3D%22currentColor%22%20font-size%3D%2211%22%20text-anchor%3D%22middle%22%3EInput%3C%2Ftext%3E%3Ctext%20x%3D%22163%22%20y%3D%22181%22%20fill%3D%22currentColor%22%20font-size%3D%2211%22%20text-anchor%3D%22middle%22%3ENeuroni%20con%20stato%3C%2Ftext%3E%3Ctext%20x%3D%22292%22%20y%3D%22181%22%20fill%3D%22currentColor%22%20font-size%3D%2211%22%20text-anchor%3D%22middle%22%3EOutput%3C%2Ftext%3E%3Ctext%20x%3D%22241%22%20y%3D%2215%22%20fill%3D%22%23d97706%22%20font-size%3D%2210%22%20text-anchor%3D%22middle%22%3ERetroazione%3C%2Ftext%3E%3C%2Fsvg%3E",
+      "index": 19,
+      "naturalHeight": 150,
+      "naturalWidth": 268,
+      "rect": {
+        "bottom": 6670.703125,
+        "height": 343.109375,
+        "left": 463,
+        "right": 1077,
+        "top": 6327.59375,
+        "width": 614,
+        "x": 463,
+        "y": 6327.59375
+      },
+      "src": "data:image/svg+xml;charset=utf-8,%3Csvg%20font-family%3D%22-apple-system-body%2C%20ui-sans-serif%2C%20-apple-system%2C%20system-ui%2C%20%26quot%3BSegoe%20UI%26quot%3B%2C%20Helvetica%2C%20%26quot%3BApple%20Color%20Emoji%26quot%3B%2C%20Arial%2C%20sans-serif%2C%20%26quot%3BSegoe%20UI%20Emoji%26quot%3B%2C%20%26quot%3BSegoe%20UI%20Symbol%26quot%3B%22%20font-weight%3D%22400%22%20data-d-component%3D%22svg%22%20fill%3D%22currentColor%22%20style%3D%22color%3Argb(13%2C%2013%2C%2013)%22%20viewBox%3D%220%200%20340%20190%22%20width%3D%22100%25%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cline%20x1%3D%2245%22%20y1%3D%2249%22%20x2%3D%22163%22%20y2%3D%2231%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2249%22%20x2%3D%22163%22%20y2%3D%2268%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2249%22%20x2%3D%22163%22%20y2%3D%22105%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2249%22%20x2%3D%22163%22%20y2%3D%22142%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2292%22%20x2%3D%22163%22%20y2%3D%2231%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2292%22%20x2%3D%22163%22%20y2%3D%2268%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2292%22%20x2%3D%22163%22%20y2%3D%22105%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2292%22%20x2%3D%22163%22%20y2%3D%22142%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%22135%22%20x2%3D%22163%22%20y2%3D%2231%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%22135%22%20x2%3D%22163%22%20y2%3D%2268%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%22135%22%20x2%3D%22163%22%20y2%3D%22105%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%22135%22%20x2%3D%22163%22%20y2%3D%22142%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2231%22%20x2%3D%22292%22%20y2%3D%2249%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2231%22%20x2%3D%22292%22%20y2%3D%2292%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2231%22%20x2%3D%22292%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2268%22%20x2%3D%22292%22%20y2%3D%2249%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2268%22%20x2%3D%22292%22%20y2%3D%2292%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2268%22%20x2%3D%22292%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22105%22%20x2%3D%22292%22%20y2%3D%2249%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22105%22%20x2%3D%22292%22%20y2%3D%2292%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22105%22%20x2%3D%22292%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22142%22%20x2%3D%22292%22%20y2%3D%2249%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22142%22%20x2%3D%22292%22%20y2%3D%2292%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22142%22%20x2%3D%22292%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Ccircle%20cx%3D%2245%22%20cy%3D%2249%22%20r%3D%2211%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%22292%22%20cy%3D%2249%22%20r%3D%2211%22%20fill%3D%22%230d9488%22%2F%3E%3Ccircle%20cx%3D%2245%22%20cy%3D%2292%22%20r%3D%2211%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%22292%22%20cy%3D%2292%22%20r%3D%2211%22%20fill%3D%22%230d9488%22%2F%3E%3Ccircle%20cx%3D%2245%22%20cy%3D%22135%22%20r%3D%2211%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%22292%22%20cy%3D%22135%22%20r%3D%2211%22%20fill%3D%22%230d9488%22%2F%3E%3Ccircle%20cx%3D%22163%22%20cy%3D%2231%22%20r%3D%2212%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%22163%22%20cy%3D%2268%22%20r%3D%2212%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%22163%22%20cy%3D%22105%22%20r%3D%2212%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%22163%22%20cy%3D%22142%22%20r%3D%2212%22%20fill%3D%22%232563eb%22%2F%3E%3Cpath%20d%3D%22M%20163%2019%20C%20205%20-2%2C%20228%208%2C%20224%2048%20C%20222%2067%2C%20204%2068%2C%20181%2064%22%20stroke%3D%22%23d97706%22%20stroke-width%3D%222.5%22%20stroke-dasharray%3D%225%203%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M181%2064%20L190%2053%20L192%2068%20Z%22%20fill%3D%22%23d97706%22%2F%3E%3Ctext%20x%3D%2245%22%20y%3D%22181%22%20fill%3D%22currentColor%22%20font-size%3D%2211%22%20text-anchor%3D%22middle%22%3EInput%3C%2Ftext%3E%3Ctext%20x%3D%22163%22%20y%3D%22181%22%20fill%3D%22currentColor%22%20font-size%3D%2211%22%20text-anchor%3D%22middle%22%3ENeuroni%20con%20stato%3C%2Ftext%3E%3Ctext%20x%3D%22292%22%20y%3D%22181%22%20fill%3D%22currentColor%22%20font-size%3D%2211%22%20text-anchor%3D%22middle%22%3EOutput%3C%2Ftext%3E%3Ctext%20x%3D%22241%22%20y%3D%2215%22%20fill%3D%22%23d97706%22%20font-size%3D%2210%22%20text-anchor%3D%22middle%22%3ERetroazione%3C%2Ftext%3E%3C%2Fsvg%3E",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://www.nature.com&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "adf65a47-7e2b-43de-a09b-0d0e0c558952",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://www.nature.com&sz=32",
+      "index": 20,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": 7013.078125,
+        "height": 12,
+        "left": 617.84375,
+        "right": 629.84375,
+        "top": 7001.078125,
+        "width": 12,
+        "x": 617.84375,
+        "y": 7001.078125
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://www.nature.com&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "alt": "",
+        "class": "icon-sm rounded-full border border-token-border-light border-[0.5px] duration-200 motion-safe:transition-opacity opacity-100",
+        "height": "32",
+        "src": "https://www.google.com/s2/favicons?domain=https://proceedings.mlr.press&sz=32",
+        "width": "32"
+      },
+      "button": {
+        "attributes": {
+          "aria-label": "Fonti",
+          "class": "group/footnote bg-transparent hover:bg-token-surface-hover flex w-fit items-center gap-1.5 rounded-lg py-1.5 ps-3 pe-3",
+          "style": "opacity: 1;",
+          "type": "button"
+        },
+        "text": "Fonti"
+      },
+      "complete": true,
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-40",
+          "data-turn": "assistant",
+          "data-turn-id": "e054e4da-dc24-471e-b572-f124ea61d485",
+          "data-turn-id-container": "e054e4da-dc24-471e-b572-f124ea61d485",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://proceedings.mlr.press&sz=32",
+      "index": 21,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": 7777.078125,
+        "height": 16,
+        "left": 498,
+        "right": 514,
+        "top": 7761.078125,
+        "width": 16,
+        "x": 498,
+        "y": 7761.078125
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://proceedings.mlr.press&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "alt": "",
+        "class": "icon-sm rounded-full border border-token-border-light border-[0.5px] duration-200 motion-safe:transition-opacity opacity-100",
+        "height": "32",
+        "src": "https://www.google.com/s2/favicons?domain=https://research.google&sz=32",
+        "width": "32"
+      },
+      "button": {
+        "attributes": {
+          "aria-label": "Fonti",
+          "class": "group/footnote bg-transparent hover:bg-token-surface-hover flex w-fit items-center gap-1.5 rounded-lg py-1.5 ps-3 pe-3",
+          "style": "opacity: 1;",
+          "type": "button"
+        },
+        "text": "Fonti"
+      },
+      "complete": true,
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-40",
+          "data-turn": "assistant",
+          "data-turn-id": "e054e4da-dc24-471e-b572-f124ea61d485",
+          "data-turn-id-container": "e054e4da-dc24-471e-b572-f124ea61d485",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://research.google&sz=32",
+      "index": 22,
+      "naturalHeight": 20,
+      "naturalWidth": 20,
+      "rect": {
+        "bottom": 7777.078125,
+        "height": 16,
+        "left": 484,
+        "right": 500,
+        "top": 7761.078125,
+        "width": 16,
+        "x": 484,
+        "y": 7761.078125
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://research.google&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://papers.neurips.cc&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "0d2ba588-47c9-404c-a62b-31172408a2e4",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://papers.neurips.cc&sz=32",
+      "index": 23,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": 8131.078125,
+        "height": 12,
+        "left": 978.671875,
+        "right": 990.671875,
+        "top": 8119.078125,
+        "width": 12,
+        "x": 978.671875,
+        "y": 8119.078125
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://papers.neurips.cc&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://cdn.openai.com&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "0d2ba588-47c9-404c-a62b-31172408a2e4",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://cdn.openai.com&sz=32",
+      "index": 24,
+      "naturalHeight": 16,
+      "naturalWidth": 16,
+      "rect": {
+        "bottom": 8914.078125,
+        "height": 12,
+        "left": 989.890625,
+        "right": 1001.890625,
+        "top": 8902.078125,
+        "width": 12,
+        "x": 989.890625,
+        "y": 8902.078125
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://cdn.openai.com&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "alt": "",
+        "data-d-component": "svg",
+        "decoding": "async",
+        "src": "data:image/svg+xml;charset=utf-8,%3Csvg%20font-family%3D%22-apple-system-body%2C%20ui-sans-serif%2C%20-apple-system%2C%20system-ui%2C%20%26quot%3BSegoe%20UI%26quot%3B%2C%20Helvetica%2C%20%26quot%3BApple%20Color%20Emoji%26quot%3B%2C%20Arial%2C%20sans-serif%2C%20%26quot%3BSegoe%20UI%20Emoji%26quot%3B%2C%20%26quot%3BSegoe%20UI%20Symbol%26quot%3B%22%20font-weight%3D%22400%22%20data-d-component%3D%22svg%22%20fill%3D%22currentColor%22%20style%3D%22color%3Argb(13%2C%2013%2C%2013)%22%20viewBox%3D%220%200%20160%20186%22%20width%3D%22100%25%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cline%20x1%3D%2222%22%20y1%3D%2241%22%20x2%3D%2281%22%20y2%3D%2221%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2241%22%20x2%3D%2281%22%20y2%3D%2259%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2241%22%20x2%3D%2281%22%20y2%3D%2297%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2241%22%20x2%3D%2281%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2285%22%20x2%3D%2281%22%20y2%3D%2221%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2285%22%20x2%3D%2281%22%20y2%3D%2259%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2285%22%20x2%3D%2281%22%20y2%3D%2297%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2285%22%20x2%3D%2281%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%22129%22%20x2%3D%2281%22%20y2%3D%2221%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%22129%22%20x2%3D%2281%22%20y2%3D%2259%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%22129%22%20x2%3D%2281%22%20y2%3D%2297%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%22129%22%20x2%3D%2281%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2221%22%20x2%3D%22140%22%20y2%3D%2262%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2221%22%20x2%3D%22140%22%20y2%3D%22112%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2259%22%20x2%3D%22140%22%20y2%3D%2262%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2259%22%20x2%3D%22140%22%20y2%3D%22112%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2297%22%20x2%3D%22140%22%20y2%3D%2262%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2297%22%20x2%3D%22140%22%20y2%3D%22112%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%22135%22%20x2%3D%22140%22%20y2%3D%2262%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%22135%22%20x2%3D%22140%22%20y2%3D%22112%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Ccircle%20cx%3D%2222%22%20cy%3D%2241%22%20r%3D%228%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%2222%22%20cy%3D%2285%22%20r%3D%228%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%2222%22%20cy%3D%22129%22%20r%3D%228%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%2281%22%20cy%3D%2221%22%20r%3D%229%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%2281%22%20cy%3D%2259%22%20r%3D%229%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%2281%22%20cy%3D%2297%22%20r%3D%229%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%2281%22%20cy%3D%22135%22%20r%3D%229%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%22140%22%20cy%3D%2262%22%20r%3D%228%22%20fill%3D%22%230d9488%22%2F%3E%3Ccircle%20cx%3D%22140%22%20cy%3D%22112%22%20r%3D%228%22%20fill%3D%22%230d9488%22%2F%3E%3Ctext%20x%3D%2280%22%20y%3D%22179%22%20text-anchor%3D%22middle%22%20fill%3D%22currentColor%22%20font-size%3D%2210%22%3EConnessioni%20apprese%3C%2Ftext%3E%3C%2Fsvg%3E",
+        "style": "aspect-ratio: auto 160 / 186; color: var(--color-text-prose); width: 100%;"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "0d2ba588-47c9-404c-a62b-31172408a2e4",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "data:image/svg+xml;charset=utf-8,%3Csvg%20font-family%3D%22-apple-system-body%2C%20ui-sans-serif%2C%20-apple-system%2C%20system-ui%2C%20%26quot%3BSegoe%20UI%26quot%3B%2C%20Helvetica%2C%20%26quot%3BApple%20Color%20Emoji%26quot%3B%2C%20Arial%2C%20sans-serif%2C%20%26quot%3BSegoe%20UI%20Emoji%26quot%3B%2C%20%26quot%3BSegoe%20UI%20Symbol%26quot%3B%22%20font-weight%3D%22400%22%20data-d-component%3D%22svg%22%20fill%3D%22currentColor%22%20style%3D%22color%3Argb(13%2C%2013%2C%2013)%22%20viewBox%3D%220%200%20160%20186%22%20width%3D%22100%25%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cline%20x1%3D%2222%22%20y1%3D%2241%22%20x2%3D%2281%22%20y2%3D%2221%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2241%22%20x2%3D%2281%22%20y2%3D%2259%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2241%22%20x2%3D%2281%22%20y2%3D%2297%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2241%22%20x2%3D%2281%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2285%22%20x2%3D%2281%22%20y2%3D%2221%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2285%22%20x2%3D%2281%22%20y2%3D%2259%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2285%22%20x2%3D%2281%22%20y2%3D%2297%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2285%22%20x2%3D%2281%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%22129%22%20x2%3D%2281%22%20y2%3D%2221%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%22129%22%20x2%3D%2281%22%20y2%3D%2259%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%22129%22%20x2%3D%2281%22%20y2%3D%2297%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%22129%22%20x2%3D%2281%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2221%22%20x2%3D%22140%22%20y2%3D%2262%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2221%22%20x2%3D%22140%22%20y2%3D%22112%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2259%22%20x2%3D%22140%22%20y2%3D%2262%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2259%22%20x2%3D%22140%22%20y2%3D%22112%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2297%22%20x2%3D%22140%22%20y2%3D%2262%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2297%22%20x2%3D%22140%22%20y2%3D%22112%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%22135%22%20x2%3D%22140%22%20y2%3D%2262%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%22135%22%20x2%3D%22140%22%20y2%3D%22112%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Ccircle%20cx%3D%2222%22%20cy%3D%2241%22%20r%3D%228%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%2222%22%20cy%3D%2285%22%20r%3D%228%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%2222%22%20cy%3D%22129%22%20r%3D%228%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%2281%22%20cy%3D%2221%22%20r%3D%229%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%2281%22%20cy%3D%2259%22%20r%3D%229%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%2281%22%20cy%3D%2297%22%20r%3D%229%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%2281%22%20cy%3D%22135%22%20r%3D%229%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%22140%22%20cy%3D%2262%22%20r%3D%228%22%20fill%3D%22%230d9488%22%2F%3E%3Ccircle%20cx%3D%22140%22%20cy%3D%22112%22%20r%3D%228%22%20fill%3D%22%230d9488%22%2F%3E%3Ctext%20x%3D%2280%22%20y%3D%22179%22%20text-anchor%3D%22middle%22%20fill%3D%22currentColor%22%20font-size%3D%2210%22%3EConnessioni%20apprese%3C%2Ftext%3E%3C%2Fsvg%3E",
+      "index": 25,
+      "naturalHeight": 150,
+      "naturalWidth": 129,
+      "rect": {
+        "bottom": 9370.171875,
+        "height": 344.09375,
+        "left": 459,
+        "right": 755,
+        "top": 9026.078125,
+        "width": 296,
+        "x": 459,
+        "y": 9026.078125
+      },
+      "src": "data:image/svg+xml;charset=utf-8,%3Csvg%20font-family%3D%22-apple-system-body%2C%20ui-sans-serif%2C%20-apple-system%2C%20system-ui%2C%20%26quot%3BSegoe%20UI%26quot%3B%2C%20Helvetica%2C%20%26quot%3BApple%20Color%20Emoji%26quot%3B%2C%20Arial%2C%20sans-serif%2C%20%26quot%3BSegoe%20UI%20Emoji%26quot%3B%2C%20%26quot%3BSegoe%20UI%20Symbol%26quot%3B%22%20font-weight%3D%22400%22%20data-d-component%3D%22svg%22%20fill%3D%22currentColor%22%20style%3D%22color%3Argb(13%2C%2013%2C%2013)%22%20viewBox%3D%220%200%20160%20186%22%20width%3D%22100%25%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cline%20x1%3D%2222%22%20y1%3D%2241%22%20x2%3D%2281%22%20y2%3D%2221%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2241%22%20x2%3D%2281%22%20y2%3D%2259%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2241%22%20x2%3D%2281%22%20y2%3D%2297%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2241%22%20x2%3D%2281%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2285%22%20x2%3D%2281%22%20y2%3D%2221%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2285%22%20x2%3D%2281%22%20y2%3D%2259%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2285%22%20x2%3D%2281%22%20y2%3D%2297%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2285%22%20x2%3D%2281%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%22129%22%20x2%3D%2281%22%20y2%3D%2221%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%22129%22%20x2%3D%2281%22%20y2%3D%2259%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%22129%22%20x2%3D%2281%22%20y2%3D%2297%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%22129%22%20x2%3D%2281%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2221%22%20x2%3D%22140%22%20y2%3D%2262%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2221%22%20x2%3D%22140%22%20y2%3D%22112%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2259%22%20x2%3D%22140%22%20y2%3D%2262%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2259%22%20x2%3D%22140%22%20y2%3D%22112%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2297%22%20x2%3D%22140%22%20y2%3D%2262%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2297%22%20x2%3D%22140%22%20y2%3D%22112%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%22135%22%20x2%3D%22140%22%20y2%3D%2262%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%22135%22%20x2%3D%22140%22%20y2%3D%22112%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Ccircle%20cx%3D%2222%22%20cy%3D%2241%22%20r%3D%228%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%2222%22%20cy%3D%2285%22%20r%3D%228%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%2222%22%20cy%3D%22129%22%20r%3D%228%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%2281%22%20cy%3D%2221%22%20r%3D%229%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%2281%22%20cy%3D%2259%22%20r%3D%229%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%2281%22%20cy%3D%2297%22%20r%3D%229%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%2281%22%20cy%3D%22135%22%20r%3D%229%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%22140%22%20cy%3D%2262%22%20r%3D%228%22%20fill%3D%22%230d9488%22%2F%3E%3Ccircle%20cx%3D%22140%22%20cy%3D%22112%22%20r%3D%228%22%20fill%3D%22%230d9488%22%2F%3E%3Ctext%20x%3D%2280%22%20y%3D%22179%22%20text-anchor%3D%22middle%22%20fill%3D%22currentColor%22%20font-size%3D%2210%22%3EConnessioni%20apprese%3C%2Ftext%3E%3C%2Fsvg%3E",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "class": "CrFGHG_Image QGyuMa_Image",
+        "data-loaded": "",
+        "draggable": "false",
+        "src": "https://www.google.com/s2/favicons?domain=https://papers.neurips.cc&sz=32"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "0d2ba588-47c9-404c-a62b-31172408a2e4",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://papers.neurips.cc&sz=32",
+      "index": 26,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": 9948.9375,
+        "height": 12,
+        "left": 582.5,
+        "right": 594.5,
+        "top": 9936.9375,
+        "width": 12,
+        "x": 582.5,
+        "y": 9936.9375
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://papers.neurips.cc&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "alt": "",
+        "class": "icon-sm rounded-full border border-token-border-light border-[0.5px] duration-200 motion-safe:transition-opacity opacity-100",
+        "height": "32",
+        "src": "https://www.google.com/s2/favicons?domain=https://cdn.openai.com&sz=32",
+        "width": "32"
+      },
+      "button": {
+        "attributes": {
+          "aria-label": "Fonti",
+          "class": "group/footnote bg-transparent hover:bg-token-surface-hover flex w-fit items-center gap-1.5 rounded-lg py-1.5 ps-3 pe-3",
+          "style": "opacity: 1;",
+          "type": "button"
+        },
+        "text": "Fonti"
+      },
+      "complete": true,
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-42",
+          "data-turn": "assistant",
+          "data-turn-id": "d4032de0-e24f-4db3-b27e-a60e28e16abc",
+          "data-turn-id-container": "d4032de0-e24f-4db3-b27e-a60e28e16abc",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://cdn.openai.com&sz=32",
+      "index": 27,
+      "naturalHeight": 16,
+      "naturalWidth": 16,
+      "rect": {
+        "bottom": 11496.9375,
+        "height": 16,
+        "left": 512,
+        "right": 528,
+        "top": 11480.9375,
+        "width": 16,
+        "x": 512,
+        "y": 11480.9375
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://cdn.openai.com&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "alt": "",
+        "class": "icon-sm rounded-full border border-token-border-light border-[0.5px] duration-200 motion-safe:transition-opacity opacity-100",
+        "height": "32",
+        "src": "https://www.google.com/s2/favicons?domain=https://nlp.seas.harvard.edu&sz=32",
+        "width": "32"
+      },
+      "button": {
+        "attributes": {
+          "aria-label": "Fonti",
+          "class": "group/footnote bg-transparent hover:bg-token-surface-hover flex w-fit items-center gap-1.5 rounded-lg py-1.5 ps-3 pe-3",
+          "style": "opacity: 1;",
+          "type": "button"
+        },
+        "text": "Fonti"
+      },
+      "complete": true,
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-42",
+          "data-turn": "assistant",
+          "data-turn-id": "d4032de0-e24f-4db3-b27e-a60e28e16abc",
+          "data-turn-id-container": "d4032de0-e24f-4db3-b27e-a60e28e16abc",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://nlp.seas.harvard.edu&sz=32",
+      "index": 28,
+      "naturalHeight": 32,
+      "naturalWidth": 24,
+      "rect": {
+        "bottom": 11496.9375,
+        "height": 16,
+        "left": 498,
+        "right": 514,
+        "top": 11480.9375,
+        "width": 16,
+        "x": 498,
+        "y": 11480.9375
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://nlp.seas.harvard.edu&sz=32",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "alt": "",
+        "class": "icon-sm rounded-full border border-token-border-light border-[0.5px] duration-200 motion-safe:transition-opacity opacity-100",
+        "height": "32",
+        "src": "https://www.google.com/s2/favicons?domain=https://papers.neurips.cc&sz=32",
+        "width": "32"
+      },
+      "button": {
+        "attributes": {
+          "aria-label": "Fonti",
+          "class": "group/footnote bg-transparent hover:bg-token-surface-hover flex w-fit items-center gap-1.5 rounded-lg py-1.5 ps-3 pe-3",
+          "style": "opacity: 1;",
+          "type": "button"
+        },
+        "text": "Fonti"
+      },
+      "complete": true,
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-42",
+          "data-turn": "assistant",
+          "data-turn-id": "d4032de0-e24f-4db3-b27e-a60e28e16abc",
+          "data-turn-id-container": "d4032de0-e24f-4db3-b27e-a60e28e16abc",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://papers.neurips.cc&sz=32",
+      "index": 29,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": 11496.9375,
+        "height": 16,
+        "left": 484,
+        "right": 500,
+        "top": 11480.9375,
+        "width": 16,
+        "x": 484,
+        "y": 11480.9375
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://papers.neurips.cc&sz=32",
+      "srcset": null
+    }
+  ]
+}

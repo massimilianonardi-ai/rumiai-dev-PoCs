@@ -1,0 +1,82 @@
+{
+  "meta": {
+    "ok": true,
+    "type": "object",
+    "count": null
+  },
+  "html": {
+    "ok": true,
+    "type": "string",
+    "count": null
+  },
+  "text": {
+    "ok": true,
+    "type": "string",
+    "count": null
+  },
+  "turns": {
+    "ok": true,
+    "type": "array",
+    "count": 10
+  },
+  "images": {
+    "ok": true,
+    "type": "array",
+    "count": 3
+  },
+  "sources": {
+    "ok": true,
+    "type": "array",
+    "count": 0
+  },
+  "links": {
+    "ok": true,
+    "type": "array",
+    "count": 16
+  },
+  "buttons": {
+    "ok": true,
+    "type": "array",
+    "count": 65
+  },
+  "media": {
+    "ok": true,
+    "type": "array",
+    "count": 0
+  },
+  "iframes": {
+    "ok": true,
+    "type": "array",
+    "count": 1
+  },
+  "attributes": {
+    "ok": true,
+    "type": "array",
+    "count": 173
+  },
+  "resources": {
+    "ok": true,
+    "type": "array",
+    "count": 59
+  },
+  "candidates": {
+    "ok": true,
+    "type": "array",
+    "count": 2
+  },
+  "svg-inventory": {
+    "ok": true,
+    "type": "array",
+    "count": 69
+  },
+  "canvas-inventory": {
+    "ok": true,
+    "type": "array",
+    "count": 0
+  },
+  "inline-json-inventory": {
+    "ok": true,
+    "type": "array",
+    "count": 1
+  }
+}

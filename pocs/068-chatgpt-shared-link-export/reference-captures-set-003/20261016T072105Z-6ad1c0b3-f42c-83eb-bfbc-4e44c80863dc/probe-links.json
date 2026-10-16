@@ -1,0 +1,1363 @@
+{
+  "ok": true,
+  "value": [
+    {
+      "attributes": {
+        "class": "interactive-bg-secondary behavior-btn interactive-label-secondary pointer-events-auto rounded-2xl px-4 py-2 text-base print:hidden",
+        "data-skip-to-content": "",
+        "href": "#main"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/share/6ad1c0b3-f42c-83eb-bfbc-4e44c80863dc#main",
+      "index": 0,
+      "rect": {
+        "bottom": 15,
+        "height": 16,
+        "left": -71.9375,
+        "right": 70.9375,
+        "top": -1,
+        "width": 142.875,
+        "x": -71.9375,
+        "y": -1
+      },
+      "text": "Vai ai contenuti"
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2 touch:size-10 mx-2 size-9 justify-center p-0",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "data-testid": "create-new-chat-button",
+        "href": "/",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/",
+      "index": 1,
+      "rect": {
+        "bottom": 96,
+        "height": 36,
+        "left": 8,
+        "right": 44,
+        "top": 60,
+        "width": 36,
+        "x": 8,
+        "y": 60
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2 touch:size-10 mx-2 size-9 justify-center p-0",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "data-testid": "sidebar-item-library",
+        "href": "/images",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/images",
+      "index": 2,
+      "rect": {
+        "bottom": 168,
+        "height": 36,
+        "left": 8,
+        "right": 44,
+        "top": 132,
+        "width": 36,
+        "x": 8,
+        "y": 132
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Home",
+        "class": "text-token-text-primary contrast-high:not-dark:keyboard-focused:focus-ring no-draggable hover:bg-token-surface-hover keyboard-focused:bg-token-surface-hover touch:h-10 touch:w-10 flex h-9 w-9 items-center justify-center rounded-lg outline-none disabled:opacity-50 not-keyboard-focused:hover:bg-transparent!",
+        "data-discover": "true",
+        "data-sidebar-item": "true",
+        "href": "/"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/",
+      "index": 3,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 8,
+        "right": 44,
+        "top": 8,
+        "width": 36,
+        "x": 8,
+        "y": 8
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-revealed": "",
+        "data-sidebar-item": "true",
+        "data-testid": "create-new-chat-button",
+        "href": "/",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/",
+      "index": 4,
+      "rect": {
+        "bottom": 96,
+        "height": 36,
+        "left": 6,
+        "right": 254,
+        "top": 60,
+        "width": 248,
+        "x": 6,
+        "y": 60
+      },
+      "text": "Nuova chat"
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "data-testid": "sidebar-item-library",
+        "href": "/images",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/images",
+      "index": 5,
+      "rect": {
+        "bottom": 132,
+        "height": 36,
+        "left": 6,
+        "right": 254,
+        "top": 96,
+        "width": 248,
+        "x": 6,
+        "y": 96
+      },
+      "text": "Immagini"
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "data-testid": "plugins-button",
+        "href": "/plugins",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/plugins",
+      "index": 6,
+      "rect": {
+        "bottom": 168,
+        "height": 36,
+        "left": 6,
+        "right": 254,
+        "top": 132,
+        "width": 248,
+        "x": 6,
+        "y": 132
+      },
+      "text": "Plugin"
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "data-testid": "sidebar-item-places",
+        "href": "/maps",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/maps",
+      "index": 7,
+      "rect": {
+        "bottom": 240,
+        "height": 36,
+        "left": 6,
+        "right": 254,
+        "top": 204,
+        "width": 248,
+        "x": 6,
+        "y": 204
+      },
+      "text": "Mappe\nNUOVO"
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "href": "https://openai.com/chatgpt/pricing/",
+        "rel": "noopener noreferrer",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0",
+        "target": "_blank"
+      },
+      "context": null,
+      "href": "https://openai.com/chatgpt/pricing/",
+      "index": 8,
+      "rect": {
+        "bottom": 551,
+        "height": 36,
+        "left": 6,
+        "right": 254,
+        "top": 515,
+        "width": 248,
+        "x": 6,
+        "y": 515
+      },
+      "text": "Visualizza piani e tariffe"
+    },
+    {
+      "attributes": {
+        "alt": "https://eng.umd.edu/clark/faculty/1757/Louis-Pecora",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://eng.umd.edu/clark/faculty/1757/Louis-Pecora",
+        "rel": "noopener",
+        "style": "max-width: 119px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "abd73e09-9705-4581-90b1-d2316fcecf62",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "href": "https://eng.umd.edu/clark/faculty/1757/Louis-Pecora",
+      "index": 9,
+      "rect": {
+        "bottom": -17391.5,
+        "height": 18,
+        "left": 604.75,
+        "right": 723.03125,
+        "top": -17409.5,
+        "width": 118.28125,
+        "x": 604.75,
+        "y": -17409.5
+      },
+      "text": "Scuola di Ingegneria A. James Clark\n+1"
+    },
+    {
+      "attributes": {
+        "alt": "https://me.unm.edu/seminars/graduate-seminars.html?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://me.unm.edu/seminars/graduate-seminars.html?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 79px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "abd73e09-9705-4581-90b1-d2316fcecf62",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "href": "https://me.unm.edu/seminars/graduate-seminars.html?utm_source=chatgpt.com",
+      "index": 10,
+      "rect": {
+        "bottom": -17125.5,
+        "height": 18,
+        "left": 486,
+        "right": 564.5625,
+        "top": -17143.5,
+        "width": 78.5625,
+        "x": 486,
+        "y": -17143.5
+      },
+      "text": "me.unm.edu"
+    },
+    {
+      "attributes": {
+        "alt": "https://pubmed.ncbi.nlm.nih.gov/40737694/?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://pubmed.ncbi.nlm.nih.gov/40737694/?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 76px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "abd73e09-9705-4581-90b1-d2316fcecf62",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "href": "https://pubmed.ncbi.nlm.nih.gov/40737694/?utm_source=chatgpt.com",
+      "index": 11,
+      "rect": {
+        "bottom": -16917.5,
+        "height": 18,
+        "left": 580.078125,
+        "right": 656.078125,
+        "top": -16935.5,
+        "width": 76,
+        "x": 580.078125,
+        "y": -16935.5
+      },
+      "text": "PubMed\n+1"
+    },
+    {
+      "attributes": {
+        "alt": "https://pubmed.ncbi.nlm.nih.gov/40663764/?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://pubmed.ncbi.nlm.nih.gov/40663764/?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 62px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "abd73e09-9705-4581-90b1-d2316fcecf62",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "href": "https://pubmed.ncbi.nlm.nih.gov/40663764/?utm_source=chatgpt.com",
+      "index": 12,
+      "rect": {
+        "bottom": -16787.5,
+        "height": 18,
+        "left": 486,
+        "right": 547.84375,
+        "top": -16805.5,
+        "width": 61.84375,
+        "x": 486,
+        "y": -16805.5
+      },
+      "text": "PubMed"
+    },
+    {
+      "attributes": {
+        "alt": "https://ctcs.iitm.ac.in/ctcs-previous-talks?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://ctcs.iitm.ac.in/ctcs-previous-talks?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 83px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "abd73e09-9705-4581-90b1-d2316fcecf62",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "href": "https://ctcs.iitm.ac.in/ctcs-previous-talks?utm_source=chatgpt.com",
+      "index": 13,
+      "rect": {
+        "bottom": -16631.5,
+        "height": 18,
+        "left": 858.5,
+        "right": 940.828125,
+        "top": -16649.5,
+        "width": 82.328125,
+        "x": 858.5,
+        "y": -16649.5
+      },
+      "text": "ctcs.iitm.ac.in"
+    },
+    {
+      "attributes": {
+        "alt": "https://pubmed.ncbi.nlm.nih.gov/40737694/?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://pubmed.ncbi.nlm.nih.gov/40737694/?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 62px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "abd73e09-9705-4581-90b1-d2316fcecf62",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "href": "https://pubmed.ncbi.nlm.nih.gov/40737694/?utm_source=chatgpt.com",
+      "index": 14,
+      "rect": {
+        "bottom": -14931.171875,
+        "height": 18,
+        "left": 559.765625,
+        "right": 621.609375,
+        "top": -14949.171875,
+        "width": 61.84375,
+        "x": 559.765625,
+        "y": -14949.171875
+      },
+      "text": "PubMed"
+    },
+    {
+      "attributes": {
+        "alt": "https://scirate.com/search?q=au%3APecora_L+in%3Anlin&utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://scirate.com/search?q=au%3APecora_L+in%3Anlin&utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 70px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "abd73e09-9705-4581-90b1-d2316fcecf62",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "href": "https://scirate.com/search?q=au%3APecora_L+in%3Anlin&utm_source=chatgpt.com",
+      "index": 15,
+      "rect": {
+        "bottom": -14615.59375,
+        "height": 18,
+        "left": 1017.75,
+        "right": 1087.515625,
+        "top": -14633.59375,
+        "width": 69.765625,
+        "x": 1017.75,
+        "y": -14633.59375
+      },
+      "text": "Scirate\n+1"
+    },
+    {
+      "attributes": {
+        "alt": "https://ctcs.iitm.ac.in/ctcs-previous-talks?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://ctcs.iitm.ac.in/ctcs-previous-talks?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 49px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "59111958-42a7-48c1-9d58-945812088f28",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "href": "https://ctcs.iitm.ac.in/ctcs-previous-talks?utm_source=chatgpt.com",
+      "index": 16,
+      "rect": {
+        "bottom": -13620.59375,
+        "height": 18,
+        "left": 486,
+        "right": 534.859375,
+        "top": -13638.59375,
+        "width": 48.859375,
+        "x": 486,
+        "y": -13638.59375
+      },
+      "text": "CTCS"
+    },
+    {
+      "attributes": {
+        "alt": "https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.64.821?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.64.821?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 95px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "59111958-42a7-48c1-9d58-945812088f28",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "href": "https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.64.821?utm_source=chatgpt.com",
+      "index": 17,
+      "rect": {
+        "bottom": -13516.59375,
+        "height": 18,
+        "left": 884.765625,
+        "right": 979.21875,
+        "top": -13534.59375,
+        "width": 94.453125,
+        "x": 884.765625,
+        "y": -13534.59375
+      },
+      "text": "APS Journals\n+1"
+    },
+    {
+      "attributes": {
+        "alt": "https://journals.aps.org/pre/abstract/10.1103/PhysRevE.52.3420?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://journals.aps.org/pre/abstract/10.1103/PhysRevE.52.3420?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 81px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "59111958-42a7-48c1-9d58-945812088f28",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "href": "https://journals.aps.org/pre/abstract/10.1103/PhysRevE.52.3420?utm_source=chatgpt.com",
+      "index": 18,
+      "rect": {
+        "bottom": -13256.59375,
+        "height": 18,
+        "left": 486,
+        "right": 566.296875,
+        "top": -13274.59375,
+        "width": 80.296875,
+        "x": 486,
+        "y": -13274.59375
+      },
+      "text": "APS Journals"
+    },
+    {
+      "attributes": {
+        "alt": "https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.80.2109?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.80.2109?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 81px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "59111958-42a7-48c1-9d58-945812088f28",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "href": "https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.80.2109?utm_source=chatgpt.com",
+      "index": 19,
+      "rect": {
+        "bottom": -13126.59375,
+        "height": 18,
+        "left": 734.125,
+        "right": 814.421875,
+        "top": -13144.59375,
+        "width": 80.296875,
+        "x": 734.125,
+        "y": -13144.59375
+      },
+      "text": "APS Journals"
+    },
+    {
+      "attributes": {
+        "alt": "https://pubmed.ncbi.nlm.nih.gov/17411246/?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://pubmed.ncbi.nlm.nih.gov/17411246/?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 62px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "59111958-42a7-48c1-9d58-945812088f28",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "href": "https://pubmed.ncbi.nlm.nih.gov/17411246/?utm_source=chatgpt.com",
+      "index": 20,
+      "rect": {
+        "bottom": -12996.59375,
+        "height": 18,
+        "left": 603.703125,
+        "right": 665.546875,
+        "top": -13014.59375,
+        "width": 61.84375,
+        "x": 603.703125,
+        "y": -13014.59375
+      },
+      "text": "PubMed"
+    },
+    {
+      "attributes": {
+        "alt": "https://www.nature.com/articles/ncomms5079?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://www.nature.com/articles/ncomms5079?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 71px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "59111958-42a7-48c1-9d58-945812088f28",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "href": "https://www.nature.com/articles/ncomms5079?utm_source=chatgpt.com",
+      "index": 21,
+      "rect": {
+        "bottom": -12840.59375,
+        "height": 18,
+        "left": 998.5625,
+        "right": 1068.828125,
+        "top": -12858.59375,
+        "width": 70.265625,
+        "x": 998.5625,
+        "y": -12858.59375
+      },
+      "text": "Nature\n+1"
+    },
+    {
+      "attributes": {
+        "alt": "https://arxiv.org/abs/1903.12487?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://arxiv.org/abs/1903.12487?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 63px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "59111958-42a7-48c1-9d58-945812088f28",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "href": "https://arxiv.org/abs/1903.12487?utm_source=chatgpt.com",
+      "index": 22,
+      "rect": {
+        "bottom": -12710.59375,
+        "height": 18,
+        "left": 753.90625,
+        "right": 816.21875,
+        "top": -12728.59375,
+        "width": 62.3125,
+        "x": 753.90625,
+        "y": -12728.59375
+      },
+      "text": "arXiv\n+1"
+    },
+    {
+      "attributes": {
+        "alt": "https://www.fields.utoronto.ca/talks/Statistics-Attractor-Embeddings-Reservoir-Computing?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://www.fields.utoronto.ca/talks/Statistics-Attractor-Embeddings-Reservoir-Computing?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 102px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "59111958-42a7-48c1-9d58-945812088f28",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "href": "https://www.fields.utoronto.ca/talks/Statistics-Attractor-Embeddings-Reservoir-Computing?utm_source=chatgpt.com",
+      "index": 23,
+      "rect": {
+        "bottom": -12580.59375,
+        "height": 18,
+        "left": 734.515625,
+        "right": 836.390625,
+        "top": -12598.59375,
+        "width": 101.875,
+        "x": 734.515625,
+        "y": -12598.59375
+      },
+      "text": "Fields Institute\n+1"
+    },
+    {
+      "attributes": {
+        "alt": "https://me.unm.edu/news/2025/02/mechanical-engineering-to-host-seminar-on-reservoir-computing.html?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://me.unm.edu/news/2025/02/mechanical-engineering-to-host-seminar-on-reservoir-computing.html?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 119px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "59111958-42a7-48c1-9d58-945812088f28",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "href": "https://me.unm.edu/news/2025/02/mechanical-engineering-to-host-seminar-on-reservoir-computing.html?utm_source=chatgpt.com",
+      "index": 24,
+      "rect": {
+        "bottom": -12398.59375,
+        "height": 18,
+        "left": 486,
+        "right": 604.28125,
+        "top": -12416.59375,
+        "width": 118.28125,
+        "x": 486,
+        "y": -12416.59375
+      },
+      "text": "Università del Nuovo Messico\n+1"
+    },
+    {
+      "attributes": {
+        "alt": "https://journals.aps.org/pre/abstract/10.1103/PhysRevE.52.3420?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://journals.aps.org/pre/abstract/10.1103/PhysRevE.52.3420?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 81px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "59111958-42a7-48c1-9d58-945812088f28",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "href": "https://journals.aps.org/pre/abstract/10.1103/PhysRevE.52.3420?utm_source=chatgpt.com",
+      "index": 25,
+      "rect": {
+        "bottom": -11720.171875,
+        "height": 18,
+        "left": 535.3125,
+        "right": 615.609375,
+        "top": -11738.171875,
+        "width": 80.296875,
+        "x": 535.3125,
+        "y": -11738.171875
+      },
+      "text": "APS Journals"
+    },
+    {
+      "attributes": {
+        "alt": "https://pubmed.ncbi.nlm.nih.gov/40737694/?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://pubmed.ncbi.nlm.nih.gov/40737694/?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 62px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "59111958-42a7-48c1-9d58-945812088f28",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "href": "https://pubmed.ncbi.nlm.nih.gov/40737694/?utm_source=chatgpt.com",
+      "index": 26,
+      "rect": {
+        "bottom": -11492.953125,
+        "height": 18,
+        "left": 454,
+        "right": 515.84375,
+        "top": -11510.953125,
+        "width": 61.84375,
+        "x": 454,
+        "y": -11510.953125
+      },
+      "text": "PubMed"
+    },
+    {
+      "attributes": {
+        "alt": "https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.80.2109?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.80.2109?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 95px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "59111958-42a7-48c1-9d58-945812088f28",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "href": "https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.80.2109?utm_source=chatgpt.com",
+      "index": 27,
+      "rect": {
+        "bottom": -11178.671875,
+        "height": 18,
+        "left": 904.21875,
+        "right": 998.671875,
+        "top": -11196.671875,
+        "width": 94.453125,
+        "x": 904.21875,
+        "y": -11196.671875
+      },
+      "text": "APS Journals\n+1"
+    },
+    {
+      "attributes": {
+        "alt": "https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.61.259?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.61.259?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 81px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-author-role": "assistant",
+          "data-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "href": "https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.61.259?utm_source=chatgpt.com",
+      "index": 28,
+      "rect": {
+        "bottom": -7882.546875,
+        "height": 18,
+        "left": 454,
+        "right": 534.296875,
+        "top": -7900.546875,
+        "width": 80.296875,
+        "x": 454,
+        "y": -7900.546875
+      },
+      "text": "APS Journals"
+    },
+    {
+      "attributes": {
+        "alt": "https://pubmed.ncbi.nlm.nih.gov/19709635/?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://pubmed.ncbi.nlm.nih.gov/19709635/?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 62px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-author-role": "assistant",
+          "data-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "href": "https://pubmed.ncbi.nlm.nih.gov/19709635/?utm_source=chatgpt.com",
+      "index": 29,
+      "rect": {
+        "bottom": -7788.546875,
+        "height": 18,
+        "left": 880.21875,
+        "right": 942.0625,
+        "top": -7806.546875,
+        "width": 61.84375,
+        "x": 880.21875,
+        "y": -7806.546875
+      },
+      "text": "PubMed"
+    },
+    {
+      "attributes": {
+        "alt": "https://www.sciencedirect.com/science/article/pii/S0893608024010086?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://www.sciencedirect.com/science/article/pii/S0893608024010086?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 83px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-author-role": "assistant",
+          "data-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "href": "https://www.sciencedirect.com/science/article/pii/S0893608024010086?utm_source=chatgpt.com",
+      "index": 30,
+      "rect": {
+        "bottom": -7597.328125,
+        "height": 18,
+        "left": 1001.125,
+        "right": 1084.09375,
+        "top": -7615.328125,
+        "width": 82.96875,
+        "x": 1001.125,
+        "y": -7615.328125
+      },
+      "text": "ScienceDirect"
+    },
+    {
+      "attributes": {
+        "alt": "https://www.frontiersin.org/journals/applied-mathematics-and-statistics/articles/10.3389/fams.2024.1221051/full?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://www.frontiersin.org/journals/applied-mathematics-and-statistics/articles/10.3389/fams.2024.1221051/full?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 65px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-author-role": "assistant",
+          "data-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "href": "https://www.frontiersin.org/journals/applied-mathematics-and-statistics/articles/10.3389/fams.2024.1221051/full?utm_source=chatgpt.com",
+      "index": 31,
+      "rect": {
+        "bottom": -7166.890625,
+        "height": 18,
+        "left": 582.921875,
+        "right": 647.328125,
+        "top": -7184.890625,
+        "width": 64.40625,
+        "x": 582.921875,
+        "y": -7184.890625
+      },
+      "text": "Frontiers"
+    },
+    {
+      "attributes": {
+        "alt": "https://openreview.net/pdf?id=H1W1UN9gg&utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://openreview.net/pdf?id=H1W1UN9gg&utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 80px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-author-role": "assistant",
+          "data-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "href": "https://openreview.net/pdf?id=H1W1UN9gg&utm_source=chatgpt.com",
+      "index": 32,
+      "rect": {
+        "bottom": -6751.671875,
+        "height": 18,
+        "left": 538.5,
+        "right": 617.953125,
+        "top": -6769.671875,
+        "width": 79.453125,
+        "x": 538.5,
+        "y": -6769.671875
+      },
+      "text": "OpenReview"
+    },
+    {
+      "attributes": {
+        "alt": "https://journals.aps.org/prresearch/abstract/10.1103/PhysRevResearch.4.013204",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://journals.aps.org/prresearch/abstract/10.1103/PhysRevResearch.4.013204",
+        "rel": "noopener",
+        "style": "max-width: 81px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-author-role": "assistant",
+          "data-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "href": "https://journals.aps.org/prresearch/abstract/10.1103/PhysRevResearch.4.013204",
+      "index": 33,
+      "rect": {
+        "bottom": -6016.09375,
+        "height": 18,
+        "left": 489.453125,
+        "right": 569.75,
+        "top": -6034.09375,
+        "width": 80.296875,
+        "x": 489.453125,
+        "y": -6034.09375
+      },
+      "text": "APS Journals"
+    },
+    {
+      "attributes": {
+        "alt": "https://globals.ieice.org/en_journal/ieice_journal/2026/k109_2_125/_f?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://globals.ieice.org/en_journal/ieice_journal/2026/k109_2_125/_f?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 105px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-author-role": "assistant",
+          "data-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "href": "https://globals.ieice.org/en_journal/ieice_journal/2026/k109_2_125/_f?utm_source=chatgpt.com",
+      "index": 34,
+      "rect": {
+        "bottom": -5520.921875,
+        "height": 18,
+        "left": 923.765625,
+        "right": 1027.890625,
+        "top": -5538.921875,
+        "width": 104.125,
+        "x": 923.765625,
+        "y": -5538.921875
+      },
+      "text": "Transactions Online"
+    },
+    {
+      "attributes": {
+        "alt": "https://aclanthology.org/2021.acl-long.331/?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://aclanthology.org/2021.acl-long.331/?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 88px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-author-role": "assistant",
+          "data-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "href": "https://aclanthology.org/2021.acl-long.331/?utm_source=chatgpt.com",
+      "index": 35,
+      "rect": {
+        "bottom": -5064.703125,
+        "height": 18,
+        "left": 529.390625,
+        "right": 617.359375,
+        "top": -5082.703125,
+        "width": 87.96875,
+        "x": 529.390625,
+        "y": -5082.703125
+      },
+      "text": "ACL Anthology"
+    },
+    {
+      "attributes": {
+        "alt": "https://journals.aps.org/prapplied/abstract/10.1103/sd11-x3ny",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://journals.aps.org/prapplied/abstract/10.1103/sd11-x3ny",
+        "rel": "noopener",
+        "style": "max-width: 81px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-author-role": "assistant",
+          "data-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "href": "https://journals.aps.org/prapplied/abstract/10.1103/sd11-x3ny",
+      "index": 36,
+      "rect": {
+        "bottom": -4443.046875,
+        "height": 18,
+        "left": 917.28125,
+        "right": 997.578125,
+        "top": -4461.046875,
+        "width": 80.296875,
+        "x": 917.28125,
+        "y": -4461.046875
+      },
+      "text": "APS Journals"
+    },
+    {
+      "attributes": {
+        "alt": "https://proceedings.mlr.press/v267/abella25a.html?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://proceedings.mlr.press/v267/abella25a.html?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 105px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-author-role": "assistant",
+          "data-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "href": "https://proceedings.mlr.press/v267/abella25a.html?utm_source=chatgpt.com",
+      "index": 37,
+      "rect": {
+        "bottom": -3884.046875,
+        "height": 18,
+        "left": 970.171875,
+        "right": 1074.296875,
+        "top": -3902.046875,
+        "width": 104.125,
+        "x": 970.171875,
+        "y": -3902.046875
+      },
+      "text": "Proceedings of Machine Learning Research"
+    },
+    {
+      "attributes": {
+        "alt": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12165151/?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12165151/?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 105px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-author-role": "assistant",
+          "data-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "href": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12165151/?utm_source=chatgpt.com",
+      "index": 38,
+      "rect": {
+        "bottom": -2250.328125,
+        "height": 18,
+        "left": 567.5,
+        "right": 671.625,
+        "top": -2268.328125,
+        "width": 104.125,
+        "x": 567.5,
+        "y": -2268.328125
+      },
+      "text": "PubMed Central (PMC)"
+    },
+    {
+      "attributes": {
+        "alt": "https://aclanthology.org/2024.emnlp-main.842/?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://aclanthology.org/2024.emnlp-main.842/?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 88px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-author-role": "assistant",
+          "data-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "href": "https://aclanthology.org/2024.emnlp-main.842/?utm_source=chatgpt.com",
+      "index": 39,
+      "rect": {
+        "bottom": -1446.890625,
+        "height": 18,
+        "left": 642.765625,
+        "right": 730.734375,
+        "top": -1464.890625,
+        "width": 87.96875,
+        "x": 642.765625,
+        "y": -1464.890625
+      },
+      "text": "ACL Anthology"
+    },
+    {
+      "attributes": {
+        "alt": "https://proceedings.mlr.press/v267/he25s.html?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://proceedings.mlr.press/v267/he25s.html?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 105px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-author-role": "assistant",
+          "data-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "href": "https://proceedings.mlr.press/v267/he25s.html?utm_source=chatgpt.com",
+      "index": 40,
+      "rect": {
+        "bottom": -1352.890625,
+        "height": 18,
+        "left": 684.671875,
+        "right": 788.796875,
+        "top": -1370.890625,
+        "width": 104.125,
+        "x": 684.671875,
+        "y": -1370.890625
+      },
+      "text": "Proceedings of Machine Learning Research"
+    },
+    {
+      "attributes": {
+        "alt": "https://www.nature.com/articles/s41467-025-63019-8?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://www.nature.com/articles/s41467-025-63019-8?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 57px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-author-role": "assistant",
+          "data-message-id": "095581f0-5025-43a8-a941-4ed208453e0c",
+          "data-message-model-slug": "gpt-5-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "href": "https://www.nature.com/articles/s41467-025-63019-8?utm_source=chatgpt.com",
+      "index": 41,
+      "rect": {
+        "bottom": -1177.671875,
+        "height": 18,
+        "left": 776.03125,
+        "right": 832.140625,
+        "top": -1195.671875,
+        "width": 56.109375,
+        "x": 776.03125,
+        "y": -1195.671875
+      },
+      "text": "Nature"
+    }
+  ]
+}

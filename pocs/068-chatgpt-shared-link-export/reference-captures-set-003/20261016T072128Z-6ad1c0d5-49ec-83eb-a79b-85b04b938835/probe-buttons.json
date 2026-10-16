@@ -1,0 +1,1190 @@
+{
+  "ok": true,
+  "value": [
+    {
+      "attributes": {
+        "aria-controls": "stage-slideover-sidebar",
+        "aria-expanded": "false",
+        "aria-label": "Apri barra laterale",
+        "class": "text-token-text-primary contrast-high:not-dark:keyboard-focused:focus-ring no-draggable hover:bg-token-surface-hover keyboard-focused:bg-token-surface-hover touch:h-10 touch:w-10 flex h-9 w-9 items-center justify-center rounded-lg outline-none disabled:opacity-50 group/open-sidebar mx-2 cursor-e-resize rtl:cursor-w-resize"
+      },
+      "context": null,
+      "index": 0,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 8,
+        "right": 44,
+        "top": 8,
+        "width": 36,
+        "x": 8,
+        "y": 8
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2 w-full",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0",
+        "type": "button"
+      },
+      "context": null,
+      "index": 1,
+      "rect": {
+        "bottom": 132,
+        "height": 36,
+        "left": 6,
+        "right": 46,
+        "top": 96,
+        "width": 40,
+        "x": 6,
+        "y": 96
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Cerca chat",
+        "class": "text-token-text-tertiary contrast-high:not-dark:keyboard-focused:focus-ring no-draggable hover:bg-token-surface-hover keyboard-focused:bg-token-surface-hover touch:h-10 touch:w-10 flex h-9 w-9 items-center justify-center rounded-lg outline-none disabled:opacity-50",
+        "data-state": "closed"
+      },
+      "context": null,
+      "index": 2,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 180,
+        "right": 216,
+        "top": 8,
+        "width": 36,
+        "x": 180,
+        "y": 8
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-controls": "stage-slideover-sidebar",
+        "aria-expanded": "true",
+        "aria-label": "Chiudi barra laterale",
+        "class": "text-token-text-tertiary contrast-high:not-dark:keyboard-focused:focus-ring no-draggable hover:bg-token-surface-hover keyboard-focused:bg-token-surface-hover touch:h-10 touch:w-10 flex h-9 w-9 items-center justify-center rounded-lg outline-none disabled:opacity-50 no-draggable cursor-w-resize rtl:cursor-e-resize",
+        "data-state": "closed",
+        "data-testid": "close-sidebar-button"
+      },
+      "context": null,
+      "index": 3,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 216,
+        "right": 252,
+        "top": 8,
+        "width": 36,
+        "x": 216,
+        "y": 8
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-secondary btn-large w-full"
+      },
+      "context": null,
+      "index": 4,
+      "rect": {
+        "bottom": 814,
+        "height": 44,
+        "left": 14,
+        "right": 246,
+        "top": 770,
+        "width": 232,
+        "x": 14,
+        "y": 770
+      },
+      "text": "Accedi"
+    },
+    {
+      "attributes": {
+        "aria-expanded": "false",
+        "aria-haspopup": "menu",
+        "aria-label": "Selettore di modelli",
+        "class": "group flex cursor-pointer justify-center items-center gap-1 rounded-lg min-h-9 touch:min-h-10 px-2.5 text-lg hover:bg-token-surface-hover focus-visible:bg-token-surface-hover font-normal whitespace-nowrap focus-visible:outline-none",
+        "data-state": "closed",
+        "data-testid": "model-switcher-dropdown-button",
+        "id": "radix-_r_f_",
+        "style": "view-transition-name: var(--vt-thread-model-switcher);",
+        "type": "button"
+      },
+      "context": null,
+      "index": 5,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 283,
+        "right": 398.234375,
+        "top": 8,
+        "width": 115.234375,
+        "x": 283,
+        "y": 8
+      },
+      "text": "ChatGPT"
+    },
+    {
+      "attributes": {
+        "aria-label": "Condividi",
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-ghost rounded-lg",
+        "data-testid": "receiver-share-button",
+        "type": "button"
+      },
+      "context": null,
+      "index": 6,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 886.546875,
+        "right": 996,
+        "top": 8,
+        "width": 109.453125,
+        "x": 886.546875,
+        "y": 8
+      },
+      "text": "Condividi"
+    },
+    {
+      "attributes": {
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-primary",
+        "data-testid": "login-button"
+      },
+      "context": null,
+      "index": 7,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 996,
+        "right": 1064.171875,
+        "top": 8,
+        "width": 68.171875,
+        "x": 996,
+        "y": 8
+      },
+      "text": "Accedi"
+    },
+    {
+      "attributes": {
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-secondary screen-arch:hidden md:screen-arch:flex max-xs:hidden",
+        "data-testid": "signup-button"
+      },
+      "context": null,
+      "index": 8,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 1072.171875,
+        "right": 1257,
+        "top": 8,
+        "width": 184.828125,
+        "x": 1072.171875,
+        "y": 8
+      },
+      "text": "Registrati gratuitamente"
+    },
+    {
+      "attributes": {},
+      "context": null,
+      "index": 9,
+      "rect": {
+        "bottom": -16889,
+        "height": 16,
+        "left": 700.515625,
+        "right": 839.46875,
+        "top": -16905,
+        "width": 138.953125,
+        "x": 700.515625,
+        "y": -16905
+      },
+      "text": "Segnala la conversazione"
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 1",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "0",
+        "type": "button"
+      },
+      "context": null,
+      "index": 10,
+      "rect": {
+        "bottom": 318,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 316,
+        "width": 18,
+        "x": 1237,
+        "y": 316
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 2",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "1",
+        "type": "button"
+      },
+      "context": null,
+      "index": 11,
+      "rect": {
+        "bottom": 328,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 326,
+        "width": 18,
+        "x": 1237,
+        "y": 326
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 3",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "2",
+        "type": "button"
+      },
+      "context": null,
+      "index": 12,
+      "rect": {
+        "bottom": 338,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 336,
+        "width": 18,
+        "x": 1237,
+        "y": 336
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 4",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "3",
+        "type": "button"
+      },
+      "context": null,
+      "index": 13,
+      "rect": {
+        "bottom": 348,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 346,
+        "width": 18,
+        "x": 1237,
+        "y": 346
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 5",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "4",
+        "type": "button"
+      },
+      "context": null,
+      "index": 14,
+      "rect": {
+        "bottom": 358,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 356,
+        "width": 18,
+        "x": 1237,
+        "y": 356
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 6",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "5",
+        "type": "button"
+      },
+      "context": null,
+      "index": 15,
+      "rect": {
+        "bottom": 368,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 366,
+        "width": 18,
+        "x": 1237,
+        "y": 366
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 7",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "6",
+        "type": "button"
+      },
+      "context": null,
+      "index": 16,
+      "rect": {
+        "bottom": 378,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 376,
+        "width": 18,
+        "x": 1237,
+        "y": 376
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 8",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "7",
+        "type": "button"
+      },
+      "context": null,
+      "index": 17,
+      "rect": {
+        "bottom": 388,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 386,
+        "width": 18,
+        "x": 1237,
+        "y": 386
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 9",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "8",
+        "type": "button"
+      },
+      "context": null,
+      "index": 18,
+      "rect": {
+        "bottom": 398,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 396,
+        "width": 18,
+        "x": 1237,
+        "y": 396
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 10",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "9",
+        "type": "button"
+      },
+      "context": null,
+      "index": 19,
+      "rect": {
+        "bottom": 408,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 406,
+        "width": 18,
+        "x": 1237,
+        "y": 406
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 11",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "10",
+        "type": "button"
+      },
+      "context": null,
+      "index": 20,
+      "rect": {
+        "bottom": 418,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 416,
+        "width": 18,
+        "x": 1237,
+        "y": 416
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 12",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "11",
+        "type": "button"
+      },
+      "context": null,
+      "index": 21,
+      "rect": {
+        "bottom": 428,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 426,
+        "width": 18,
+        "x": 1237,
+        "y": 426
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 13",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "12",
+        "type": "button"
+      },
+      "context": null,
+      "index": 22,
+      "rect": {
+        "bottom": 438,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 436,
+        "width": 18,
+        "x": 1237,
+        "y": 436
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 14",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "13",
+        "type": "button"
+      },
+      "context": null,
+      "index": 23,
+      "rect": {
+        "bottom": 448,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 446,
+        "width": 18,
+        "x": 1237,
+        "y": 446
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 15",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "14",
+        "type": "button"
+      },
+      "context": null,
+      "index": 24,
+      "rect": {
+        "bottom": 458,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 456,
+        "width": 18,
+        "x": 1237,
+        "y": 456
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 16",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "15",
+        "type": "button"
+      },
+      "context": null,
+      "index": 25,
+      "rect": {
+        "bottom": 468,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 466,
+        "width": 18,
+        "x": 1237,
+        "y": 466
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 17",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "16",
+        "type": "button"
+      },
+      "context": null,
+      "index": 26,
+      "rect": {
+        "bottom": 478,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 476,
+        "width": 18,
+        "x": 1237,
+        "y": 476
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 18",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "17",
+        "type": "button"
+      },
+      "context": null,
+      "index": 27,
+      "rect": {
+        "bottom": 488,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 486,
+        "width": 18,
+        "x": 1237,
+        "y": 486
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 19",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-primary",
+        "data-toc-active": "",
+        "data-toc-item-index": "18",
+        "type": "button"
+      },
+      "context": null,
+      "index": 28,
+      "rect": {
+        "bottom": 498,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 496,
+        "width": 18,
+        "x": 1237,
+        "y": 496
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 20",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "19",
+        "type": "button"
+      },
+      "context": null,
+      "index": 29,
+      "rect": {
+        "bottom": 508,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 506,
+        "width": 18,
+        "x": 1237,
+        "y": 506
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 21",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "20",
+        "type": "button"
+      },
+      "context": null,
+      "index": 30,
+      "rect": {
+        "bottom": 518,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 516,
+        "width": 18,
+        "x": 1237,
+        "y": 516
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-expanded": "false",
+        "class": "flex items-center gap-1 text-start select-none text-token-text-tertiary dark:text-(--interactive-label-tertiary-default) hover:text-token-text-primary dark:hover:text-token-text-primary",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-36",
+          "data-turn": "assistant",
+          "data-turn-id": "7b37d263-7060-4d96-a0cd-7db5cc96b550",
+          "data-turn-id-container": "7b37d263-7060-4d96-a0cd-7db5cc96b550",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 31,
+      "rect": {
+        "bottom": -1802,
+        "height": 24,
+        "left": 450,
+        "right": 623.109375,
+        "top": -1826,
+        "width": 173.109375,
+        "x": 450,
+        "y": -1826
+      },
+      "text": "Elaborato per 2m 41s"
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia risposta",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-36",
+          "data-turn": "assistant",
+          "data-turn-id": "7b37d263-7060-4d96-a0cd-7db5cc96b550",
+          "data-turn-id-container": "7b37d263-7060-4d96-a0cd-7db5cc96b550",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 32,
+      "rect": {
+        "bottom": -49.5,
+        "height": 32,
+        "left": 444,
+        "right": 476,
+        "top": -81.5,
+        "width": 32,
+        "x": 444,
+        "y": -81.5
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Fonti",
+        "class": "group/footnote bg-transparent hover:bg-token-surface-hover flex w-fit items-center gap-1.5 rounded-lg py-1.5 ps-3 pe-3",
+        "style": "opacity: 1;",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-36",
+          "data-turn": "assistant",
+          "data-turn-id": "7b37d263-7060-4d96-a0cd-7db5cc96b550",
+          "data-turn-id-container": "7b37d263-7060-4d96-a0cd-7db5cc96b550",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 33,
+      "rect": {
+        "bottom": -49.5,
+        "height": 32,
+        "left": 476,
+        "right": 564.890625,
+        "top": -81.5,
+        "width": 88.890625,
+        "x": 476,
+        "y": -81.5
+      },
+      "text": "Fonti"
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia messaggio",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-37",
+          "data-turn": "user",
+          "data-turn-id": "0d5083ff-480a-470e-bf70-dfd7adda4a0c",
+          "data-turn-id-container": "0d5083ff-480a-470e-bf70-dfd7adda4a0c",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 34,
+      "rect": {
+        "bottom": 135.5,
+        "height": 32,
+        "left": 1058,
+        "right": 1090,
+        "top": 103.5,
+        "width": 32,
+        "x": 1058,
+        "y": 103.5
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-expanded": "false",
+        "class": "flex items-center gap-1 text-start select-none text-token-text-tertiary dark:text-(--interactive-label-tertiary-default) hover:text-token-text-primary dark:hover:text-token-text-primary",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-38",
+          "data-turn": "assistant",
+          "data-turn-id": "95e8474c-b9c9-43f0-97a8-d730b0c518df",
+          "data-turn-id-container": "95e8474c-b9c9-43f0-97a8-d730b0c518df",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 35,
+      "rect": {
+        "bottom": 163.5,
+        "height": 24,
+        "left": 450,
+        "right": 596.609375,
+        "top": 139.5,
+        "width": 146.609375,
+        "x": 450,
+        "y": 139.5
+      },
+      "text": "Elaborato per 40s"
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia risposta",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-38",
+          "data-turn": "assistant",
+          "data-turn-id": "95e8474c-b9c9-43f0-97a8-d730b0c518df",
+          "data-turn-id-container": "95e8474c-b9c9-43f0-97a8-d730b0c518df",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 36,
+      "rect": {
+        "bottom": 3011.375,
+        "height": 32,
+        "left": 444,
+        "right": 476,
+        "top": 2979.375,
+        "width": 32,
+        "x": 444,
+        "y": 2979.375
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Fonti",
+        "class": "group/footnote bg-transparent hover:bg-token-surface-hover flex w-fit items-center gap-1.5 rounded-lg py-1.5 ps-3 pe-3",
+        "style": "opacity: 1;",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-38",
+          "data-turn": "assistant",
+          "data-turn-id": "95e8474c-b9c9-43f0-97a8-d730b0c518df",
+          "data-turn-id-container": "95e8474c-b9c9-43f0-97a8-d730b0c518df",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 37,
+      "rect": {
+        "bottom": 3011.375,
+        "height": 32,
+        "left": 476,
+        "right": 578.890625,
+        "top": 2979.375,
+        "width": 102.890625,
+        "x": 476,
+        "y": 2979.375
+      },
+      "text": "Fonti"
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia messaggio",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-39",
+          "data-turn": "user",
+          "data-turn-id": "fb04b2b6-51c8-4b38-a7e7-1510e338be08",
+          "data-turn-id-container": "fb04b2b6-51c8-4b38-a7e7-1510e338be08",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 38,
+      "rect": {
+        "bottom": 3172.375,
+        "height": 32,
+        "left": 1058,
+        "right": 1090,
+        "top": 3140.375,
+        "width": 32,
+        "x": 1058,
+        "y": 3140.375
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-expanded": "false",
+        "class": "flex items-center gap-1 text-start select-none text-token-text-tertiary dark:text-(--interactive-label-tertiary-default) hover:text-token-text-primary dark:hover:text-token-text-primary",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-40",
+          "data-turn": "assistant",
+          "data-turn-id": "e054e4da-dc24-471e-b572-f124ea61d485",
+          "data-turn-id-container": "e054e4da-dc24-471e-b572-f124ea61d485",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 39,
+      "rect": {
+        "bottom": 3200.375,
+        "height": 24,
+        "left": 450,
+        "right": 596.609375,
+        "top": 3176.375,
+        "width": 146.609375,
+        "x": 450,
+        "y": 3176.375
+      },
+      "text": "Elaborato per 50s"
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia risposta",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-40",
+          "data-turn": "assistant",
+          "data-turn-id": "e054e4da-dc24-471e-b572-f124ea61d485",
+          "data-turn-id-container": "e054e4da-dc24-471e-b572-f124ea61d485",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 40,
+      "rect": {
+        "bottom": 7785.078125,
+        "height": 32,
+        "left": 444,
+        "right": 476,
+        "top": 7753.078125,
+        "width": 32,
+        "x": 444,
+        "y": 7753.078125
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Fonti",
+        "class": "group/footnote bg-transparent hover:bg-token-surface-hover flex w-fit items-center gap-1.5 rounded-lg py-1.5 ps-3 pe-3",
+        "style": "opacity: 1;",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-40",
+          "data-turn": "assistant",
+          "data-turn-id": "e054e4da-dc24-471e-b572-f124ea61d485",
+          "data-turn-id-container": "e054e4da-dc24-471e-b572-f124ea61d485",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 41,
+      "rect": {
+        "bottom": 7785.078125,
+        "height": 32,
+        "left": 476,
+        "right": 578.890625,
+        "top": 7753.078125,
+        "width": 102.890625,
+        "x": 476,
+        "y": 7753.078125
+      },
+      "text": "Fonti"
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia messaggio",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-41",
+          "data-turn": "user",
+          "data-turn-id": "e6e5ffba-6ec5-4371-8a54-92a7a7489171",
+          "data-turn-id-container": "e6e5ffba-6ec5-4371-8a54-92a7a7489171",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 42,
+      "rect": {
+        "bottom": 7922.078125,
+        "height": 32,
+        "left": 1058,
+        "right": 1090,
+        "top": 7890.078125,
+        "width": 32,
+        "x": 1058,
+        "y": 7890.078125
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-expanded": "false",
+        "class": "flex items-center gap-1 text-start select-none text-token-text-tertiary dark:text-(--interactive-label-tertiary-default) hover:text-token-text-primary dark:hover:text-token-text-primary",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-42",
+          "data-turn": "assistant",
+          "data-turn-id": "d4032de0-e24f-4db3-b27e-a60e28e16abc",
+          "data-turn-id-container": "d4032de0-e24f-4db3-b27e-a60e28e16abc",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 43,
+      "rect": {
+        "bottom": 7950.078125,
+        "height": 24,
+        "left": 450,
+        "right": 596.609375,
+        "top": 7926.078125,
+        "width": 146.609375,
+        "x": 450,
+        "y": 7926.078125
+      },
+      "text": "Elaborato per 27s"
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia risposta",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-42",
+          "data-turn": "assistant",
+          "data-turn-id": "d4032de0-e24f-4db3-b27e-a60e28e16abc",
+          "data-turn-id-container": "d4032de0-e24f-4db3-b27e-a60e28e16abc",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 44,
+      "rect": {
+        "bottom": 11504.9375,
+        "height": 32,
+        "left": 444,
+        "right": 476,
+        "top": 11472.9375,
+        "width": 32,
+        "x": 444,
+        "y": 11472.9375
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Fonti",
+        "class": "group/footnote bg-transparent hover:bg-token-surface-hover flex w-fit items-center gap-1.5 rounded-lg py-1.5 ps-3 pe-3",
+        "style": "opacity: 1;",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-42",
+          "data-turn": "assistant",
+          "data-turn-id": "d4032de0-e24f-4db3-b27e-a60e28e16abc",
+          "data-turn-id-container": "d4032de0-e24f-4db3-b27e-a60e28e16abc",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 45,
+      "rect": {
+        "bottom": 11504.9375,
+        "height": 32,
+        "left": 476,
+        "right": 578.890625,
+        "top": 11472.9375,
+        "width": 102.890625,
+        "x": 476,
+        "y": 11472.9375
+      },
+      "text": "Fonti"
+    },
+    {
+      "attributes": {
+        "aria-hidden": "true",
+        "class": "relative flex h-8 w-8 cursor-pointer items-center justify-center overflow-hidden rounded-full outline-hidden select-none btn-secondary bg-token-bg-primary/65! hover:bg-token-main-surface-secondary/75! shadow-short box-content backdrop-blur-[2px] backdrop-filter sm:shadow-md dark:shadow-none! group-data-stream-active/scroll-root:squircle *:absolute *:inset-0 *:m-auto group-data-stream-active/scroll-root:w-10 motion-safe:transition-[width] motion-safe:duration-120 motion-safe:ease-out *:motion-safe:transition-opacity *:motion-safe:duration-120 *:motion-safe:ease-out absolute start-1/2 z-10 -translate-x-1/2 bottom-[calc(100%+3*var(--spacing)+var(--thread-scroll-to-bottom-banner-offset,0px))]",
+        "tabindex": "-1"
+      },
+      "context": null,
+      "index": 46,
+      "rect": {
+        "bottom": 734,
+        "height": 34,
+        "left": 753,
+        "right": 787,
+        "top": 700,
+        "width": 34,
+        "x": 753,
+        "y": 700
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-describedby": "_r_n_",
+        "aria-expanded": "false",
+        "aria-haspopup": "menu",
+        "aria-label": "Aggiungi file e altro",
+        "class": "composer-btn",
+        "data-testid": "composer-plus-btn",
+        "id": "composer-plus-btn",
+        "interestfor": "_r_n_",
+        "type": "button"
+      },
+      "context": null,
+      "index": 47,
+      "rect": {
+        "bottom": 801.984375,
+        "height": 36,
+        "left": 458,
+        "right": 494,
+        "top": 765.984375,
+        "width": 36,
+        "x": 458,
+        "y": 765.984375
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-describedby": "_r_o_",
+        "aria-label": "Avvia Voce",
+        "class": "relative flex h-9 items-center justify-center rounded-full w-9 composer-submit-button-color border border-transparent disabled:cursor-not-allowed disabled:opacity-50 hover:opacity-70 disabled:opacity-30! can-hover:relative can-hover:after:absolute can-hover:after:-inset-x-1 can-hover:after:inset-y-0 can-hover:after:content-['']",
+        "data-testid": "composer-speech-button",
+        "interestfor": "_r_o_",
+        "style": "view-transition-name: var(--vt-composer-speech-button);"
+      },
+      "context": null,
+      "index": 48,
+      "rect": {
+        "bottom": 801.984375,
+        "height": 36,
+        "left": 1046,
+        "right": 1082,
+        "top": 765.984375,
+        "width": 36,
+        "x": 1046,
+        "y": 765.984375
+      },
+      "text": ""
+    }
+  ]
+}

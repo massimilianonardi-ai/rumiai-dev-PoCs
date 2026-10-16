@@ -1,0 +1,15 @@
+[
+  {
+    "attributes": {
+      "id": "client-bootstrap",
+      "nonce": "",
+      "type": "application/json"
+    },
+    "id": "client-bootstrap",
+    "index": 0,
+    "textLength": 479599,
+    "local_path": "inline-json/001.json.txt",
+    "byte_length": 479629,
+    "capture_error": null
+  }
+]

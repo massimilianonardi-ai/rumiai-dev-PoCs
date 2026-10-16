@@ -1,0 +1,68 @@
+[
+  {
+    "index": 0,
+    "url": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=128",
+    "evidence": [
+      {
+        "index": 0,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 0,
+        "kind": "img-src"
+      },
+      {
+        "index": 1,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 1,
+        "kind": "img-src"
+      },
+      {
+        "index": 39,
+        "kind": "performance-img"
+      }
+    ],
+    "status": null,
+    "final_url": null,
+    "redirected": false,
+    "content_type": null,
+    "content_disposition": null,
+    "byte_length": null,
+    "too_large": false,
+    "failed": true,
+    "error": "Failed to fetch",
+    "sha256": null,
+    "local_path": null
+  },
+  {
+    "index": 1,
+    "url": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32",
+    "evidence": [
+      {
+        "index": 2,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 2,
+        "kind": "img-src"
+      },
+      {
+        "index": 49,
+        "kind": "performance-img"
+      }
+    ],
+    "status": null,
+    "final_url": null,
+    "redirected": false,
+    "content_type": null,
+    "content_disposition": null,
+    "byte_length": null,
+    "too_large": false,
+    "failed": true,
+    "error": "Failed to fetch",
+    "sha256": null,
+    "local_path": null
+  }
+]

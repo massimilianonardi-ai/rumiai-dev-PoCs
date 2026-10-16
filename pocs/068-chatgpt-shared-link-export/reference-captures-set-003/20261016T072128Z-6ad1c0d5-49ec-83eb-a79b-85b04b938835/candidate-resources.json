@@ -1,0 +1,503 @@
+[
+  {
+    "index": 0,
+    "url": "https://www.google.com/s2/favicons?domain=https://huggingface.co&sz=32",
+    "evidence": [
+      {
+        "index": 0,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 0,
+        "kind": "img-src"
+      },
+      {
+        "index": 1,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 1,
+        "kind": "img-src"
+      },
+      {
+        "index": 2,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 2,
+        "kind": "img-src"
+      },
+      {
+        "index": 4,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 4,
+        "kind": "img-src"
+      },
+      {
+        "index": 15,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 15,
+        "kind": "img-src"
+      },
+      {
+        "index": 16,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 16,
+        "kind": "img-src"
+      },
+      {
+        "index": 9,
+        "kind": "performance-img"
+      }
+    ],
+    "status": null,
+    "final_url": null,
+    "redirected": false,
+    "content_type": null,
+    "content_disposition": null,
+    "byte_length": null,
+    "too_large": false,
+    "failed": true,
+    "error": "Failed to fetch",
+    "sha256": null,
+    "local_path": null
+  },
+  {
+    "index": 1,
+    "url": "https://www.google.com/s2/favicons?domain=https://www.nature.com&sz=32",
+    "evidence": [
+      {
+        "index": 3,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 3,
+        "kind": "img-src"
+      },
+      {
+        "index": 10,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 10,
+        "kind": "img-src"
+      },
+      {
+        "index": 20,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 20,
+        "kind": "img-src"
+      },
+      {
+        "index": 8,
+        "kind": "performance-img"
+      }
+    ],
+    "status": null,
+    "final_url": null,
+    "redirected": false,
+    "content_type": null,
+    "content_disposition": null,
+    "byte_length": null,
+    "too_large": false,
+    "failed": true,
+    "error": "Failed to fetch",
+    "sha256": null,
+    "local_path": null
+  },
+  {
+    "index": 2,
+    "url": "https://www.google.com/s2/favicons?domain=https://research.google&sz=32",
+    "evidence": [
+      {
+        "index": 5,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 5,
+        "kind": "img-src"
+      },
+      {
+        "index": 12,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 12,
+        "kind": "img-src"
+      },
+      {
+        "index": 13,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 13,
+        "kind": "img-src"
+      },
+      {
+        "index": 22,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 22,
+        "kind": "img-src"
+      },
+      {
+        "index": 2,
+        "kind": "performance-img"
+      }
+    ],
+    "status": null,
+    "final_url": null,
+    "redirected": false,
+    "content_type": null,
+    "content_disposition": null,
+    "byte_length": null,
+    "too_large": false,
+    "failed": true,
+    "error": "Failed to fetch",
+    "sha256": null,
+    "local_path": null
+  },
+  {
+    "index": 3,
+    "url": "https://www.google.com/s2/favicons?domain=https://arxiv.org&sz=32",
+    "evidence": [
+      {
+        "index": 6,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 6,
+        "kind": "img-src"
+      },
+      {
+        "index": 11,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 11,
+        "kind": "img-src"
+      },
+      {
+        "index": 17,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 17,
+        "kind": "img-src"
+      }
+    ],
+    "status": null,
+    "final_url": null,
+    "redirected": false,
+    "content_type": null,
+    "content_disposition": null,
+    "byte_length": null,
+    "too_large": false,
+    "failed": true,
+    "error": "Failed to fetch",
+    "sha256": null,
+    "local_path": null
+  },
+  {
+    "index": 4,
+    "url": "https://www.google.com/s2/favicons?domain=https://github.com&sz=32",
+    "evidence": [
+      {
+        "index": 7,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 7,
+        "kind": "img-src"
+      },
+      {
+        "index": 8,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 8,
+        "kind": "img-src"
+      },
+      {
+        "index": 9,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 9,
+        "kind": "img-src"
+      },
+      {
+        "index": 14,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 14,
+        "kind": "img-src"
+      },
+      {
+        "index": 18,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 18,
+        "kind": "img-src"
+      },
+      {
+        "index": 15,
+        "kind": "performance-img"
+      }
+    ],
+    "status": null,
+    "final_url": null,
+    "redirected": false,
+    "content_type": null,
+    "content_disposition": null,
+    "byte_length": null,
+    "too_large": false,
+    "failed": true,
+    "error": "Failed to fetch",
+    "sha256": null,
+    "local_path": null
+  },
+  {
+    "index": 5,
+    "url": "data:image/svg+xml;charset=utf-8,%3Csvg%20font-family%3D%22-apple-system-body%2C%20ui-sans-serif%2C%20-apple-system%2C%20system-ui%2C%20%26quot%3BSegoe%20UI%26quot%3B%2C%20Helvetica%2C%20%26quot%3BApple%20Color%20Emoji%26quot%3B%2C%20Arial%2C%20sans-serif%2C%20%26quot%3BSegoe%20UI%20Emoji%26quot%3B%2C%20%26quot%3BSegoe%20UI%20Symbol%26quot%3B%22%20font-weight%3D%22400%22%20data-d-component%3D%22svg%22%20fill%3D%22currentColor%22%20style%3D%22color%3Argb(13%2C%2013%2C%2013)%22%20viewBox%3D%220%200%20340%20190%22%20width%3D%22100%25%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cline%20x1%3D%2245%22%20y1%3D%2249%22%20x2%3D%22163%22%20y2%3D%2231%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2249%22%20x2%3D%22163%22%20y2%3D%2268%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2249%22%20x2%3D%22163%22%20y2%3D%22105%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2249%22%20x2%3D%22163%22%20y2%3D%22142%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2292%22%20x2%3D%22163%22%20y2%3D%2231%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2292%22%20x2%3D%22163%22%20y2%3D%2268%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2292%22%20x2%3D%22163%22%20y2%3D%22105%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%2292%22%20x2%3D%22163%22%20y2%3D%22142%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%22135%22%20x2%3D%22163%22%20y2%3D%2231%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%22135%22%20x2%3D%22163%22%20y2%3D%2268%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%22135%22%20x2%3D%22163%22%20y2%3D%22105%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%2245%22%20y1%3D%22135%22%20x2%3D%22163%22%20y2%3D%22142%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2231%22%20x2%3D%22292%22%20y2%3D%2249%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2231%22%20x2%3D%22292%22%20y2%3D%2292%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2231%22%20x2%3D%22292%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2268%22%20x2%3D%22292%22%20y2%3D%2249%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2268%22%20x2%3D%22292%22%20y2%3D%2292%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%2268%22%20x2%3D%22292%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22105%22%20x2%3D%22292%22%20y2%3D%2249%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22105%22%20x2%3D%22292%22%20y2%3D%2292%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22105%22%20x2%3D%22292%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22142%22%20x2%3D%22292%22%20y2%3D%2249%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22142%22%20x2%3D%22292%22%20y2%3D%2292%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Cline%20x1%3D%22163%22%20y1%3D%22142%22%20x2%3D%22292%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.12%22%2F%3E%3Ccircle%20cx%3D%2245%22%20cy%3D%2249%22%20r%3D%2211%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%22292%22%20cy%3D%2249%22%20r%3D%2211%22%20fill%3D%22%230d9488%22%2F%3E%3Ccircle%20cx%3D%2245%22%20cy%3D%2292%22%20r%3D%2211%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%22292%22%20cy%3D%2292%22%20r%3D%2211%22%20fill%3D%22%230d9488%22%2F%3E%3Ccircle%20cx%3D%2245%22%20cy%3D%22135%22%20r%3D%2211%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%22292%22%20cy%3D%22135%22%20r%3D%2211%22%20fill%3D%22%230d9488%22%2F%3E%3Ccircle%20cx%3D%22163%22%20cy%3D%2231%22%20r%3D%2212%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%22163%22%20cy%3D%2268%22%20r%3D%2212%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%22163%22%20cy%3D%22105%22%20r%3D%2212%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%22163%22%20cy%3D%22142%22%20r%3D%2212%22%20fill%3D%22%232563eb%22%2F%3E%3Cpath%20d%3D%22M%20163%2019%20C%20205%20-2%2C%20228%208%2C%20224%2048%20C%20222%2067%2C%20204%2068%2C%20181%2064%22%20stroke%3D%22%23d97706%22%20stroke-width%3D%222.5%22%20stroke-dasharray%3D%225%203%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M181%2064%20L190%2053%20L192%2068%20Z%22%20fill%3D%22%23d97706%22%2F%3E%3Ctext%20x%3D%2245%22%20y%3D%22181%22%20fill%3D%22currentColor%22%20font-size%3D%2211%22%20text-anchor%3D%22middle%22%3EInput%3C%2Ftext%3E%3Ctext%20x%3D%22163%22%20y%3D%22181%22%20fill%3D%22currentColor%22%20font-size%3D%2211%22%20text-anchor%3D%22middle%22%3ENeuroni%20con%20stato%3C%2Ftext%3E%3Ctext%20x%3D%22292%22%20y%3D%22181%22%20fill%3D%22currentColor%22%20font-size%3D%2211%22%20text-anchor%3D%22middle%22%3EOutput%3C%2Ftext%3E%3Ctext%20x%3D%22241%22%20y%3D%2215%22%20fill%3D%22%23d97706%22%20font-size%3D%2210%22%20text-anchor%3D%22middle%22%3ERetroazione%3C%2Ftext%3E%3C%2Fsvg%3E",
+    "evidence": [
+      {
+        "index": 19,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 19,
+        "kind": "img-src"
+      }
+    ],
+    "status": null,
+    "final_url": null,
+    "redirected": false,
+    "content_type": null,
+    "content_disposition": null,
+    "byte_length": null,
+    "too_large": false,
+    "failed": true,
+    "error": "Failed to fetch",
+    "sha256": null,
+    "local_path": null
+  },
+  {
+    "index": 6,
+    "url": "https://www.google.com/s2/favicons?domain=https://proceedings.mlr.press&sz=32",
+    "evidence": [
+      {
+        "index": 21,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 21,
+        "kind": "img-src"
+      },
+      {
+        "index": 0,
+        "kind": "performance-img"
+      }
+    ],
+    "status": null,
+    "final_url": null,
+    "redirected": false,
+    "content_type": null,
+    "content_disposition": null,
+    "byte_length": null,
+    "too_large": false,
+    "failed": true,
+    "error": "Failed to fetch",
+    "sha256": null,
+    "local_path": null
+  },
+  {
+    "index": 7,
+    "url": "https://www.google.com/s2/favicons?domain=https://papers.neurips.cc&sz=32",
+    "evidence": [
+      {
+        "index": 23,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 23,
+        "kind": "img-src"
+      },
+      {
+        "index": 26,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 26,
+        "kind": "img-src"
+      },
+      {
+        "index": 29,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 29,
+        "kind": "img-src"
+      },
+      {
+        "index": 5,
+        "kind": "performance-img"
+      }
+    ],
+    "status": null,
+    "final_url": null,
+    "redirected": false,
+    "content_type": null,
+    "content_disposition": null,
+    "byte_length": null,
+    "too_large": false,
+    "failed": true,
+    "error": "Failed to fetch",
+    "sha256": null,
+    "local_path": null
+  },
+  {
+    "index": 8,
+    "url": "https://www.google.com/s2/favicons?domain=https://cdn.openai.com&sz=32",
+    "evidence": [
+      {
+        "index": 24,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 24,
+        "kind": "img-src"
+      },
+      {
+        "index": 27,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 27,
+        "kind": "img-src"
+      },
+      {
+        "index": 1,
+        "kind": "performance-img"
+      }
+    ],
+    "status": null,
+    "final_url": null,
+    "redirected": false,
+    "content_type": null,
+    "content_disposition": null,
+    "byte_length": null,
+    "too_large": false,
+    "failed": true,
+    "error": "Failed to fetch",
+    "sha256": null,
+    "local_path": null
+  },
+  {
+    "index": 9,
+    "url": "data:image/svg+xml;charset=utf-8,%3Csvg%20font-family%3D%22-apple-system-body%2C%20ui-sans-serif%2C%20-apple-system%2C%20system-ui%2C%20%26quot%3BSegoe%20UI%26quot%3B%2C%20Helvetica%2C%20%26quot%3BApple%20Color%20Emoji%26quot%3B%2C%20Arial%2C%20sans-serif%2C%20%26quot%3BSegoe%20UI%20Emoji%26quot%3B%2C%20%26quot%3BSegoe%20UI%20Symbol%26quot%3B%22%20font-weight%3D%22400%22%20data-d-component%3D%22svg%22%20fill%3D%22currentColor%22%20style%3D%22color%3Argb(13%2C%2013%2C%2013)%22%20viewBox%3D%220%200%20160%20186%22%20width%3D%22100%25%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cline%20x1%3D%2222%22%20y1%3D%2241%22%20x2%3D%2281%22%20y2%3D%2221%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2241%22%20x2%3D%2281%22%20y2%3D%2259%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2241%22%20x2%3D%2281%22%20y2%3D%2297%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2241%22%20x2%3D%2281%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2285%22%20x2%3D%2281%22%20y2%3D%2221%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2285%22%20x2%3D%2281%22%20y2%3D%2259%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2285%22%20x2%3D%2281%22%20y2%3D%2297%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%2285%22%20x2%3D%2281%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%22129%22%20x2%3D%2281%22%20y2%3D%2221%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%22129%22%20x2%3D%2281%22%20y2%3D%2259%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%22129%22%20x2%3D%2281%22%20y2%3D%2297%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2222%22%20y1%3D%22129%22%20x2%3D%2281%22%20y2%3D%22135%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2221%22%20x2%3D%22140%22%20y2%3D%2262%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2221%22%20x2%3D%22140%22%20y2%3D%22112%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2259%22%20x2%3D%22140%22%20y2%3D%2262%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2259%22%20x2%3D%22140%22%20y2%3D%22112%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2297%22%20x2%3D%22140%22%20y2%3D%2262%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%2297%22%20x2%3D%22140%22%20y2%3D%22112%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%22135%22%20x2%3D%22140%22%20y2%3D%2262%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Cline%20x1%3D%2281%22%20y1%3D%22135%22%20x2%3D%22140%22%20y2%3D%22112%22%20stroke%3D%22currentColor%22%20stroke-width%3D%220.8%22%20opacity%3D%220.21%22%2F%3E%3Ccircle%20cx%3D%2222%22%20cy%3D%2241%22%20r%3D%228%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%2222%22%20cy%3D%2285%22%20r%3D%228%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%2222%22%20cy%3D%22129%22%20r%3D%228%22%20fill%3D%22%2364748b%22%2F%3E%3Ccircle%20cx%3D%2281%22%20cy%3D%2221%22%20r%3D%229%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%2281%22%20cy%3D%2259%22%20r%3D%229%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%2281%22%20cy%3D%2297%22%20r%3D%229%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%2281%22%20cy%3D%22135%22%20r%3D%229%22%20fill%3D%22%232563eb%22%2F%3E%3Ccircle%20cx%3D%22140%22%20cy%3D%2262%22%20r%3D%228%22%20fill%3D%22%230d9488%22%2F%3E%3Ccircle%20cx%3D%22140%22%20cy%3D%22112%22%20r%3D%228%22%20fill%3D%22%230d9488%22%2F%3E%3Ctext%20x%3D%2280%22%20y%3D%22179%22%20text-anchor%3D%22middle%22%20fill%3D%22currentColor%22%20font-size%3D%2210%22%3EConnessioni%20apprese%3C%2Ftext%3E%3C%2Fsvg%3E",
+    "evidence": [
+      {
+        "index": 25,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 25,
+        "kind": "img-src"
+      }
+    ],
+    "status": null,
+    "final_url": null,
+    "redirected": false,
+    "content_type": null,
+    "content_disposition": null,
+    "byte_length": null,
+    "too_large": false,
+    "failed": true,
+    "error": "Failed to fetch",
+    "sha256": null,
+    "local_path": null
+  },
+  {
+    "index": 10,
+    "url": "https://www.google.com/s2/favicons?domain=https://nlp.seas.harvard.edu&sz=32",
+    "evidence": [
+      {
+        "index": 28,
+        "kind": "img-currentSrc"
+      },
+      {
+        "index": 28,
+        "kind": "img-src"
+      },
+      {
+        "index": 6,
+        "kind": "performance-img"
+      }
+    ],
+    "status": null,
+    "final_url": null,
+    "redirected": false,
+    "content_type": null,
+    "content_disposition": null,
+    "byte_length": null,
+    "too_large": false,
+    "failed": true,
+    "error": "Failed to fetch",
+    "sha256": null,
+    "local_path": null
+  },
+  {
+    "index": 11,
+    "url": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32",
+    "evidence": [
+      {
+        "index": 3,
+        "kind": "performance-img"
+      }
+    ],
+    "status": null,
+    "final_url": null,
+    "redirected": false,
+    "content_type": null,
+    "content_disposition": null,
+    "byte_length": null,
+    "too_large": false,
+    "failed": true,
+    "error": "Failed to fetch",
+    "sha256": null,
+    "local_path": null
+  },
+  {
+    "index": 12,
+    "url": "https://www.google.com/s2/favicons?domain=https://openai.com&sz=32",
+    "evidence": [
+      {
+        "index": 7,
+        "kind": "performance-img"
+      }
+    ],
+    "status": null,
+    "final_url": null,
+    "redirected": false,
+    "content_type": null,
+    "content_disposition": null,
+    "byte_length": null,
+    "too_large": false,
+    "failed": true,
+    "error": "Failed to fetch",
+    "sha256": null,
+    "local_path": null
+  }
+]

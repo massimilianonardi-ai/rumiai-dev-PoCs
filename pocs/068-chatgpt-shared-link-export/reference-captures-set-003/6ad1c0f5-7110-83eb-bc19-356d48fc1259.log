@@ -1,0 +1,43 @@
+{
+  "directory": "/m/src/git/rumiai-os_TEST/src/rumiai-dev-PoCs/pocs/068-chatgpt-shared-link-export/reference-captures-set-003/20261016T072204Z-6ad1c0f5-7110-83eb-bc19-356d48fc1259",
+  "source": "https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259",
+  "share_id": "6ad1c0f5-7110-83eb-bc19-356d48fc1259",
+  "captured_at": "2026-10-16T07:22:18.738Z",
+  "settled": {
+    "href": "https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259",
+    "htmlLength": 1419886,
+    "imageCount": 12,
+    "marker": "page-reference-settle",
+    "readyState": "complete",
+    "resourceCount": 1,
+    "textLength": 14620,
+    "title": "Integrare Chat e Work",
+    "turnCount": 7
+  },
+  "title": "Integrare Chat e Work",
+  "final_url": "https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259",
+  "counts": {
+    "turns": 7,
+    "images": 12,
+    "sources": 0,
+    "links": 11,
+    "buttons": 31,
+    "svg": 53,
+    "canvas": 0,
+    "resources": 2,
+    "candidates": 3,
+    "candidates_captured": 3,
+    "candidates_downloaded": 0,
+    "inline_json": 1,
+    "probes_ok": 16,
+    "probes_failed": 0
+  },
+  "cdp": {
+    "dom_snapshot": true,
+    "accessibility_tree": true,
+    "frame_tree": true,
+    "layout_metrics": true,
+    "mhtml": true,
+    "screenshot": true
+  }
+}

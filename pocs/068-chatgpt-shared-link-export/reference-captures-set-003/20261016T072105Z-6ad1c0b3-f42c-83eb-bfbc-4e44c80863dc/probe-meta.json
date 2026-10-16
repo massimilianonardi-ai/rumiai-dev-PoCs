@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "value": {
+    "document": {
+      "scrollHeight": 834,
+      "scrollWidth": 1280
+    },
+    "href": "https://chatgpt.com/share/6ad1c0b3-f42c-83eb-bfbc-4e44c80863dc",
+    "readyState": "complete",
+    "title": "AI+CHAOS",
+    "userAgent": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) electron-web-control/0.1.6 Chrome/152.0.7977.130 Electron/44.7.0 Safari/537.36",
+    "viewport": {
+      "devicePixelRatio": 1,
+      "height": 834,
+      "width": 1280
+    },
+    "visibilityState": "visible"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "source": "https://chatgpt.com/share/6ad13a5b-e9f0-83eb-8519-9e2d8c8097f3",
+  "share_id": "6ad13a5b-e9f0-83eb-8519-9e2d8c8097f3",
+  "captured_at": "2026-10-16T07:20:37.704Z",
+  "settled": {
+    "href": "https://chatgpt.com/share/6ad13a5b-e9f0-83eb-8519-9e2d8c8097f3",
+    "htmlLength": 649570,
+    "imageCount": 0,
+    "marker": "page-reference-settle",
+    "readyState": "complete",
+    "resourceCount": 167,
+    "textLength": 1065,
+    "title": "RumiAI Avatar",
+    "turnCount": 5
+  },
+  "title": "RumiAI Avatar",
+  "final_url": "https://chatgpt.com/share/6ad13a5b-e9f0-83eb-8519-9e2d8c8097f3",
+  "counts": {
+    "turns": 5,
+    "images": 0,
+    "sources": 0,
+    "links": 10,
+    "buttons": 21,
+    "svg": 32,
+    "canvas": 0,
+    "resources": 168,
+    "candidates": 0,
+    "candidates_captured": 0,
+    "candidates_downloaded": 0,
+    "inline_json": 1,
+    "probes_ok": 16,
+    "probes_failed": 0
+  },
+  "cdp": {
+    "dom_snapshot": true,
+    "accessibility_tree": true,
+    "frame_tree": true,
+    "layout_metrics": true,
+    "mhtml": true,
+    "screenshot": true
+  }
+}
