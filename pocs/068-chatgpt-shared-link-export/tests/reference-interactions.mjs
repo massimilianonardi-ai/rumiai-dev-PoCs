@@ -23,7 +23,7 @@ test('artifact interaction probe records post-click network evidence and respons
       return { page:args[2],closed:true };
     if (args[0] === 'page' && args[1] === 'click') {
       assert.match(args[3],/data-rumiai-reference-target/);
-      clicked = true;
+      clicked = sessionCounter === 2;
       return { page:args[2],target:args[3] };
     }
     if (args[0] === 'debug' && args[1] === 'session' && args[2] === 'open')
@@ -81,15 +81,29 @@ test('artifact interaction probe records post-click network evidence and respons
     if (params.expression.includes('reference-interaction-inventory'))
       return {result:{result:{value:{
         marker:'reference-interaction-inventory',
-        results:[{
-          kind:'sandbox-file',index:0,label:'Markdown 0008',
-          icon_key:'text',turn_id:'turn-1',message_id:'message-1'
-        }]
+        results:[
+          {
+            kind:'sandbox-file',index:0,label:'Markdown 0008',
+            icon_key:'text',turn_id:'turn-1',message_id:'message-1'
+          },
+          {
+            kind:'user-upload-image',index:0,label:"Ha caricato un'immagine",
+            turn_id:'user-image',message_id:'user-image',
+            actionable:false,actionable_tag:null
+          },
+          {
+            kind:'user-upload-file',index:1,label:'Ha caricato un file',
+            turn_id:'user-files',message_id:'user-files',
+            actionable:false,actionable_tag:null
+          }
+        ]
       }}}};
     if (params.expression.includes('reference-interaction-target'))
       return {result:{result:{value:{
-        marker:'reference-interaction-target',found:true,tag:'button',
-        aria_label:'Markdown 0008',text:'Markdown 0008',href:null
+        marker:'reference-interaction-target',found:true,
+        tag:params.expression.includes('"kind":"user-upload-') ? 'span' : 'button',
+        aria_label:'Markdown 0008',text:'Markdown 0008',href:null,
+        actionable:!params.expression.includes('"kind":"user-upload-')
       }}}};
     if (params.expression.includes('reference-interaction-state'))
       return {result:{result:{value:{
@@ -104,9 +118,19 @@ test('artifact interaction probe records post-click network evidence and respons
     const result = await captureReferenceInteractions(
       control,'https://chatgpt.com/share/abc',root,{seconds:1}
     );
-    assert.equal(result.inventory.length,1);
-    assert.equal(result.selected.length,1);
-    assert.equal(result.interactions.length,1);
+    assert.equal(result.inventory.length,3);
+    assert.deepEqual(result.selected.map(item => item.kind),[
+      'sandbox-file','user-upload-image','user-upload-file'
+    ]);
+    assert.equal(result.interactions.length,3);
+    assert.deepEqual(result.interactions.map(item => item.status),[
+      'complete','complete','complete'
+    ]);
+    assert.deepEqual(result.interactions.slice(1).map(item => item.tagged.actionable),
+      [false,false]);
+    assert.deepEqual(result.interactions.slice(1).map(item => item.network),[
+      [],[]
+    ]);
     const interaction = result.interactions[0];
     assert.equal(interaction.status,'complete');
     assert.equal(interaction.target.kind,'sandbox-file');
@@ -124,8 +148,20 @@ test('artifact interaction probe records post-click network evidence and respons
     assert.ok(!manifest.includes('set-cookie'));
     assert.ok(!manifest.includes('must-not-be-persisted'));
     assert.ok(manifest.includes('https://files.example/download/file.md'));
-    assert.ok(calls.some(args =>
+    assert.equal(calls.filter(args =>
       args[0] === 'page' && args[1] === 'click'
+    ).length,3);
+    const targetProbes = calls.filter(args =>
+      args[0] === 'debug' && args[1] === 'session' &&
+      args[2] === 'send' && args[4] === 'Runtime.evaluate' &&
+      JSON.parse(args[5]).expression.includes('reference-interaction-target')
+    ).map(args => JSON.parse(args[5]).expression);
+    assert.ok(targetProbes.some(expression =>
+      expression.includes('"message_id":"user-image"')
+    ));
+    assert.ok(targetProbes.some(expression =>
+      expression.includes('"message_id":"user-files"') &&
+      expression.includes('"index":1')
     ));
   } finally {
     await fs.rm(root,{recursive:true,force:true});
