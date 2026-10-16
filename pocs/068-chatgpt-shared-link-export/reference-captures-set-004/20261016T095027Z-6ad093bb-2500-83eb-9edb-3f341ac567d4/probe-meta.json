@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "value": {
+    "document": {
+      "scrollHeight": 834,
+      "scrollWidth": 1280
+    },
+    "href": "https://chatgpt.com/share/6ad093bb-2500-83eb-9edb-3f341ac567d4",
+    "readyState": "complete",
+    "title": "Mirror chat su GitHub",
+    "userAgent": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) electron-web-control/0.1.6 Chrome/152.0.7977.130 Electron/44.7.0 Safari/537.36",
+    "viewport": {
+      "devicePixelRatio": 1,
+      "height": 834,
+      "width": 1280
+    },
+    "visibilityState": "visible"
+  }
+}

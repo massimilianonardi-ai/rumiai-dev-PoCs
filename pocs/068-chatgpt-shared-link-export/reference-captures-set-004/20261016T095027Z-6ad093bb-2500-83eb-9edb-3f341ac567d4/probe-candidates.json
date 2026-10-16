@@ -1,0 +1,47 @@
+{
+  "ok": true,
+  "value": [
+    {
+      "evidence": [
+        {
+          "index": 0,
+          "kind": "img-currentSrc"
+        },
+        {
+          "index": 0,
+          "kind": "img-src"
+        },
+        {
+          "index": 1,
+          "kind": "img-currentSrc"
+        },
+        {
+          "index": 1,
+          "kind": "img-src"
+        },
+        {
+          "index": 38,
+          "kind": "performance-img"
+        }
+      ],
+      "url": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=128"
+    },
+    {
+      "evidence": [
+        {
+          "index": 2,
+          "kind": "img-currentSrc"
+        },
+        {
+          "index": 2,
+          "kind": "img-src"
+        },
+        {
+          "index": 48,
+          "kind": "performance-img"
+        }
+      ],
+      "url": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32"
+    }
+  ]
+}

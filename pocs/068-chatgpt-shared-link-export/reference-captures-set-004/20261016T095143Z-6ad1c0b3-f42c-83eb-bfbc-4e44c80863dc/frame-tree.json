@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "value": {
+    "frameTree": {
+      "frame": {
+        "adFrameStatus": {
+          "adFrameType": "none"
+        },
+        "crossOriginIsolatedContextType": "NotIsolated",
+        "domainAndRegistry": "chatgpt.com",
+        "gatedAPIFeatures": [],
+        "id": "921153BB255022FB2551C2DC1B0013E9",
+        "loaderId": "AEAA6C483298C47BBE9F6C95EBC1E34A",
+        "mimeType": "text/html",
+        "secureContextType": "Secure",
+        "securityOrigin": "https://chatgpt.com",
+        "securityOriginDetails": {
+          "isLocalhost": false
+        },
+        "url": "https://chatgpt.com/share/6ad1c0b3-f42c-83eb-bfbc-4e44c80863dc"
+      }
+    }
+  }
+}

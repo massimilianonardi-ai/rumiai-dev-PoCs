@@ -1,0 +1,18 @@
+[
+  {
+    "byteLength": 5001760,
+    "contentType": "application/json",
+    "source": "backend-anon",
+    "status": 200,
+    "tooLarge": false,
+    "local_path": "share-backend-anon.txt"
+  },
+  {
+    "byteLength": 5001760,
+    "contentType": "application/json",
+    "source": "backend-api",
+    "status": 200,
+    "tooLarge": false,
+    "local_path": "share-backend-api.txt"
+  }
+]

@@ -1,0 +1,4433 @@
+{
+  "meta": {
+    "document": {
+      "scrollHeight": 834,
+      "scrollWidth": 1280
+    },
+    "href": "https://chatgpt.com/share/6ad093bb-2500-83eb-9edb-3f341ac567d4",
+    "readyState": "complete",
+    "title": "Mirror chat su GitHub",
+    "userAgent": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) electron-web-control/0.1.6 Chrome/152.0.7977.130 Electron/44.7.0 Safari/537.36",
+    "viewport": {
+      "devicePixelRatio": 1,
+      "height": 834,
+      "width": 1280
+    },
+    "visibilityState": "visible"
+  },
+  "turns": [
+    {
+      "attributes": {
+        "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+        "data-testid": "conversation-turn-12",
+        "data-turn": "assistant",
+        "data-turn-id": "fa5dcf96-10b3-4388-b122-89dacdd396d1",
+        "data-turn-id-container": "fa5dcf96-10b3-4388-b122-89dacdd396d1",
+        "dir": "auto"
+      },
+      "index": 0,
+      "rect": {
+        "bottom": -12167,
+        "height": 1270,
+        "left": 275,
+        "right": 1265,
+        "top": -13437,
+        "width": 990,
+        "x": 275,
+        "y": -13437
+      },
+      "text": "Elaborato per 9m 44s\n\nEcco il workflow attuale della nostra collaborazione su RumiAI, comprensivo del mirror attivato in questa chat.\n\nMermaid\nflowchart TD\n    A[\"Tu: obiettivo, prompt, correzioni\"] --> B[\"ChatGPT: HEAD remoti e fonti canoniche correnti\"]\n    B --> C[\"Interpretazione: intenti, vincoli, confini e handoff\"]\n    C --> D{\"Decisione architetturale fondamentale?\"}\n    D -->|Sì| E[\"Proposta esplicita e tua autorizzazione\"]\n    D -->|No| F[\"Lavoro autonomo entro i vincoli\"]\n    E --> F\n    F --> G[\"Analisi, modifiche autorizzate, PoC e test pertinenti\"]\n    G --> H[\"Consistency gate: diff, verifiche reali, concorrenza Git\"]\n    H --> I[\"Stato del progetto: specifiche, handoff e TODO se pertinenti\"]\n    I --> J[\"Mirror opt-in: chat.md e media nella stessa directory GitHub\"]\n    J --> K[\"Risposta in chat: risultati, limiti e validazione\"]\n    K --> A\n\nLa distinzione importante è che tu mantieni il controllo delle decisioni fondamentali, mentre io posso analizzare ed eseguire autonomamente le attività all'interno dei confini approvati. Prima di intervenire verifico gli HEAD remoti e la documentazione corrente; dopo una modifica applico il consistency gate e aggiorno lo stato persistente pertinente.\n\nSu GitHub esistono due responsabilità diverse: specifiche, handoff e TODO rappresentano lo stato corrente del progetto; il mirror in chats/ conserva la conversazione ma non ha autorità normativa. La risposta viene registrata nel mirror prima di essere mostrata qui.\n\nIl diagramma Mermaid è riprodotto nel Markdown della chat\n e viene renderizzato graficamente da GitHub. L'immagine illustrativa generata in ChatGPT non è stata salvata come file identico: la sua esportazione resta un limite da validare."
+    },
+    {
+      "attributes": {
+        "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+        "data-testid": "conversation-turn-19",
+        "data-turn": "user",
+        "data-turn-id": "07f960d8-7b16-470b-af6f-3f6ddcd585ad",
+        "data-turn-id-container": "07f960d8-7b16-470b-af6f-3f6ddcd585ad",
+        "dir": "auto"
+      },
+      "index": 1,
+      "rect": {
+        "bottom": -9082,
+        "height": 120,
+        "left": 275,
+        "right": 1265,
+        "top": -9202,
+        "width": 990,
+        "x": 275,
+        "y": -9202
+      },
+      "text": "Ha caricato un'immagine"
+    },
+    {
+      "attributes": {
+        "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+        "data-testid": "conversation-turn-23",
+        "data-turn": "user",
+        "data-turn-id": "97f7fd6f-09dc-42e5-a806-acdac0081314",
+        "data-turn-id-container": "97f7fd6f-09dc-42e5-a806-acdac0081314",
+        "dir": "auto"
+      },
+      "index": 2,
+      "rect": {
+        "bottom": -6958,
+        "height": 284,
+        "left": 275,
+        "right": 1265,
+        "top": -7242,
+        "width": 990,
+        "x": 275,
+        "y": -7242
+      },
+      "text": "Ha caricato un file\nHa caricato un file\nquesti li abbiamo usati in passato per esportare delle chat. forse possiamo fare qualcosa di simile con web-control. oppure torniamo all'idea del markdown che aggiorni ad ogni passo e lo rendi scaricabile come documento della chat (ricordati di dargli ogni volta un progressivo aumentato, altrimenti il file non cambia). attiva contemporaneamente il markdown come documento allegato alla chat."
+    },
+    {
+      "attributes": {
+        "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+        "data-testid": "conversation-turn-28",
+        "data-turn": "assistant",
+        "data-turn-id": "74ceddff-045b-4c51-8428-690d59c5dd5e",
+        "data-turn-id-container": "74ceddff-045b-4c51-8428-690d59c5dd5e",
+        "dir": "auto"
+      },
+      "index": 3,
+      "rect": {
+        "bottom": -5500,
+        "height": 422,
+        "left": 275,
+        "right": 1265,
+        "top": -5922,
+        "width": 990,
+        "x": 275,
+        "y": -5922
+      },
+      "text": "Worked for 1m 51s"
+    },
+    {
+      "attributes": {
+        "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+        "data-testid": "conversation-turn-34",
+        "data-turn": "assistant",
+        "data-turn-id": "b71bcf51-2a16-4fc5-9fc6-0200a1241d7a",
+        "data-turn-id-container": "b71bcf51-2a16-4fc5-9fc6-0200a1241d7a",
+        "dir": "auto"
+      },
+      "index": 4,
+      "rect": {
+        "bottom": -3986,
+        "height": 422,
+        "left": 275,
+        "right": 1265,
+        "top": -4408,
+        "width": 990,
+        "x": 275,
+        "y": -4408
+      },
+      "text": "Worked for 1m 35s"
+    },
+    {
+      "attributes": {
+        "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+        "data-testid": "conversation-turn-36",
+        "data-turn": "assistant",
+        "data-turn-id": "4cf18542-e68d-468e-afaa-06ba9f531c94",
+        "data-turn-id-container": "4cf18542-e68d-468e-afaa-06ba9f531c94",
+        "dir": "auto"
+      },
+      "index": 5,
+      "rect": {
+        "bottom": -3332,
+        "height": 580,
+        "left": 275,
+        "right": 1265,
+        "top": -3912,
+        "width": 990,
+        "x": 275,
+        "y": -3912
+      },
+      "text": "Elaborato per 1m 50s\n\nNo. Ho controllato direttamente Google Drive: il mirror non è aggiornato all'ultimo messaggio.\n\nIl file \nchat.md su Google Drive\n è ancora alla versione 0005, modificata alle 22:17:53 (ora italiana).\n\nMancano lo scambio in cui hai chiesto di rifare il grafico con Google Drive e di cancellare il mirror GitHub, la relativa immagine generata e la tua domanda attuale.\n\nLa sincronizzazione promessa non è quindi avvenuta nel turno precedente. L'ho verificato leggendo il contenuto effettivo di Drive, non basandomi sulla risposta della chat.\n\nOra ho recuperato lo scambio mancante e aggiornato Drive alla versione 0006. Ho verificato che chat.md contiene entrambi i prompt e che la nuova immagine è salvata accanto al documento.\n\nScarica Markdown 0006 · Grafico aggiornato · Grafico precedente\n\nCartella Google Drive\n\nIl prossimo progressivo è 0007."
+    },
+    {
+      "attributes": {
+        "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+        "data-testid": "conversation-turn-37",
+        "data-turn": "user",
+        "data-turn-id": "55bd03ce-d609-46ef-80a6-920e9f228cc9",
+        "data-turn-id-container": "55bd03ce-d609-46ef-80a6-920e9f228cc9",
+        "dir": "auto"
+      },
+      "index": 6,
+      "rect": {
+        "bottom": -3100,
+        "height": 180,
+        "left": 275,
+        "right": 1265,
+        "top": -3280,
+        "width": 990,
+        "x": 275,
+        "y": -3280
+      },
+      "text": "ok così sembra funzionare, ma bisogna rendere certa la generazione del documento allegato alla chat ad ogni turno e rendere certo l'aggiornamento di documento ed immagini in google drive. come si può fare per rendere obbligatori questi due passi ad ogni turno?"
+    },
+    {
+      "attributes": {
+        "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+        "data-testid": "conversation-turn-38",
+        "data-turn": "assistant",
+        "data-turn-id": "0eee0884-2762-44ae-943a-6af77b6405b5",
+        "data-turn-id-container": "0eee0884-2762-44ae-943a-6af77b6405b5",
+        "dir": "auto"
+      },
+      "index": 7,
+      "rect": {
+        "bottom": -671.140625,
+        "height": 2428.859375,
+        "left": 275,
+        "right": 1265,
+        "top": -3100,
+        "width": 990,
+        "x": 275,
+        "y": -3100
+      },
+      "text": "Elaborato per 2m 32s\n\nIl problema è chiaro: finora abbiamo definito il mirror come una regola di comportamento dell'assistente, ma non abbiamo un meccanismo che impedisca di saltarlo.\n\nLa prova è negli ultimi scambi: dopo la generazione del grafico ho terminato il turno senza aggiornare Drive né produrre il nuovo documento Markdown. Abbiamo recuperato il contenuto nel turno successivo, ma non è una garanzia accettabile.\n\nHo verificato anche lo stato attuale: Google Drive contiene correttamente la versione 0006 e le due immagini precedenti.\n\nCome rendere obbligatori i due passaggi\n\nPropongo di introdurre un controllo di completamento del turno.\n\nOgni risposta, quando il mirror è attivo, dovrebbe attraversare questa sequenza:\n\nPrompt dell'utente\n        │\n        ▼\nElaborazione della risposta\n        │\n        ▼\nPreparazione del Markdown cumulativo\n        │\n        ▼\nGenerazione della nuova versione progressiva\n        │\n        ▼\nAggiornamento delle immagini su Google Drive\n        │\n        ▼\nAggiornamento di chat.md su Google Drive\n        │\n        ▼\nRilettura e verifica dei contenuti su Drive\n        │\n        ▼\nVerifica dell'allegato scaricabile\n        │\n        ▼\nRisposta finale all'utente\n\nIl turno è considerato sincronizzato soltanto quando entrambe le destinazioni sono state verificate.\n\nTre livelli di affidabilità\nSoluzione\tCosa garantisce\nIstruzione permanente per ChatGPT\tRichiede di eseguire il mirror, ma non impedisce materialmente le omissioni\nProcedura con verifiche prima della risposta\tRiduce gli errori e permette di rilevare i salvataggi falliti\nControllore esterno al modello\tPuò verificare sistematicamente ogni scambio e recuperare gli aggiornamenti mancanti\n\nLa distinzione fondamentale è questa: un'istruzione, anche dichiarata obbligatoria, non è un vincolo tecnico di esecuzione.\n\nPer una garanzia forte servirebbe un controllo applicato dal software che gestisce i turni, non soltanto dal modello. Nell'interfaccia ChatGPT attuale non dispongo di un meccanismo che possa bloccare nativamente la pubblicazione di ogni risposta finché il mirror non è completo.\n\nPossiamo però migliorare subito il comportamento, e progettare successivamente un controllore esterno basato sulle capacità di web-control.\n\nProposta operativa\n\nDa applicare già adesso: a ogni turno del mirror verifico la versione precedente, preparo la nuova versione cumulativa, aggiorno chat.md sullo stesso ID di Google Drive, controllo che il nuovo prompt e la risposta siano presenti e ripropongo il documento e tutte le immagini come download. Se uno dei due canali fallisce, devo comunicarlo esplicitamente: non posso dichiarare il turno sincronizzato.\n\nPer renderlo realmente obbligatorio anche se l'assistente omette un passaggio: occorre un componente indipendente, ad esempio un adattatore specifico sopra web-control, che rilevi il completamento dei messaggi nella pagina ChatGPT e confronti ogni turno con il contenuto verificato su Google Drive. In caso di differenze riprova o segnala il problema. Per impedire materialmente che una risposta compaia prima del salvataggio, quel componente dovrebbe anche controllare il flusso di pubblicazione nell'interfaccia: osservare la pagina dopo la risposta non è un blocco preventivo.\n\nUn semplice testo nelle Project Instructions non offre questa garanzia e non deve diventare una seconda knowledge base rispetto a rumiai-dev.\n\nVerifica di questo turno: ho creato il \nMarkdown progressivo 0007, con i collegamenti alle immagini già prodotte. Puoi riscaricare anche il \ngrafico 001 e il \ngrafico 002.\n\nGoogle Drive non è stato aggiornato in questo turno. Il trasferimento del file è fallito due volte con container_session_expired; la rilettura conferma che il documento remoto è ancora alla versione 0006. È esattamente il tipo di errore che il nuovo controllo deve rilevare e recuperare.\n\nHo registrato la proposta e l'errore nel task workflow-optimization\n. Questo commit riguarda soltanto la documentazione RumiAI, non il vecchio mirror GitHub.\n\nIl prossimo progressivo sarà 0008, con la sincronizzazione Drive della versione mancante ancora da recuperare. "
+    },
+    {
+      "attributes": {
+        "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+        "data-testid": "conversation-turn-39",
+        "data-turn": "user",
+        "data-turn-id": "f1e8074d-c431-4b51-9a36-eaab85925157",
+        "data-turn-id-container": "f1e8074d-c431-4b51-9a36-eaab85925157",
+        "dir": "auto"
+      },
+      "index": 8,
+      "rect": {
+        "bottom": -515.140625,
+        "height": 156,
+        "left": 275,
+        "right": 1265,
+        "top": -671.140625,
+        "width": 990,
+        "x": 275,
+        "y": -671.140625
+      },
+      "text": "se te lo  chiedo nel prompt puoi condividere questa chat analogamente al tasto \"condividi\"?"
+    },
+    {
+      "attributes": {
+        "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+        "data-testid": "conversation-turn-40",
+        "data-turn": "assistant",
+        "data-turn-id": "5b253df6-c593-4cae-ac28-51343065a8ec",
+        "data-turn-id-container": "5b253df6-c593-4cae-ac28-51343065a8ec",
+        "dir": "auto"
+      },
+      "index": 9,
+      "rect": {
+        "bottom": 803.71875,
+        "height": 1318.859375,
+        "left": 275,
+        "right": 1265,
+        "top": -515.140625,
+        "width": 990,
+        "x": 275,
+        "y": -515.140625
+      },
+      "text": "Elaborato per 2m 5s\n\nNon direttamente, almeno con gli strumenti attualmente disponibili in questa chat. Se mi scrivi «Condividi questa chat», non posso azionare il pulsante Condividi di ChatGPT né generare autonomamente il relativo link ufficiale.\n\nLa funzione nativa di ChatGPT richiede un'operazione nell'interfaccia: Condividi → Crea link/Copia link. Il risultato è un link https://chatgpt.com/share/.... \nOpenAI Help Center\n\nTuttavia, per RumiAI esiste una possibilità interessante: automatizzare quel pulsante tramite web-control, usando un browser autenticato nel tuo account. Sarebbe un'automazione dell'interfaccia, non una funzione nativa richiamabile dal prompt.\n\nC'è anche un dettaglio utile per il nostro progetto: negli account personali il link condivide normalmente un'istantanea della conversazione. Per includere i messaggi successivi occorre aggiornare il link condiviso. \nOpenAI Help Center\n\nPer questa conversazione, il mirror su Google Drive resta separato dalla condivisione nativa di ChatGPT.\n\nHo recuperato il turno precedente rimasto in sospeso e verificato l'aggiornamento di \nchat.md su Google Drive\n alla versione 0008, inclusa questa domanda.\n\nPuoi scaricare il \nMarkdown 0008 insieme alle immagini già prodotte: \ngrafico 001 e \ngrafico 002.\n\nIl prossimo progressivo sarà 0009.\n\nEcco un breve riepilogo della conversazione:\n\nLa conversazione discute l'attivazione di un sistema di mirror della chat su GitHub in formato Markdown, con salvataggio integrale di prompt e risposte in una directory dedicata per ogni chat, inclusi file collegati come immagini. Le decisioni fissano che GitHub sarà l'unico archivio persistente, senza file temporanei o buffering, e la sincronizzazione avverrà a ogni scambio con attivazione esplicita.\n\nÈ stato quindi attivato il mirror per la chat corrente, con prima trascrizione e commit del flusso su GitHub. Successivamente, si è esplorato il workflow complessivo di interazione e sono stati analizzati i problemi tecnici riscontrati con i file SVG, concludendo che il formato SVG non è vietato di per sé, ma un blocco è stato causato da controlli di sicurezza di OpenAI su contenuti specifici.\n\nProsegui spiegando come integrare il controllo esterno per garantire il mirror\n\nFornisci una sintesi bullet point dei problemi e soluzioni del mirror\n\nCrea una checklist operativa per garantire aggiornamento e verifica del mirror ad ogni turno \n\n`chat.md` su Google Drive\nGoogle Drive\nFonti"
+    }
+  ],
+  "images": [
+    {
+      "alt": null,
+      "attributes": {
+        "alt": "",
+        "class": "h-3 w-3 rounded-full",
+        "height": "128",
+        "src": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=128",
+        "width": "128"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=128",
+      "index": 0,
+      "naturalHeight": 128,
+      "naturalWidth": 128,
+      "rect": {
+        "bottom": -304.640625,
+        "height": 12,
+        "left": 971.8125,
+        "right": 983.8125,
+        "top": -316.640625,
+        "width": 12,
+        "x": 971.8125,
+        "y": -316.640625
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=128",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "alt": "",
+        "class": "h-3 w-3 rounded-full",
+        "height": "128",
+        "src": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=128",
+        "width": "128"
+      },
+      "button": null,
+      "complete": true,
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=128",
+      "index": 1,
+      "naturalHeight": 128,
+      "naturalWidth": 128,
+      "rect": {
+        "bottom": -114.640625,
+        "height": 12,
+        "left": 786.125,
+        "right": 798.125,
+        "top": -126.640625,
+        "width": 12,
+        "x": 786.125,
+        "y": -126.640625
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=128",
+      "srcset": null
+    },
+    {
+      "alt": null,
+      "attributes": {
+        "alt": "",
+        "class": "icon-sm rounded-full border border-token-border-light border-[0.5px] duration-200 motion-safe:transition-opacity opacity-100",
+        "height": "32",
+        "src": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32",
+        "width": "32"
+      },
+      "button": {
+        "attributes": {
+          "aria-label": "Fonti",
+          "class": "group/footnote bg-transparent hover:bg-token-surface-hover flex w-fit items-center gap-1.5 rounded-lg py-1.5 ps-3 pe-3",
+          "style": "opacity: 1;",
+          "type": "button"
+        },
+        "text": "Fonti"
+      },
+      "complete": true,
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-40",
+          "data-turn": "assistant",
+          "data-turn-id": "5b253df6-c593-4cae-ac28-51343065a8ec",
+          "data-turn-id-container": "5b253df6-c593-4cae-ac28-51343065a8ec",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "currentSrc": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32",
+      "index": 2,
+      "naturalHeight": 32,
+      "naturalWidth": 32,
+      "rect": {
+        "bottom": 754.71875,
+        "height": 16,
+        "left": 484,
+        "right": 500,
+        "top": 738.71875,
+        "width": 16,
+        "x": 484,
+        "y": 738.71875
+      },
+      "src": "https://www.google.com/s2/favicons?domain=https://help.openai.com&sz=32",
+      "srcset": null
+    }
+  ],
+  "sources": [],
+  "links": [
+    {
+      "attributes": {
+        "class": "interactive-bg-secondary behavior-btn interactive-label-secondary pointer-events-auto rounded-2xl px-4 py-2 text-base print:hidden",
+        "data-skip-to-content": "",
+        "href": "#main"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/share/6ad093bb-2500-83eb-9edb-3f341ac567d4#main",
+      "index": 0,
+      "rect": {
+        "bottom": 15,
+        "height": 16,
+        "left": -71.9375,
+        "right": 70.9375,
+        "top": -1,
+        "width": 142.875,
+        "x": -71.9375,
+        "y": -1
+      },
+      "text": "Vai ai contenuti"
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2 touch:size-10 mx-2 size-9 justify-center p-0",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "data-testid": "create-new-chat-button",
+        "href": "/",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/",
+      "index": 1,
+      "rect": {
+        "bottom": 96,
+        "height": 36,
+        "left": 8,
+        "right": 44,
+        "top": 60,
+        "width": 36,
+        "x": 8,
+        "y": 60
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2 touch:size-10 mx-2 size-9 justify-center p-0",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "data-testid": "sidebar-item-library",
+        "href": "/images",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/images",
+      "index": 2,
+      "rect": {
+        "bottom": 168,
+        "height": 36,
+        "left": 8,
+        "right": 44,
+        "top": 132,
+        "width": 36,
+        "x": 8,
+        "y": 132
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Home",
+        "class": "text-token-text-primary contrast-high:not-dark:keyboard-focused:focus-ring no-draggable hover:bg-token-surface-hover keyboard-focused:bg-token-surface-hover touch:h-10 touch:w-10 flex h-9 w-9 items-center justify-center rounded-lg outline-none disabled:opacity-50 not-keyboard-focused:hover:bg-transparent!",
+        "data-discover": "true",
+        "data-sidebar-item": "true",
+        "href": "/"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/",
+      "index": 3,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 8,
+        "right": 44,
+        "top": 8,
+        "width": 36,
+        "x": 8,
+        "y": 8
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-revealed": "",
+        "data-sidebar-item": "true",
+        "data-testid": "create-new-chat-button",
+        "href": "/",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/",
+      "index": 4,
+      "rect": {
+        "bottom": 96,
+        "height": 36,
+        "left": 6,
+        "right": 254,
+        "top": 60,
+        "width": 248,
+        "x": 6,
+        "y": 60
+      },
+      "text": "Nuova chat"
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "data-testid": "sidebar-item-library",
+        "href": "/images",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/images",
+      "index": 5,
+      "rect": {
+        "bottom": 132,
+        "height": 36,
+        "left": 6,
+        "right": 254,
+        "top": 96,
+        "width": 248,
+        "x": 6,
+        "y": 96
+      },
+      "text": "Immagini"
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "data-testid": "plugins-button",
+        "href": "/plugins",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/plugins",
+      "index": 6,
+      "rect": {
+        "bottom": 168,
+        "height": 36,
+        "left": 6,
+        "right": 254,
+        "top": 132,
+        "width": 248,
+        "x": 6,
+        "y": 132
+      },
+      "text": "Plugin"
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2",
+        "data-discover": "true",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "data-testid": "sidebar-item-places",
+        "href": "/maps",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/maps",
+      "index": 7,
+      "rect": {
+        "bottom": 240,
+        "height": 36,
+        "left": 6,
+        "right": 254,
+        "top": 204,
+        "width": 248,
+        "x": 6,
+        "y": 204
+      },
+      "text": "Mappe\nNUOVO"
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "href": "https://openai.com/chatgpt/pricing/",
+        "rel": "noopener noreferrer",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0",
+        "target": "_blank"
+      },
+      "context": null,
+      "href": "https://openai.com/chatgpt/pricing/",
+      "index": 8,
+      "rect": {
+        "bottom": 551,
+        "height": 36,
+        "left": 6,
+        "right": 254,
+        "top": 515,
+        "width": 248,
+        "x": 6,
+        "y": 515
+      },
+      "text": "Visualizza piani e tariffe"
+    },
+    {
+      "attributes": {
+        "class": "decorated-link",
+        "data-end": "1656",
+        "data-start": "1529",
+        "href": "https://github.com/massimilianonardi-ai/rumiai-dev/blob/main/chats/2026-10-14-github-chat-mirror/chat.md",
+        "rel": "noopener",
+        "target": "_new"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "fb87ed29-2d51-44a8-aa07-e47dc2c0ba40",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "href": "https://github.com/massimilianonardi-ai/rumiai-dev/blob/main/chats/2026-10-14-github-chat-mirror/chat.md",
+      "index": 9,
+      "rect": {
+        "bottom": -12273,
+        "height": 19,
+        "left": 731.484375,
+        "right": 895,
+        "top": -12292,
+        "width": 163.515625,
+        "x": 731.484375,
+        "y": -12292
+      },
+      "text": "Markdown della chat"
+    },
+    {
+      "attributes": {
+        "class": "Uwo0ZW_Link",
+        "data-d-component": "link",
+        "href": "https://drive.google.com/file/d/10D-cAJNqPvquHsmk94n6nt0SFb9h8Pwj/view",
+        "referrerpolicy": "no-referrer",
+        "rel": "noopener",
+        "role": "link",
+        "tabindex": "0",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "571484b2-97bb-46f1-955c-42f270ec3b68",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "href": "https://drive.google.com/file/d/10D-cAJNqPvquHsmk94n6nt0SFb9h8Pwj/view",
+      "index": 10,
+      "rect": {
+        "bottom": -3762,
+        "height": 26,
+        "left": 488.625,
+        "right": 679.46875,
+        "top": -3788,
+        "width": 190.84375,
+        "x": 488.625,
+        "y": -3788
+      },
+      "text": "chat.md su Google Drive"
+    },
+    {
+      "attributes": {
+        "class": "Uwo0ZW_Link",
+        "data-d-component": "link",
+        "href": "https://drive.google.com/drive/folders/1giqQeQ0wAHKM8dVTrDiOaTSSP2FIP4Ro",
+        "referrerpolicy": "no-referrer",
+        "rel": "noopener",
+        "role": "link",
+        "tabindex": "0",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "571484b2-97bb-46f1-955c-42f270ec3b68",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "href": "https://drive.google.com/drive/folders/1giqQeQ0wAHKM8dVTrDiOaTSSP2FIP4Ro",
+      "index": 11,
+      "rect": {
+        "bottom": -3421,
+        "height": 26,
+        "left": 450,
+        "right": 618.5625,
+        "top": -3447,
+        "width": 168.5625,
+        "x": 450,
+        "y": -3447
+      },
+      "text": "Cartella Google Drive"
+    },
+    {
+      "attributes": {
+        "alt": "https://help.openai.com/it-it/articles/7925741-sharing-conversations-and-scheduled-tasks-in-chatgpt?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://help.openai.com/it-it/articles/7925741-sharing-conversations-and-scheduled-tasks-in-chatgpt?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 105px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "href": "https://help.openai.com/it-it/articles/7925741-sharing-conversations-and-scheduled-tasks-in-chatgpt?utm_source=chatgpt.com",
+      "index": 12,
+      "rect": {
+        "bottom": -301.640625,
+        "height": 18,
+        "left": 967.8125,
+        "right": 1071.9375,
+        "top": -319.640625,
+        "width": 104.125,
+        "x": 967.8125,
+        "y": -319.640625
+      },
+      "text": "OpenAI Help Center"
+    },
+    {
+      "attributes": {
+        "alt": "https://help.openai.com/it-it/articles/7925741-chatgpt-shared-links-faq?utm_source=chatgpt.com",
+        "class": "flex overflow-hidden rounded-xl pe-2 ps-1 font-medium transition-colors duration-150 ease-in-out h-4.5 text-[9px] text-token-text-secondary! bg-[#F4F4F4]! dark:bg-[#303030]! select-none",
+        "href": "https://help.openai.com/it-it/articles/7925741-chatgpt-shared-links-faq?utm_source=chatgpt.com",
+        "rel": "noopener",
+        "style": "max-width: 105px;",
+        "target": "_blank"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "href": "https://help.openai.com/it-it/articles/7925741-chatgpt-shared-links-faq?utm_source=chatgpt.com",
+      "index": 13,
+      "rect": {
+        "bottom": -111.640625,
+        "height": 18,
+        "left": 782.125,
+        "right": 886.25,
+        "top": -129.640625,
+        "width": 104.125,
+        "x": 782.125,
+        "y": -129.640625
+      },
+      "text": "OpenAI Help Center"
+    },
+    {
+      "attributes": {
+        "class": "decorated-link",
+        "data-end": "1240",
+        "data-start": "1141",
+        "href": "https://drive.google.com/file/d/10D-cAJNqPvquHsmk94n6nt0SFb9h8Pwj/view",
+        "rel": "noopener",
+        "target": "_new"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "href": "https://drive.google.com/file/d/10D-cAJNqPvquHsmk94n6nt0SFb9h8Pwj/view",
+      "index": 14,
+      "rect": {
+        "bottom": 24.859375,
+        "height": 45,
+        "left": 450,
+        "right": 1077.875,
+        "top": -20.140625,
+        "width": 627.875,
+        "x": 450,
+        "y": -20.140625
+      },
+      "text": "chat.md su Google Drive"
+    }
+  ],
+  "buttons": [
+    {
+      "attributes": {
+        "aria-controls": "stage-slideover-sidebar",
+        "aria-expanded": "false",
+        "aria-label": "Apri barra laterale",
+        "class": "text-token-text-primary contrast-high:not-dark:keyboard-focused:focus-ring no-draggable hover:bg-token-surface-hover keyboard-focused:bg-token-surface-hover touch:h-10 touch:w-10 flex h-9 w-9 items-center justify-center rounded-lg outline-none disabled:opacity-50 group/open-sidebar mx-2 cursor-e-resize rtl:cursor-w-resize"
+      },
+      "context": null,
+      "index": 0,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 8,
+        "right": 44,
+        "top": 8,
+        "width": 36,
+        "x": 8,
+        "y": 8
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "class": "group __menu-item border-b border-transparent bg-clip-padding hoverable gap-1.5 transition-colors keyboard-focused:focus-ring keyboard-focused:-outline-offset-2 w-full",
+        "data-fill": "",
+        "data-sidebar-item": "true",
+        "style": "--menu-item-active: var(--interactive-bg-secondary-selected); --menu-item-background: var(--interactive-bg-secondary-default); --menu-item-highlighted: var(--interactive-bg-secondary-hover); --menu-item-open: var(--interactive-bg-secondary-press); --menu-item-pressed: var(--interactive-bg-secondary-press);",
+        "tabindex": "0",
+        "type": "button"
+      },
+      "context": null,
+      "index": 1,
+      "rect": {
+        "bottom": 132,
+        "height": 36,
+        "left": 6,
+        "right": 46,
+        "top": 96,
+        "width": 40,
+        "x": 6,
+        "y": 96
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Cerca chat",
+        "class": "text-token-text-tertiary contrast-high:not-dark:keyboard-focused:focus-ring no-draggable hover:bg-token-surface-hover keyboard-focused:bg-token-surface-hover touch:h-10 touch:w-10 flex h-9 w-9 items-center justify-center rounded-lg outline-none disabled:opacity-50",
+        "data-state": "closed"
+      },
+      "context": null,
+      "index": 2,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 180,
+        "right": 216,
+        "top": 8,
+        "width": 36,
+        "x": 180,
+        "y": 8
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-controls": "stage-slideover-sidebar",
+        "aria-expanded": "true",
+        "aria-label": "Chiudi barra laterale",
+        "class": "text-token-text-tertiary contrast-high:not-dark:keyboard-focused:focus-ring no-draggable hover:bg-token-surface-hover keyboard-focused:bg-token-surface-hover touch:h-10 touch:w-10 flex h-9 w-9 items-center justify-center rounded-lg outline-none disabled:opacity-50 no-draggable cursor-w-resize rtl:cursor-e-resize",
+        "data-state": "closed",
+        "data-testid": "close-sidebar-button"
+      },
+      "context": null,
+      "index": 3,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 216,
+        "right": 252,
+        "top": 8,
+        "width": 36,
+        "x": 216,
+        "y": 8
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-secondary btn-large w-full"
+      },
+      "context": null,
+      "index": 4,
+      "rect": {
+        "bottom": 814,
+        "height": 44,
+        "left": 14,
+        "right": 246,
+        "top": 770,
+        "width": 232,
+        "x": 14,
+        "y": 770
+      },
+      "text": "Accedi"
+    },
+    {
+      "attributes": {
+        "aria-expanded": "false",
+        "aria-haspopup": "menu",
+        "aria-label": "Selettore di modelli",
+        "class": "group flex cursor-pointer justify-center items-center gap-1 rounded-lg min-h-9 touch:min-h-10 px-2.5 text-lg hover:bg-token-surface-hover focus-visible:bg-token-surface-hover font-normal whitespace-nowrap focus-visible:outline-none",
+        "data-state": "closed",
+        "data-testid": "model-switcher-dropdown-button",
+        "id": "radix-_r_f_",
+        "style": "view-transition-name: var(--vt-thread-model-switcher);",
+        "type": "button"
+      },
+      "context": null,
+      "index": 5,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 283,
+        "right": 398.234375,
+        "top": 8,
+        "width": 115.234375,
+        "x": 283,
+        "y": 8
+      },
+      "text": "ChatGPT"
+    },
+    {
+      "attributes": {
+        "aria-label": "Condividi",
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-ghost rounded-lg",
+        "data-testid": "receiver-share-button",
+        "type": "button"
+      },
+      "context": null,
+      "index": 6,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 886.546875,
+        "right": 996,
+        "top": 8,
+        "width": 109.453125,
+        "x": 886.546875,
+        "y": 8
+      },
+      "text": "Condividi"
+    },
+    {
+      "attributes": {
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-primary",
+        "data-testid": "login-button"
+      },
+      "context": null,
+      "index": 7,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 996,
+        "right": 1064.171875,
+        "top": 8,
+        "width": 68.171875,
+        "x": 996,
+        "y": 8
+      },
+      "text": "Accedi"
+    },
+    {
+      "attributes": {
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-secondary screen-arch:hidden md:screen-arch:flex max-xs:hidden",
+        "data-testid": "signup-button"
+      },
+      "context": null,
+      "index": 8,
+      "rect": {
+        "bottom": 44,
+        "height": 36,
+        "left": 1072.171875,
+        "right": 1257,
+        "top": 8,
+        "width": 184.828125,
+        "x": 1072.171875,
+        "y": 8
+      },
+      "text": "Registrati gratuitamente"
+    },
+    {
+      "attributes": {},
+      "context": null,
+      "index": 9,
+      "rect": {
+        "bottom": -19977,
+        "height": 16,
+        "left": 700.515625,
+        "right": 839.46875,
+        "top": -19993,
+        "width": 138.953125,
+        "x": 700.515625,
+        "y": -19993
+      },
+      "text": "Segnala la conversazione"
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 1",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "0",
+        "type": "button"
+      },
+      "context": null,
+      "index": 10,
+      "rect": {
+        "bottom": 323,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 321,
+        "width": 18,
+        "x": 1237,
+        "y": 321
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 2",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "1",
+        "type": "button"
+      },
+      "context": null,
+      "index": 11,
+      "rect": {
+        "bottom": 333,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 331,
+        "width": 18,
+        "x": 1237,
+        "y": 331
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 3",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "2",
+        "type": "button"
+      },
+      "context": null,
+      "index": 12,
+      "rect": {
+        "bottom": 343,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 341,
+        "width": 18,
+        "x": 1237,
+        "y": 341
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 4",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "3",
+        "type": "button"
+      },
+      "context": null,
+      "index": 13,
+      "rect": {
+        "bottom": 353,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 351,
+        "width": 18,
+        "x": 1237,
+        "y": 351
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 5",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "4",
+        "type": "button"
+      },
+      "context": null,
+      "index": 14,
+      "rect": {
+        "bottom": 363,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 361,
+        "width": 18,
+        "x": 1237,
+        "y": 361
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 6",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "5",
+        "type": "button"
+      },
+      "context": null,
+      "index": 15,
+      "rect": {
+        "bottom": 373,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 371,
+        "width": 18,
+        "x": 1237,
+        "y": 371
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 7",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "6",
+        "type": "button"
+      },
+      "context": null,
+      "index": 16,
+      "rect": {
+        "bottom": 383,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 381,
+        "width": 18,
+        "x": 1237,
+        "y": 381
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 8",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "7",
+        "type": "button"
+      },
+      "context": null,
+      "index": 17,
+      "rect": {
+        "bottom": 393,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 391,
+        "width": 18,
+        "x": 1237,
+        "y": 391
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 9",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "8",
+        "type": "button"
+      },
+      "context": null,
+      "index": 18,
+      "rect": {
+        "bottom": 403,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 401,
+        "width": 18,
+        "x": 1237,
+        "y": 401
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 10",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "9",
+        "type": "button"
+      },
+      "context": null,
+      "index": 19,
+      "rect": {
+        "bottom": 413,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 411,
+        "width": 18,
+        "x": 1237,
+        "y": 411
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 11",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "10",
+        "type": "button"
+      },
+      "context": null,
+      "index": 20,
+      "rect": {
+        "bottom": 423,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 421,
+        "width": 18,
+        "x": 1237,
+        "y": 421
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 12",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "11",
+        "type": "button"
+      },
+      "context": null,
+      "index": 21,
+      "rect": {
+        "bottom": 433,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 431,
+        "width": 18,
+        "x": 1237,
+        "y": 431
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 13",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "12",
+        "type": "button"
+      },
+      "context": null,
+      "index": 22,
+      "rect": {
+        "bottom": 443,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 441,
+        "width": 18,
+        "x": 1237,
+        "y": 441
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 14",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "13",
+        "type": "button"
+      },
+      "context": null,
+      "index": 23,
+      "rect": {
+        "bottom": 453,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 451,
+        "width": 18,
+        "x": 1237,
+        "y": 451
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 15",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "14",
+        "type": "button"
+      },
+      "context": null,
+      "index": 24,
+      "rect": {
+        "bottom": 463,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 461,
+        "width": 18,
+        "x": 1237,
+        "y": 461
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 16",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "15",
+        "type": "button"
+      },
+      "context": null,
+      "index": 25,
+      "rect": {
+        "bottom": 473,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 471,
+        "width": 18,
+        "x": 1237,
+        "y": 471
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 17",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "16",
+        "type": "button"
+      },
+      "context": null,
+      "index": 26,
+      "rect": {
+        "bottom": 483,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 481,
+        "width": 18,
+        "x": 1237,
+        "y": 481
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 18",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "17",
+        "type": "button"
+      },
+      "context": null,
+      "index": 27,
+      "rect": {
+        "bottom": 493,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 491,
+        "width": 18,
+        "x": 1237,
+        "y": 491
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 19",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-tertiary/60 hover:bg-token-text-secondary",
+        "data-toc-item-index": "18",
+        "type": "button"
+      },
+      "context": null,
+      "index": 28,
+      "rect": {
+        "bottom": 503,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 501,
+        "width": 18,
+        "x": 1237,
+        "y": 501
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Prompt 20",
+        "class": "h-0.5 w-4.5 shrink-0 rounded-full transition-all bg-token-text-primary",
+        "data-toc-active": "",
+        "data-toc-item-index": "19",
+        "type": "button"
+      },
+      "context": null,
+      "index": 29,
+      "rect": {
+        "bottom": 513,
+        "height": 2,
+        "left": 1237,
+        "right": 1255,
+        "top": 511,
+        "width": 18,
+        "x": 1237,
+        "y": 511
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-expanded": "false",
+        "class": "flex items-center gap-1 text-start select-none text-token-text-tertiary dark:text-(--interactive-label-tertiary-default) hover:text-token-text-primary dark:hover:text-token-text-primary",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-12",
+          "data-turn": "assistant",
+          "data-turn-id": "fa5dcf96-10b3-4388-b122-89dacdd396d1",
+          "data-turn-id-container": "fa5dcf96-10b3-4388-b122-89dacdd396d1",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 30,
+      "rect": {
+        "bottom": -13413,
+        "height": 24,
+        "left": 450,
+        "right": 623.109375,
+        "top": -13437,
+        "width": 173.109375,
+        "x": 450,
+        "y": -13437
+      },
+      "text": "Elaborato per 9m 44s"
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia",
+        "class": "flex gap-1 items-center select-none py-2 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10 size-9 rounded-full px-2",
+        "data-state": "closed",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "fb87ed29-2d51-44a8-aa07-e47dc2c0ba40",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "index": 31,
+      "rect": {
+        "bottom": -12551,
+        "height": 36,
+        "left": 1047,
+        "right": 1083,
+        "top": -12587,
+        "width": 36,
+        "x": 1047,
+        "y": -12587
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia risposta",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-12",
+          "data-turn": "assistant",
+          "data-turn-id": "fa5dcf96-10b3-4388-b122-89dacdd396d1",
+          "data-turn-id-container": "fa5dcf96-10b3-4388-b122-89dacdd396d1",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 32,
+      "rect": {
+        "bottom": -12176,
+        "height": 32,
+        "left": 444,
+        "right": 476,
+        "top": -12208,
+        "width": 32,
+        "x": 444,
+        "y": -12208
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia messaggio",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-19",
+          "data-turn": "user",
+          "data-turn-id": "07f960d8-7b16-470b-af6f-3f6ddcd585ad",
+          "data-turn-id-container": "07f960d8-7b16-470b-af6f-3f6ddcd585ad",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 33,
+      "rect": {
+        "bottom": -9086,
+        "height": 32,
+        "left": 1058,
+        "right": 1090,
+        "top": -9118,
+        "width": 32,
+        "x": 1058,
+        "y": -9118
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-controls": "_r_37_",
+        "aria-expanded": "false",
+        "class": "A_HxFq_toggleControl select-none",
+        "data-conversation-preview-interactive": "true",
+        "data-testid": "collapsible-user-message-toggle",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "97f7fd6f-09dc-42e5-a806-acdac0081314",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "index": 34,
+      "rect": {
+        "bottom": 0,
+        "height": 0,
+        "left": 0,
+        "right": 0,
+        "top": 0,
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      "text": "Mostra di piùMostra meno"
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia messaggio",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-23",
+          "data-turn": "user",
+          "data-turn-id": "97f7fd6f-09dc-42e5-a806-acdac0081314",
+          "data-turn-id-container": "97f7fd6f-09dc-42e5-a806-acdac0081314",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 35,
+      "rect": {
+        "bottom": -6962,
+        "height": 32,
+        "left": 1058,
+        "right": 1090,
+        "top": -6994,
+        "width": 32,
+        "x": 1058,
+        "y": -6994
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia risposta",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-28",
+          "data-turn": "assistant",
+          "data-turn-id": "74ceddff-045b-4c51-8428-690d59c5dd5e",
+          "data-turn-id-container": "74ceddff-045b-4c51-8428-690d59c5dd5e",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 36,
+      "rect": {
+        "bottom": -5509,
+        "height": 32,
+        "left": 444,
+        "right": 476,
+        "top": -5541,
+        "width": 32,
+        "x": 444,
+        "y": -5541
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia risposta",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-34",
+          "data-turn": "assistant",
+          "data-turn-id": "b71bcf51-2a16-4fc5-9fc6-0200a1241d7a",
+          "data-turn-id-container": "b71bcf51-2a16-4fc5-9fc6-0200a1241d7a",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 37,
+      "rect": {
+        "bottom": -3995,
+        "height": 32,
+        "left": 444,
+        "right": 476,
+        "top": -4027,
+        "width": 32,
+        "x": 444,
+        "y": -4027
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-expanded": "false",
+        "class": "flex items-center gap-1 text-start select-none text-token-text-tertiary dark:text-(--interactive-label-tertiary-default) hover:text-token-text-primary dark:hover:text-token-text-primary",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-36",
+          "data-turn": "assistant",
+          "data-turn-id": "4cf18542-e68d-468e-afaa-06ba9f531c94",
+          "data-turn-id-container": "4cf18542-e68d-468e-afaa-06ba9f531c94",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 38,
+      "rect": {
+        "bottom": -3888,
+        "height": 24,
+        "left": 450,
+        "right": 623.109375,
+        "top": -3912,
+        "width": 173.109375,
+        "x": 450,
+        "y": -3912
+      },
+      "text": "Elaborato per 1m 50s"
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia risposta",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-36",
+          "data-turn": "assistant",
+          "data-turn-id": "4cf18542-e68d-468e-afaa-06ba9f531c94",
+          "data-turn-id-container": "4cf18542-e68d-468e-afaa-06ba9f531c94",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 39,
+      "rect": {
+        "bottom": -3341,
+        "height": 32,
+        "left": 444,
+        "right": 476,
+        "top": -3373,
+        "width": 32,
+        "x": 444,
+        "y": -3373
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia messaggio",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-37",
+          "data-turn": "user",
+          "data-turn-id": "55bd03ce-d609-46ef-80a6-920e9f228cc9",
+          "data-turn-id-container": "55bd03ce-d609-46ef-80a6-920e9f228cc9",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 40,
+      "rect": {
+        "bottom": -3104,
+        "height": 32,
+        "left": 1058,
+        "right": 1090,
+        "top": -3136,
+        "width": 32,
+        "x": 1058,
+        "y": -3136
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-expanded": "false",
+        "class": "flex items-center gap-1 text-start select-none text-token-text-tertiary dark:text-(--interactive-label-tertiary-default) hover:text-token-text-primary dark:hover:text-token-text-primary",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-38",
+          "data-turn": "assistant",
+          "data-turn-id": "0eee0884-2762-44ae-943a-6af77b6405b5",
+          "data-turn-id-container": "0eee0884-2762-44ae-943a-6af77b6405b5",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 41,
+      "rect": {
+        "bottom": -3076,
+        "height": 24,
+        "left": 450,
+        "right": 623.109375,
+        "top": -3100,
+        "width": 173.109375,
+        "x": 450,
+        "y": -3100
+      },
+      "text": "Elaborato per 2m 32s"
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia",
+        "class": "flex gap-1 items-center select-none pointer-events-auto py-2 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10 size-9 rounded-full px-2",
+        "data-state": "closed",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8cec58b0-edc1-4fc0-a49d-6643c07483c8",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "index": 42,
+      "rect": {
+        "bottom": -2596,
+        "height": 36,
+        "left": 1046,
+        "right": 1082,
+        "top": -2632,
+        "width": 36,
+        "x": 1046,
+        "y": -2632
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia tabella",
+        "class": "hover:bg-token-bg-tertiary text-token-text-secondary relative z-10 my-1 rounded-sm p-1 transition-opacity group-[:not(:hover):not(:focus-within)]:pointer-events-none group-[:not(:hover):not(:focus-within)]:opacity-0"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8cec58b0-edc1-4fc0-a49d-6643c07483c8",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "index": 43,
+      "rect": {
+        "bottom": -1973,
+        "height": 28,
+        "left": 1062,
+        "right": 1090,
+        "top": -2001,
+        "width": 28,
+        "x": 1062,
+        "y": -2001
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Markdown progressivo 0007",
+        "class": "behavior-btn hover:entity-accent focus-visible:focus-ring entity-underline inline cursor-pointer appearance-none border-0 bg-transparent p-0 text-start align-baseline px-1 text-token-text-link font-medium",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8cec58b0-edc1-4fc0-a49d-6643c07483c8",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "index": 44,
+      "rect": {
+        "bottom": -1006,
+        "height": 26,
+        "left": 715.890625,
+        "right": 949.484375,
+        "top": -1032,
+        "width": 233.59375,
+        "x": 715.890625,
+        "y": -1032
+      },
+      "text": "Markdown progressivo 0007"
+    },
+    {
+      "attributes": {
+        "aria-label": "grafico 001",
+        "class": "behavior-btn hover:entity-accent focus-visible:focus-ring entity-underline inline cursor-pointer appearance-none border-0 bg-transparent p-0 text-start align-baseline px-1 text-token-text-link font-medium",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8cec58b0-edc1-4fc0-a49d-6643c07483c8",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "index": 45,
+      "rect": {
+        "bottom": -980,
+        "height": 26,
+        "left": 816.46875,
+        "right": 925.578125,
+        "top": -1006,
+        "width": 109.109375,
+        "x": 816.46875,
+        "y": -1006
+      },
+      "text": "grafico 001"
+    },
+    {
+      "attributes": {
+        "aria-label": "grafico 002",
+        "class": "behavior-btn hover:entity-accent focus-visible:focus-ring entity-underline inline cursor-pointer appearance-none border-0 bg-transparent p-0 text-start align-baseline px-1 text-token-text-link font-medium",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8cec58b0-edc1-4fc0-a49d-6643c07483c8",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "index": 46,
+      "rect": {
+        "bottom": -980,
+        "height": 26,
+        "left": 953.484375,
+        "right": 1062.59375,
+        "top": -1006,
+        "width": 109.109375,
+        "x": 953.484375,
+        "y": -1006
+      },
+      "text": "grafico 002"
+    },
+    {
+      "attributes": {
+        "aria-label": "Citazione codifica",
+        "class": "rounded-xl px-1 text-token-text-secondary bg-token-bg-tertiary hover:text-token-text-primary hover:bg-token-interactive-bg-secondary-selected"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8cec58b0-edc1-4fc0-a49d-6643c07483c8",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "index": 47,
+      "rect": {
+        "bottom": -729.140625,
+        "height": 16,
+        "left": 609.703125,
+        "right": 633.703125,
+        "top": -745.140625,
+        "width": 24,
+        "x": 609.703125,
+        "y": -745.140625
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia risposta",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-38",
+          "data-turn": "assistant",
+          "data-turn-id": "0eee0884-2762-44ae-943a-6af77b6405b5",
+          "data-turn-id-container": "0eee0884-2762-44ae-943a-6af77b6405b5",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 48,
+      "rect": {
+        "bottom": -680.140625,
+        "height": 32,
+        "left": 444,
+        "right": 476,
+        "top": -712.140625,
+        "width": 32,
+        "x": 444,
+        "y": -712.140625
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia messaggio",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-39",
+          "data-turn": "user",
+          "data-turn-id": "f1e8074d-c431-4b51-9a36-eaab85925157",
+          "data-turn-id-container": "f1e8074d-c431-4b51-9a36-eaab85925157",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 49,
+      "rect": {
+        "bottom": -519.140625,
+        "height": 32,
+        "left": 1058,
+        "right": 1090,
+        "top": -551.140625,
+        "width": 32,
+        "x": 1058,
+        "y": -551.140625
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-expanded": "false",
+        "class": "flex items-center gap-1 text-start select-none text-token-text-tertiary dark:text-(--interactive-label-tertiary-default) hover:text-token-text-primary dark:hover:text-token-text-primary",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-40",
+          "data-turn": "assistant",
+          "data-turn-id": "5b253df6-c593-4cae-ac28-51343065a8ec",
+          "data-turn-id-container": "5b253df6-c593-4cae-ac28-51343065a8ec",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 50,
+      "rect": {
+        "bottom": -491.140625,
+        "height": 24,
+        "left": 450,
+        "right": 614.09375,
+        "top": -515.140625,
+        "width": 164.09375,
+        "x": 450,
+        "y": -515.140625
+      },
+      "text": "Elaborato per 2m 5s"
+    },
+    {
+      "attributes": {
+        "aria-label": "Markdown 0008",
+        "class": "behavior-btn hover:entity-accent focus-visible:focus-ring entity-underline inline cursor-pointer appearance-none border-0 bg-transparent p-0 text-start align-baseline px-1 text-token-text-link font-medium",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "index": 51,
+      "rect": {
+        "bottom": 71.859375,
+        "height": 26,
+        "left": 564.046875,
+        "right": 708.296875,
+        "top": 45.859375,
+        "width": 144.25,
+        "x": 564.046875,
+        "y": 45.859375
+      },
+      "text": "Markdown 0008"
+    },
+    {
+      "attributes": {
+        "aria-label": "grafico 001",
+        "class": "behavior-btn hover:entity-accent focus-visible:focus-ring entity-underline inline cursor-pointer appearance-none border-0 bg-transparent p-0 text-start align-baseline px-1 text-token-text-link font-medium",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "index": 52,
+      "rect": {
+        "bottom": 71.859375,
+        "height": 26,
+        "left": 967.015625,
+        "right": 1076.125,
+        "top": 45.859375,
+        "width": 109.109375,
+        "x": 967.015625,
+        "y": 45.859375
+      },
+      "text": "grafico 001"
+    },
+    {
+      "attributes": {
+        "aria-label": "grafico 002",
+        "class": "behavior-btn hover:entity-accent focus-visible:focus-ring entity-underline inline cursor-pointer appearance-none border-0 bg-transparent p-0 text-start align-baseline px-1 text-token-text-link font-medium",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "index": 53,
+      "rect": {
+        "bottom": 97.859375,
+        "height": 26,
+        "left": 450,
+        "right": 559.109375,
+        "top": 71.859375,
+        "width": 109.109375,
+        "x": 450,
+        "y": 71.859375
+      },
+      "text": "grafico 002"
+    },
+    {
+      "attributes": {
+        "aria-label": "Citazione codifica",
+        "class": "rounded-xl px-1 text-token-text-secondary bg-token-bg-tertiary hover:text-token-text-primary hover:bg-token-interactive-bg-secondary-selected"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "index": 54,
+      "rect": {
+        "bottom": 627.71875,
+        "height": 16,
+        "left": 560.90625,
+        "right": 584.90625,
+        "top": 611.71875,
+        "width": 24,
+        "x": 560.90625,
+        "y": 611.71875
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "`chat.md` su Google Drive",
+        "class": "group/open-file peer/open-file interactive-button interactive-label-primary focus-visible:ring-token-border-heavy flex min-w-0 flex-1 cursor-pointer items-center gap-3 bg-transparent py-3 ps-4 pe-14 text-start focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-40",
+          "data-turn": "assistant",
+          "data-turn-id": "5b253df6-c593-4cae-ac28-51343065a8ec",
+          "data-turn-id-container": "5b253df6-c593-4cae-ac28-51343065a8ec",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 55,
+      "rect": {
+        "bottom": 716.71875,
+        "height": 60,
+        "left": 451,
+        "right": 929,
+        "top": 656.71875,
+        "width": 478,
+        "x": 451,
+        "y": 656.71875
+      },
+      "text": "`chat.md` su Google Drive\nGoogle Drive"
+    },
+    {
+      "attributes": {
+        "aria-label": "Copia risposta",
+        "class": "text-token-text-secondary hover:bg-token-surface-hover rounded-lg",
+        "data-state": "closed",
+        "data-testid": "copy-turn-action-button",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-40",
+          "data-turn": "assistant",
+          "data-turn-id": "5b253df6-c593-4cae-ac28-51343065a8ec",
+          "data-turn-id-container": "5b253df6-c593-4cae-ac28-51343065a8ec",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 56,
+      "rect": {
+        "bottom": 762.71875,
+        "height": 32,
+        "left": 444,
+        "right": 476,
+        "top": 730.71875,
+        "width": 32,
+        "x": 444,
+        "y": 730.71875
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-label": "Fonti",
+        "class": "group/footnote bg-transparent hover:bg-token-surface-hover flex w-fit items-center gap-1.5 rounded-lg py-1.5 ps-3 pe-3",
+        "style": "opacity: 1;",
+        "type": "button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-40",
+          "data-turn": "assistant",
+          "data-turn-id": "5b253df6-c593-4cae-ac28-51343065a8ec",
+          "data-turn-id-container": "5b253df6-c593-4cae-ac28-51343065a8ec",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "index": 57,
+      "rect": {
+        "bottom": 762.71875,
+        "height": 32,
+        "left": 476,
+        "right": 550.890625,
+        "top": 730.71875,
+        "width": 74.890625,
+        "x": 476,
+        "y": 730.71875
+      },
+      "text": "Fonti"
+    },
+    {
+      "attributes": {
+        "aria-hidden": "true",
+        "class": "relative flex h-8 w-8 cursor-pointer items-center justify-center overflow-hidden rounded-full outline-hidden select-none btn-secondary bg-token-bg-primary/65! hover:bg-token-main-surface-secondary/75! shadow-short box-content backdrop-blur-[2px] backdrop-filter sm:shadow-md dark:shadow-none! group-data-stream-active/scroll-root:squircle *:absolute *:inset-0 *:m-auto group-data-stream-active/scroll-root:w-10 motion-safe:transition-[width] motion-safe:duration-120 motion-safe:ease-out *:motion-safe:transition-opacity *:motion-safe:duration-120 *:motion-safe:ease-out absolute start-1/2 z-10 -translate-x-1/2 bottom-[calc(100%+3*var(--spacing)+var(--thread-scroll-to-bottom-banner-offset,0px))]",
+        "tabindex": "-1"
+      },
+      "context": null,
+      "index": 58,
+      "rect": {
+        "bottom": 748,
+        "height": 17,
+        "left": 761.5,
+        "right": 778.5,
+        "top": 731,
+        "width": 17,
+        "x": 761.5,
+        "y": 731
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-describedby": "_r_n_",
+        "aria-expanded": "false",
+        "aria-haspopup": "menu",
+        "aria-label": "Aggiungi file e altro",
+        "class": "composer-btn",
+        "data-testid": "composer-plus-btn",
+        "id": "composer-plus-btn",
+        "interestfor": "_r_n_",
+        "type": "button"
+      },
+      "context": null,
+      "index": 59,
+      "rect": {
+        "bottom": 801.984375,
+        "height": 36,
+        "left": 458,
+        "right": 494,
+        "top": 765.984375,
+        "width": 36,
+        "x": 458,
+        "y": 765.984375
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "aria-describedby": "_r_o_",
+        "aria-label": "Avvia Voce",
+        "class": "relative flex h-9 items-center justify-center rounded-full w-9 composer-submit-button-color border border-transparent disabled:cursor-not-allowed disabled:opacity-50 hover:opacity-70 disabled:opacity-30! can-hover:relative can-hover:after:absolute can-hover:after:-inset-x-1 can-hover:after:inset-y-0 can-hover:after:content-['']",
+        "data-testid": "composer-speech-button",
+        "interestfor": "_r_o_",
+        "style": "view-transition-name: var(--vt-composer-speech-button);"
+      },
+      "context": null,
+      "index": 60,
+      "rect": {
+        "bottom": 801.984375,
+        "height": 36,
+        "left": 1046,
+        "right": 1082,
+        "top": 765.984375,
+        "width": 36,
+        "x": 1046,
+        "y": 765.984375
+      },
+      "text": ""
+    }
+  ],
+  "media": [],
+  "iframes": [
+    {
+      "attributes": {
+        "hidden": "",
+        "referrerpolicy": "no-referrer",
+        "sandbox": "allow-scripts",
+        "src": "https://cdn.platform.openai.com/deployments/dil/v14/runner.html#dil-diagnostics=1",
+        "tabindex": "-1",
+        "title": "DIL execution sandbox"
+      },
+      "context": null,
+      "index": 0,
+      "rect": {
+        "bottom": 0,
+        "height": 0,
+        "left": 0,
+        "right": 0,
+        "top": 0,
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      "src": "https://cdn.platform.openai.com/deployments/dil/v14/runner.html#dil-diagnostics=1"
+    }
+  ],
+  "interestingAttributes": [
+    {
+      "attributes": {
+        "content": "https://ogimg.chatgpt.com/conversation/6ad093bb-2500-83eb-9edb-3f341ac567d4/igc.png"
+      },
+      "context": null,
+      "tag": "meta"
+    },
+    {
+      "attributes": {
+        "content": "https://ogimg.chatgpt.com/conversation/6ad093bb-2500-83eb-9edb-3f341ac567d4/igc.png"
+      },
+      "context": null,
+      "tag": "meta"
+    },
+    {
+      "attributes": {
+        "content": "https://ogimg.chatgpt.com/conversation/6ad093bb-2500-83eb-9edb-3f341ac567d4/igc.png"
+      },
+      "context": null,
+      "tag": "meta"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/favicon-l4nq08hd.svg"
+      },
+      "context": null,
+      "tag": "link"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/favicon-l4nq08hd.svg"
+      },
+      "context": null,
+      "tag": "link"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/favicon-48x48-glnpepm0.webp"
+      },
+      "context": null,
+      "tag": "link"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/favicon-180x180-od45eci6.webp"
+      },
+      "context": null,
+      "tag": "link"
+    },
+    {
+      "attributes": {
+        "href": "https://chatgpt.com/cdn/assets/dil-sandbox-file-download-cbx2rx77.css"
+      },
+      "context": null,
+      "tag": "link"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#blossom"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "create-new-chat-button"
+      },
+      "context": null,
+      "tag": "a"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#compose"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar-search"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "sidebar-item-library"
+      },
+      "context": null,
+      "tag": "a"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar-images"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "accounts-profile-button"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#avatar"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#blossom"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar-search"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "close-sidebar-button"
+      },
+      "context": null,
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#cross"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "create-new-chat-button"
+      },
+      "context": null,
+      "tag": "a"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#compose"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "sidebar-item-library"
+      },
+      "context": null,
+      "tag": "a"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar-images"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "plugins-button"
+      },
+      "context": null,
+      "tag": "a"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar-plugins"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar-research"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "sidebar-item-places"
+      },
+      "context": null,
+      "tag": "a"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#sidebar-maps"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#upgrade-plan"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#arrow-top-right-sm"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "settings-menu-item"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#settings-cog"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#help"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#chevron-right-sm"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "model-switcher-dropdown-button"
+      },
+      "context": null,
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#chevron-down-sm"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "thread-header-right-actions-container"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "thread-header-right-actions"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "receiver-share-button"
+      },
+      "context": null,
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-testid": "login-button"
+      },
+      "context": null,
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-testid": "signup-button"
+      },
+      "context": null,
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "client-created-root"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "e4c8d3ee-0f32-461d-b8e2-48d74ab76274"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "5be2e19e-8319-4919-8579-4a9ce8f2fd6c"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "56651994-efb6-4a57-bf7b-e52caf6495fe"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "73f63580-e07f-4154-8667-6f1583498e0e"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "4a4270cd-aa8c-4e93-981e-58c98a0d3998"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "ee420be1-2908-47d7-8a4b-14bda0ba9b51"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "3a0a9423-6e67-45e1-babc-4f44ff731468"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "647da814-db7f-4cc6-9b7e-795be7a8ee02"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "c0051282-df2b-4e85-ba06-733811677382"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "976ad408-cd66-4df3-b1fd-a7cf0e8070fc"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "ac9f70f4-1396-4408-9348-153ead296f9b"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "fa5dcf96-10b3-4388-b122-89dacdd396d1"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-12",
+        "data-turn": "assistant",
+        "data-turn-id": "fa5dcf96-10b3-4388-b122-89dacdd396d1",
+        "data-turn-id-container": "fa5dcf96-10b3-4388-b122-89dacdd396d1"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-12",
+          "data-turn": "assistant",
+          "data-turn-id": "fa5dcf96-10b3-4388-b122-89dacdd396d1",
+          "data-turn-id-container": "fa5dcf96-10b3-4388-b122-89dacdd396d1",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#07889e"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-12",
+          "data-turn": "assistant",
+          "data-turn-id": "fa5dcf96-10b3-4388-b122-89dacdd396d1",
+          "data-turn-id-container": "fa5dcf96-10b3-4388-b122-89dacdd396d1",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "image-gen-overlay-actions"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-12",
+          "data-turn": "assistant",
+          "data-turn-id": "fa5dcf96-10b3-4388-b122-89dacdd396d1",
+          "data-turn-id-container": "fa5dcf96-10b3-4388-b122-89dacdd396d1",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "image-gen-overlay-left-actions"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-12",
+          "data-turn": "assistant",
+          "data-turn-id": "fa5dcf96-10b3-4388-b122-89dacdd396d1",
+          "data-turn-id-container": "fa5dcf96-10b3-4388-b122-89dacdd396d1",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "image-gen-overlay-right-actions"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-12",
+          "data-turn": "assistant",
+          "data-turn-id": "fa5dcf96-10b3-4388-b122-89dacdd396d1",
+          "data-turn-id-container": "fa5dcf96-10b3-4388-b122-89dacdd396d1",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-message-author-role": "assistant",
+        "data-message-id": "b96d2d39-e3f9-4b36-83a1-79fd0b1cb05e",
+        "data-message-model-slug": "gpt-6-thinking"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "b96d2d39-e3f9-4b36-83a1-79fd0b1cb05e",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-message-author-role": "assistant",
+        "data-message-id": "d9e7fa8d-df8c-49f0-b2c6-bb8d5479da54",
+        "data-message-model-slug": "gpt-6-thinking"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "d9e7fa8d-df8c-49f0-b2c6-bb8d5479da54",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-message-author-role": "assistant",
+        "data-message-id": "fb87ed29-2d51-44a8-aa07-e47dc2c0ba40",
+        "data-message-model-slug": "gpt-6-thinking"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "fb87ed29-2d51-44a8-aa07-e47dc2c0ba40",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#72c6a7"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "fb87ed29-2d51-44a8-aa07-e47dc2c0ba40",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#7fccfb"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "fb87ed29-2d51-44a8-aa07-e47dc2c0ba40",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "https://github.com/massimilianonardi-ai/rumiai-dev/blob/main/chats/2026-10-14-github-chat-mirror/chat.md"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "fb87ed29-2d51-44a8-aa07-e47dc2c0ba40",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "a"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#ba2866"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "fb87ed29-2d51-44a8-aa07-e47dc2c0ba40",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-12",
+          "data-turn": "assistant",
+          "data-turn-id": "fa5dcf96-10b3-4388-b122-89dacdd396d1",
+          "data-turn-id-container": "fa5dcf96-10b3-4388-b122-89dacdd396d1",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "859e3b21-c22c-4783-8db5-ba4e44297953"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "508a8f95-84a9-48d5-a3e7-889dba73fa8f"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "604ca647-7c13-423a-94a4-5780c5557f7f"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "306cf06b-0a2c-45e5-a77a-3465f55eef4e"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "7cf95853-cbe6-4852-b055-2a8ef13a6aa6"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "9c0b55ec-14a2-439b-85c9-cf5a4886dfb4"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "07f960d8-7b16-470b-af6f-3f6ddcd585ad"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-19",
+        "data-turn": "user",
+        "data-turn-id": "07f960d8-7b16-470b-af6f-3f6ddcd585ad",
+        "data-turn-id-container": "07f960d8-7b16-470b-af6f-3f6ddcd585ad"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-19",
+          "data-turn": "user",
+          "data-turn-id": "07f960d8-7b16-470b-af6f-3f6ddcd585ad",
+          "data-turn-id-container": "07f960d8-7b16-470b-af6f-3f6ddcd585ad",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "data-message-author-role": "user",
+        "data-message-id": "07f960d8-7b16-470b-af6f-3f6ddcd585ad"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "07f960d8-7b16-470b-af6f-3f6ddcd585ad",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#d7281f"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "07f960d8-7b16-470b-af6f-3f6ddcd585ad",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-19",
+          "data-turn": "user",
+          "data-turn-id": "07f960d8-7b16-470b-af6f-3f6ddcd585ad",
+          "data-turn-id-container": "07f960d8-7b16-470b-af6f-3f6ddcd585ad",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "8698224e-6381-4aa9-9a8e-7383b1e8f923"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "e572f9de-768f-4b96-8e46-906af74c6a79"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "03e4063a-5134-4777-89de-0067a66d2b2a"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "97f7fd6f-09dc-42e5-a806-acdac0081314"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-23",
+        "data-turn": "user",
+        "data-turn-id": "97f7fd6f-09dc-42e5-a806-acdac0081314",
+        "data-turn-id-container": "97f7fd6f-09dc-42e5-a806-acdac0081314"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-23",
+          "data-turn": "user",
+          "data-turn-id": "97f7fd6f-09dc-42e5-a806-acdac0081314",
+          "data-turn-id-container": "97f7fd6f-09dc-42e5-a806-acdac0081314",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "data-message-author-role": "user",
+        "data-message-id": "97f7fd6f-09dc-42e5-a806-acdac0081314"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "97f7fd6f-09dc-42e5-a806-acdac0081314",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#f7cf8e"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "97f7fd6f-09dc-42e5-a806-acdac0081314",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#f7cf8e"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "97f7fd6f-09dc-42e5-a806-acdac0081314",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "collapsible-user-message-root"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "97f7fd6f-09dc-42e5-a806-acdac0081314",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "collapsible-user-message-content"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "97f7fd6f-09dc-42e5-a806-acdac0081314",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "collapsible-user-message-toggle"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "97f7fd6f-09dc-42e5-a806-acdac0081314",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#dd315f"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "97f7fd6f-09dc-42e5-a806-acdac0081314",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-23",
+          "data-turn": "user",
+          "data-turn-id": "97f7fd6f-09dc-42e5-a806-acdac0081314",
+          "data-turn-id-container": "97f7fd6f-09dc-42e5-a806-acdac0081314",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "1aeb5f24-fef5-4b8d-8804-ecae3f893c34"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "0ebaa79c-e877-463b-b945-1d6e0d445af9"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "c8230f5b-585e-4d7b-a060-37589aa11b34"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "cb4f3d1d-2d70-45d1-a9b4-2f41241caef0"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "74ceddff-045b-4c51-8428-690d59c5dd5e"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-28",
+        "data-turn": "assistant",
+        "data-turn-id": "74ceddff-045b-4c51-8428-690d59c5dd5e",
+        "data-turn-id-container": "74ceddff-045b-4c51-8428-690d59c5dd5e"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-28",
+          "data-turn": "assistant",
+          "data-turn-id": "74ceddff-045b-4c51-8428-690d59c5dd5e",
+          "data-turn-id-container": "74ceddff-045b-4c51-8428-690d59c5dd5e",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "data-testid": "image-gen-overlay-actions"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-28",
+          "data-turn": "assistant",
+          "data-turn-id": "74ceddff-045b-4c51-8428-690d59c5dd5e",
+          "data-turn-id-container": "74ceddff-045b-4c51-8428-690d59c5dd5e",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "image-gen-overlay-left-actions"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-28",
+          "data-turn": "assistant",
+          "data-turn-id": "74ceddff-045b-4c51-8428-690d59c5dd5e",
+          "data-turn-id-container": "74ceddff-045b-4c51-8428-690d59c5dd5e",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "image-gen-overlay-right-actions"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-28",
+          "data-turn": "assistant",
+          "data-turn-id": "74ceddff-045b-4c51-8428-690d59c5dd5e",
+          "data-turn-id-container": "74ceddff-045b-4c51-8428-690d59c5dd5e",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-28",
+          "data-turn": "assistant",
+          "data-turn-id": "74ceddff-045b-4c51-8428-690d59c5dd5e",
+          "data-turn-id-container": "74ceddff-045b-4c51-8428-690d59c5dd5e",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "079c8954-722f-44ef-ba88-630c6c86faf7"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "e3e2befe-e320-47f9-842f-6eb0c1155b6e"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "1de31921-07ae-4102-9064-8366ad2b493a"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "31279bcc-0f97-426f-9789-659547fded1b"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "cd65ba1b-b52e-470c-9b61-77a00b204619"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "b71bcf51-2a16-4fc5-9fc6-0200a1241d7a"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-34",
+        "data-turn": "assistant",
+        "data-turn-id": "b71bcf51-2a16-4fc5-9fc6-0200a1241d7a",
+        "data-turn-id-container": "b71bcf51-2a16-4fc5-9fc6-0200a1241d7a"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-34",
+          "data-turn": "assistant",
+          "data-turn-id": "b71bcf51-2a16-4fc5-9fc6-0200a1241d7a",
+          "data-turn-id-container": "b71bcf51-2a16-4fc5-9fc6-0200a1241d7a",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "data-testid": "image-gen-overlay-actions"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-34",
+          "data-turn": "assistant",
+          "data-turn-id": "b71bcf51-2a16-4fc5-9fc6-0200a1241d7a",
+          "data-turn-id-container": "b71bcf51-2a16-4fc5-9fc6-0200a1241d7a",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "image-gen-overlay-left-actions"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-34",
+          "data-turn": "assistant",
+          "data-turn-id": "b71bcf51-2a16-4fc5-9fc6-0200a1241d7a",
+          "data-turn-id-container": "b71bcf51-2a16-4fc5-9fc6-0200a1241d7a",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "image-gen-overlay-right-actions"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-34",
+          "data-turn": "assistant",
+          "data-turn-id": "b71bcf51-2a16-4fc5-9fc6-0200a1241d7a",
+          "data-turn-id-container": "b71bcf51-2a16-4fc5-9fc6-0200a1241d7a",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-34",
+          "data-turn": "assistant",
+          "data-turn-id": "b71bcf51-2a16-4fc5-9fc6-0200a1241d7a",
+          "data-turn-id-container": "b71bcf51-2a16-4fc5-9fc6-0200a1241d7a",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "f6647aee-d8c7-47a3-95bd-256da4e00275"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "4cf18542-e68d-468e-afaa-06ba9f531c94"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-36",
+        "data-turn": "assistant",
+        "data-turn-id": "4cf18542-e68d-468e-afaa-06ba9f531c94",
+        "data-turn-id-container": "4cf18542-e68d-468e-afaa-06ba9f531c94"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-36",
+          "data-turn": "assistant",
+          "data-turn-id": "4cf18542-e68d-468e-afaa-06ba9f531c94",
+          "data-turn-id-container": "4cf18542-e68d-468e-afaa-06ba9f531c94",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#07889e"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-36",
+          "data-turn": "assistant",
+          "data-turn-id": "4cf18542-e68d-468e-afaa-06ba9f531c94",
+          "data-turn-id-container": "4cf18542-e68d-468e-afaa-06ba9f531c94",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-message-author-role": "assistant",
+        "data-message-id": "571484b2-97bb-46f1-955c-42f270ec3b68",
+        "data-model-dil-v2-message": ""
+      },
+      "context": {
+        "attributes": {
+          "data-message-author-role": "assistant",
+          "data-message-id": "571484b2-97bb-46f1-955c-42f270ec3b68",
+          "data-model-dil-v2-message": ""
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-36",
+          "data-turn": "assistant",
+          "data-turn-id": "4cf18542-e68d-468e-afaa-06ba9f531c94",
+          "data-turn-id-container": "4cf18542-e68d-468e-afaa-06ba9f531c94",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "55bd03ce-d609-46ef-80a6-920e9f228cc9"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-37",
+        "data-turn": "user",
+        "data-turn-id": "55bd03ce-d609-46ef-80a6-920e9f228cc9",
+        "data-turn-id-container": "55bd03ce-d609-46ef-80a6-920e9f228cc9"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-37",
+          "data-turn": "user",
+          "data-turn-id": "55bd03ce-d609-46ef-80a6-920e9f228cc9",
+          "data-turn-id-container": "55bd03ce-d609-46ef-80a6-920e9f228cc9",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "data-message-author-role": "user",
+        "data-message-id": "55bd03ce-d609-46ef-80a6-920e9f228cc9"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "55bd03ce-d609-46ef-80a6-920e9f228cc9",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-37",
+          "data-turn": "user",
+          "data-turn-id": "55bd03ce-d609-46ef-80a6-920e9f228cc9",
+          "data-turn-id-container": "55bd03ce-d609-46ef-80a6-920e9f228cc9",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "0eee0884-2762-44ae-943a-6af77b6405b5"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-38",
+        "data-turn": "assistant",
+        "data-turn-id": "0eee0884-2762-44ae-943a-6af77b6405b5",
+        "data-turn-id-container": "0eee0884-2762-44ae-943a-6af77b6405b5"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-38",
+          "data-turn": "assistant",
+          "data-turn-id": "0eee0884-2762-44ae-943a-6af77b6405b5",
+          "data-turn-id-container": "0eee0884-2762-44ae-943a-6af77b6405b5",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#07889e"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-38",
+          "data-turn": "assistant",
+          "data-turn-id": "0eee0884-2762-44ae-943a-6af77b6405b5",
+          "data-turn-id-container": "0eee0884-2762-44ae-943a-6af77b6405b5",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-message-author-role": "assistant",
+        "data-message-id": "8cec58b0-edc1-4fc0-a49d-6643c07483c8",
+        "data-message-model-slug": "gpt-6-thinking"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8cec58b0-edc1-4fc0-a49d-6643c07483c8",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#7fccfb"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8cec58b0-edc1-4fc0-a49d-6643c07483c8",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#7fccfb"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8cec58b0-edc1-4fc0-a49d-6643c07483c8",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-library-file-icon-key": "text",
+        "data-library-file-icon-kind": "document",
+        "data-testid": "library-file-icon"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8cec58b0-edc1-4fc0-a49d-6643c07483c8",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "svg"
+    },
+    {
+      "attributes": {
+        "data-library-file-icon-key": "photo",
+        "data-library-file-icon-kind": "document",
+        "data-testid": "library-file-icon"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8cec58b0-edc1-4fc0-a49d-6643c07483c8",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "svg"
+    },
+    {
+      "attributes": {
+        "data-library-file-icon-key": "photo",
+        "data-library-file-icon-kind": "document",
+        "data-testid": "library-file-icon"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8cec58b0-edc1-4fc0-a49d-6643c07483c8",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "svg"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#ba2866"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8cec58b0-edc1-4fc0-a49d-6643c07483c8",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-content-reference-end": "4516",
+        "data-content-reference-start": "4516"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8cec58b0-edc1-4fc0-a49d-6643c07483c8",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "span"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#72c6a7"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8cec58b0-edc1-4fc0-a49d-6643c07483c8",
+          "data-message-model-slug": "gpt-6-thinking",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-38",
+          "data-turn": "assistant",
+          "data-turn-id": "0eee0884-2762-44ae-943a-6af77b6405b5",
+          "data-turn-id-container": "0eee0884-2762-44ae-943a-6af77b6405b5",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "f1e8074d-c431-4b51-9a36-eaab85925157"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-39",
+        "data-turn": "user",
+        "data-turn-id": "f1e8074d-c431-4b51-9a36-eaab85925157",
+        "data-turn-id-container": "f1e8074d-c431-4b51-9a36-eaab85925157"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-39",
+          "data-turn": "user",
+          "data-turn-id": "f1e8074d-c431-4b51-9a36-eaab85925157",
+          "data-turn-id-container": "f1e8074d-c431-4b51-9a36-eaab85925157",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "data-message-author-role": "user",
+        "data-message-id": "f1e8074d-c431-4b51-9a36-eaab85925157"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-message-author-role": "user",
+          "data-message-id": "f1e8074d-c431-4b51-9a36-eaab85925157",
+          "dir": "auto"
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-(--sticky-padding-top)",
+          "data-testid": "conversation-turn-39",
+          "data-turn": "user",
+          "data-turn-id": "f1e8074d-c431-4b51-9a36-eaab85925157",
+          "data-turn-id-container": "f1e8074d-c431-4b51-9a36-eaab85925157",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-turn-id-container": "5b253df6-c593-4cae-ac28-51343065a8ec"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "conversation-turn-40",
+        "data-turn": "assistant",
+        "data-turn-id": "5b253df6-c593-4cae-ac28-51343065a8ec",
+        "data-turn-id-container": "5b253df6-c593-4cae-ac28-51343065a8ec"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-40",
+          "data-turn": "assistant",
+          "data-turn-id": "5b253df6-c593-4cae-ac28-51343065a8ec",
+          "data-turn-id-container": "5b253df6-c593-4cae-ac28-51343065a8ec",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "section"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#07889e"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-40",
+          "data-turn": "assistant",
+          "data-turn-id": "5b253df6-c593-4cae-ac28-51343065a8ec",
+          "data-turn-id-container": "5b253df6-c593-4cae-ac28-51343065a8ec",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+        "data-message-author-role": "assistant",
+        "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+        "data-message-model-slug": "gpt-6-thinking",
+        "data-turn-start-message": "true"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-content-reference-end": "425",
+        "data-content-reference-start": "401"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "tag": "span"
+    },
+    {
+      "attributes": {
+        "data-testid": "webpage-citation-pill"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "tag": "span"
+    },
+    {
+      "attributes": {
+        "data-content-reference-end": "918",
+        "data-content-reference-start": "894"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "tag": "span"
+    },
+    {
+      "attributes": {
+        "data-testid": "webpage-citation-pill"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "tag": "span"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#ba2866"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-library-file-icon-key": "text",
+        "data-library-file-icon-kind": "document",
+        "data-testid": "library-file-icon"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "tag": "svg"
+    },
+    {
+      "attributes": {
+        "data-library-file-icon-key": "photo",
+        "data-library-file-icon-kind": "document",
+        "data-testid": "library-file-icon"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "tag": "svg"
+    },
+    {
+      "attributes": {
+        "data-library-file-icon-key": "photo",
+        "data-library-file-icon-kind": "document",
+        "data-testid": "library-file-icon"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "tag": "svg"
+    },
+    {
+      "attributes": {
+        "data-content-reference-end": "2490",
+        "data-content-reference-start": "2412"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "tag": "span"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#e04414"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-content-reference-end": "2562",
+        "data-content-reference-start": "2493"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "tag": "span"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#e04414"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-content-reference-end": "2657",
+        "data-content-reference-start": "2565"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "tag": "span"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#e04414"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-content-reference-end": "2595",
+        "data-content-reference-start": "2595"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "tag": "span"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#72c6a7"
+      },
+      "context": {
+        "attributes": {
+          "class": "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1",
+          "data-markdown-talvt-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-author-role": "assistant",
+          "data-message-id": "8ee7222f-33d1-4c04-a375-467f68eae772",
+          "data-message-model-slug": "gpt-6-thinking",
+          "data-turn-start-message": "true",
+          "dir": "auto",
+          "tabindex": "0"
+        },
+        "tag": "div"
+      },
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "copy-turn-action-button"
+      },
+      "context": {
+        "attributes": {
+          "class": "text-token-text-primary w-full focus:outline-none has-data-writing-block:pointer-events-none [&:has([data-writing-block])>*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]",
+          "data-testid": "conversation-turn-40",
+          "data-turn": "assistant",
+          "data-turn-id": "5b253df6-c593-4cae-ac28-51343065a8ec",
+          "data-turn-id-container": "5b253df6-c593-4cae-ac28-51343065a8ec",
+          "dir": "auto"
+        },
+        "tag": "section"
+      },
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "data-testid": "thread-disclaimer"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "thread-footer-overflow-spacer"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "composer-plus-btn"
+      },
+      "context": null,
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#plus-regular-20"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "composer-speech-button-container"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "data-testid": "composer-speech-button"
+      },
+      "context": null,
+      "tag": "button"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-shell-f705d3e2.svg#voice-regular-24"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "upload-photos-input"
+      },
+      "context": null,
+      "tag": "input"
+    }
+  ]
+}

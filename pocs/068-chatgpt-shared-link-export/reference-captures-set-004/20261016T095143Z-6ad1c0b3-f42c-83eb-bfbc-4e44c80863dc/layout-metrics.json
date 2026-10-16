@@ -1,0 +1,49 @@
+{
+  "ok": true,
+  "value": {
+    "contentSize": {
+      "height": 834,
+      "width": 1280,
+      "x": 0,
+      "y": 0
+    },
+    "cssContentSize": {
+      "height": 834,
+      "width": 1280,
+      "x": 0,
+      "y": 0
+    },
+    "cssLayoutViewport": {
+      "clientHeight": 834,
+      "clientWidth": 1280,
+      "pageX": 0,
+      "pageY": 0
+    },
+    "cssVisualViewport": {
+      "clientHeight": 834,
+      "clientWidth": 1280,
+      "offsetX": 0,
+      "offsetY": 0,
+      "pageX": 0,
+      "pageY": 0,
+      "scale": 1,
+      "zoom": 1
+    },
+    "layoutViewport": {
+      "clientHeight": 834,
+      "clientWidth": 1280,
+      "pageX": 0,
+      "pageY": 0
+    },
+    "visualViewport": {
+      "clientHeight": 834,
+      "clientWidth": 1280,
+      "offsetX": 0,
+      "offsetY": 0,
+      "pageX": 0,
+      "pageY": 0,
+      "scale": 1,
+      "zoom": 1
+    }
+  }
+}
