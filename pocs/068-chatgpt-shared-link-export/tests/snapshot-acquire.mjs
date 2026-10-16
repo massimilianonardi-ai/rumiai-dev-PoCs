@@ -85,7 +85,15 @@ test('page-context media acquisition maps renderer generated images to raw asset
         asset_pointer: 'sediment://file_image2?shared_conversation_id=share-1',
         size_bytes: 4, width: 1536, height: 1024
       }] }, weight: 0 } },
-    answer: { parent: 'toolImage2', message: { id: 'a', author: { role: 'assistant' },
+    userUpload: { parent: 'toolImage2', message: {
+      id:'upload', author:{role:'user'}, weight:1,
+      content:{content_type:'multimodal_text',parts:[{
+        content_type:'image_asset_pointer',
+        asset_pointer:'sediment://file_upload?shared_conversation_id=share-1',
+        size_bytes:5,width:1536,height:1024
+      }]}
+    } },
+    answer: { parent: 'userUpload', message: { id: 'a', author: { role: 'assistant' },
       channel: 'final', recipient: 'all', content: { parts: ['done'] },
       metadata: { is_complete: true }, end_turn: true, weight: 1 } }
   } };
@@ -111,6 +119,8 @@ test('page-context media acquisition maps renderer generated images to raw asset
       if (params.expression.includes("expectedSizes = new Set")) {
         assert.ok(params.expression.includes('3'));
         assert.ok(params.expression.includes('4'));
+        assert.ok(params.expression.includes('new Set([3,4])'));
+        assert.ok(!params.expression.includes('new Set([3,4,5])'));
         return { result: { result: { value: [
           { status: 200, byteLength: 3, mimeType: 'image/png', size_match: true,
             url_scheme: 'blob:', base64: Buffer.from('one').toString('base64'),
@@ -139,13 +149,19 @@ test('page-context media acquisition maps renderer generated images to raw asset
   };
   const result = await captureStructuredSnapshot(control,
     'https://chatgpt.com/share/share-1', { seconds: 1 });
-  assert.equal(result.assets.length, 2);
-  assert.deepEqual(result.assets.map(x => x.file_id), ['file_image1', 'file_image2']);
-  assert.deepEqual(result.assets.map(x => x.downloaded_size_bytes), [3, 4]);
+  assert.equal(result.assets.length, 3);
+  assert.deepEqual(result.assets.map(x => x.file_id),
+    ['file_image1', 'file_image2','file_upload']);
+  assert.deepEqual(result.assets.map(x => x.downloaded_size_bytes),
+    [3, 4, null]);
   assert.deepEqual(result.assets.map(x => x.attempts[0].source),
-    ['renderer-generated-image', 'renderer-generated-image']);
+    ['renderer-generated-image', 'renderer-generated-image',
+      'anonymous-share']);
+  assert.equal(result.assets[2].attempts[0].disposition,
+    'deferred-authenticated-user-upload');
+  assert.equal(result.assets[2].base64, null);
   assert.deepEqual(result.assets.map(x => x.references[0].classification),
-    ['zero_weight', 'zero_weight']);
+    ['zero_weight', 'zero_weight', 'visible_candidate']);
   assert.equal(result.assets[0].renderer_references.length, 2);
   assert.equal(result.assets[1].renderer_references.length, 1);
   assert.equal(result.stats.rendererImageCandidates, 4);
