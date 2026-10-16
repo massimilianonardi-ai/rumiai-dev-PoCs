@@ -287,17 +287,15 @@ test('anonymous generated-image DOM resolves stable file id and deduplicates thr
     Array.from({length:3},()=>'<img loading="lazy" width="1536" height="1024" src="'+url.replaceAll('&','&amp;')+'">').join('')+
     '</div></div><div data-image-gen-result><div id="image-unrelated"><img src="'+fake+'"></div></div>';
   const {document}=parseHTML(html);
-  let lazyReady=false;
   let scrollCount=0;
-  document.querySelector('#image-real').scrollIntoView=()=>{
-    scrollCount++;
-    if(scrollCount>=2)lazyReady=true;
-  };
+  let stationaryPolls=0;
+  document.querySelector('#image-real').scrollIntoView=()=>{scrollCount++;};
+  const imageIsLoaded=()=>scrollCount===1 && stationaryPolls>=3;
   for(const img of document.querySelectorAll('img')){
     const pending=img.closest('#image-real')!==null;
-    Object.defineProperty(img,'complete',{get:()=>!pending||lazyReady,configurable:true});
-    Object.defineProperty(img,'naturalWidth',{get:()=>pending&&!lazyReady?0:1536,configurable:true});
-    Object.defineProperty(img,'naturalHeight',{get:()=>pending&&!lazyReady?0:1024,configurable:true});
+    Object.defineProperty(img,'complete',{get:()=>!pending||imageIsLoaded(),configurable:true});
+    Object.defineProperty(img,'naturalWidth',{get:()=>pending&&!imageIsLoaded()?0:1536,configurable:true});
+    Object.defineProperty(img,'naturalHeight',{get:()=>pending&&!imageIsLoaded()?0:1024,configurable:true});
   }
   const image=Buffer.concat([
     Buffer.from([137,80,78,71,13,10,26,10]),Buffer.alloc(12)
@@ -329,7 +327,9 @@ test('anonymous generated-image DOM resolves stable file id and deduplicates thr
         return{result:{result:{value:'https://chatgpt.com|complete'}}};
       if(params.expression.includes("return { candidates: urls.size"))
         return{result:{result:{value:{candidates:4,images:4}}}};
-      if(params.expression.includes('function scan(index)')){
+      if(params.expression.includes('function scan(index, shouldActivate)')){
+        if(scrollCount===1 && params.expression.endsWith(',false)'))
+          stationaryPolls++;
         const data=runInNewContext(params.expression,{
           document,location:{href:'https://chatgpt.com/share/share-test'},URL
         });
@@ -362,12 +362,16 @@ test('anonymous generated-image DOM resolves stable file id and deduplicates thr
   assert.equal(result.assets[0].attempts[0].source,'anonymous-generated-image-img-src');
   assert.equal(result.assets[0].renderer_references[0].root_id,'image-real');
   assert.equal(result.assets[0].renderer_references[0].was_loaded,true);
-  assert.ok(scrollCount>=2,'lazy image must be scrolled into view before acquisition');
+  assert.equal(scrollCount,1,'one scroll, then leave the image stationary');
+  assert.ok(stationaryPolls>=3,'lazy decoding needs consecutive stationary polls');
   assert.equal(result.stats.generatedImageDom.identified,1);
   assert.equal(result.stats.generatedImageDom.downloaded,1);
   assert.equal(result.stats.generatedImageDom.expected,1);
   assert.equal(result.stats.generatedImageDom.settled,true);
-  assert.ok(result.stats.generatedImageDom.polls>=3);
+  assert.equal(result.stats.generatedImageDom.surfaces,2);
+  assert.equal(result.stats.generatedImageDom.activated,1);
+  assert.equal(result.stats.generatedImageDom.statuses[0].status,'loaded');
+  assert.ok(result.stats.generatedImageDom.polls>=5);
   assert.ok(!expressions.some(x=>x.includes('/backend-anon/files/download/')));
   assert.ok(!JSON.stringify(result.stats).includes('sig='));
   assert.ok(!JSON.stringify(result.assets[0].renderer_references).includes('sig='));
