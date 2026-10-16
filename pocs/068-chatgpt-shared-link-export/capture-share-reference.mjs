@@ -8,6 +8,7 @@ import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { shareUrl } from './snapshot-acquire.mjs';
 import { webControl } from './export-share.mjs';
+import { captureReferenceInteractions } from './reference-interactions.mjs';
 
 const execFileAsync = promisify(execFile);
 const entrypoint = fileURLToPath(import.meta.url);
@@ -625,6 +626,19 @@ export async function captureReferencePage(inputUrl, outputRoot, options = {}) {
     }
     await writeJson(path.join(directory,'candidate-resources.json'),candidateManifest);
 
+    let interactionEvidence;
+    try {
+      interactionEvidence = await captureReferenceInteractions(
+        control,url,directory,{seconds}
+      );
+    } catch (error) {
+      interactionEvidence = {
+        inventory:[],selected:[],interactions:[],
+        error:String(error?.message || error).slice(0,1000)
+      };
+      await writeJson(path.join(directory,'INTERACTIONS.json'),interactionEvidence);
+    }
+
     const summary = {
       source:url, share_id:shareId, captured_at:new Date().toISOString(),
       settled,
@@ -645,7 +659,13 @@ export async function captureReferencePage(inputUrl, outputRoot, options = {}) {
         inline_json:Array.isArray(probes['inline-json-inventory'])
           ? probes['inline-json-inventory'].length : 0,
         probes_ok:Object.values(probeStatus).filter(x=>x.ok).length,
-        probes_failed:Object.values(probeStatus).filter(x=>!x.ok).length
+        probes_failed:Object.values(probeStatus).filter(x=>!x.ok).length,
+        interaction_inventory:Array.isArray(interactionEvidence.inventory)
+          ? interactionEvidence.inventory.length : 0,
+        interactions_selected:Array.isArray(interactionEvidence.selected)
+          ? interactionEvidence.selected.length : 0,
+        interactions_complete:Array.isArray(interactionEvidence.interactions)
+          ? interactionEvidence.interactions.filter(x=>x.status==='complete').length : 0
       },
       cdp:{
         dom_snapshot:domSnapshot.ok,
