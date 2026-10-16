@@ -61,6 +61,7 @@ async function failureRecord(folder, error) {
     observedJsonShapes: error.stats?.jsonShapes || [],
     sourceAttempts: error.stats?.sourceAttempts || [],
     assetAttempts: error.stats?.assetAttempts || [],
+    fileAttempts: error.stats?.fileAttempts || [],
     rendererImageCandidates: error.stats?.rendererImageCandidates || 0,
     rendererImageResources: error.stats?.rendererImageResources || 0,
     rendererImageOccurrences: error.stats?.rendererImageOccurrences || 0,
@@ -79,12 +80,12 @@ async function failureRecord(folder, error) {
 export async function exportSharedLink(input, directory, seconds = 20, controller = webControl) {
   const url = shareUrl(input);
   await controllerReadyIfRequired(controller);
-  const { snapshot, assets = [], method, stats } =
+  const { snapshot, assets = [], files = [], method, stats } =
     await captureStructuredSnapshot(controller, url, { seconds });
   const result = await exportSnapshot(snapshot, {
     display_title: snapshot.title || 'Shared conversation',
     source_created_at: snapshot.create_time
-  }, directory, url, method, assets);
+  }, directory, url, method, assets, files);
   return {
     ...result,
     rendererImageCandidates: stats?.rendererImageCandidates ?? 0,

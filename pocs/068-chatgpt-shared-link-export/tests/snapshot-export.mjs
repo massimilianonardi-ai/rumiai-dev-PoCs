@@ -149,8 +149,18 @@ test('writes immutable forensic export, gzip, multimodal JSONL and readable ZIP'
         ],
         attempts: [{ source: 'backend-anon', metadataStatus: 200, binaryStatus: 200 }]
       }];
+      const sandboxFiles = index === 1 ? [] : [{
+        source:'assistant-sandbox',
+        sandbox_uri:'sandbox:/mnt/data/report.md',
+        file_path:'/mnt/data/report.md',
+        file_name:'report.md',
+        message_id:'assistant', node_id:'assistant', ordinal:1,
+        mime_type:'text/markdown', downloaded_size_bytes:9,
+        base64:Buffer.from('# report\n').toString('base64'),
+        attempts:[{source:'backend-anon-file-from-message',metadataStatus:200,binaryStatus:200}]
+      }];
       const result = await exportSnapshot(snapshot(), {}, dir,
-        'https://chatgpt.com/share/example', 'test-fixture', assets);
+        'https://chatgpt.com/share/example', 'test-fixture', assets, sandboxFiles);
       const raw = JSON.parse(gunzipSync(await fs.readFile(path.join(result.directory,
         'conversation.raw.json.gz'))));
       assert.deepEqual(raw, snapshot());
@@ -158,6 +168,7 @@ test('writes immutable forensic export, gzip, multimodal JSONL and readable ZIP'
       assert.ok(zip.has('TRANSCRIPT.md'));
       assert.ok(zip.has('TURN_SURFACES.jsonl'));
       assert.ok(zip.has('MEDIA.json'));
+      assert.ok(zip.has('FILES.json'));
       assert.ok(zip.has('SHA256SUMS'));
       if (index === 2) {
         assert.ok(zip.has('media/001-file_1.png'));
@@ -168,6 +179,12 @@ test('writes immutable forensic export, gzip, multimodal JSONL and readable ZIP'
         assert.equal(manifest[0].renderer_references.length, 1);
         assert.deepEqual(manifest[0].asset_pointers, ['ref-1', 'ref-1-alias']);
         assert.match(zip.get('TRANSCRIPT.md').toString(), /!\[immagine\]\(media\/001-file_1\.png\)/);
+        assert.ok(zip.has('files/001-report.md'));
+        const fileManifest = JSON.parse(zip.get('FILES.json'));
+        assert.equal(fileManifest[0].status,'downloaded');
+        assert.equal(fileManifest[0].local_path,'files/001-report.md');
+        assert.equal(result.filesReferenced,1);
+        assert.equal(result.filesDownloaded,1);
       }
       const turns = zip.get('TURN_SURFACES.jsonl').toString().trim().split('\n')
         .filter(Boolean).map(line => JSON.parse(line));
@@ -181,4 +198,32 @@ test('writes immutable forensic export, gzip, multimodal JSONL and readable ZIP'
       assert.match(result.directory, new RegExp(index === 1 ? 'Test - conversation$' : 'Test - conversation \\(2\\)$'));
     }
   } finally { await fs.rm(dir, { recursive: true, force: true }); }
+});
+
+
+test('rewrites downloaded sandbox links to local files', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(),'chatgpt-sandbox-export-'));
+  const snap = {conversation_id:'files',title:'Files',current_node:'a',mapping:{
+    u:{parent:null,message:{id:'u',author:{role:'user'},content:{parts:['file?']},weight:1}},
+    a:{parent:'u',message:{id:'a',author:{role:'assistant'},content:{
+      parts:['[Report](sandbox:/mnt/data/report.md)']
+    },weight:1,end_turn:true,metadata:{is_complete:true}}}
+  }};
+  try {
+    const result = await exportSnapshot(snap,{},dir,
+      'https://chatgpt.com/share/files','test-fixture',[],[{
+        source:'assistant-sandbox',sandbox_uri:'sandbox:/mnt/data/report.md',
+        file_path:'/mnt/data/report.md',file_name:'report.md',
+        message_id:'a',node_id:'a',ordinal:1,mime_type:'text/markdown',
+        base64:Buffer.from('# report\n').toString('base64'),
+        attempts:[{source:'backend-anon-file-from-message',metadataStatus:200,binaryStatus:200}]
+      }]);
+    const markdown=await fs.readFile(path.join(result.directory,'TRANSCRIPT.md'),'utf8');
+    assert.match(markdown,/\[Report\]\(files\/001-report\.md\)/);
+    const manifest=JSON.parse(await fs.readFile(path.join(result.directory,'FILES.json'),'utf8'));
+    assert.equal(manifest[0].status,'downloaded');
+    assert.equal(result.filesMissing,0);
+  } finally {
+    await fs.rm(dir,{recursive:true,force:true});
+  }
 });

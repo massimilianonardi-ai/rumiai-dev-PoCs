@@ -161,6 +161,64 @@ test('page-context media acquisition maps renderer generated images to raw asset
   assert.ok(!expressions.some(x => x.includes('Authorization')));
 });
 
+
+test('assistant sandbox files use observed file_from_message transport without persisting signed URL', async () => {
+  const fileSnapshot = { conversation_id:'conv-files', current_node:'answer', mapping:{
+    user:{parent:null,message:{id:'u',author:{role:'user'},
+      content:{parts:['make a file']},weight:1}},
+    answer:{parent:'user',message:{id:'a',author:{role:'assistant'},
+      channel:'final',recipient:'all',weight:1,end_turn:true,
+      metadata:{is_complete:true},
+      content:{parts:['[report](sandbox:/mnt/data/report.md)']}}}
+  }};
+  let navigated=false;
+  const expressions=[];
+  const control=async (...args)=>{
+    const cmd=args.slice(0,3).join(' ');
+    if(cmd==='page new') return {id:'page-1'};
+    if(cmd==='debug session open') return {session:'debug-1'};
+    if(cmd==='debug session close') return {closed:true};
+    if(cmd==='debug session send' && args[4]==='Page.navigate'){
+      navigated=true; return {result:{}};
+    }
+    if(cmd==='debug session send' && args[4]==='Runtime.evaluate'){
+      const params=JSON.parse(args[5]); expressions.push(params.expression);
+      if(params.expression==="location.origin + '|' + document.readyState")
+        return {result:{result:{value:navigated?'https://chatgpt.com|complete':'data:|complete'}}};
+      if(params.expression.includes('file_from_message')){
+        assert.ok(params.expression.includes('/mnt/data/report.md'));
+        return {result:{result:{value:{
+          attempts:[{source:'backend-anon-file-from-message',metadataStatus:200,binaryStatus:200}],
+          base64:Buffer.from('# report\n').toString('base64'),
+          byteLength:9,mimeType:'text/markdown',fileName:'report.md'
+        }}}};
+      }
+      if(params.expression.includes("return { candidates: urls.size"))
+        return {result:{result:{value:{candidates:0,images:0}}}};
+      if(params.expression.includes("expectedSizes = new Set"))
+        return {result:{result:{value:[]}}};
+      if(params.expression.includes('backend-anon'))
+        return {result:{result:{value:{
+          attempts:[{source:'backend-anon',status:200}],
+          snapshot:JSON.stringify(fileSnapshot)
+        }}}};
+      return {result:{result:{value:[]}}};
+    }
+    return {};
+  };
+  const result=await captureStructuredSnapshot(
+    control,'https://chatgpt.com/share/share-files',{seconds:1});
+  assert.equal(result.files.length,1);
+  assert.equal(result.files[0].sandbox_uri,'sandbox:/mnt/data/report.md');
+  assert.equal(result.files[0].message_id,'a');
+  assert.equal(result.files[0].mime_type,'text/markdown');
+  assert.equal(Buffer.from(result.files[0].base64,'base64').toString(),'# report\n');
+  assert.equal(result.stats.fileAttempts.length,1);
+  assert.ok(expressions.some(x=>x.includes('/file_from_message/')));
+  assert.ok(!JSON.stringify(result.stats).includes('oaiusercontent'));
+  assert.ok(!expressions.some(x=>x.includes('/api/auth/session')));
+});
+
 test('backend-api is represented as safe fallback evidence', async () => {
   const control = async (...args) => {
     const cmd = args.slice(0, 3).join(' ');

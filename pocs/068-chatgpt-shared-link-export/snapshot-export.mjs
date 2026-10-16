@@ -262,6 +262,63 @@ export function zipFiles(files) {
   return Buffer.concat([...local, ...central, end]);
 }
 
+function fileExtension(file) {
+  const name = String(file.file_name || '');
+  const fromName = name.match(/(\.[A-Za-z0-9]{1,10})$/);
+  if (fromName) return fromName[1].toLowerCase();
+  const mime = String(file.mime_type || '').toLowerCase().split(';')[0];
+  const known = {
+    'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp',
+    'image/gif': '.gif', 'image/svg+xml': '.svg', 'application/pdf': '.pdf',
+    'text/markdown': '.md', 'text/plain': '.txt', 'application/json': '.json',
+    'application/zip': '.zip'
+  };
+  return known[mime] || '.bin';
+}
+
+function sandboxFileFiles(files) {
+  const stored = [], manifest = [], byUri = new Map();
+  files.forEach((file,index) => {
+    const item = {
+      source:file.source || 'assistant-sandbox',
+      sandbox_uri:file.sandbox_uri,
+      file_path:file.file_path,
+      file_name:file.file_name || null,
+      message_id:file.message_id || null,
+      node_id:file.node_id || null,
+      ordinal:file.ordinal ?? null,
+      mime_type:file.mime_type ?? null,
+      downloaded_size_bytes:file.downloaded_size_bytes ?? null,
+      status:file.base64 ? 'downloaded' : 'missing',
+      local_path:null, sha256:null,
+      attempts:Array.isArray(file.attempts) ? file.attempts : []
+    };
+    if (file.base64) {
+      const bytes = Buffer.from(file.base64,'base64');
+      const stem = safeName(file.file_name || ('file-' + String(index + 1)));
+      const ext = fileExtension(file);
+      const withExt = stem.toLowerCase().endsWith(ext.toLowerCase())
+        ? stem : stem + ext;
+      const filename = String(index + 1).padStart(3,'0') + '-' + withExt;
+      item.local_path = 'files/' + filename;
+      item.downloaded_size_bytes = bytes.length;
+      item.sha256 = sha(bytes);
+      stored.push([item.local_path,bytes]);
+      if (typeof item.sandbox_uri === 'string')
+        byUri.set(item.sandbox_uri,item.local_path);
+    }
+    manifest.push(item);
+  });
+  return { files:stored, manifest, byUri };
+}
+
+function rewriteSandboxLinks(text, byUri) {
+  let value = String(text || '');
+  for (const [uri,local] of byUri)
+    value = value.split(uri).join(local);
+  return value;
+}
+
 function mediaExtension(asset) {
   const mime = String(asset.mime_type || '').toLowerCase().split(';')[0];
   const known = { 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp',
@@ -301,14 +358,14 @@ function mediaFiles(assets) {
   return { files, manifest, byPointer };
 }
 
-function markdownMessage(item, mediaByPointer) {
+function markdownMessage(item, mediaByPointer, sandboxByUri) {
   const parts = item.message?.content?.parts;
   if (!Array.isArray(parts)) return item.text ||
     '[contenuto non testuale; vedi VISIBLE_MESSAGES.jsonl]';
   const rendered = [];
   for (const part of parts) {
     if (typeof part === 'string') {
-      rendered.push(part);
+      rendered.push(rewriteSandboxLinks(part, sandboxByUri));
       continue;
     }
     if (part?.content_type === 'image_asset_pointer' &&
@@ -325,7 +382,9 @@ function markdownMessage(item, mediaByPointer) {
   return rendered.join('\n\n');
 }
 
-export async function exportSnapshot(snapshot, selected, outputRoot, source, method, assets = []) {
+export async function exportSnapshot(
+  snapshot, selected, outputRoot, source, method, assets = [], sandboxFiles = []
+) {
   const title = String(snapshot.title || selected.display_title ||
     snapshot.conversation_id || 'Shared conversation');
   const transcript = deriveTranscript(snapshot);
@@ -340,10 +399,11 @@ export async function exportSnapshot(snapshot, selected, outputRoot, source, met
   }
   const raw = Buffer.from(JSON.stringify(snapshot), 'utf8');
   const media = mediaFiles(assets);
+  const files = sandboxFileFiles(sandboxFiles);
   const markdown = transcript.visible.map(item =>
     '## ' + (item.role === 'user' ? 'USER' :
       item.channel === 'commentary' ? 'ASSISTANT — commentary' : 'ASSISTANT') +
-    '\n\n' + markdownMessage(item, media.byPointer) +
+    '\n\n' + markdownMessage(item, media.byPointer, files.byUri) +
     '\n\n').join('');
   const audit = {
     source: { kind: 'ChatGPT renderer conversation snapshot via web-control CDP session',
@@ -370,6 +430,11 @@ export async function exportSnapshot(snapshot, selected, outputRoot, source, met
     media_binary_downloaded_count: media.manifest.filter(x => x.status === 'downloaded').length,
     media_binary_missing_count: media.manifest.filter(x => x.status !== 'downloaded').length,
     media_binary_downloaded: media.manifest.length > 0 && media.manifest.every(x => x.status === 'downloaded'),
+    sandbox_files_referenced: files.manifest.length,
+    sandbox_files_downloaded_count: files.manifest.filter(x => x.status === 'downloaded').length,
+    sandbox_files_missing_count: files.manifest.filter(x => x.status !== 'downloaded').length,
+    sandbox_files_downloaded:
+      files.manifest.length > 0 && files.manifest.every(x => x.status === 'downloaded'),
     physical_site_completeness_verified: false };
   const items = [
     ['conversation.raw.json.gz', gzipSync(raw, { level: 9, mtime: 0 })],
@@ -380,6 +445,7 @@ export async function exportSnapshot(snapshot, selected, outputRoot, source, met
       '<!-- Text from structured snapshot; non-text objects in VISIBLE_MESSAGES.jsonl. -->\n\n' + markdown)],
     ['NON_TEXT_PARTS.json', Buffer.from(pretty(transcript.nonTextParts))],
     ['MEDIA.json', Buffer.from(pretty(media.manifest))],
+    ['FILES.json', Buffer.from(pretty(files.manifest))],
     ['AUDIT.json', Buffer.from(pretty(audit))],
     ['ACQUISITION.json', Buffer.from(pretty(acquisition))],
     ['README.md', Buffer.from('# ChatGPT conversation export\n\n' +
@@ -387,18 +453,23 @@ export async function exportSnapshot(snapshot, selected, outputRoot, source, met
       'TURN_SURFACES.jsonl separates user/final-response surfaces from activity/tool/reasoning metadata.\n' +
       'Internal reasoning text is not promoted into the readable transcript.\n' +
       'MEDIA.json records resolved and unresolved image assets; downloaded binaries live under media/.\n' +
-      'Missing media remains explicit and does not make the export silently complete.\n')]
+      'FILES.json records assistant sandbox files; downloaded binaries live under files/.\n' +
+      'Missing artifacts remain explicit and do not make the export silently complete.\n')]
   ];
   if (media.files.length)
     await fs.mkdir(path.join(directory, 'media'), { recursive: true, mode: 0o700 });
-  for (const [name, bytes] of [...items, ...media.files])
+  if (files.files.length)
+    await fs.mkdir(path.join(directory, 'files'), { recursive: true, mode: 0o700 });
+  for (const [name, bytes] of [...items, ...media.files, ...files.files])
     await fs.writeFile(path.join(directory, name), bytes, { mode: 0o600, flag: 'wx' });
   const checksums = [sha(raw) + '  conversation.raw.json (uncompressed captured snapshot)',
-    ...[...items, ...media.files].map(([name, bytes]) => sha(bytes) + '  ' + name)].join('\n') + '\n';
+    ...[...items, ...media.files, ...files.files]
+      .map(([name, bytes]) => sha(bytes) + '  ' + name)].join('\n') + '\n';
   const sums = Buffer.from(checksums);
   await fs.writeFile(path.join(directory, 'SHA256SUMS'), sums, { mode: 0o600, flag: 'wx' });
   const archive = path.join(outputRoot, folder + '.zip');
-  await fs.writeFile(archive, zipFiles([...items, ...media.files, ['SHA256SUMS', sums]]),
+  await fs.writeFile(archive,
+    zipFiles([...items, ...media.files, ...files.files, ['SHA256SUMS', sums]]),
     { mode: 0o600, flag: 'wx' });
   return { directory, zip: archive, title, messageCount: transcript.visible.length,
     mappingNodes: audit.conversation.mapping_nodes,
@@ -408,5 +479,8 @@ export async function exportSnapshot(snapshot, selected, outputRoot, source, met
     rendererImageReferences: media.manifest.reduce((n, x) => n + x.renderer_references.length, 0),
     imagesDownloaded: media.manifest.filter(x => x.status === 'downloaded').length,
     imagesMissing: media.manifest.filter(x => x.status !== 'downloaded').length,
+    filesReferenced: files.manifest.length,
+    filesDownloaded: files.manifest.filter(x => x.status === 'downloaded').length,
+    filesMissing: files.manifest.filter(x => x.status !== 'downloaded').length,
     method, observationComplete: false };
 }
