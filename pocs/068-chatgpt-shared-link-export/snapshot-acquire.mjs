@@ -392,9 +392,9 @@ function rendererMatch(asset, renderer) {
         item.byteLength !== asset.expected_size_bytes) return false;
     const occurrence = Array.isArray(item.occurrences) ? item.occurrences[0] : null;
     if (Number.isSafeInteger(asset.width) && Number.isSafeInteger(occurrence?.natural_width) &&
-        occurrence.natural_width !== asset.width) return false;
+        occurrence.natural_width > 0 && occurrence.natural_width !== asset.width) return false;
     if (Number.isSafeInteger(asset.height) && Number.isSafeInteger(occurrence?.natural_height) &&
-        occurrence.natural_height !== asset.height) return false;
+        occurrence.natural_height > 0 && occurrence.natural_height !== asset.height) return false;
     return true;
   });
 }
