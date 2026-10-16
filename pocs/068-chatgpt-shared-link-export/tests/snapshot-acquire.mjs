@@ -327,7 +327,7 @@ test('anonymous generated-image DOM resolves stable file id and deduplicates thr
         return{result:{result:{value:'https://chatgpt.com|complete'}}};
       if(params.expression.includes("return { candidates: urls.size"))
         return{result:{result:{value:{candidates:4,images:4}}}};
-      if(params.expression.includes('function scan(index, shouldActivate)')){
+      if(params.expression.includes('function scan(index,shouldActivate)')){
         if(scrollCount===1 && params.expression.endsWith(',false)'))
           stationaryPolls++;
         const data=runInNewContext(params.expression,{
