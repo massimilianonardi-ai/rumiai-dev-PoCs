@@ -628,3 +628,89 @@ test('ChatGPT anonymous share normalizes only Electron product token before navi
     assert.equal(calls.some(call => call.method === 'Network.enable'), false);
   }
 });
+
+
+test('page is closed even when managed debugger detachment never replies', async () => {
+  const calls = [];
+  const control = async (...args) => {
+    calls.push(args);
+    if (args[0] === 'page' && args[1] === 'new')
+      return {id:'test-page'};
+    if (args[0] === 'page' && args[1] === 'navigate')
+      return {page:args[2],url:args[3]};
+    if (args[0] === 'page' && args[1] === 'close')
+      return {page:args[2],closed:true};
+    if (args[0] === 'page' && args[1] === 'list')
+      return [];
+    if (args[0] === 'debug' && args[1] === 'session' && args[2] === 'open')
+      return {session:'test-session'};
+    if (args[0] === 'debug' && args[1] === 'session' && args[2] === 'close')
+      return new Promise(() => {}); // Simulate a stalled provider detach.
+    if (args[0] === 'debug' && args[1] === 'session' && args[2] === 'send') {
+      const method=args[4],params=JSON.parse(args[5]);
+      if (method === 'Page.navigate')
+        return {result:{frameId:'test-frame'}};
+      if (method !== 'Runtime.evaluate')throw Error('unexpected method');
+      if (params.expression === 'navigator.userAgent')
+        return {result:{result:{value:'Mozilla/5.0 Chrome/152 Safari/537'}}};
+      if (params.expression === "location.origin + '|' + document.readyState")
+        return {result:{result:{value:'https://chatgpt.com|complete'}}};
+      if (params.expression.includes('backend-anon'))
+        return {result:{result:{value:{
+          attempts:[{source:'backend-anon',status:200}],
+          snapshot:JSON.stringify(snapshot())
+        }}}};
+      return {result:{result:{value:[]}}};
+    }
+    throw Error('unhandled control call');
+  };
+  const actual = await captureStructuredSnapshot(control,
+    'https://chatgpt.com/share/abc', {seconds:1,cleanupTimeoutMs:25});
+  assert.equal(actual.method,'page-fetch');
+  assert.equal(actual.stats.cleanup.page,'acknowledged');
+  assert.equal(actual.stats.cleanup.session,'timed-out');
+  assert.equal(actual.stats.cleanup.verified,true);
+  assert.equal(actual.stats.cleanup.pagePresent,false);
+  assert.equal(calls.filter(a=>a[0]==='page'&&a[1]==='close').length,1);
+});
+
+test('close request is retried when the provider still lists the page', async () => {
+  let closeCalls=0;
+  const control = async (...args) => {
+    if (args[0]==='page'&&args[1]==='new')return{id:'test-page'};
+    if (args[0]==='page'&&args[1]==='navigate')return{};
+    if (args[0]==='page'&&args[1]==='close') {
+      closeCalls++;
+      return {closed:true};
+    }
+    if (args[0]==='page'&&args[1]==='list')
+      return closeCalls>=2?[]:[{id:'test-page'}];
+    if (args[0]==='debug'&&args[1]==='session'&&args[2]==='open')
+      return {session:'test-session'};
+    if (args[0]==='debug'&&args[1]==='session'&&args[2]==='close')
+      return {closed:true};
+    if (args[0]==='debug'&&args[1]==='session'&&args[2]==='send') {
+      const method=args[4],params=JSON.parse(args[5]);
+      if(method==='Page.navigate')return{result:{}};
+      if(method!=='Runtime.evaluate')throw Error('unexpected method');
+      if(params.expression==='navigator.userAgent')
+        return{result:{result:{value:'Chromium'}}};
+      if(params.expression==="location.origin + '|' + document.readyState")
+        return{result:{result:{value:'https://chatgpt.com|complete'}}};
+      if(params.expression.includes('backend-anon'))
+        return{result:{result:{value:{
+          attempts:[{source:'backend-anon',status:200}],
+          snapshot:JSON.stringify(snapshot())
+        }}}};
+      return{result:{result:{value:[]}}};
+    }
+    throw Error('unhandled control call');
+  };
+  const result=await captureStructuredSnapshot(control,
+    'https://chatgpt.com/share/abc',{seconds:1,cleanupTimeoutMs:50});
+  assert.equal(closeCalls,2);
+  assert.equal(result.stats.cleanup.page,'acknowledged');
+  assert.equal(result.stats.cleanup.pageRetry,'acknowledged');
+  assert.equal(result.stats.cleanup.verified,true);
+  assert.equal(result.stats.cleanup.pagePresent,false);
+});
