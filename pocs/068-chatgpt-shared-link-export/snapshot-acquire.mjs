@@ -576,8 +576,14 @@ function rendererMatch(asset, renderer) {
   });
 }
 
+function userUploadOnly(asset) {
+  return asset.references?.length > 0 &&
+    asset.references.every(reference => reference.role === 'user');
+}
+
 async function captureImageAssets(send, snapshot, shareId, stats) {
   const assets = imageAssets(snapshot);
+  const publicCandidates = assets.filter(asset => !userUploadOnly(asset));
   try {
     const probe = await send('Runtime.evaluate', {
       expression: rendererImageProbeExpression(),
@@ -586,7 +592,11 @@ async function captureImageAssets(send, snapshot, shareId, stats) {
     stats.rendererImageCandidates =
       Number.isSafeInteger(probe?.result?.value?.candidates) ? probe.result.value.candidates : 0;
   } catch {}
-  const captured = await captureRendererImages(send, assets, Date.now() + 10000);
+  const captured = publicCandidates.length
+    ? await captureRendererImages(send, publicCandidates, Date.now() + 10000)
+    : { resources: [], observation: {
+        attempted:0, fetched:0, failed:0, size_matched:0, size_mismatched:0
+      } };
   const renderer = captured.resources;
   stats.rendererImageFetch = captured.observation;
   stats.rendererImageResources = renderer.length;
@@ -594,6 +604,20 @@ async function captureImageAssets(send, snapshot, shareId, stats) {
     n + (Array.isArray(item?.occurrences) ? item.occurrences.length : 0), 0);
   const found = [];
   for (const asset of assets) {
+    if (userUploadOnly(asset)) {
+      // Public-share upload metadata is kept intact, but the user has
+      // physically verified that uploaded bytes are not exposed anonymously.
+      // Do not probe a speculative file endpoint for this asset class.
+      const attempts = [{
+        source:'anonymous-share',
+        disposition:'deferred-authenticated-user-upload'
+      }];
+      stats.assetAttempts.push({ fileId:asset.file_id, attempts });
+      found.push({ ...asset, renderer_references:[],
+        mime_type:null, file_name:null, downloaded_size_bytes:null,
+        base64:null, attempts });
+      continue;
+    }
     const matches = rendererMatch(asset, renderer);
     if (matches.length === 1) {
       const item = matches[0];
