@@ -458,7 +458,7 @@ export async function captureReferencePage(inputUrl, outputRoot, options = {}) {
     try {
       const expected = new URL(url);
       const observed = new URL(settled?.href || '');
-      const pathname = value => value.replace(/\\/+$/, '');
+      const pathname = value => value.endsWith('/') ? value.slice(0,-1) : value;
       correctPage = observed.origin === expected.origin &&
         pathname(observed.pathname) === pathname(expected.pathname);
     } catch {}
