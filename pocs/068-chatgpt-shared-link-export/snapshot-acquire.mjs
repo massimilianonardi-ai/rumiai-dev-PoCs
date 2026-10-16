@@ -563,7 +563,26 @@ function observedGeneratedImageExpression(scrollIndex=null,activate=false) {
         });
       }
     }
-    return {surface_count:surfaces.length,records,states};
+    const resources = typeof performance === 'object' &&
+      typeof performance.getEntriesByType === 'function'
+        ? performance.getEntriesByType('resource') : [];
+    const imageRequests = resources.filter(entry => {
+      try {
+        const url=new URL(entry.name);
+        return url.hostname === 'oaiusercontent.com' ||
+          url.hostname.endsWith('.oaiusercontent.com');
+      } catch {return false;}
+    }).length;
+    return {
+      surface_count:surfaces.length,records,states,
+      browser:{
+        ready:document.readyState || null,
+        shareOrigin:location.origin === 'https://chatgpt.com',
+        electronUAToken:typeof navigator==='object' &&
+          /Electron\\/\\d/.test(navigator.userAgent||''),
+        imageResourceEntries:imageRequests
+      }
+    };
   }
   return '('+scan.toString()+')('+JSON.stringify(scrollIndex)+','+JSON.stringify(activate)+')';
 }
@@ -679,7 +698,16 @@ async function captureObservedGeneratedImages(send,assets,fetchImage,seconds,sta
       if (!valid)throw Error('invalid-image-signature');
       byteLength=bytes.length;base64=bytes.toString('base64');
       attempt.binaryStatus='downloaded';attempt.byteLength=byteLength;
-    }catch {attempt.binaryStatus='unavailable-or-invalid';}
+    }catch(error) {
+      attempt.binaryStatus='unavailable-or-invalid';
+      const message=String(error?.message||'');
+      const cause=error?.cause?.code||error?.code;
+      attempt.failureCode=typeof cause==='string' &&
+        /^[A-Z_]{2,70}$/.test(cause) ? cause :
+        ['untrusted-source','not-ok','not-image','too-large','invalid-size',
+          'size-mismatch','invalid-image-signature'].includes(message)
+          ? message : 'binary-request-failed';
+    }
     outcomes.set(fileId,{
       attempt,base64,mimeType,byteLength,
       renderer_references:[{
@@ -694,7 +722,8 @@ async function captureObservedGeneratedImages(send,assets,fetchImage,seconds,sta
     identified:candidates.size,
     downloaded:[...outcomes.values()].filter(item=>item.base64).length,
     settled:candidates.size===assets.length,
-    polls,surfaces:latest.surface_count,activated,statuses
+    polls,surfaces:latest.surface_count,activated,statuses,
+    browser:latest.browser || null
   };
   return outcomes;
 }
@@ -958,18 +987,31 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
     await Promise.all(operations);
 
     if (page) {
-      try {
-        const listed = await Promise.race([
-          control('page', 'list'),
-          new Promise(resolve => setTimeout(() => resolve(null), cleanupTimeoutMs))
-        ]);
-        if (Array.isArray(listed)) {
-          stats.cleanup.verified = true;
-          stats.cleanup.pagePresent = listed.some(item => item?.id === page);
-        }
-      } catch {
-        stats.cleanup.verified = false;
+      // Use a bounded public page-list command, and remove its timer on
+      // completion instead of keeping the exporter alive after cleanup.
+      async function pageStillPresent() {
+        let timer;
+        try {
+          const listed=await Promise.race([
+            Promise.resolve().then(()=>control('page', 'list')),
+            new Promise(resolve=>{
+              timer=setTimeout(()=>resolve(null),cleanupTimeoutMs);
+            })
+          ]);
+          return Array.isArray(listed)
+            ? listed.some(item=>item?.id===page) : null;
+        } catch {return null;}
+        finally {clearTimeout(timer);}
       }
+      let present=await pageStillPresent();
+      if(present===true){
+        // A window can reject its first close request, for example while
+        // the debugger is detaching. Try once more after both cleanup calls.
+        await boundedCleanup('pageRetry',['page','close',page]);
+        present=await pageStillPresent();
+      }
+      stats.cleanup.verified=present!==null;
+      stats.cleanup.pagePresent=present;
     }
   }
 }
