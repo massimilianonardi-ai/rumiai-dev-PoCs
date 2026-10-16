@@ -1,16 +1,16 @@
 # PoC 068 — Structured ChatGPT shared-link export with web-control
 
-Status: Experimental. The new Node.js web-control 3 path is hosted-fixture tested, not physically validated on a ChatGPT shared page.
+Status: Experimental. Structured shared-page acquisition, active-branch visibility filtering and assistant-generated sandbox-file downloads have been physically exercised. Generated-image binaries, user-uploaded attachments and faithful HTML are not yet accepted as complete.
 
 ## Objective
 
-Study complete structured snapshot capture for a user-authorized ChatGPT shared URL by reusing the existing working persistent CDP exporter. The earlier provider-neutral DOM-based exporter is retained only as a failed physical-site experiment.
+Archive user-authorized ChatGPT shared conversations using the real structured shared-page snapshot, preserving raw message objects and their artifact identities without deriving transcript completeness from a virtualized DOM.
 
-This is a **site-specific deterministic adapter**, not a web-control provider, web-sense agent, ChatGPT account export, or API integration.
+This is a **site-specific deterministic adapter**, not a web-control provider, web-sense agent, ChatGPT account export, or official ChatGPT API integration.
 
-## Node.js structured-snapshot exporter (web-control 3)
+## Active Node.js exporter (web-control compatibility level 3)
 
-**Current recommended PoC entrypoint:** `export-share.mjs`, implemented entirely in Node.js. It uses the **common** `web-control debug session` API introduced in source compatibility level 3 and implemented by both Playwright/Chromium and Electron. Both provider releases `v0.1.6` now declare facility compatibility `web-control 3` through `pkg-catalog`. There is no external CDP debugger port and no separately launched browser. This path requires an installed `web-control 3` provider/service.
+The supported PoC entrypoint is `export-share.mjs`. It uses the common `web-control debug session` transport provided by `pwc-web-control` and `electron-web-control` v0.1.6 (facility compatibility level 3). It neither opens a raw CDP TCP port nor launches a second browser.
 
 From this PoC directory:
 
@@ -18,13 +18,25 @@ From this PoC directory:
 node export-share.mjs "https://chatgpt.com/share/<id>" "./archive"
 ```
 
-The program checks/starts the normal `web-control` service, opens a dedicated page and debugger session, enables the Chromium debugger domains, navigates the link, inspects actual JSON responses and embedded JSON, and only when available discovers the original semantic `mergeActiveBranch` marker in the loaded JavaScript. If a compatible hook is found, it installs a **persistent** breakpoint and reads the call-frame argument before resuming. It never synthesizes a ChatGPT internal endpoint or reconstructs a virtualized transcript by DOM scrolling.
+The command checks/starts the normal `web-control` service, creates a share page and debugger session, and executes a page-context same-origin JSON request to `/backend-anon/share/<id>` with `/backend-api/share/<id>` as fallback. It accepts only a structurally valid `mapping/current_node` snapshot. The active path does **not** use Network or Debugger event-domain streaming, script hook discovery, breakpoints, DOM scrolling, or a separate browser.
 
-The Node port preserves the original Python reference's `mapping/current_node` active-branch traversal, visible user/assistant candidate classification, full message objects including non-text parts, RAW gzip, JSONL, Markdown, audit, hashes and a ZIP archive. The ZIP is built with Node standard-library compression; no Python, extra ZIP binary or download-only Node dependency is required for this entrypoint. The original `reference/chatgpt-export-v3.py` remains unchanged for comparison.
+The exporter preserves the active branch, structured message objects (including non-text parts), raw compressed JSON, JSONL, Markdown, audit evidence, checksums and a Node-created ZIP. Every successful export creates an immutable directory and ZIP rather than overwriting a previous run. Assistant-generated `sandbox:/mnt/data/` files are recovered using the physically observed public `file_from_message` route, indexed in `FILES.json`, and linked locally when downloaded.
 
-A positive acquisition creates an immutable `YYYY-MM-DD title` output directory with the original forensic files plus `ACQUISITION.json`, and a ZIP beside it. This stage preserves **image/graphic object references but does not download image binary contents or reproduce the original rendered HTML**. Failure exits nonzero and writes numbered `share-debug-diagnostic-NNNN.json` evidence with phase, counts and JSON *field names only*, not chat values.
+**Known incompleteness:** generated-image binary retrieval and user-upload attachment retrieval are not yet physically established. Identified but missing assets remain explicit. The readable HTML is still not accepted as ChatGPT-faithful, and `observationComplete` remains false. A structural snapshot or passing fixture test does not prove artifact completeness.
 
-**Validation limitation:** the original Python reference was physically validated against the native macOS ChatGPT application. Neither that app's internal `mergeActiveBranch` hook nor a complete `mapping/current_node` data object has been observed on a real `chatgpt.com/share/` browser page. Hosted fixtures demonstrate the machinery, not real-site export completeness. If the shared site does not expose an equivalent snapshot, the Node adapter fails explicitly and the diagnostic directs further study of observed structured payloads. No second-browser/CDP-port workaround should be substituted for this new public `web-control` interface.
+## Public-share reference interaction diagnostic
+
+The independent diagnostic captures renderer and click evidence without changing the exporter:
+
+```sh
+node capture-share-reference.mjs "https://chatgpt.com/share/<id>" "./reference-captures" --seconds 8
+```
+
+It records independent page/DOM/CDP probes and, when rendered, selects representative generated-image, assistant sandbox-file and user-upload label surfaces. The user-upload probes are deliberately separate: `user-upload-image` and `user-upload-file`. They retain the owning user message ID and label occurrence, whether an actionable ancestor exists, the result of a native click, post-click network metadata and any capturable response body. A text label such as "Ha caricato un file" is **not** treated as proof of a downloadable endpoint.
+
+These diagnostic directories may include public conversation content and temporary signed resource URLs. Do not commit them except under explicit, narrowly scoped authorization. The five selected reference captures already committed for this task are a deliberate exception. The reference diagnostic must be physically rerun before inferring a user-upload transport; hosted fixtures only verify the diagnostic mechanics.
+
+The original, user-provided macOS Python exporter remains unchanged at `reference/chatgpt-export-v3.py`. The older standalone-browser Python adapter and DOM-window exporter below are historical experiments, **not** accepted export paths.
 
 ## Superseded separate-browser Python CDP experiment
 
