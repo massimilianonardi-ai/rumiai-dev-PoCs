@@ -454,6 +454,28 @@ export async function captureReferencePage(inputUrl, outputRoot, options = {}) {
     await send('Page.navigate', { url });
     const settled = await waitForStablePage(send, seconds);
 
+    let correctPage = false;
+    try {
+      const expected = new URL(url);
+      const observed = new URL(settled?.href || '');
+      const pathname = value => value.replace(/\\/+$/, '');
+      correctPage = observed.origin === expected.origin &&
+        pathname(observed.pathname) === pathname(expected.pathname);
+    } catch {}
+    if (!correctPage) {
+      const failure = {
+        error:'reference.share-page-not-loaded',
+        source:url,
+        observed_url:settled?.href || null,
+        title:settled?.title || null,
+        turn_count:settled?.turnCount ?? null,
+        captured_at:new Date().toISOString()
+      };
+      await writeJson(path.join(directory,'failure.json'),failure);
+      throw new Error('reference.share-page-not-loaded: ' +
+        (failure.observed_url || 'page URL unavailable'));
+    }
+
     const probeKinds = [
       'meta','html','text','turns','images','sources','links','buttons',
       'media','iframes','attributes','resources','candidates',
