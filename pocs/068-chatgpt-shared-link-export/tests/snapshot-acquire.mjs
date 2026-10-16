@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { runInNewContext } from 'node:vm';
+import { parseHTML } from 'linkedom';
 import { captureStructuredSnapshot, recordJsonShape,
   shareUrl } from '../snapshot-acquire.mjs';
 
@@ -273,4 +275,87 @@ test('privacy-safe diagnostics retain shape without values', () => {
   recordJsonShape(JSON.stringify({ data: { messages: ['DO NOT PRINT'] }, secret: 'TOKEN' }), stats);
   assert.match(JSON.stringify(stats), /messages/);
   assert.doesNotMatch(JSON.stringify(stats), /DO NOT PRINT|TOKEN/);
+});
+
+
+test('anonymous generated-image DOM resolves stable file id and deduplicates three decorative img layers', async function(){
+  const fileId='file_00000000f1c481f48001ad2fb1e682fb';
+  const uuid='00000000-f1c4-81f4-8001-ad2fb1e682fb';
+  const url='https://sdmntprnortheu.oaiusercontent.com/files/'+uuid+'/raw?se=short-lived&sig=private';
+  const fake='https://sdmntprnortheu.oaiusercontent.com/files/00000000-0000-0000-0000-000000000001/raw?sig=unrelated';
+  const html='<div data-image-gen-result><div id="image-real">'+
+    Array.from({length:3},()=>'<img src="'+url.replaceAll('&','&amp;')+'">').join('')+
+    '</div></div><div data-image-gen-result><div id="image-unrelated"><img src="'+fake+'"></div></div>';
+  const {document}=parseHTML(html);
+  for(const img of document.querySelectorAll('img')){
+    Object.defineProperty(img,'complete',{value:true,configurable:true});
+    Object.defineProperty(img,'naturalWidth',{value:1536,configurable:true});
+    Object.defineProperty(img,'naturalHeight',{value:1024,configurable:true});
+  }
+  const image=Buffer.concat([
+    Buffer.from([137,80,78,71,13,10,26,10]),Buffer.alloc(12)
+  ]);
+  const snapshot={conversation_id:'test',current_node:'assistant',mapping:{
+    user:{parent:null,message:{id:'u',author:{role:'user'},weight:1,
+      content:{parts:['Create image']}}},
+    generated:{parent:'user',message:{id:'t',author:{role:'tool'},weight:0,
+      content:{content_type:'multimodal_text',parts:[{
+        content_type:'image_asset_pointer',
+        asset_pointer:'sediment://'+fileId+'?shared_conversation_id=share-test',
+        size_bytes:image.length,width:1536,height:1024
+      }]}}},
+    assistant:{parent:'generated',message:{id:'a',author:{role:'assistant'},
+      content:{parts:['Here is the image']},weight:1,end_turn:true}}
+  }};
+  const requests=[],expressions=[];
+  const control=async(...args)=>{
+    if(args[0]==='page'&&args[1]==='new')return{id:'page'};
+    if(args[0]==='page'&&args[1]==='close')return{closed:true};
+    if(args[0]==='debug'&&args[1]==='session'&&args[2]==='open')return{session:'session'};
+    if(args[0]==='debug'&&args[1]==='session'&&args[2]==='close')return{closed:true};
+    if(args[0]==='debug'&&args[1]==='session'&&args[2]==='send'){
+      const method=args[4],params=JSON.parse(args[5]);
+      if(method==='Page.navigate')return{result:{}};
+      if(method!=='Runtime.evaluate')throw Error('unexpected CDP method');
+      expressions.push(params.expression);
+      if(params.expression==="location.origin + '|' + document.readyState")
+        return{result:{result:{value:'https://chatgpt.com|complete'}}};
+      if(params.expression.includes("return { candidates: urls.size"))
+        return{result:{result:{value:{candidates:4,images:4}}}};
+      if(params.expression.includes('function scan()')){
+        const data=runInNewContext(params.expression,{
+          document,location:{href:'https://chatgpt.com/share/share-test'},URL
+        });
+        return{result:{result:{value:data}}};
+      }
+      if(params.expression.includes('backend-anon'))
+        return{result:{result:{value:{
+          attempts:[{source:'backend-anon',status:200}],
+          snapshot:JSON.stringify(snapshot)
+        }}}};
+      throw Error('unexpected evaluate expression');
+    }
+    throw Error('unexpected control operation');
+  };
+  const fetchImage=async (src,options)=>{
+    requests.push(src);
+    assert.equal(src,url);
+    assert.equal(options.redirect,'error');
+    assert.equal(options.credentials,undefined);
+    return new Response(image,{status:200,headers:{
+      'content-type':'image/png','content-length':String(image.length)
+    }});
+  };
+  const result=await captureStructuredSnapshot(control,
+    'https://chatgpt.com/share/share-test',{seconds:1,fetchImage});
+  assert.equal(requests.length,1,'three decorative layers cause one binary fetch');
+  assert.equal(result.assets.length,1);
+  assert.equal(result.assets[0].file_id,fileId);
+  assert.deepEqual(Buffer.from(result.assets[0].base64,'base64'),image);
+  assert.equal(result.assets[0].attempts[0].source,'anonymous-generated-image-img-src');
+  assert.equal(result.assets[0].renderer_references[0].root_id,'image-real');
+  assert.deepEqual(result.stats.generatedImageDom,{identified:1,downloaded:1});
+  assert.ok(!expressions.some(x=>x.includes('/backend-anon/files/download/')));
+  assert.ok(!JSON.stringify(result.stats).includes('sig='));
+  assert.ok(!JSON.stringify(result.assets[0].renderer_references).includes('sig='));
 });
