@@ -284,13 +284,14 @@ test('anonymous generated-image DOM resolves stable file id and deduplicates thr
   const url='https://sdmntprnortheu.oaiusercontent.com/files/'+uuid+'/raw?se=short-lived&sig=private';
   const fake='https://sdmntprnortheu.oaiusercontent.com/files/00000000-0000-0000-0000-000000000001/raw?sig=unrelated';
   const html='<div data-image-gen-result><div id="image-real">'+
-    Array.from({length:3},()=>'<img src="'+url.replaceAll('&','&amp;')+'">').join('')+
+    Array.from({length:3},()=>'<img loading="lazy" width="1536" height="1024" src="'+url.replaceAll('&','&amp;')+'">').join('')+
     '</div></div><div data-image-gen-result><div id="image-unrelated"><img src="'+fake+'"></div></div>';
   const {document}=parseHTML(html);
   for(const img of document.querySelectorAll('img')){
-    Object.defineProperty(img,'complete',{value:true,configurable:true});
-    Object.defineProperty(img,'naturalWidth',{value:1536,configurable:true});
-    Object.defineProperty(img,'naturalHeight',{value:1024,configurable:true});
+    const pending=img.closest('#image-real')!==null;
+    Object.defineProperty(img,'complete',{value:!pending,configurable:true});
+    Object.defineProperty(img,'naturalWidth',{value:pending?0:1536,configurable:true});
+    Object.defineProperty(img,'naturalHeight',{value:pending?0:1024,configurable:true});
   }
   const image=Buffer.concat([
     Buffer.from([137,80,78,71,13,10,26,10]),Buffer.alloc(12)
@@ -354,6 +355,7 @@ test('anonymous generated-image DOM resolves stable file id and deduplicates thr
   assert.deepEqual(Buffer.from(result.assets[0].base64,'base64'),image);
   assert.equal(result.assets[0].attempts[0].source,'anonymous-generated-image-img-src');
   assert.equal(result.assets[0].renderer_references[0].root_id,'image-real');
+  assert.equal(result.assets[0].renderer_references[0].was_loaded,false);
   assert.deepEqual(result.stats.generatedImageDom,{identified:1,downloaded:1});
   assert.ok(!expressions.some(x=>x.includes('/backend-anon/files/download/')));
   assert.ok(!JSON.stringify(result.stats).includes('sig='));
