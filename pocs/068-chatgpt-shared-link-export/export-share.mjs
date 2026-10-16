@@ -11,12 +11,19 @@ import { exportSnapshot } from './snapshot-export.mjs';
 const execFileAsync = promisify(execFile);
 const WEB_CONTROL = process.env.WEB_CONTROL_CMD || 'web-control';
 const MAX_BUFFER = 128 * 1024 * 1024;
+const CLEANUP_COMMAND_TIMEOUT_MS = 5500;
 const entrypoint = fileURLToPath(import.meta.url);
 
 export async function webControl(...args) {
   let response;
   try {
-    response = await execFileAsync(WEB_CONTROL, args, { maxBuffer: MAX_BUFFER, timeout: 60000 });
+    const cleanupCommand =
+      (args[0] === 'page' && ['close', 'list'].includes(args[1])) ||
+      (args[0] === 'debug' && args[1] === 'session' && args[2] === 'close');
+    response = await execFileAsync(WEB_CONTROL, args, {
+      maxBuffer: MAX_BUFFER,
+      timeout: cleanupCommand ? CLEANUP_COMMAND_TIMEOUT_MS : 60000
+    });
   } catch (cause) {
     // Retain only the provider's first diagnostic identity/message line. Never
     // persist raw CDP params, browser HTML, signed URLs or stdout payloads.
@@ -67,7 +74,8 @@ async function failureRecord(folder, error) {
     rendererImageOccurrences: error.stats?.rendererImageOccurrences || 0,
     rendererImageFetch: error.stats?.rendererImageFetch || null,
     generatedImageDom: error.stats?.generatedImageDom || null,
-    electronUserAgentNormalized: error.stats?.electronUserAgentNormalized ?? false
+    electronUserAgentNormalized: error.stats?.electronUserAgentNormalized ?? false,
+    cleanup: error.stats?.cleanup ?? null
   };
   for (let n = 1; n < 100000; n++) {
     const file = path.join(folder, 'share-debug-diagnostic-' + String(n).padStart(4, '0') + '.json');
@@ -95,7 +103,8 @@ export async function exportSharedLink(input, directory, seconds = 20, controlle
     rendererImageOccurrences: stats?.rendererImageOccurrences ?? 0,
     rendererImageFetch: stats?.rendererImageFetch ?? null,
     generatedImageDom: stats?.generatedImageDom ?? null,
-    electronUserAgentNormalized: stats?.electronUserAgentNormalized ?? false
+    electronUserAgentNormalized: stats?.electronUserAgentNormalized ?? false,
+    cleanup: stats?.cleanup ?? null
   };
 }
 
