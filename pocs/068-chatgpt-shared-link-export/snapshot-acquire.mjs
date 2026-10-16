@@ -250,7 +250,8 @@ function collapseRendererImages(items) {
       found = { ...item, sha256: digest, occurrences: [] };
       unique.set(digest, found);
     }
-    found.occurrences.push(...(Array.isArray(item.occurrences) ? item.occurrences : []));
+    found.occurrences.push(...(Array.isArray(item.evidence) ? item.evidence :
+      Array.isArray(item.occurrences) ? item.occurrences : []));
   }
   return [...unique.values()];
 }
