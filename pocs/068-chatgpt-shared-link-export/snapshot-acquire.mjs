@@ -148,62 +148,91 @@ function imageAssets(snapshot) {
   return [...assets.values()];
 }
 function rendererImageExpression(assets) {
-  const dimensions = [...new Set(assets
-    .filter(asset => Number.isSafeInteger(asset.width) && Number.isSafeInteger(asset.height))
-    .map(asset => asset.width + 'x' + asset.height))];
+  const sizes = [...new Set(assets
+    .filter(asset => Number.isSafeInteger(asset.expected_size_bytes))
+    .map(asset => asset.expected_size_bytes))];
   return `(async () => {
-    const expected = new Set(${JSON.stringify(dimensions)});
-    const images = [...document.querySelectorAll('img[src]')].filter(img => {
-      if (!img.currentSrc && !img.src) return false;
-      if (!Number.isSafeInteger(img.naturalWidth) || !Number.isSafeInteger(img.naturalHeight))
-        return false;
-      return expected.has(img.naturalWidth + 'x' + img.naturalHeight);
-    });
-    const resources = new Map();
-    images.forEach((img, occurrence) => {
-      const src = img.currentSrc || img.src;
-      let item = resources.get(src);
+    const expectedSizes = new Set(${JSON.stringify(sizes)});
+    const urls = new Map();
+    const add = (url, evidence) => {
+      if (typeof url !== 'string' || !url) return;
+      let item = urls.get(url);
       if (!item) {
-        item = { src, occurrences: [] };
-        resources.set(src, item);
+        item = { url, evidence: [] };
+        urls.set(url, item);
       }
-      const button = img.closest('button');
-      item.occurrences.push({
-        occurrence,
+      item.evidence.push(evidence);
+    };
+    const splitSrcset = value => String(value || '').split(',').map(part =>
+      part.trim().split(/\\s+/)[0]).filter(Boolean);
+
+    [...document.querySelectorAll('img')].forEach((img, occurrence) => {
+      const evidence = {
+        source: 'img', occurrence,
+        complete: Boolean(img.complete),
+        natural_width: Number.isSafeInteger(img.naturalWidth) ? img.naturalWidth : null,
+        natural_height: Number.isSafeInteger(img.naturalHeight) ? img.naturalHeight : null,
         generated_preview: Boolean(img.closest('[data-testid="generated-image-preview"]')),
-        button_aria_label: button?.getAttribute('aria-label') || null,
-        natural_width: img.naturalWidth,
-        natural_height: img.naturalHeight
-      });
+        button_aria_label: img.closest('button')?.getAttribute('aria-label') || null
+      };
+      add(img.currentSrc, evidence);
+      add(img.src, evidence);
+      for (const url of splitSrcset(img.getAttribute('srcset')))
+        add(url, { ...evidence, source: 'img-srcset' });
     });
+    [...document.querySelectorAll('source[srcset]')].forEach((node, occurrence) => {
+      for (const url of splitSrcset(node.getAttribute('srcset')))
+        add(url, { source: 'source-srcset', occurrence });
+    });
+    [...document.querySelectorAll('a[download][href]')].forEach((node, occurrence) =>
+      add(node.href, { source: 'download-link', occurrence }));
+    try {
+      for (const entry of performance.getEntriesByType('resource')) {
+        if (entry?.initiatorType === 'img')
+          add(entry.name, { source: 'performance-img', occurrence: null });
+      }
+    } catch {}
+
     const result = [];
-    for (const item of resources.values()) {
+    for (const item of urls.values()) {
+      const safe = {
+        evidence: item.evidence,
+        url_scheme: (() => { try { return new URL(item.url, location.href).protocol; }
+          catch { return null; } })()
+      };
       try {
-        const response = await fetch(item.src, { credentials: 'include' });
-        const entry = {
-          occurrences: item.occurrences,
-          status: response.status,
-          mimeType: response.headers.get('content-type') || null
-        };
+        const parsed = new URL(item.url, location.href);
+        const response = await fetch(parsed.href, {
+          credentials: parsed.origin === location.origin ? 'include' : 'omit'
+        });
+        safe.status = response.status;
+        safe.mimeType = response.headers.get('content-type') || null;
         if (!response.ok) {
-          result.push(entry);
+          result.push(safe);
           continue;
         }
         const buffer = await response.arrayBuffer();
-        entry.byteLength = buffer.byteLength;
+        safe.byteLength = buffer.byteLength;
+        if (!expectedSizes.has(buffer.byteLength)) {
+          safe.size_match = false;
+          result.push(safe);
+          continue;
+        }
+        safe.size_match = true;
         if (buffer.byteLength > ${MAX_ASSET_BYTES}) {
-          entry.tooLarge = true;
-          result.push(entry);
+          safe.tooLarge = true;
+          result.push(safe);
           continue;
         }
         const bytes = new Uint8Array(buffer);
         let binaryString = '';
         for (let offset = 0; offset < bytes.length; offset += 32768)
           binaryString += String.fromCharCode(...bytes.subarray(offset, offset + 32768));
-        entry.base64 = btoa(binaryString);
-        result.push(entry);
+        safe.base64 = btoa(binaryString);
+        result.push(safe);
       } catch {
-        result.push({ occurrences: item.occurrences, status: null, failed: true });
+        safe.failed = true;
+        result.push(safe);
       }
     }
     return result;
@@ -224,6 +253,27 @@ function collapseRendererImages(items) {
     found.occurrences.push(...(Array.isArray(item.occurrences) ? item.occurrences : []));
   }
   return [...unique.values()];
+}
+
+function rendererImageProbeExpression() {
+  return `(() => {
+    const urls = new Set();
+    const add = value => { if (typeof value === 'string' && value) urls.add(value); };
+    const split = value => String(value || '').split(',').map(part =>
+      part.trim().split(/\\s+/)[0]).filter(Boolean);
+    for (const img of document.querySelectorAll('img')) {
+      add(img.currentSrc); add(img.src);
+      for (const url of split(img.getAttribute('srcset'))) add(url);
+    }
+    for (const node of document.querySelectorAll('source[srcset]'))
+      for (const url of split(node.getAttribute('srcset'))) add(url);
+    for (const node of document.querySelectorAll('a[download][href]')) add(node.href);
+    try {
+      for (const entry of performance.getEntriesByType('resource'))
+        if (entry?.initiatorType === 'img') add(entry.name);
+    } catch {}
+    return { candidates: urls.size, images: document.images.length };
+  })()`;
 }
 
 async function captureRendererImages(send, assets, deadline) {
@@ -336,7 +386,15 @@ function rendererMatch(asset, renderer) {
 
 async function captureImageAssets(send, snapshot, shareId, stats) {
   const assets = imageAssets(snapshot);
-  const renderer = await captureRendererImages(send, assets, Date.now() + 5000);
+  try {
+    const probe = await send('Runtime.evaluate', {
+      expression: rendererImageProbeExpression(),
+      returnByValue: true, silent: true
+    });
+    stats.rendererImageCandidates =
+      Number.isSafeInteger(probe?.result?.value?.candidates) ? probe.result.value.candidates : 0;
+  } catch {}
+  const renderer = await captureRendererImages(send, assets, Date.now() + 10000);
   stats.rendererImageResources = renderer.length;
   stats.rendererImageOccurrences = renderer.reduce((n, item) =>
     n + (Array.isArray(item?.occurrences) ? item.occurrences.length : 0), 0);
@@ -401,7 +459,8 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
     throw new AcquisitionError('share.invalid-seconds', 'seconds must be 1..120');
   const stats = { phase: 'page-creation', operation: null, providerDiagnostic: null,
     hookFound: false, scriptCount: 0, inspectedResponses: 0, jsonShapes: [],
-    sourceAttempts: [], assetAttempts: [], rendererImageResources: 0, rendererImageOccurrences: 0 };
+    sourceAttempts: [], assetAttempts: [], rendererImageResources: 0,
+    rendererImageOccurrences: 0, rendererImageCandidates: 0 };
   let page, session;
 
   async function send(method, params = {}) {

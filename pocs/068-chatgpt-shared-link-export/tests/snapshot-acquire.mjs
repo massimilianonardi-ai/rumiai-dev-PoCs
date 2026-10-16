@@ -105,24 +105,26 @@ test('page-context media acquisition maps renderer generated images to raw asset
       if (params.expression === "location.origin + '|' + document.readyState")
         return { result: { result: { value:
           navigated ? 'https://chatgpt.com|complete' : 'data:|complete' } } };
-      if (params.expression.includes("document.querySelectorAll('img[src]')")) {
-        assert.ok(params.expression.includes('1536x1024'));
+      if (params.expression.includes("return { candidates: urls.size")) {
+        return { result: { result: { value: { candidates: 4, images: 3 } } } };
+      }
+      if (params.expression.includes("expectedSizes = new Set")) {
+        assert.ok(params.expression.includes('3'));
+        assert.ok(params.expression.includes('4'));
         return { result: { result: { value: [
-          { status: 200, byteLength: 3, mimeType: 'image/png',
-            base64: Buffer.from('one').toString('base64'),
-            occurrences: [{ occurrence: 0, generated_preview: true,
-              button_aria_label: 'generated 1',
-              natural_width: 1536, natural_height: 1024 }] },
-          { status: 200, byteLength: 3, mimeType: 'image/png',
-            base64: Buffer.from('one').toString('base64'),
-            occurrences: [{ occurrence: 1, generated_preview: false,
-              button_aria_label: 'original image',
-              natural_width: 1536, natural_height: 1024 }] },
-          { status: 200, byteLength: 4, mimeType: 'image/png',
-            base64: Buffer.from('four').toString('base64'),
-            occurrences: [{ occurrence: 2, generated_preview: true,
-              button_aria_label: 'generated 1',
-              natural_width: 1536, natural_height: 1024 }] }
+          { status: 200, byteLength: 3, mimeType: 'image/png', size_match: true,
+            url_scheme: 'blob:', base64: Buffer.from('one').toString('base64'),
+            evidence: [{ source: 'img', occurrence: 0, complete: false,
+              natural_width: 0, natural_height: 0, generated_preview: false,
+              button_aria_label: null }] },
+          { status: 200, byteLength: 3, mimeType: 'image/png', size_match: true,
+            url_scheme: 'blob:', base64: Buffer.from('one').toString('base64'),
+            evidence: [{ source: 'download-link', occurrence: 0 }] },
+          { status: 200, byteLength: 4, mimeType: 'image/png', size_match: true,
+            url_scheme: 'https:', base64: Buffer.from('four').toString('base64'),
+            evidence: [{ source: 'performance-img', occurrence: null }] },
+          { status: 200, byteLength: 12, mimeType: 'image/png', size_match: false,
+            url_scheme: 'https:', evidence: [{ source: 'img', occurrence: 2 }] }
         ] } } };
       }
       if (params.expression.includes('/files/download/'))
@@ -146,9 +148,11 @@ test('page-context media acquisition maps renderer generated images to raw asset
     ['zero_weight', 'zero_weight']);
   assert.equal(result.assets[0].renderer_references.length, 2);
   assert.equal(result.assets[1].renderer_references.length, 1);
+  assert.equal(result.stats.rendererImageCandidates, 4);
   assert.equal(result.stats.rendererImageResources, 2);
   assert.equal(result.stats.rendererImageOccurrences, 3);
-  assert.ok(expressions.some(x => x.includes("document.querySelectorAll('img[src]')")));
+  assert.ok(expressions.some(x => x.includes("expectedSizes = new Set")));
+  assert.ok(expressions.some(x => x.includes("return { candidates: urls.size")));
   assert.ok(!expressions.some(x => x.includes('/api/auth/session')));
   assert.ok(!expressions.some(x => x.includes('Authorization')));
 });
