@@ -14,7 +14,7 @@ test('captures direct share-page diagnostic evidence without auth/session state'
     calls.push(args);
     const cmd = args.slice(0,3).join(' ');
     if (cmd === 'page new') return {id:'page-1'};
-    if (cmd === 'page close') { pageClosed = true; return {closed:true}; }
+    if (args[0] === 'page' && args[1] === 'close') { pageClosed = true; return {closed:true}; }
     if (cmd === 'debug session open') return {session:'debug-1'};
     if (cmd === 'debug session close') { sessionClosed = true; return {closed:true}; }
     if (cmd !== 'debug session send') throw new Error('unexpected command ' + cmd);
