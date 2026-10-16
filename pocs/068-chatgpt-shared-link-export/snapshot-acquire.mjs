@@ -487,79 +487,105 @@ async function captureRendererImages(send, assets, deadline) {
   return { resources, observation };
 }
 
-function assetFetchExpression(asset, shareId) {
-  return `(async () => {
-    const attempts = [];
-    try {
-      const metadata = await fetch(
-        '/backend-anon/files/download/' + ${JSON.stringify(asset.file_id)} +
-        '?post_id=&shared_conversation_id=' + encodeURIComponent(${JSON.stringify(shareId)}) +
-        '&inline=false&download_intent=false',
-        { credentials: 'include', headers: { accept: 'application/json' } }
-      );
-      const attempt = { source: 'backend-anon', metadataStatus: metadata.status };
-      attempts.push(attempt);
-      if (!metadata.ok) return { attempts, base64: null };
-      const contentType = metadata.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) {
-        attempt.directBinary = true;
-        const buffer = await metadata.arrayBuffer();
-        if (buffer.byteLength > ${MAX_ASSET_BYTES}) {
-          attempt.tooLarge = true;
-          return { attempts, base64: null };
-        }
-        const bytes = new Uint8Array(buffer);
-        let binaryString = '';
-        for (let offset = 0; offset < bytes.length; offset += 32768)
-          binaryString += String.fromCharCode(...bytes.subarray(offset, offset + 32768));
-        attempt.binaryStatus = metadata.status;
-        return {
-          attempts, base64: btoa(binaryString), byteLength: bytes.length,
-          mimeType: contentType || null, fileName: null
-        };
-      }
-      let meta;
-      try { meta = await metadata.json(); }
-      catch {
-        attempt.invalidJson = true;
-        return { attempts, base64: null };
-      }
-      const url = meta?.download_url || meta?.metadata?.download_url;
-      if (!url) {
-        attempt.noDownloadUrl = true;
-        return { attempts, base64: null };
-      }
-      try {
-        const signed = new URL(url, location.origin);
-        const binary = await fetch(signed.href, {
-          credentials: signed.origin === location.origin ? 'include' : 'omit'
+function observedGeneratedImageExpression(){
+  function scan(){
+    const results=[];
+    for(const surface of document.querySelectorAll('[data-image-gen-result]')){
+      const root=surface.querySelector('[id^="image-"]');
+      if(!root)continue;
+      for(const img of root.querySelectorAll('img[src]')){
+        let url;
+        try{url=new URL(img.currentSrc||img.src,location.href);}catch{continue;}
+        if(url.protocol!=='https:' || !(url.hostname==='oaiusercontent.com'||url.hostname.endsWith('.oaiusercontent.com')))continue;
+        const match=/^\/files\/([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})\/raw$/i.exec(url.pathname);
+        if(!match)continue;
+        results.push({
+          file_id:'file_'+match[1].replaceAll('-','').toLowerCase(),
+          src:url.href,root_id:root.id,
+          loaded:Boolean(img.complete && img.naturalWidth>0 && img.naturalHeight>0),
+          natural_width:img.naturalWidth||null,natural_height:img.naturalHeight||null
         });
-        attempt.binaryStatus = binary.status;
-        if (!binary.ok) return { attempts, base64: null };
-        const buffer = await binary.arrayBuffer();
-        if (buffer.byteLength > ${MAX_ASSET_BYTES}) {
-          attempt.tooLarge = true;
-          return { attempts, base64: null };
-        }
-        const bytes = new Uint8Array(buffer);
-        let binaryString = '';
-        for (let offset = 0; offset < bytes.length; offset += 32768)
-          binaryString += String.fromCharCode(...bytes.subarray(offset, offset + 32768));
-        return {
-          attempts, base64: btoa(binaryString), byteLength: bytes.length,
-          mimeType: binary.headers.get('content-type') ||
-            meta?.mime_type || meta?.metadata?.mime_type || null,
-          fileName: meta?.file_name || meta?.metadata?.file_name || null
-        };
-      } catch {
-        attempt.binaryFailed = true;
-        return { attempts, base64: null };
       }
-    } catch {
-      attempts.push({ source: 'backend-anon', metadataStatus: null, failed: true });
-      return { attempts, base64: null };
     }
-  })()`;
+    return results;
+  }
+  return '('+scan.toString()+')()';
+}
+
+async function captureObservedGeneratedImages(send,assets,fetchImage,seconds,stats){
+  const byId=new Map(assets.map(asset=>[asset.file_id,asset]));
+  const candidates=new Map();
+  const conflicts=new Set();
+  const deadline=Date.now()+Math.min(seconds*1000,10000);
+  do{
+    try{
+      const response=await send('Runtime.evaluate',{
+        expression:observedGeneratedImageExpression(),returnByValue:true,silent:true
+      });
+      const list=response?.result?.value;
+      if(Array.isArray(list))for(const entry of list){
+        if(!entry || !byId.has(entry.file_id) || !entry.loaded || typeof entry.src!=='string'
+          || conflicts.has(entry.file_id))continue;
+        const asset=byId.get(entry.file_id);
+        if(Number.isSafeInteger(asset.width)&&entry.natural_width!==asset.width)continue;
+        if(Number.isSafeInteger(asset.height)&&entry.natural_height!==asset.height)continue;
+        const prior=candidates.get(entry.file_id);
+        if(prior && (prior.src!==entry.src || prior.root_id!==entry.root_id)){
+          candidates.delete(entry.file_id);conflicts.add(entry.file_id);continue;
+        }
+        if(!prior)candidates.set(entry.file_id,entry);
+      }
+    }catch{/* Lazy renderer is not necessarily ready yet. */}
+    if(candidates.size===assets.length)break;
+    await new Promise(resolve=>setTimeout(resolve,250));
+  }while(Date.now()<deadline);
+  const results=new Map();
+  for(const [fileId,entry] of candidates){
+    const asset=byId.get(fileId);
+    const attempt={source:'anonymous-generated-image-img-src',observed:true};
+    let base64=null,mimeType=null,byteLength=null;
+    try{
+      const url=new URL(entry.src);
+      const match=/^\/files\/([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})\/raw$/i.exec(url.pathname);
+      if(url.protocol!=='https:'||url.port||url.username||url.password||
+        !(url.hostname==='oaiusercontent.com'||url.hostname.endsWith('.oaiusercontent.com'))||
+        !match||'file_'+match[1].replaceAll('-','').toLowerCase()!==fileId)
+        throw Error('untrusted-source');
+      const response=await fetchImage(url.href,{
+        redirect:'error',signal:AbortSignal.timeout(12000)
+      });
+      attempt.status=response.status;
+      if(!response.ok)throw Error('not-ok');
+      mimeType=(response.headers.get('content-type')||'').split(';')[0].trim().toLowerCase();
+      if(!['image/png','image/jpeg','image/webp','image/gif'].includes(mimeType))
+        throw Error('not-image');
+      if(Number(response.headers.get('content-length'))>MAX_ASSET_BYTES)
+        throw Error('too-large');
+      const bytes=Buffer.from(await response.arrayBuffer());
+      if(bytes.length===0||bytes.length>MAX_ASSET_BYTES)throw Error('invalid-size');
+      if(Number.isSafeInteger(asset.expected_size_bytes)&&bytes.length!==asset.expected_size_bytes)
+        throw Error('size-mismatch');
+      const signatureOK=mimeType==='image/png'
+        ? bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))
+        : mimeType==='image/jpeg' ? bytes[0]===255&&bytes[1]===216
+        : mimeType==='image/gif' ? ['GIF87a','GIF89a'].includes(bytes.toString('ascii',0,6))
+        : bytes.toString('ascii',0,4)==='RIFF'&&bytes.toString('ascii',8,12)==='WEBP';
+      if(!signatureOK)throw Error('invalid-image-signature');
+      byteLength=bytes.length;base64=bytes.toString('base64');
+      attempt.binaryStatus='downloaded';attempt.byteLength=byteLength;
+    }catch{
+      attempt.binaryStatus='unavailable-or-invalid';
+    }
+    results.set(fileId,{
+      attempt,base64,mimeType,byteLength,
+      renderer_references:[{
+        source:'image-gen-dom',root_id:entry.root_id,
+        natural_width:entry.natural_width,natural_height:entry.natural_height
+      }]
+    });
+  }
+  stats.generatedImageDom={identified:candidates.size,downloaded:[...results.values()].filter(x=>x.base64).length};
+  return results;
 }
 
 function rendererMatch(asset, renderer) {
@@ -581,9 +607,13 @@ function userUploadOnly(asset) {
     asset.references.every(reference => reference.role === 'user');
 }
 
-async function captureImageAssets(send, snapshot, shareId, stats) {
+async function captureImageAssets(send, snapshot, stats, fetchImage, seconds) {
   const assets = imageAssets(snapshot);
   const publicCandidates = assets.filter(asset => !userUploadOnly(asset));
+  const observed=publicCandidates.length
+    ? await captureObservedGeneratedImages(send,publicCandidates,fetchImage,seconds,stats)
+    : new Map();
+  const pending=publicCandidates.filter(asset => !observed.get(asset.file_id)?.base64);
   try {
     const probe = await send('Runtime.evaluate', {
       expression: rendererImageProbeExpression(),
@@ -592,8 +622,8 @@ async function captureImageAssets(send, snapshot, shareId, stats) {
     stats.rendererImageCandidates =
       Number.isSafeInteger(probe?.result?.value?.candidates) ? probe.result.value.candidates : 0;
   } catch {}
-  const captured = publicCandidates.length
-    ? await captureRendererImages(send, publicCandidates, Date.now() + 10000)
+  const captured = pending.length
+    ? await captureRendererImages(send, pending, Date.now() + 5000)
     : { resources: [], observation: {
         attempted:0, fetched:0, failed:0, size_matched:0, size_mismatched:0
       } };
@@ -618,7 +648,19 @@ async function captureImageAssets(send, snapshot, shareId, stats) {
         base64:null, attempts });
       continue;
     }
-    const matches = rendererMatch(asset, renderer);
+    const observedItem=observed.get(asset.file_id);
+    if(observedItem?.base64){
+      const attempts=[observedItem.attempt];
+      stats.assetAttempts.push({fileId:asset.file_id,attempts});
+      found.push({...asset,
+        renderer_references:observedItem.renderer_references,
+        mime_type:observedItem.mimeType,file_name:null,
+        downloaded_size_bytes:observedItem.byteLength,
+        base64:observedItem.base64,attempts});
+      continue;
+    }
+    const uniqueSize=publicCandidates.filter(x=>x.expected_size_bytes===asset.expected_size_bytes).length===1;
+    const matches=uniqueSize?rendererMatch(asset,renderer):[];
     if (matches.length === 1) {
       const item = matches[0];
       const attempts = [{
@@ -638,30 +680,18 @@ async function captureImageAssets(send, snapshot, shareId, stats) {
       continue;
     }
 
-    let result = null;
-    try {
-      const response = await send('Runtime.evaluate', {
-        expression: assetFetchExpression(asset, shareId),
-        awaitPromise: true, returnByValue: true, silent: true
-      });
-      result = response?.result?.value || null;
-    } catch {
-      result = { attempts: [{ source: 'web-control', failed: true }], base64: null };
-    }
-    const attempts = [{
-      source: 'renderer-generated-image',
-      matches: matches.length,
-      availableResources: renderer.length,
-      candidateResources: stats.rendererImageCandidates,
-      fetchObservation: stats.rendererImageFetch
-    }, ...(Array.isArray(result?.attempts) ? result.attempts : [])];
+    const attempts=[
+      ...(observedItem?[observedItem.attempt]:[]),
+      {source:'renderer-generated-image',matches:matches.length,
+        availableResources:renderer.length,
+        candidateResources:stats.rendererImageCandidates,
+        fetchObservation:stats.rendererImageFetch}
+    ];
     stats.assetAttempts.push({ fileId: asset.file_id, attempts });
     found.push({ ...asset,
-      renderer_references: matches.length === 1 ? matches[0].occurrences || [] : [],
-      mime_type: typeof result?.mimeType === 'string' ? result.mimeType : null,
-      file_name: typeof result?.fileName === 'string' ? result.fileName : null,
-      downloaded_size_bytes: Number.isSafeInteger(result?.byteLength) ? result.byteLength : null,
-      base64: typeof result?.base64 === 'string' ? result.base64 : null,
+      renderer_references:observedItem?.renderer_references||[],
+      mime_type:null,file_name:null,
+      downloaded_size_bytes:null,base64:null,
       attempts });
   }
   return found;
@@ -675,6 +705,7 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
   const url = shareUrl(inputUrl);
   const shareId = new URL(url).pathname.split('/').filter(Boolean).at(-1);
   const seconds = options.seconds ?? 20;
+  const fetchImage=options.fetchImage||fetch;
   if (!Number.isSafeInteger(seconds) || seconds < 1 || seconds > 120)
     throw new AcquisitionError('share.invalid-seconds', 'seconds must be 1..120');
   const stats = { phase: 'page-creation', operation: null, providerDiagnostic: null,
@@ -682,7 +713,8 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
     sourceAttempts: [], assetAttempts: [], fileAttempts: [], rendererImageResources: 0,
     rendererImageOccurrences: 0, rendererImageCandidates: 0,
     rendererImageFetch: { attempted: 0, fetched: 0, failed: 0,
-      size_matched: 0, size_mismatched: 0 } };
+      size_matched: 0, size_mismatched: 0 },
+    generatedImageDom:{identified:0,downloaded:0} };
   let page, session;
 
   async function send(method, params = {}) {
@@ -724,7 +756,7 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
         if (snapshot) {
           stats.phase = 'media-acquisition';
           stats.operation = 'debug session send Runtime.evaluate';
-          const assets = await captureImageAssets(send, snapshot, shareId, stats);
+          const assets = await captureImageAssets(send, snapshot, stats, fetchImage, seconds);
           const files = await captureSandboxFiles(send, snapshot, shareId, stats);
           stats.operation = null;
           return { snapshot, assets, files, method: 'page-fetch', stats };
@@ -749,7 +781,7 @@ export async function captureStructuredSnapshot(control, inputUrl, options = {})
         if (snapshot) {
           stats.phase = 'media-acquisition';
           stats.operation = 'debug session send Runtime.evaluate';
-          const assets = await captureImageAssets(send, snapshot, shareId, stats);
+          const assets = await captureImageAssets(send, snapshot, stats, fetchImage, seconds);
           const files = await captureSandboxFiles(send, snapshot, shareId, stats);
           stats.operation = null;
           return { snapshot, assets, files, method: 'embedded-json', stats };
