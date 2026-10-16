@@ -227,3 +227,50 @@ test('rewrites downloaded sandbox links to local files', async () => {
     await fs.rm(dir,{recursive:true,force:true});
   }
 });
+
+
+test('anonymous export identifies deferred user uploads separately from missing public images', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(),'chatgpt-anonymous-media-'));
+  try {
+    const input = {conversation_id:'media-classes',title:'Media classes',
+      current_node:'answer',mapping:{
+        user:{parent:null,message:{id:'user',author:{role:'user'},
+          content:{parts:[{content_type:'image_asset_pointer',
+            asset_pointer:'sediment://file_upload'}]},weight:1}},
+        answer:{parent:'user',message:{id:'answer',author:{role:'assistant'},
+          content:{parts:['Public generated image unavailable']},weight:1,
+          end_turn:true}}
+      }};
+    const assets = [
+      {asset_pointer:'sediment://file_upload',file_id:'file_upload',
+        references:[{role:'user',node_id:'user'}],
+        attempts:[{source:'anonymous-share',
+          disposition:'deferred-authenticated-user-upload'}]},
+      {asset_pointer:'sediment://file_generated',file_id:'file_generated',
+        references:[{role:'tool',node_id:'tool-generated'}],
+        attempts:[{source:'renderer-generated-image',availableResources:0}]}
+    ];
+    const result = await exportSnapshot(input,{},root,
+      'https://chatgpt.com/share/example','fixture',assets,[]);
+    const manifest = JSON.parse(await fs.readFile(
+      path.join(result.directory,'MEDIA.json'),'utf8'));
+    assert.deepEqual(manifest.map(item => item.status),
+      ['deferred-authenticated','missing']);
+    assert.deepEqual(manifest.map(item => item.availability_class),
+      ['user-upload','public-image']);
+    assert.equal(result.imagesMissing,2);
+    assert.equal(result.imagesDeferredAuthenticated,1);
+    assert.equal(result.imagesPublicUnresolved,1);
+    assert.equal(result.observationComplete,false);
+    const acquisition = JSON.parse(await fs.readFile(
+      path.join(result.directory,'ACQUISITION.json'),'utf8'));
+    assert.equal(acquisition.media_binary_deferred_authenticated_count,1);
+    assert.equal(acquisition.media_binary_unresolved_public_count,1);
+    assert.equal(acquisition.physical_site_completeness_verified,false);
+    const zip = readZip(await fs.readFile(result.zip));
+    assert.deepEqual(JSON.parse(zip.get('MEDIA.json')),
+      manifest);
+  } finally {
+    await fs.rm(root,{recursive:true,force:true});
+  }
+});
