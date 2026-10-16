@@ -248,7 +248,7 @@ test('backend-api is represented as safe fallback evidence', async () => {
     if (cmd === 'debug session send' && args[4] === 'Runtime.evaluate') {
       const params = JSON.parse(args[5]);
       if (params.expression === "location.origin + '|' + document.readyState")
-        return { result: { result: { value: 'https://chatgpt.com|interactive' } } };
+        return { result: { result: { value: 'https://chatgpt.com|complete' } } };
       if (params.expression.includes('backend-anon'))
         return { result: { result: { value: {
           attempts: [
@@ -287,11 +287,17 @@ test('anonymous generated-image DOM resolves stable file id and deduplicates thr
     Array.from({length:3},()=>'<img loading="lazy" width="1536" height="1024" src="'+url.replaceAll('&','&amp;')+'">').join('')+
     '</div></div><div data-image-gen-result><div id="image-unrelated"><img src="'+fake+'"></div></div>';
   const {document}=parseHTML(html);
+  let lazyReady=false;
+  let scrollCount=0;
+  document.querySelector('#image-real').scrollIntoView=()=>{
+    scrollCount++;
+    if(scrollCount>=2)lazyReady=true;
+  };
   for(const img of document.querySelectorAll('img')){
     const pending=img.closest('#image-real')!==null;
-    Object.defineProperty(img,'complete',{value:!pending,configurable:true});
-    Object.defineProperty(img,'naturalWidth',{value:pending?0:1536,configurable:true});
-    Object.defineProperty(img,'naturalHeight',{value:pending?0:1024,configurable:true});
+    Object.defineProperty(img,'complete',{get:()=>!pending||lazyReady,configurable:true});
+    Object.defineProperty(img,'naturalWidth',{get:()=>pending&&!lazyReady?0:1536,configurable:true});
+    Object.defineProperty(img,'naturalHeight',{get:()=>pending&&!lazyReady?0:1024,configurable:true});
   }
   const image=Buffer.concat([
     Buffer.from([137,80,78,71,13,10,26,10]),Buffer.alloc(12)
@@ -323,7 +329,7 @@ test('anonymous generated-image DOM resolves stable file id and deduplicates thr
         return{result:{result:{value:'https://chatgpt.com|complete'}}};
       if(params.expression.includes("return { candidates: urls.size"))
         return{result:{result:{value:{candidates:4,images:4}}}};
-      if(params.expression.includes('function scan()')){
+      if(params.expression.includes('function scan(index)')){
         const data=runInNewContext(params.expression,{
           document,location:{href:'https://chatgpt.com/share/share-test'},URL
         });
@@ -355,8 +361,10 @@ test('anonymous generated-image DOM resolves stable file id and deduplicates thr
   assert.deepEqual(Buffer.from(result.assets[0].base64,'base64'),image);
   assert.equal(result.assets[0].attempts[0].source,'anonymous-generated-image-img-src');
   assert.equal(result.assets[0].renderer_references[0].root_id,'image-real');
-  assert.equal(result.assets[0].renderer_references[0].was_loaded,false);
-  assert.deepEqual(result.stats.generatedImageDom,{identified:1,downloaded:1});
+  assert.equal(result.assets[0].renderer_references[0].was_loaded,true);
+  assert.ok(scrollCount>=2,'lazy image must be scrolled into view before acquisition');
+  assert.deepEqual(result.stats.generatedImageDom,
+    {identified:1,downloaded:1,expected:1,settled:true,polls:3});
   assert.ok(!expressions.some(x=>x.includes('/backend-anon/files/download/')));
   assert.ok(!JSON.stringify(result.stats).includes('sig='));
   assert.ok(!JSON.stringify(result.assets[0].renderer_references).includes('sig='));
