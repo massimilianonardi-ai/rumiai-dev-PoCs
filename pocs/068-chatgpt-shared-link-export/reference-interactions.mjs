@@ -83,6 +83,31 @@ function inventoryExpression() {
           icon_key:iconKey, ...context(node)
         });
       });
+    // Public-share upload labels do not imply a downloadable file endpoint.
+    // Observe each renderer occurrence separately from sandbox-file buttons.
+    for (const message of document.querySelectorAll(
+      '[data-message-author-role="user"][data-message-id]'
+    ))
+    {
+      let labelIndex = 0;
+      for (const span of message.querySelectorAll('span'))
+      {
+        const label = (span.textContent || '').trim();
+        const kind = /^(?:Ha caricato un'immagine|Uploaded an image)$/i.test(label)
+          ? 'user-upload-image'
+          : /^(?:Ha caricato un file|Uploaded a file)$/i.test(label)
+            ? 'user-upload-file' : null;
+        if (!kind) continue;
+        const actionable = span.closest('a,button,[role="button"]');
+        results.push({
+          kind, index:labelIndex++, label,
+          message_id:message.getAttribute('data-message-id'),
+          turn_id:context(message).turn_id,
+          actionable:Boolean(actionable),
+          actionable_tag:actionable?.tagName?.toLowerCase() || null
+        });
+      }
+    }
     return { marker, results };
   })()`;
 }
@@ -97,16 +122,36 @@ function tagTargetExpression(target, token) {
       const item = items[spec.index];
       const root = item?.querySelector('[id^="image-"]');
       node = root?.querySelector('.cursor-pointer') || null;
+    } else if (spec.kind === 'user-upload-image' ||
+               spec.kind === 'user-upload-file') {
+      const message = [...document.querySelectorAll(
+        '[data-message-author-role="user"][data-message-id]'
+      )].find(item => item.getAttribute('data-message-id') === spec.message_id);
+      const labels = [...(message?.querySelectorAll('span') || [])].filter(span =>
+        /^(?:Ha caricato un'immagine|Uploaded an image|Ha caricato un file|Uploaded a file)$/i
+          .test((span.textContent || '').trim())
+      );
+      node = labels[spec.index] || null;
+      const label = (node?.textContent || '').trim();
+      const expected = spec.kind === 'user-upload-image'
+        ? /^(?:Ha caricato un'immagine|Uploaded an image)$/i
+        : /^(?:Ha caricato un file|Uploaded a file)$/i;
+      if (!expected.test(label)) node = null;
     } else {
       const items = [...document.querySelectorAll('button.entity-underline[aria-label]')];
       node = items[spec.index] || null;
     }
     if (!node) return { marker, found:false };
     node.setAttribute('data-rumiai-reference-target', ${JSON.stringify(token)});
+    const actionable = node.closest('a,button,[role="button"]');
     return {
       marker, found:true, tag:node.tagName.toLowerCase(),
       aria_label:node.getAttribute('aria-label') || null,
-      text:node.innerText || '', href:node.getAttribute('href') || null
+      text:node.innerText || node.textContent || '',
+      href:node.getAttribute('href') || null,
+      actionable:Boolean(actionable),
+      actionable_tag:actionable?.tagName?.toLowerCase() || null,
+      cursor:getComputedStyle(node).cursor
     };
   })()`;
 }
@@ -298,7 +343,10 @@ async function discover(control, url, seconds) {
 
 function selectRepresentatives(inventory) {
   const selected = [];
-  for (const kind of ['image-gen','sandbox-file','sandbox-photo']) {
+  for (const kind of [
+    'image-gen','sandbox-file','sandbox-photo',
+    'user-upload-image','user-upload-file'
+  ]) {
     const items = inventory.filter(x => x.kind === kind);
     if (!items.length) continue;
     selected.push(items.at(-1));
