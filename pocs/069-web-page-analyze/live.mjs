@@ -217,6 +217,7 @@ async function reopen(browser,state,selector,originalGeometry){
       'images:[...document.images].map(x=>x.complete&&x.naturalWidth>0),' +
       'textLength:document.body?.innerText?.length||0})');
     return {success:true,positionAligned:alignment.ok,
+      networkIsolationVerified:false,
       originalGeometry,restoredGeometry:alignment.position||restored,
       selector:targetSelector,alignment,...inspected};
   }catch(e){return {success:false,error:errorText(e)};}
@@ -425,7 +426,7 @@ async function showOverall(browser,folder,ask){
     opened=(await browser.cmd('page','new')).id;
     await browser.cmd('page','navigate',opened,pathToFileURL(filename).href);
     await focus(browser,opened);
-    process.stdout.write('[MHTML] Archivio nativo dello stato finale aperto in Chromium\n');
+    process.stdout.write('[MHTML] Archivio nativo dello stato finale riaperto in Chromium (rete non isolata)\n');
     await ask('Esamina l’MHTML complessivo candidato, poi premi INVIO: ');
     return {opened:true,file:'overall/page.mhtml'};
   }catch(e){
@@ -436,7 +437,7 @@ async function showOverall(browser,folder,ask){
 }
 function comparison(site,states){
   const sections=states.map(x=>'<section><h2>'+x.index+' — '+x.label+
-    '</h2><p>Chromium online a sinistra; MHTML originale riaperto offline a destra.</p>'+
+    '</h2><p>Chromium online a sinistra; MHTML originale riaperto in Chromium a destra (autosufficienza offline non verificata).</p>'+
     '<div class="pair"><img src="states/'+x.index+'/original.png">'+
     (x.offline?'<img src="states/'+x.index+'/reopened.png">':
       '<p>Riapertura non riuscita: vedi offline.json</p>')+
