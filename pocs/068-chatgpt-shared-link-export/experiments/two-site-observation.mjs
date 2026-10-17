@@ -48,12 +48,12 @@ export function consolidateActions(events) {
   const result = [];
   for (const event of events) {
     if (!['scroll', 'click', 'key-activation', 'input-change'].includes(event.kind)) continue;
-    // Only adjacent scrolls on the same container may be superseded.
-    // A click or container change is always a temporal boundary.
+    // Preserve every distinct scroll checkpoint: an intermediate location
+    // may be the only moment when a virtualized page exposes those items.
     const last = result[result.length - 1];
     if (event.kind === 'scroll' && last?.kind === 'scroll' &&
-        last.selector === event.selector) result[result.length - 1] = event;
-    else result.push(event);
+        last.selector === event.selector && last.top === event.top) continue;
+    result.push(event);
   }
   return result;
 }
