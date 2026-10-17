@@ -141,6 +141,46 @@ test('publication produces GitHub Markdown, offline HTML, PDF and complete ZIP',
   }
 });
 
+
+test('public commentary stays positioned and hidden thinking text is not exposed', () =>
+{
+  const visible = [
+    { ordinal: 1, role: 'user', text: 'Question', message: {
+      content: { parts: ['Question'] } } },
+    { ordinal: 5, role: 'assistant', text: 'Answer', message: {
+      content: { parts: ['Answer'] } } }
+  ];
+  const audit = { nodes: [
+    { ordinal: 1, classification: 'visible_candidate' },
+    { ordinal: 2, classification: 'internal_reasoning' },
+    { ordinal: 3, classification: 'assistant_commentary' },
+    { ordinal: 4, classification: 'tool_traffic' },
+    { ordinal: 5, classification: 'visible_candidate' }
+  ] };
+  const turns = [{ activities: [
+    { ordinal: 3, kind: 'assistant_commentary',
+      text: 'Public progress summary' }
+  ] }];
+  const result = buildChronologicalPublication(visible, audit, turns, [], []);
+  assert.deepEqual(result.events.map(item => item.ordinal), [1, 2, 3, 4, 5]);
+  assert.equal(result.events[1].kind, 'thinking');
+  assert.equal(result.events[2].publicCommentary, true);
+  assert.match(result.events[2].markdown, /Public progress summary/);
+  assert.doesNotMatch(JSON.stringify(result.events), /private chain-of-thought/i);
+});
+
+test('unknown media location is not invented as the last conversation turn', () =>
+{
+  const visible = [{ ordinal: 1, role: 'user', text: 'Hello',
+    message: { content: { parts: ['Hello'] } } }];
+  const audit = { nodes: [{ ordinal: 1, classification: 'visible_candidate' }] };
+  const result = buildChronologicalPublication(visible, audit, [],
+    [{ file_id: 'unlocated', status: 'downloaded',
+      local_path: 'media/unknown.png', references: [] }], []);
+  assert.equal(result.unplaced.length, 1);
+  assert.equal(result.events.filter(item => item.kind === 'attachment').length, 0);
+});
+
 test('chatgpt-extract uses the requested directory and publishes only after extraction', async () =>
 {
   const calls = [];
