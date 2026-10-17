@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {interpret, stabilizePosition} from '../live.mjs';
+import {interpret, stabilizePosition, archiveScrollTarget} from '../live.mjs';
 
 function entry(n,kind,direction,top,max=900) {
   return {n,kind,selector:'#messages',direction,top,max,viewport:300};
@@ -80,4 +80,21 @@ test('does not accept a target beyond current scrollable content',async()=>{
     {attempts:2,delayMs:0,tolerance:2});
   assert.equal(result.ok,false);
   assert.equal(result.reason,'position-restored-or-drifted');
+});
+
+test('MHTML comparison uses exact CSS-pixel scroll rather than height ratio',()=>{
+  const offset=archiveScrollTarget(
+    {top:14530,max:26925,viewport:900},
+    {top:0,max:26470,viewport:900});
+  assert.equal(offset.intended,14530);
+  assert.equal(offset.target,14530);
+  assert.equal(offset.extentDifference,-455);
+  assert.equal(offset.clamped,false);
+});
+test('unreachable original position in reopened MHTML is flagged as incomplete',()=>{
+  const offset=archiveScrollTarget(
+    {top:26925,max:26925,viewport:900},
+    {top:0,max:26712,viewport:900});
+  assert.equal(offset.target,26712);
+  assert.equal(offset.clamped,true);
 });
