@@ -1,0 +1,34 @@
+{
+  "checkedAt": "2026-10-17T07:39:39.551Z",
+  "count": 5,
+  "published": 4,
+  "htmlFidelityVerified": false,
+  "fullFidelityReleaseAccepted": false,
+  "outcomes": [
+    {
+      "title": "RumiAI Avatar",
+      "id": "6ad13a5b-e9f0-83eb-8519-9e2d8c8097f3",
+      "status": "published"
+    },
+    {
+      "title": "Mirror chat su GitHub",
+      "id": "6ad093bb-2500-83eb-8519-9e2d8c8097f3",
+      "status": "failed"
+    },
+    {
+      "title": "AI+CHAOS",
+      "id": "6ad1c0b3-f42c-83eb-bfbc-4e44c80863dc",
+      "status": "published"
+    },
+    {
+      "title": "chat mlp evo",
+      "id": "6ad1c0d5-49ec-83eb-a79b-85b04b938835",
+      "status": "published"
+    },
+    {
+      "title": "Integrare Chat e Work",
+      "id": "6ad1c0f5-7110-83eb-bc19-356d48fc1259",
+      "status": "published"
+    }
+  ]
+}

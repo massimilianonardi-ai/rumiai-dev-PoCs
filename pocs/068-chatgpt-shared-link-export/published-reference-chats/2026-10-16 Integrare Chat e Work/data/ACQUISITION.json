@@ -1,0 +1,20 @@
+{
+  "source": "https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259",
+  "method": "page-fetch",
+  "captured_mapping_nodes": 107,
+  "visible_messages": 12,
+  "non_text_parts": 0,
+  "media_unique_assets": 0,
+  "media_references": 0,
+  "renderer_image_references": 0,
+  "media_binary_downloaded_count": 0,
+  "media_binary_missing_count": 0,
+  "media_binary_deferred_authenticated_count": 0,
+  "media_binary_unresolved_public_count": 0,
+  "media_binary_downloaded": false,
+  "sandbox_files_referenced": 0,
+  "sandbox_files_downloaded_count": 0,
+  "sandbox_files_missing_count": 0,
+  "sandbox_files_downloaded": false,
+  "physical_site_completeness_verified": false
+}
