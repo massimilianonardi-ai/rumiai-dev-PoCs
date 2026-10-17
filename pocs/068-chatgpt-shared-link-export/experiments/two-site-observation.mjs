@@ -344,7 +344,7 @@ async function writeSiteAnalysis(output, steps) {
 
 async function runSite(client, site, output, question) {
   const pageInfo = await client.call('page', 'new');
-  const page = pageInfo.page;
+  const page = pageInfo.id;
   let session;
   const report = { site: site.name, url: site.url,
     startedAt: new Date().toISOString(), source: 'real PWC browser' };
@@ -369,7 +369,7 @@ async function runSite(client, site, output, question) {
     // Fresh browser page and fresh navigation; no assumption of identical
     // server/session state. Preserves the original manual page until cleanup.
     const replayInfo = await client.call('page', 'new');
-    const replayPage = replayInfo.page;
+    const replayPage = replayInfo.id;
     try {
       await client.call('page', 'navigate', replayPage, site.url);
       const actions = consolidateActions(observation.events);
