@@ -30,6 +30,8 @@ test('trial scroll reduction preserves click boundaries and distinct containers'
     ['scroll','html',350],
     ['click','summary',undefined],
     ['scroll','div:nth-of-type(2)',400],
+    ['scroll','html',900],
+    ['key-activation',undefined,undefined],
     ['scroll','html',1100]
   ]);
 });
