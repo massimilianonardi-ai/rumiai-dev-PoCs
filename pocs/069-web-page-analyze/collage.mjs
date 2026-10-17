@@ -30,26 +30,32 @@ export function planCollage(entries) {
   // The readable default MUST keep every observed pixel in the scroll box.
   // Coordinate-overlap trimming can delete real text on virtualized pages.
   // Unsafe or geometry-less captures remain accessible as full screenshots.
-  const safeTiles=entries.map(e=>
-  {
-    const cap=e.capture||{};
-    const box=cap.scrollViewport;
-    const geometryValid=!!(box&&
-      finite(box.x)&&finite(box.y)&&
-      finite(box.width)&&finite(box.height)&&
-      finite(box.viewportWidth)&&
-      box.x>=0&&box.y>=0&&
-      box.width>32&&box.height>32&&
-      box.viewportWidth>=box.width);
-    return {
-      id:e.id,
-      top:finite(cap.before?.top)?cap.before.top:null,
-      stable:cap.screenshotStable!==false,
-      box:geometryValid?box:null
-    };
-  }).sort((a,b)=>
-    (a.top??Number.POSITIVE_INFINITY)-(b.top??Number.POSITIVE_INFINITY) ||
-    a.id.localeCompare(b.id));
+  const safeTiles=entries.map
+  (
+    e=>
+    {
+      const cap=e.capture||{};
+      const box=cap.scrollViewport;
+      const geometryValid=!!(box&&
+        finite(box.x)&&finite(box.y)&&
+        finite(box.width)&&finite(box.height)&&
+        finite(box.viewportWidth)&&
+        box.x>=0&&box.y>=0&&
+        box.width>32&&box.height>32&&
+        box.viewportWidth>=box.width);
+      return {
+        id:e.id,
+        top:finite(cap.before?.top)?cap.before.top:null,
+        stable:cap.screenshotStable!==false,
+        box:geometryValid?box:null
+      };
+    }
+  ).sort
+  (
+    (a,b)=>
+      (a.top??Number.POSITIVE_INFINITY)-(b.top??Number.POSITIVE_INFINITY) ||
+      a.id.localeCompare(b.id)
+  );
 
   // Greedy interval coverage, preserving source provenance for every strip.
   const start=sorted[0].start, end=Math.max(...sorted.map(e=>e.end));
