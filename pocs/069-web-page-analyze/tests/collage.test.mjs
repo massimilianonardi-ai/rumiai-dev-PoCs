@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {planCollage,collageHtml} from '../collage.mjs';
+import {planCollage,collageHtml,assessTileContinuity} from '../collage.mjs';
 
 function state(id, top, max=900, height=500){
   return {id,capture:{
@@ -122,3 +122,40 @@ test
     assert.match(html,/sovrapposizioni possono ripetere testo/);
   }
 );
+
+test('legacy text anchors expose a seam reflow even with numeric overlap',()=>{
+  const first=state('0017',12999,26925);
+  const second=state('0016',13242,26925);
+  first.capture.originalAnchors=[
+    {path:[1,0],fingerprint:11,top:150},
+    {path:[1,1],fingerprint:22,top:450}
+  ];
+  second.capture.originalAnchors=[
+    {path:[1,0],fingerprint:11,top:370},
+    {path:[1,1],fingerprint:22,top:670}
+  ];
+  const check=assessTileContinuity(first,second);
+  assert.equal(check.matches,2);
+  assert.equal(check.movement,243);
+  assert.equal(check.overlap,257);
+  assert.equal(check.status,'shifted');
+});
+
+test('a lack of matching anchors cannot falsely certify a tile join',()=>{
+  const one=state('0017',12999,26925);
+  const two=state('0016',13242,26925);
+  const check=assessTileContinuity(one,two);
+  assert.equal(check.status,'unverified');
+  const html=collageHtml('chatgpt-share',[one,two]);
+  assert.match(html,/Discontinuità testuale possibile/);
+});
+
+test('matching anchors that move with scroll are only a consistency clue',()=>{
+  const one=state('0000',0,900);
+  const two=state('0001',200,900);
+  one.capture.originalAnchors=[
+    {key:'first',line:0,top:450},{key:'second',line:0,top:360}];
+  two.capture.originalAnchors=[
+    {key:'first',line:0,top:250},{key:'second',line:0,top:160}];
+  assert.equal(assessTileContinuity(one,two).status,'consistent');
+});
