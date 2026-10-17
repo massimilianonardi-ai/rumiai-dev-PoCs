@@ -1,6 +1,6 @@
 # PoC 069 — web-page-analyze: live Amazon + ChatGPT
 
-**Status: live browser test ready for the user's VM; not yet physically accepted.**
+**Status: first physical two-site run completed; viewport/replay defects under correction, still not visually accepted.**
 
 This is an experimental browser-analysis PoC built **directly on the two
 authorized real pages**. All prior fixture experiments, their tests and the
@@ -14,7 +14,7 @@ On the Linux VM, from the PoC directory:
 
 ```sh
 git pull --ff-only
-sh run-live.sh live-01
+sh run-live.sh live-02
 ```
 
 Requires working visible Chromium, Node 26, npm, git and outbound access to
@@ -55,8 +55,12 @@ portal, and the PoC never launches a file chooser to open evidence.
    At the end of the site, the PoC **opens its screenshot-only comparison
    directly in the same visible Chromium** using the actual PoC-local file
    URI. You inspect the two renderings side by side and press **Enter** to
-   continue, before it switches to the next site. Neither the desktop file
-   manager nor a document portal is involved.
+   continue, before it switches to the next site. Then Chromium also
+   opens the native `overall/page.mhtml` of the **final replay state** for
+   direct visual inspection. Neither the desktop file manager nor a document
+   portal is involved. The `overall/page.mhtml` is a single unmodified
+   snapshot of the final DOM, **not** a fabricated merge of virtualized
+   states, and is not certified to contain every previously visible node.
 6. The process repeats for the **long ChatGPT shared conversation**:
    `https://chatgpt.com/share/6ad1c0d5-49ec-83eb-a79b-85b04b938835`.
 
@@ -69,12 +73,15 @@ All persistent files are underneath this checkout, for example:
 
 ```text
 pocs/069-web-page-analyze/
-  evidence/live-01/
+  evidence/live-02/
     amazon-wishlist/
       events.json
       plan.json
       report.json
       comparison.html
+      overall/
+        page.mhtml           native final-DOM MHTML, opened in Chromium
+        manifest.json        snapshot coverage and original page metrics
       states/
         0000/
           page.mhtml            original Chromium MHTML
@@ -104,6 +111,38 @@ replay browser as part of the experiment.
 are committed to GitHub.** The `evidence/` and `.runtime/` directories
 are ignored. Output folders are immutable by name; use another run name
 for a new attempt.
+
+## Observed first live run and the next correction
+
+The actual user-run `live-01` successfully started the isolated visible
+PWC provider and passed the initial four action-planning tests. Amazon
+completed a down-to-bottom replay and displayed the screenshot comparison,
+but **intermediate original screenshots appeared scrolled back to the top**.
+ChatGPT recorded `down→bottom, up→position, down→position, up→top` but
+stopped on `replay.start-position-was-restored-or-drifted`, so no comparison
+was produced for it. These are negative physical findings, not accepted
+capture evidence.
+
+The updated `live.mjs` now:
+- **captures the original viewport before** native MHTML and DOMSnapshot,
+  and records observed scroll coordinates before/after screenshot and native
+  archive separately;
+- refocuses the replay page after reopening each native MHTML, restores and
+  checks its intended scroll position; separately aligns the *reopened*
+  MHTML viewport, since MHTML archives do not preserve live scroll offsets;
+- **retries late ChatGPT SPA scroll restoration** before the baseline instead
+  of aborting on the first displaced offset; continues retaining labelled
+  partial checkpoints/comparisons when subsequent replay fails;
+- saves `overall/page.mhtml` from the final DOM **without rewriting** and
+  opens it in Chromium after the screenshot comparison.
+
+The capture report prints `[STATO]` with original position, position after
+native archival, restore success, and offline-viewport alignment. These
+diagnostics distinguish an actual source-page jump from a screenshot whose
+reopened counterpart is merely at the wrong scroll offset.
+
+Use a new run name, `live-02`. The earlier private `live-01` evidence is
+preserved. The revised behavior remains **unverified on the user's VM**.
 
 ## Acceptance and current limits
 
