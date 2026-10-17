@@ -266,9 +266,14 @@ async function inspectState(browser,page,folder,selector,label,states){
     cssParts:captureResult.archivedCssParts,
     unexpectedLocalReferences:captureResult.unexpectedLocalReferences,
     offline:offline.success,offlinePositionAligned:offline.positionAligned});
-  process.stdout.write('  [STATO] '+index+' sourceTop='+
-    captureResult.before?.top+' afterArchive='+captureResult.after?.top+
-    ' restored='+restored.ok+' offlineAligned='+offline.positionAligned+'\n');
+  process.stdout.write('  [STATO] '+index+
+    ' intended='+intended.top+
+    ' beforeFocus='+captureResult.positionBeforeFocus?.top+
+    ' screenshotTop='+captureResult.before?.top+
+    ' afterScreenshot='+captureResult.afterScreenshot?.top+
+    ' afterArchive='+captureResult.after?.top+
+    ' sourceRestored='+restored.ok+
+    ' mhtmlAligned='+offline.positionAligned+'\n');
   if(!restored.ok)
     process.stderr.write('  [GAP] Posizione originale non ripristinata: '+index+'\n');
 }
