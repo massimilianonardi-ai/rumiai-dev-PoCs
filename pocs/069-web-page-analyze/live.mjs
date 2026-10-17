@@ -182,18 +182,37 @@ async function capture(browser,page,state,selector){
   await save(path.join(state,'capture.json'),result);
   return result;
 }
-async function reopen(browser,state){
+async function reopen(browser,state,selector,originalGeometry){
   const page=(await browser.cmd('page','new')).id;
   try{
     await browser.cmd('page','navigate',page,
       pathToFileURL(path.join(state,'page.mhtml')).href);
-    await sleep(500);
+    await sleep(600);
+    await focus(browser,page);
+    // Chromium's MHTML serializes DOM/resources, NOT the live scroll offset.
+    // Align the reopened viewport to the original snapshot's position before
+    // comparing the images, and report selectors missing from the archive.
+    let targetSelector=selector;
+    let restored=await geometry(browser,page,targetSelector);
+    if(!restored){
+      targetSelector='html';
+      restored=await geometry(browser,page,targetSelector);
+    }
+    if(!restored)throw Error('offline.scroll-container-not-found');
+    const target=originalGeometry?.max
+      ? Math.round(originalGeometry.top/originalGeometry.max*restored.max)
+      : (originalGeometry?.top??0);
+    const alignment=await stabilizePosition(browser,page,targetSelector,target,{
+      attempts:4,delayMs:220,tolerance:12
+    });
     await screenshot(browser,page,path.join(state,'reopened.png'));
     const inspected=await browser.evaluate(page,
       '({scheme:location.protocol,styles:document.styleSheets.length,'+
       'images:[...document.images].map(x=>x.complete&&x.naturalWidth>0),' +
       'textLength:document.body?.innerText?.length||0})');
-    return {success:true,...inspected};
+    return {success:true,positionAligned:alignment.ok,
+      originalGeometry,restoredGeometry:alignment.position||restored,
+      selector:targetSelector,alignment,...inspected};
   }catch(e){return {success:false,error:errorText(e)};}
   finally{await browser.cmd('page','close',page).catch(()=>{});}
 }
@@ -201,12 +220,24 @@ async function inspectState(browser,page,folder,selector,label,states){
   const index=String(states.length).padStart(4,'0');
   const state=path.join(folder,index);
   const captureResult=await capture(browser,page,state,selector);
-  const offline=await reopen(browser,state);
+  const offline=await reopen(browser,state,selector,captureResult.before);
   await save(path.join(state,'offline.json'),offline);
+  await focus(browser,page);
+  const restored=await stabilizePosition(browser,page,selector,
+    captureResult.before.top,{attempts:5,delayMs:280,tolerance:12});
   states.push({index,label,stable:captureResult.stable,
+    screenshotStable:captureResult.screenshotStable,
+    captureScrollDrift:captureResult.nativeCaptureScrollDrift,
+    sourceScrollRestored:restored.ok,
+    screenshotAt:captureResult.before,
+    sourceAfterArchive:captureResult.after,
     cssParts:captureResult.archivedCssParts,
     unexpectedLocalReferences:captureResult.unexpectedLocalReferences,
-    offline:offline.success});
+    offline:offline.success,offlinePositionAligned:offline.positionAligned});
+  process.stdout.write('  [STATO] '+index+' sourceTop='+
+    captureResult.before?.top+' afterArchive='+captureResult.after?.top+
+    ' restored='+restored.ok+' offlineAligned='+offline.positionAligned+'\n');
+  if(!restored.ok)throw Error('replay.cannot-restore-scroll-after-capture');
 }
 async function replay(browser,page,plan,folder){
   await fs.mkdir(folder,{mode:0o700});
