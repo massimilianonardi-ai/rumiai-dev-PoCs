@@ -73,6 +73,44 @@ real PWC+Chromium test on the user's VM and visual inspection for completeness.
 The new command has unit fixtures but no claimed physical publication PASS.
 See 'docs/chatgpt-extract.md' for the exact contract and limitations.
 
+## Chronological publication correction
+
+The user's physical review of the first published reference archives found a real
+presentation defect: downloaded images and files were appended to a final
+inventory rather than placed at the events that produced or displayed them.
+The latest PoC publication now builds the human-facing transcript from
+source **active-branch ordinals**, visible message objects, activity classifications
+and artifact reference ordinals. Generated-image tool results are interleaved
+with the user/assistant dialogue where they occur; files already linked in a
+visible message are kept at that message, not duplicated elsewhere. No appendix
+is used as a substitute for unknown placement. If an artifact's original position
+cannot be verified, it is reported as unplaced and the command does not mark
+chronological acceptance as successful.
+
+The offline HTML keeps intermediate thinking/activity groups collapsed in
+native HTML details/summary elements in sequence, using **only** public
+commentary actually present in the share. Absent or private hidden reasoning is
+not reconstructed or exported as plaintext; the disclosure says when content
+is unavailable. The PDF opens those disclosures for printing and keeps inline
+downloaded images. This corrects chronology, but does not yet establish a
+pixel-exact replay of all ChatGPT UI components.
+
+The real 2026-10-17 first publication run committed to
+'published-reference-chats/' reached **4/5**: Mirror failed with
+'share.snapshot-not-observed', whereas Avatar and the other three published.
+These are immutable older samples and still exhibit the original defect;
+source code commits do not retroactively alter them. To rebuild the four
+already captured chats **without calling PWC**, run:
+
+~~~sh
+node rebuild-publication.mjs "./published-reference-chats" "./chronological-reference-chats"
+~~~
+
+The second path must be an explicit sibling project/workspace directory, not
+a home-directory default. Inspect the newly created Markdown/HTML/PDF files
+and commit the new reference captures deliberately after review. Mirror requires
+its separate real-browser reattempt when the public snapshot can be acquired.
+
 ## Five-share anonymous PWC acceptance
 
 The reference-specific regression runner tests all five user-authorized shared links sequentially through the *existing* isolated PWC client. It invokes the actual `export-share.mjs` command, checks structured counts, stored file/media SHA-256 hashes, archive/ZIP integrity, image/sandbox completeness, and verified page disappearance. Each run creates immutable archives and a separate timestamped `reference-acceptance-*.json` report. User-upload binaries classified `deferred-authenticated` do not count as missing public images.
