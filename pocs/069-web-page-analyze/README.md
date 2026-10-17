@@ -1,6 +1,6 @@
 # PoC 069 — web-page-analyze: live Amazon + ChatGPT
 
-**Status: `live-01`, `live-02` and `live-03` have been run on the user's Linux VM. A residual ChatGPT live/reopened screenshot offset was reported; the new content-anchor correction remains physically unvalidated.**
+**Status: `live-01` through `live-04` have been run on the user's Linux VM. In `live-04`, ChatGPT screenshot misalignment worsened and scroll replay stopped before the beginning of the conversation. The current follow-up corrections remain physically unvalidated.**
 
 This is an experimental browser-analysis PoC built **directly on the two
 authorized real pages**. All prior fixture experiments, their tests and the
@@ -16,7 +16,7 @@ On the Linux VM, from the PoC directory:
 ```sh
 git pull --ff-only
 # Only after checking the next run name is unused:
-sh run-live.sh live-04
+sh run-live.sh live-05
 ```
 
 Requires working visible Chromium, Node 26, npm, git and outbound access to
@@ -149,36 +149,49 @@ rectangle, it falls back to a navigable full-viewport screenshot timeline
 instead of fabricating crops. `live-03` has already been captured and is the
 first candidate with scrolling-container geometry.
 
-### Slight screenshot offset on ChatGPT
+### Current physical findings and corrections (live-04)
 
-The user confirmed that both `live-02` and `live-03` were already run,
-and reported that **original/live** and **reopened-MHTML/automated**
-screenshots of ChatGPT still show slightly different vertical content.
-Do not ask the operator to repeat either run. Private captures from
-`live-03` are preserved, not overwritten, and the observed displacement
-has not been numerically measured from those pixels in this environment.
+The user already ran `live-04` from committed PoC HEAD
+`127c3628c23a979b04ee0c5a59bc9371cc0c6bc0` on the Linux VM.
+**All 20 Node tests passed for that revision**; these unit results
+did not prove visual equivalence. Amazon replayed to its bottom and
+reported `captured`. ChatGPT demonstrated `down→bottom, up→top`,
+but the reverse scan acquired only states `0000..0017`, ending around
+`scrollTop=12999`, and reported `incomplete`. Its observed reverse-scroll
+disturbances included `13242→15939` (partially recovered) and
+`12999→17041` (not recovered). The start of the conversation was **never
+reached**. The screenshot collage cannot restore content that was not
+captured. The user also reports a **worse** live/reopened screenshot offset.
 
-The earlier scroll fix replaced percentage-of-total-height mapping with
-the original CSS-pixel `scrollTop`. That alone cannot guarantee identical
-visible content if the archive reflows. The current implementation now also:
+Every printed `contentAligned=null` and `contentShift=undefined` means
+that the earlier DOM-path matching mechanism was **not able to verify
+the content offset**; `mhtmlAligned=true` in those logs checked only
+scroll geometry. The old checkpoint JSONs may reveal whether the source
+had no anchors or the MHTML changed element paths, but the exact
+private screenshots/JSONs are not uploaded to this repository.
 
-- records up to eight visible textual DOM anchors and hashed signatures
-  before the live screenshot, with post-screenshot and post-archive drift
-  diagnostics;
-- re-identifies matching anchors when the **unmodified native MHTML**
-  is reopened in Chromium;
-- compensates only a small (up to 100 CSS-pixel) **uniform** displacement
-  verified by two or more matching anchors, without manipulating saved
-  screenshot pixels, native MHTML or CSS;
-- flags reflow, missing matches, unreachable targets and any remaining
-  measured offset in `offline.json`, rather than treating scrollTop equality
-  alone as proof of visual equivalence;
-- checks reopened screenshot position again after capture, using 1 CSS-pixel
-  numeric scroll stabilization tolerance.
+The next code revision changes only the experiment:
 
-The new anchor correction has passed isolated logic checks but **has not**
-been run on the user's Chromium VM. Existing `live-03` screenshots are not
-retroactively changed. Future validation needs a new unused run identifier.
+- content anchors now identify **unique rendered text runs** by
+  a hashed text signature and selected line, not a brittle DOM element
+  path. Duplicate text is excluded. A correction remains bounded and
+  is applied only if multiple matching anchors show the **same** small
+  translation. Reflow and absence of matches are explicitly reported.
+- a wheel-demonstrated replay uses Chromium's actual CDP mouse-wheel input
+  over the recorded scroll container instead of repeatedly assigning
+  `scrollTop`. Other demonstrated scroll inputs retain the deterministic
+  absolute movement. The smaller step is 45% of the **visible content
+  rectangle** (not 80% of an outer viewport) to create capture overlap.
+  Nonprogress still fails honestly, and large scroll jumps remain
+  explicit gap evidence rather than certified continuous coverage.
+- regenerated collage HTML now **shows missing leading and trailing
+  intervals**, not just internal gaps. Opening the old `live-04`
+  collage after this revision does not create any missing screenshots.
+
+These changes have **not yet been exercised in the user's Chromium**.
+They do not modify native MHTML, rewrite archive CSS or retroactively
+replace the private `live-04` screenshots. A new acquisition needs a
+distinct unused run name such as `live-05`.
 
 **No captured account data, MHTML, screenshots or browser profile files
 are committed to GitHub.** The `evidence/` and `.runtime/` directories
@@ -246,10 +259,10 @@ changes an inferred `up` into a `down` scan. Recovery attempts are saved
 in the replay's `disturbances` array, including whether progression was
 recovered. Partial states and an incomplete coverage flag are preserved.
 
-The previous `live-03` trial is already completed. Preserve all existing
-private runs; the newest content-anchor adjustment requires a distinct,
-unused run name if subsequently validated in a real browser. Its visual
-fidelity is not yet physically verified.
+The `live-04` trial is already completed and revealed genuine missing coverage.
+Preserve all existing private runs. The new wheel/overlap and rendered-text
+alignment changes are not yet physically validated; never label the existing
+`live-04` output as a successful complete ChatGPT export.
 
 ## Acceptance and current limits
 
