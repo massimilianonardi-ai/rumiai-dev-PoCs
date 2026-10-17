@@ -16,11 +16,5 @@ if [ ! -d "$run" ] || [ -L "$run" ] || [ -L "$self/evidence" ]; then
 fi
 cd "$self"
 node generate-collage.mjs "$1"
-printf '%s\n' '[VIEW] Chromium o un altro browser:'
-printf '%s\n' '  http://127.0.0.1:8765/'
-printf '%s\n' '  http://127.0.0.1:8765/amazon-wishlist/comparison.html'
-printf '%s\n' '  http://127.0.0.1:8765/amazon-wishlist/collage.html'
-printf '%s\n' '  http://127.0.0.1:8765/chatgpt-share/comparison.html'
-printf '%s\n' '  http://127.0.0.1:8765/chatgpt-share/collage.html'
-printf '%s\n' '[VIEW] Il server resta in primo piano. Ctrl+C lo chiude.'
-exec python3 -m http.server 8765 --bind 127.0.0.1 --directory "$run"
+printf '%s\n' '[VIEW] Apri uno degli indirizzi HTTP stampati, non file dal file manager.'
+exec node serve.mjs "$1"
