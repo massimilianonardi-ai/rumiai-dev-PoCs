@@ -176,6 +176,48 @@ with `sh view.sh live-04`: no new browser replay or MHTML modification is
 needed. This change addresses **collage presentation loss only**, not absent
 source captures or the independently observed live/MHTML offset.
 
+### Residual defects after conservative montage
+
+The user reviewed the conservative collage of the pre-existing `live-04`
+screenshots and confirmed a **much better result**, with two remaining
+observations:
+
+1. In one tile, ChatGPT's bottom writing/composer box visually covers a
+   line, which cannot be read in either that tile or the following one.
+   The original screenshot may not contain those visible pixels; simply
+   extending an image crop cannot restore text that the UI occluded.
+2. There is a **large textual discontinuity between the first and second
+   tiles** when sorted by vertical position. For `live-04` those are
+   likely checkpoints `0017` (scrollTop `12999`) and `0016`
+   (`13242`), with only `243` CSS pixels of numeric displacement, but
+   checkpoint `0017` immediately followed an anomalous scroll jump and
+   recovery. Thus numerical overlap is **not** evidence of matching text.
+
+The collage now computes a read-only **text-anchor seam diagnostic** from
+`capture.json` for each pair: it compares either older path/fingerprint
+anchors or newer rendered-text/line anchors. If two matching anchors are
+unavailable, the join is marked as unverified; if their motion conflicts
+with the reported scroll displacement, it reports possible discontinuity.
+These diagnoses do not read image pixels and cannot reconstruct absent text.
+
+For future live captures, `live.mjs` uses DOM hit-testing to count text
+rectangles actually covered by other visible page elements, and estimates
+the obstructed portion near the bottom of the scroll viewport. It reduces
+the next scroll increment accordingly, records `obscuredText` in
+`capture.json`, and refuses to mark a run as complete if covered text
+remains or could not be checked. The conservative collage also reports
+such occlusion measurements. This *does not alter* ChatGPT's CSS, DOM,
+MHTML archives or saved screenshots and may still be insufficient against
+dynamic virtualization: physical browser validation is required.
+
+For `live-04`, no new pixels can be created by regenerating the collage.
+The existing MHTML/DOM snapshots may contain some text beyond what the
+screenshot visibly shows, but that has **not been established**, and the
+viewer deliberately does not expose private raw DOM/MHTML through HTTP.
+Inspect those original files locally if a particular lost line needs
+forensic recovery. A new trial, if undertaken, must use an unused run
+name (e.g. `live-05`) and must not overwrite older evidence.
+
 ### Current physical findings and corrections (live-04)
 
 The user already ran `live-04` from committed PoC HEAD
@@ -208,7 +250,8 @@ The next code revision changes only the experiment:
   over the recorded scroll container instead of repeatedly assigning
   `scrollTop`. Other demonstrated scroll inputs retain the deterministic
   absolute movement. The smaller step is 45% of the **visible content
-  rectangle** (not 80% of an outer viewport) to create capture overlap.
+  rectangle** (not 80% of an outer viewport) to create capture overlap,
+  reduced further when DOM hit-testing detects text obscured at the bottom.
   Nonprogress still fails honestly, and large scroll jumps remain
   explicit gap evidence rather than certified continuous coverage.
 - regenerated collage HTML now **shows missing leading and trailing
