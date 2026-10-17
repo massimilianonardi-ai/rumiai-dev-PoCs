@@ -75,9 +75,8 @@ export async function main(args = process.argv.slice(2), rebuild = rebuildOne)
   else
   {
     const entries = await fs.readdir(source, { withFileTypes: true });
-    inputs = (await Promise.all(entries.filter(x => x.isDirectory())
-      .map(async x => path.join(source, x.name))))
-      .filter(() => true);
+    inputs = entries.filter(item => item.isDirectory())
+      .map(item => path.join(source, item.name));
     const usable = [];
     for (const item of inputs)
       if (await exists(path.join(item, 'data', 'AUDIT.json'))) usable.push(item);
