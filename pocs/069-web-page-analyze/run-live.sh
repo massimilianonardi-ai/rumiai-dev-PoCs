@@ -10,6 +10,10 @@ case "$1" in
 esac
 self=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 mkdir -p "$self/.runtime" "$self/evidence"
+if [ -L "$self/.runtime" ] || [ -L "$self/evidence" ]; then
+  printf '%s\n' 'run.poc-output-or-runtime-symlink-not-allowed' >&2
+  exit 2
+fi
 if [ -e "$self/evidence/$1" ]; then
   printf '%s\n' 'run.evidence-already-exists' >&2
   exit 2
