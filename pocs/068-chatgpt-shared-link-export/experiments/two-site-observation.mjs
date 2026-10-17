@@ -17,7 +17,7 @@ const sites = [
   { name: 'amazon-wishlist',
     url: 'https://www.amazon.it/hz/wishlist/ls/33ZKBWLPZJJVO?ref_=list_d_wl_lfu_nav_3' },
   { name: 'chatgpt-share',
-    url: 'https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259' }
+    url: 'https://chatgpt.com/share/6ad1c0d5-49ec-83eb-a79b-85b04b938835' }
 ];
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
