@@ -282,7 +282,13 @@ async function reopen(browser,state,selector,originalGeometry,originalAnchors=[]
       originalAnchors,
       await contentAnchors(browser,page,selectorExpression(targetSelector),originalAnchors)
     );
-    let contentCorrection={attempted:false};
+    const displacement=Math.abs(initialContentShift.shift||0);
+    let contentCorrection=
+    {
+      attempted:false,
+      reason:!initialContentShift.usable ? initialContentShift.reason :
+        displacement<=2 ? 'already-aligned' : 'offset-outside-safe-range'
+    };
     if
     (
       initialContentShift.usable &&
