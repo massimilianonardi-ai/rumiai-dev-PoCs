@@ -218,15 +218,12 @@ export function timelineMarkdown(events, title, source, messageCount, unplaced)
       result.push('## ' + event.label, '', event.markdown || '', '');
     else if (event.kind === 'attachment')
       result.push(event.markdown, '');
-    else if (event.kind === 'thinking')
-      result.push('> **Thinking / attività intermedia' +
-        (event.publicCommentary ? ' visibile' : ' (contenuto non disponibile)') +
-        '** — nodi ' + event.ordinal + '–' + event.endOrdinal, '',
-        event.publicCommentary ? event.markdown : '', '');
-    else
-      result.push('> *Passaggio tecnico nella cronologia (nodi ' +
-        event.ordinal + '–' + event.endOrdinal + '); dettagli in data/AUDIT.json.*',
-        '');
+    else if (event.kind === 'thinking' && event.publicCommentary)
+      result.push('> **Thinking / attività intermedia visibile**', '',
+        event.markdown, '');
+    // Internal thinking and tool traffic are not rendered as public dialogue.
+    // The HTML makes their positions available as collapsed annotations;
+    // the unmodified technical transcript remains in data/.
   }
   if (unplaced.length)
   {
