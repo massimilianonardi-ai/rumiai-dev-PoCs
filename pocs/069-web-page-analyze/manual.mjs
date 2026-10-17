@@ -45,6 +45,39 @@ export class NetworkActivity {
       sequence:this.sequence,overflow:this.overflow};
   }
 }
+// Presence is measured only in actually sampled manual/replay DOM states.
+// An undetected site-specific role selector is unknown, not proof of absence.
+export function compareMessageCoverage(manual,replayStates){
+  const observed=manual?.messageSignatures;
+  const fromManual={
+    user:new Set(observed?.user||[]),
+    assistant:new Set(observed?.assistant||[])
+  };
+  const fromReplay={user:new Set(),assistant:new Set()};
+  for(const state of replayStates||[]){
+    for(const item of state.messageInventory||[]){
+      if((item.role==='user'||item.role==='assistant')&&
+         typeof item.signature==='string')
+        fromReplay[item.role].add(item.signature);
+    }
+  }
+  const missing={
+    user:[...fromManual.user].filter(x=>!fromReplay.user.has(x)),
+    assistant:[...fromManual.assistant].filter(x=>!fromReplay.assistant.has(x))
+  };
+  const roleFound=fromManual.user.size+fromManual.assistant.size;
+  const status=roleFound===0?'manual-role-unverified':
+    missing.user.length||missing.assistant.length?'missing-observed-messages':
+    'matching-observed-samples';
+  return {status,manualCounts:{user:fromManual.user.size,
+      assistant:fromManual.assistant.size},
+    replayCounts:{user:fromReplay.user.size,
+      assistant:fromReplay.assistant.size},
+    missingCounts:{user:missing.user.length,assistant:missing.assistant.length},
+    missingSignatures:missing,
+    // A match only covers sampled items and cannot certify an entire chat.
+    entireConversationVerified:false};
+}
 export function shouldSampleCapture({initial=false,changed=false,
   quietFor=0,sinceCapture=0,networkPending=0,final=false}){
   if(initial||final)return {capture:true,settled:false,reason:
@@ -176,7 +209,18 @@ export async function observeManual(browser,page,folder,ask,
     }
     await askTask;
     if(terminalError)throw terminalError;
+    const messageSignatures={user:new Set(),assistant:new Set()};
+    for(const frame of items){
+      for(const entry of frame.messages||[]){
+        if((entry.role==='user'||entry.role==='assistant')&&
+           typeof entry.signature==='string')
+          messageSignatures[entry.role].add(entry.signature);
+      }
+    }
     const manifest={kind:'passive-human-observation',frames:items.length,
+      messageSignatures:{
+        user:[...messageSignatures.user],assistant:[...messageSignatures.assistant]
+      },
       roleDetection:'data-message-author-role',
       frameIds:items.map(x=>x.id),warnings,
       network:network.summary(),
