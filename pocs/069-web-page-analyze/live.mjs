@@ -251,10 +251,17 @@ async function inspectState(browser,page,folder,selector,label,states){
 }
 async function replay(browser,page,plan,folder){
   await fs.mkdir(folder,{mode:0o700});
-  let current;
-  for(let i=0;i<20;i++){
+  // A newly navigated ChatGPT document may mount its scrollable content
+  // progressively. Compute the starting fraction only after the first
+  // stable geometry window; a valid selector alone is not readiness.
+  let current,lastMax=null,stableExtent=0;
+  for(let i=0;i<24;i++){
     current=await geometry(browser,page,plan.selector);
-    if(current)break;
+    if(current){
+      stableExtent=current.max===lastMax?stableExtent+1:0;
+      lastMax=current.max;
+      if(stableExtent>=3&&current.max>0)break;
+    }
     await sleep(350);
   }
   if(!current)throw Error('replay.container-not-found');
@@ -335,6 +342,8 @@ async function replay(browser,page,plan,folder){
       executionError+'\n');
   }
   return {states,outcomes,alignment,executionError,
+    sourceExtent:plan.start.max,replayInitialExtent:current.max,
+    extentSettled:stableExtent>=3,
     complete:!executionError&&alignment.ok&&outcomes.every(x=>
       x.kind==='scroll'?x.complete:x.status==='executed')};
 }
