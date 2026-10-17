@@ -107,7 +107,7 @@ export function collageHtml(site,entries){
         (plan.gaps.length?plan.gaps.length+' intervalli privi di acquisizione; ':'')+
         'Non considerare questa composizione un documento continuo verificato.</p>';
     }
-    let previous=plan.span.from;
+    let previous=0;
     for(const item of plan.segments){
       if(item.from>previous){
         html+='<section><strong>Intervallo non acquisito: '+
@@ -122,6 +122,11 @@ export function collageHtml(site,entries){
         'style="width:'+item.sourceWidth+'px;left:-'+item.cropX+
         'px;top:-'+item.cropY+'px"></div></section>';
       previous=item.to;
+    }
+    if(previous<plan.span.expectedBottom){
+      html+='<section><strong>Intervallo non acquisito: '+
+        escape(previous)+'–'+escape(plan.span.expectedBottom)+
+        '</strong></section>';
     }
   }
   html+='<p><a href="./comparison.html">Torna al confronto originale/MHTML</a></p>';
