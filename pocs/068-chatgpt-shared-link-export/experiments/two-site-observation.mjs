@@ -190,7 +190,7 @@ async function captureState(client, page, folder, label) {
   await fs.mkdir(folder, { recursive: true, mode: 0o700 });
   const beforeFingerprint = await fingerprint(client, page);
   const checks = [];
-  for (const format of ['html', 'mhtml', 'screenshot']) {
+  for (const format of ['html', 'mhtml']) {
     try {
       const info = await client.call('page', 'capture', page, folder, format);
       const reported = path.resolve(info.files?.[format] || '');
@@ -203,6 +203,24 @@ async function captureState(client, page, folder, label) {
     } catch (error) {
       checks.push({ format, status: 'error', diagnostic: errorId(error) });
     }
+  }
+  // A fullPage Playwright screenshot may change the visible scroll
+  // position while it composites a long document. Use CDP's viewport capture
+  // for every state instead: the user has asked to preserve the observed
+  // viewport chronology, not a new screenshot of the entire scrollable page.
+  try {
+    const screenshot = await client.cdp(page, 'Page.captureScreenshot', {
+      format: 'png', fromSurface: true, captureBeyondViewport: false
+    });
+    if (typeof screenshot.data !== 'string' || !screenshot.data.length)
+      throw new Error('capture.viewport-screenshot-missing-data');
+    await fs.writeFile(path.join(folder, 'page.png'),
+      Buffer.from(screenshot.data, 'base64'), { flag: 'wx', mode: 0o600 });
+    checks.push({ format: 'screenshot', status: 'captured',
+      file: 'page.png', source: 'CDP.Page.captureScreenshot.viewport' });
+  } catch (error) {
+    checks.push({ format: 'screenshot', status: 'error',
+      diagnostic: errorId(error) });
   }
   try {
     const snapshot = await client.cdp(page, 'DOMSnapshot.captureSnapshot', {
