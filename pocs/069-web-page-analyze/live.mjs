@@ -8,6 +8,7 @@ import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {createInterface} from 'node:readline/promises';
 import {contentAnchors,contentAnchorShift} from './alignment.mjs';
+import {observeManual,compareMessageCoverage} from './manual.mjs';
 
 const root=path.dirname(fileURLToPath(import.meta.url));
 const sites=[
@@ -24,7 +25,10 @@ export class Browser {
   constructor(command=process.env.WEB_CONTROL_CMD){
     if(!command||!path.isAbsolute(command))throw Error('browser.executable-not-absolute');
     this.command=command;
+    this.debugSessions=new Map();
   }
+  registerDebugSession(page,session){this.debugSessions.set(page,session);}
+  unregisterDebugSession(page){this.debugSessions.delete(page);}
   async cmd(...args){
     const response=await exec(this.command,args,{
       timeout:180000,maxBuffer:128*1024*1024,
@@ -33,6 +37,12 @@ export class Browser {
     return JSON.parse(response.stdout);
   }
   async cdp(page,method,params={}){
+    const session=this.debugSessions.get(page);
+    if(session){
+      const response=await this.cmd('debug','session','send',session,
+        method,JSON.stringify(params));
+      return response.result;
+    }
     return this.cmd('debug','cdp',page,method,JSON.stringify(params));
   }
   async evaluate(page,expression){
@@ -266,6 +276,8 @@ async function capture(browser,page,state,selector,expectedTop){
   const before=await geometry(browser,page,selector);
   const cropViewport=await scrollViewport(browser,page,selector);
   const originalAnchors=await contentAnchors(browser,page,selectorExpression(selector));
+  const messageInventory=await browser.evaluate(page,
+    'window.__rumiaiLiveObservation?.sample()?.messages||[]');
   const obscuredText=await visibleTextOcclusion(browser,page,selector);
   const liveStyles=await browser.evaluate(page,styleSummaryExpression);
   // The reference is the visible page BEFORE archiving or changing tabs.
@@ -295,6 +307,7 @@ async function capture(browser,page,state,selector,expectedTop){
   const original=await fs.readFile(path.join(state,'page.mhtml'),'utf8');
   const result={positionBeforeFocus,expectedTop,focusAlignment:alignment,
     liveStyles,scrollViewport:cropViewport,originalAnchors,obscuredText,
+    messageInventory,
     afterScreenshotShift,afterArchiveShift,before,afterScreenshot,after,
     screenshotStable:!!before&&!!afterScreenshot&&
       before.top===afterScreenshot.top&&
@@ -432,6 +445,7 @@ async function inspectState(browser,page,folder,selector,label,states){
     captureScrollDrift:captureResult.nativeCaptureScrollDrift,
     sourceScrollRestored:restored.ok,
     screenshotAt:captureResult.before,
+    messageInventory:captureResult.messageInventory,
     sourceAfterArchive:captureResult.after,
     cssParts:captureResult.archivedCssParts,
     unexpectedLocalReferences:captureResult.unexpectedLocalReferences,
@@ -689,7 +703,8 @@ async function siteRun(browser,site,output,ask,observer){
     await browser.evaluate(page,observer);
     process.stdout.write('\n[OSSERVA] '+site.name+
       ': interagisci nel browser, anche dal fondo verso l’inizio.\n');
-    await ask('Premi INVIO nel terminale quando hai finito: ');
+    report.manual=await observeManual(browser,page,
+      path.join(folder,'manual'),ask);
     const raw=await browser.evaluate(page,
       'JSON.stringify(window.__rumiaiLiveObservation?.dump() || null)');
     const observed=JSON.parse(raw||'null');
@@ -705,7 +720,10 @@ async function siteRun(browser,site,output,ask,observer){
     replayPage=(await browser.cmd('page','new')).id;
     await browser.cmd('page','navigate',replayPage,site.url);
     await sleep(1800);
+    await browser.evaluate(replayPage,observer);
     report.replay=await replay(browser,replayPage,plan,path.join(folder,'states'));
+    report.messageCoverage=compareMessageCoverage(report.manual,
+      report.replay.states);
     // Preserve a separate native final-page archive in addition to the
     // individual chronological viewport checkpoints.
     try {
@@ -718,7 +736,9 @@ async function siteRun(browser,site,output,ask,observer){
     }
     await write(path.join(folder,'comparison.html'),
       comparison(site.name,report.replay.states));
-    report.complete=report.replay.complete&&report.replay.states.every(x=>
+    report.complete=report.replay.complete&&
+      report.messageCoverage.status==='matching-observed-samples'&&
+      report.replay.states.every(x=>
       x.offline&&x.offlinePositionAligned&&x.sourceScrollRestored&&
       x.focusPositionAligned&&x.screenshotStable&&x.stable&&
       x.offlineContentAligned!==false&&x.offlineScreenshotStable!==false&&
