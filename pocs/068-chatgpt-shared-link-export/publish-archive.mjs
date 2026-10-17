@@ -7,6 +7,7 @@ import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import MarkdownIt from 'markdown-it';
 import { zipFiles } from './snapshot-export.mjs';
+import { buildChronologicalPublication, timelineMarkdown } from './chronological-publication.mjs';
 
 const execFileAsync = promisify(execFile);
 const technicalFiles = [
@@ -43,7 +44,7 @@ function safeMediaPath(source)
   return decoded;
 }
 
-function renderHtml(markdown, title, available)
+function renderHtml(markdown, title, available, events, unplaced)
 {
   const renderer = new MarkdownIt({
     html: false, linkify: true, breaks: false, typographer: false
@@ -58,7 +59,25 @@ function renderHtml(markdown, title, available)
         escapeHtml(src) + ']</span>';
     return standardImage(tokens, index, options, env, self);
   };
-  const body = renderer.render(markdown);
+  const body = events.map(event =>
+  {
+    if (event.kind === 'message')
+      return '<section class="message"><h2>' + escapeHtml(event.label) +
+        '</h2>' + renderer.render(event.markdown || '') + '</section>';
+    if (event.kind === 'attachment')
+      return '<section class="attachment">' + renderer.render(event.markdown) +
+        '</section>';
+    const heading = event.kind === 'thinking'
+      ? 'Thinking / attività intermedia' +
+        (event.publicCommentary ? ' visibile' : ' — contenuto non disponibile')
+      : 'Attività tecnica';
+    return '<details class="activity"><summary>' + escapeHtml(heading) +
+      ' (nodi ' + event.ordinal + '–' + event.endOrdinal + ')</summary>' +
+      renderer.render(event.markdown) + '</details>';
+  }).join('\n') + (unplaced.length
+    ? '<section class="unavailable"><h2>Elementi senza posizione verificata</h2>' +
+      '<p>Vedere data/MEDIA.json e data/FILES.json. ' +
+      'Non sono stati spostati alla fine della conversazione.</p></section>' : '');
   const css = [
     '@page{size:A4;margin:15mm 13mm}',
     ':root{font-family:system-ui,Arial,sans-serif;color:#20232a}',
@@ -66,6 +85,9 @@ function renderHtml(markdown, title, available)
     'h1,h2,h3{line-height:1.25;break-after:avoid}',
     'h1{border-bottom:2px solid #dedede;padding-bottom:12px}',
     'h2{border-top:1px solid #ddd;padding-top:18px;margin-top:28px}',
+    '.message{padding-bottom:12px}.attachment{padding:4px 0 18px}',
+    'details.activity{margin:8px 0;padding:9px 12px;border:1px solid #ddd;border-radius:8px;background:#f8fafc}',
+    'details.activity summary{cursor:pointer;font-size:.9rem;color:#526277}',
     'pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f2f4f7;padding:12px;border-radius:6px}',
     'code{font-family:ui-monospace,monospace;overflow-wrap:anywhere}',
     'table{border-collapse:collapse;max-width:100%;display:block;overflow-x:auto}',
@@ -74,7 +96,7 @@ function renderHtml(markdown, title, available)
     'blockquote{border-left:3px solid #aaa;padding-left:12px;color:#454545}',
     'a{overflow-wrap:anywhere;color:#0758a3}',
     '.unavailable{color:#933;padding:2px 6px;border:1px dashed #b99}',
-    '@media print{body{margin:0;padding:0;max-width:none}a{color:inherit}pre,blockquote,img{break-inside:avoid}}'
+    '@media print{body{margin:0;padding:0;max-width:none}a{color:inherit}pre,blockquote,img{break-inside:avoid}details.activity{display:block}}'
   ].join('\n');
   return '<!doctype html>\n<html lang="it"><head><meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1">' +
@@ -144,32 +166,6 @@ async function verifyPdf(pdfFile)
   'publication.pdf-invalid');
 }
 
-function assetSummary(media, files)
-{
-  const list = ['## Allegati e contenuti multimediali', ''];
-  for (const [kind, entries] of [['Immagine', media], ['File', files]])
-  {
-    for (const item of entries)
-    {
-      const name = String(item.file_name || item.file_id ||
-        item.asset_pointer || item.sandbox_uri || kind).replace(/[\r\n]/g, ' ');
-      if (item.status === 'downloaded' && item.local_path)
-      {
-        const local = safeMediaPath(item.local_path);
-        assertion(Boolean(local), 'publication.asset-path-invalid');
-        list.push('- ' + kind + ': [' + name.replace(/[[\]\\]/g, '\\$&') +
-          '](<' + local + '>)');
-      }
-      else
-        list.push('- ' + kind + ': ' + name + ' — **' +
-          (item.status === 'deferred-authenticated' ?
-            'non accessibile dal link pubblico; richiede fase autenticata' :
-            'non scaricato') + '**');
-    }
-  }
-  if (list.length === 2) list.push('Nessun allegato rilevato.');
-  return list.join('\n') + '\n';
-}
 
 export async function publishArchive(directory, archive, options = {})
 {
@@ -179,7 +175,10 @@ export async function publishArchive(directory, archive, options = {})
   const acquisition = JSON.parse(await fs.readFile(path.join(root, 'ACQUISITION.json'), 'utf8'));
   const media = JSON.parse(await fs.readFile(path.join(root, 'MEDIA.json'), 'utf8'));
   const files = JSON.parse(await fs.readFile(path.join(root, 'FILES.json'), 'utf8'));
-  const original = await fs.readFile(path.join(root, 'TRANSCRIPT.md'), 'utf8');
+  const visible = (await fs.readFile(path.join(root, 'VISIBLE_MESSAGES.jsonl'), 'utf8'))
+    .split('\n').filter(Boolean).map(line => JSON.parse(line));
+  const turns = (await fs.readFile(path.join(root, 'TURN_SURFACES.jsonl'), 'utf8'))
+    .split('\n').filter(Boolean).map(line => JSON.parse(line));
   const available = new Set();
 
   for (const item of [...media, ...files])
@@ -192,24 +191,16 @@ export async function publishArchive(directory, archive, options = {})
   }
 
   const title = audit.conversation.title;
-  const heading = original.indexOf('\n## ');
-  assertion(heading !== -1 && audit.transcript.visible_messages > 0,
+  assertion(audit.transcript.visible_messages > 0 &&
+    visible.length === audit.transcript.visible_messages,
     'publication.transcript-not-readable');
-  const prefix = [
-    '# ' + title, '',
-    '> Archivio di una conversazione ChatGPT condivisa pubblicamente.',
-    '> Sorgente: ' + acquisition.source,
-    '> Messaggi visibili: ' + audit.transcript.visible_messages + '.',
-    '> Le immagini e i file pubblici recuperati sono locali; i contenuti non accessibili sono segnalati.',
-    '',
-    '---', ''
-  ].join('\n');
-  const readable = original.slice(heading + 1).trimEnd()
+  const chronology = buildChronologicalPublication(visible, audit, turns, media, files);
+  const markdown = timelineMarkdown(chronology.events, title,
+    acquisition.source, visible.length, chronology.unplaced)
     .replaceAll('vedi NON_TEXT_PARTS.json',
       'vedi [dettagli dei contenuti](data/NON_TEXT_PARTS.json)')
     .replaceAll('vedi VISIBLE_MESSAGES.jsonl',
       'vedi [messaggi strutturati](data/VISIBLE_MESSAGES.jsonl)');
-  const markdown = prefix + readable + '\n\n' + assetSummary(media, files);
 
   const friendlyFile = path.join(root, 'README.md');
   const htmlFile = path.join(root, 'conversation.html');
@@ -222,7 +213,8 @@ export async function publishArchive(directory, archive, options = {})
   await fs.mkdir(dataDir, { mode: 0o700 });
   await fs.rename(friendlyFile, path.join(dataDir, 'EXPORT-README.md'));
   await fs.writeFile(friendlyFile, markdown, { flag: 'wx', mode: 0o600 });
-  await fs.writeFile(htmlFile, renderHtml(markdown, title, available),
+  await fs.writeFile(htmlFile, renderHtml(markdown, title, available,
+    chronology.events, chronology.unplaced),
     { flag: 'wx', mode: 0o600 });
   const renderer = options.renderPdf || renderPdfWithChromium;
   await renderer(htmlFile, pdfFile);
@@ -259,6 +251,8 @@ export async function publishArchive(directory, archive, options = {})
     html: htmlFile,
     pdf: pdfFile,
     published: true,
+    chronologyUnplaced: chronology.unplaced,
+    chronologyPlacementVerified: chronology.unplaced.length === 0,
     htmlFidelityVerified: false,
     fullFidelityReleaseAccepted: false
   };
