@@ -73,6 +73,30 @@ real PWC+Chromium test on the user's VM and visual inspection for completeness.
 The new command has unit fixtures but no claimed physical publication PASS.
 See 'docs/chatgpt-extract.md' for the exact contract and limitations.
 
+## Real-browser observation trials — Amazon wishlist and ChatGPT share
+
+A separate generic-browser experiment is available under
+'experiments/two-site-observation.mjs'. It targets **exactly** the two
+user-selected URLs (Amazon Wishlist 33ZKBWLPZJJVO and ChatGPT share
+6ad1c0f5-7110-83eb-bc19-356d48fc1259), through an existing visible PWC
+controller with web-control 3. The original shared-link exporter and
+historical failed publication evidence are deliberately unchanged.
+
+This experiment uses manual observation of trusted clicks, scroll containers
+and expansion controls, then attempts a **bounded replay** on a newly
+navigated page. Each successful replay checkpoint saves Chromium MHTML,
+current HTML, screenshot, and CDP DOMSnapshot/CSS evidence. A static
+'review.html' is a navigable state collage, while 'site-analysis.json'
+contains preliminary structural measurements for developing specialized
+exporters. This does **not** yet provide either a faithful single-HTML
+reconstruction or a specialized site exporter. Unsupported actions are
+logged as unreplayable; full visual/content fidelity remains unaccepted.
+
+See 'experiments/README.md' for the one-command interactive VM trial,
+privacy restrictions and review criteria. Save raw evidence under an explicit
+private project directory, such as './experiments/evidence/two-sites-01';
+this output directory is gitignored and must not be committed by default.
+
 ## Chronological publication correction
 
 The user's physical review of the first published reference archives found a real
