@@ -108,6 +108,41 @@ async function move(browser,page,selector,top){
   return browser.evaluate(page,'(() => {const el='+selectorExpression(selector)+
     ';if(!el)return false;el.scrollTop='+Math.round(top)+';return true;})()');
 }
+export async function stabilizePosition(browser,page,selector,target,{
+  attempts=8,delayMs=350,tolerance=12
+}={}){
+  const observations=[];
+  for(let attempt=1;attempt<=attempts;attempt++){
+    const before=await geometry(browser,page,selector);
+    if(!before)return {ok:false,reason:'container-missing',observations};
+    const desired=Math.max(0,Math.min(before.max,Math.round(target)));
+    // Re-apply the demonstrated starting position after application-specific
+    // late auto-scroll, rather than aborting the entire capture immediately.
+    if(Math.abs(before.top-desired)>tolerance){
+      if(!await move(browser,page,selector,desired))
+        return {ok:false,reason:'scroll-operation-failed',observations};
+    }
+    await sleep(delayMs);
+    const after=await geometry(browser,page,selector);
+    observations.push({attempt,desired,before,after});
+    if(!after)return {ok:false,reason:'container-disappeared',observations};
+    if(Math.abs(after.top-desired)<=tolerance &&
+       Math.abs(after.max-before.max)<=Math.max(30,before.viewport*.1)){
+      // A second stable observation distinguishes a late SPA restoration
+      // from a successfully applied, fleeting position.
+      await sleep(delayMs);
+      const confirmed=await geometry(browser,page,selector);
+      observations.push({attempt,confirmed});
+      if(confirmed&&Math.abs(confirmed.top-desired)<=tolerance)
+        return {ok:true,position:confirmed,observations};
+    }
+  }
+  return {ok:false,reason:'position-restored-or-drifted',
+    position:await geometry(browser,page,selector),observations};
+}
+async function focus(browser,page){
+  await browser.cdp(page,'Page.bringToFront');
+}
 async function screenshot(browser,page,filename){
   const r=await browser.cdp(page,'Page.captureScreenshot',
     {format:'png',fromSurface:true,captureBeyondViewport:false});
@@ -116,7 +151,12 @@ async function screenshot(browser,page,filename){
 }
 async function capture(browser,page,state,selector){
   await fs.mkdir(state,{mode:0o700});
+  // An original screenshot is a measurement of the live viewport BEFORE
+  // native archival or any new tab changes page focus/scroll position.
+  await focus(browser,page);
   const before=await geometry(browser,page,selector);
+  await screenshot(browser,page,path.join(state,'original.png'));
+  const afterScreenshot=await geometry(browser,page,selector);
   const native=await browser.cmd('page','capture',page,state,'mhtml','html');
   for(const [format,name] of [['mhtml','page.mhtml'],['html','page.html']]){
     if(path.resolve(native.files?.[format]||'')!==path.join(state,name))
@@ -127,10 +167,13 @@ async function capture(browser,page,state,selector){
       'font-family','font-size'],includeDOMRects:true
   });
   await save(path.join(state,'dom-snapshot.json'),snap);
-  await screenshot(browser,page,path.join(state,'original.png'));
   const after=await geometry(browser,page,selector);
   const original=await fs.readFile(path.join(state,'page.mhtml'),'utf8');
-  const result={before,after,stable:!!before&&!!after&&
+  const result={before,afterScreenshot,after,
+    screenshotStable:!!before&&!!afterScreenshot&&
+      before.top===afterScreenshot.top,
+    nativeCaptureScrollDrift:!!before&&!!after&&after.top!==before.top,
+    stable:!!before&&!!after&&
       before.top===after.top&&before.max===after.max,
     bytes:Buffer.byteLength(original),
     archivedCssParts:(original.match(/content-type:\s*text\/css/gi)||[]).length,
