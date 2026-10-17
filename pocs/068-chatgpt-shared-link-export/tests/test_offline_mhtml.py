@@ -81,6 +81,29 @@ class OfflineMhtmlTests(unittest.TestCase):
             self.assertFalse(report["offlineCssComplete"])
             self.assertEqual(report["htmlStylesheetLinks"], 0)
 
+    def test_desktop_portal_resource_uri_is_not_exposed_in_derived_html(self):
+        evidence = POC / "experiments" / "evidence"
+        evidence.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=evidence) as temp:
+            state = pathlib.Path(temp)
+            mhtml = MIMEMultipart("related")
+            body = MIMEText(
+                '<html><head><link rel="stylesheet" '
+                'href="file:///run/user/1000/doc/portal.css"></head>'
+                '<body><a href="file:///run/user/1000/doc/foo">bad link</a>'
+                '<img src="file:///run/user/1000/doc/missing.png"></body></html>',
+                "html", "utf-8")
+            body["Content-Location"] = "https://example.org/"
+            mhtml.attach(body)
+            (state / "page.mhtml").write_bytes(mhtml.as_bytes())
+            report = offline.render_state(state)
+            view = (state / "offline.html").read_text()
+            self.assertNotIn("/run/user/", view)
+            self.assertIn("about:blank", view)
+            self.assertFalse(report["offlineCssComplete"])
+            diagnostic = (state / "offline-report.json").read_text()
+            self.assertNotIn("/run/user/", diagnostic)
+
     def test_review_links_derived_view_and_screenshot_not_raw_mhtml(self):
         evidence = POC / "experiments" / "evidence"
         evidence.mkdir(parents=True, exist_ok=True)
