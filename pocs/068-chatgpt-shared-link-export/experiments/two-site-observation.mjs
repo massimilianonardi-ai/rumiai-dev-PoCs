@@ -47,7 +47,7 @@ export function replayableAction(action) {
 export function consolidateActions(events) {
   const result = [];
   for (const event of events) {
-    if (event.kind !== 'scroll' && event.kind !== 'click') continue;
+    if (!['scroll', 'click', 'key-activation', 'input-change'].includes(event.kind)) continue;
     // Only adjacent scrolls on the same container may be superseded.
     // A click or container change is always a temporal boundary.
     const last = result[result.length - 1];
@@ -95,7 +95,7 @@ const observerScript = String.raw`
   document.addEventListener('click', event => {
     if (!event.isTrusted) return;
     const el = event.target instanceof Element ? event.target : null;
-    const target = el?.closest('summary,button,a,[role="button"],[aria-expanded]');
+    const target = el?.closest('summary,button,a,[role="button"],[aria-expanded]') || el;
     if (!target || target.closest('[contenteditable="true"],[type="password"]')) return;
     send({ kind:'click', selector:cssPath(target), target:target.localName,
       expandable:target.getAttribute('aria-expanded') !== null,
@@ -113,6 +113,13 @@ const observerScript = String.raw`
     send({ kind:'scroll',
       selector:el === document.scrollingElement ? 'html' : cssPath(el),
       top:Math.max(0, Math.round(el.scrollTop)), at:Date.now() });
+  }, true);
+  document.addEventListener('change', event => {
+    if (!event.isTrusted) return;
+    const el = event.target instanceof Element ? event.target : null;
+    if (!el?.matches('input,select,textarea')) return;
+    // Record only the existence of a form change. Never record values.
+    send({ kind:'input-change', target:el.localName, at:Date.now() });
   }, true);
   document.addEventListener('keyup', event => {
     if (!event.isTrusted || event.key !== 'Enter') return;
@@ -228,7 +235,7 @@ async function recordDemonstration(client, session, question) {
               item.params?.name !== binding) continue;
           try {
             const value = JSON.parse(item.params.payload);
-            if (['click','scroll','key-activation'].includes(value.kind))
+            if (['click','scroll','key-activation','input-change'].includes(value.kind))
               recorded.push(value);
           } catch {}
         }
