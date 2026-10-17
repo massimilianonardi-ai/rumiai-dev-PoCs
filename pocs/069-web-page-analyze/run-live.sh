@@ -97,6 +97,9 @@ fi
 printf '%s\n' '[PWC_READY] Controller e Chromium disponibili'
 cd "$self"
 node --check live.mjs
-node --test tests/live.test.mjs
+node --test tests/*.test.mjs
 printf '%s\n' '[LIVE] Amazon, poi ChatGPT. Segui i messaggi del terminale.'
-node live.mjs "$1"
+result=0
+node live.mjs "$1" || result=$?
+printf '[VIEW] Per vedere i risultati senza il portale documenti: sh view.sh %s\n' "$1"
+exit "$result"
