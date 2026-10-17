@@ -583,12 +583,15 @@ async function runSite(client, site, output, question) {
     } finally {
       await client.call('page', 'close', replayPage).catch(() => {});
     }
-    report.captureTransportComplete = !observation.overflow &&
-      report.replay.skipped === 0 && report.replay.forwardScan.completed &&
-      report.replay.allCaptured &&
-      report.replay.allCaptureWindowsStable &&
+    // Capture completeness is independent of replay/visual equivalence.
+    // A page may change during sequential captures while every file was
+    // successfully written. Report that drift separately, never as no files.
+    report.captureTransportComplete = report.replay.allCaptured &&
       report.manualInitial.allFormatsCaptured &&
-      report.manualFinal.allFormatsCaptured &&
+      report.manualFinal.allFormatsCaptured;
+    report.replayCoverageReady = !observation.overflow &&
+      report.replay.skipped === 0 && report.replay.forwardScan.completed &&
+      report.replay.allCaptureWindowsStable &&
       report.manualInitial.captureWindowStable &&
       report.manualFinal.captureWindowStable;
     report.incompleteReasons = [
@@ -613,6 +616,7 @@ async function runSite(client, site, output, question) {
     report.error = errorId(error);
     report.accepted = false;
     report.captureTransportComplete = false;
+    report.replayCoverageReady = false;
   } finally {
     if (session) await client.call('debug', 'session', 'close', session).catch(() => {});
     await client.call('page', 'close', page).catch(() => {});
@@ -663,6 +667,7 @@ export async function main(args = process.argv.slice(2), client = new WebControl
       const folder = path.join(output, site.name);
       if (await fs.stat(folder).then(() => true, () => false)) {
         results.push({ site: site.name, captureTransportComplete: false,
+          replayCoverageReady: false,
           error: 'observation.output-already-exists' });
         continue;
       }
@@ -671,6 +676,7 @@ export async function main(args = process.argv.slice(2), client = new WebControl
         prompt => readline.question(prompt));
       results.push({ site: result.site,
         captureTransportComplete: result.captureTransportComplete === true,
+        replayCoverageReady: result.replayCoverageReady === true,
         error: result.error || null, replay: result.replay ? {
           total: result.replay.total, executed: result.replay.executed,
           skipped: result.replay.skipped } : null });
@@ -686,7 +692,7 @@ export async function main(args = process.argv.slice(2), client = new WebControl
   await saveJson(path.join(output, 'summary.json'), {
     results, fullFidelityAccepted: false, siteSpecialistExporterBuilt: false
   });
-  return results.every(x => x.captureTransportComplete) ? 0 : 1;
+  return results.every(x => x.captureTransportComplete && x.replayCoverageReady) ? 0 : 1;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === entrypoint)
