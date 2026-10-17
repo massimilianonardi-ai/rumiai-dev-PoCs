@@ -16,12 +16,20 @@ export async function generate(run) {
   if(actual!==path.join(await fs.realpath(root),'evidence'))
     throw Error('collage.evidence-root-escaped');
   const folder=path.join(actual,run);
-  if(path.dirname(await fs.realpath(folder))!==actual)
+  if(await fs.realpath(folder)!==folder)
+    throw Error('collage.run-symlink-not-allowed');
+  if(path.dirname(folder)!==actual)
     throw Error('collage.run-outside-poc');
   const results=[];
   for(const site of sites) {
     const dir=path.join(folder,site);
+    if(await fs.realpath(dir)!==dir)
+      throw Error('collage.site-symlink-not-allowed');
     const states=path.join(dir,'states');
+    try{
+      if(await fs.realpath(states)!==states)
+        throw Error('collage.states-symlink-not-allowed');
+    }catch(e){if(e.code!=='ENOENT')throw e;}
     const names=(await fs.readdir(states,{withFileTypes:true})
       .catch(e=>e.code==='ENOENT'?[]:Promise.reject(e)))
       .filter(e=>e.isDirectory()&&/^\d{4,6}$/.test(e.name))
@@ -42,6 +50,11 @@ export async function generate(run) {
     }
     const destination=path.join(dir,'collage.html');
     const contents=collageHtml(site,captures);
+    try{
+      const prior=await fs.lstat(destination);
+      if(!prior.isFile()||prior.isSymbolicLink())
+        throw Error('collage.destination-is-not-a-regular-file');
+    }catch(e){if(e.code!=='ENOENT')throw e;}
     await fs.writeFile(destination,contents,{flag:'w',mode:0o600});
     results.push({site,states:captures.length,
       collage:destination});
