@@ -645,7 +645,7 @@ export async function main(args = process.argv.slice(2), client = new WebControl
   const output = path.resolve(args[0]);
   if (path.dirname(output) !== evidenceRoot) {
     process.stderr.write('observation.output-must-be-in-poc: ' +
-      evidenceRoot + '/<new-run-name>\\n');
+      evidenceRoot + '/<new-run-name>\n');
     return 2;
   }
   await fs.mkdir(evidenceRoot, { recursive:true, mode:0o700 });
@@ -654,7 +654,7 @@ export async function main(args = process.argv.slice(2), client = new WebControl
   ]);
   if (path.relative(realProject, realRoot) !==
       path.join('experiments', 'evidence')) {
-    process.stderr.write('observation.evidence-root-escapes-poc\\n');
+    process.stderr.write('observation.evidence-root-escapes-poc\n');
     return 2;
   }
   await fs.mkdir(output, { recursive:true, mode:0o700 });
