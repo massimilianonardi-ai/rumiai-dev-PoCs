@@ -8,7 +8,8 @@ import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {createInterface} from 'node:readline/promises';
 import {contentAnchors,contentAnchorShift} from './alignment.mjs';
-import {observeManual,compareMessageCoverage} from './manual.mjs';
+import {observeManual,compareMessageCoverage,
+  waitForObservedStability} from './manual.mjs';
 
 const root=path.dirname(fileURLToPath(import.meta.url));
 const sites=[
@@ -503,9 +504,11 @@ async function replay(browser,page,plan,folder){
   });
   process.stdout.write('[ALLINEAMENTO] start='+Math.round(start)+
     ' reached='+alignment.position?.top+' stable='+alignment.ok+'\n');
-  const states=[],outcomes=[],disturbances=[];
+  const states=[],outcomes=[],disturbances=[],activityWaits=[];
   let executionError=null;
   try {
+  const initialReady=await waitForObservedStability(browser,page);
+  activityWaits.push({step:'initial',...initialReady});
   await inspectState(browser,page,folder,plan.selector,'observed-start',states);
   for(let i=0;i<plan.actions.length;i++){
     const action=plan.actions[i];
@@ -551,7 +554,8 @@ async function replay(browser,page,plan,folder){
         Math.max(destination,before.top-delta);
       const input=await replayInput(browser,page,plan.selector,
         sign,delta,top,plan.inference);
-      await sleep(900);
+      const ready=await waitForObservedStability(browser,page);
+      activityWaits.push({phase:i,step:steps+1,...ready});
       let after=await geometry(browser,page,plan.selector);
       if(!after)throw Error('replay.geometry-lost');
       // On dynamic pages, newly mounted/unmounted content can move
@@ -576,7 +580,9 @@ async function replay(browser,page,plan,folder){
             : Math.max(updatedEnd,now.top-retryDelta);
           await replayInput(browser,page,plan.selector,sign,
             retryDelta,retryTarget,plan.inference);
-          await sleep(900);
+          const retryReady=await waitForObservedStability(browser,page);
+          activityWaits.push({phase:i,step:steps+1,
+            retry:recovery,...retryReady});
           after=await geometry(browser,page,plan.selector);
           if(!after)throw Error('replay.geometry-lost-during-drift-recovery');
         }
@@ -619,10 +625,12 @@ async function replay(browser,page,plan,folder){
     process.stderr.write('[GAP] Replay interrotto, checkpoint parziali conservati: '+
       executionError+'\n');
   }
-  return {states,outcomes,disturbances,alignment,executionError,
+  return {states,outcomes,disturbances,activityWaits,
+    alignment,executionError,
     sourceExtent:plan.start.max,replayInitialExtent:current.max,
     extentSettled:stableExtent>=3,
     complete:!executionError&&alignment.ok&&
+      activityWaits.every(x=>x.settled)&&
       disturbances.every(x=>x.recovered!==false)&&
       outcomes.every(x=>x.kind==='scroll'?x.complete:x.status==='executed')};
 }
