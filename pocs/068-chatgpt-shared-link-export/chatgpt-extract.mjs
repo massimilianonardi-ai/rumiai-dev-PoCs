@@ -31,18 +31,19 @@ export async function main(args = process.argv.slice(2), extract = exportSharedL
     const published = await publish(extracted.directory, extracted.zip);
     const publicAssetsComplete = extracted.imagesPublicUnresolved === 0 &&
       extracted.filesMissing === 0;
+    const chronologyComplete = published.chronologyPlacementVerified !== false;
     const cleaned = extracted.cleanup?.verified === true &&
       extracted.cleanup.pagePresent === false;
     process.stdout.write(JSON.stringify({
       ...extracted, ...published,
       imagesPublicUnresolved: extracted.imagesPublicUnresolved,
       filesMissing: extracted.filesMissing,
-      publicAssetsComplete, cleanupVerified: cleaned,
+      publicAssetsComplete, chronologyComplete, cleanupVerified: cleaned,
       observationComplete: false
     }, null, 2) + '\n');
-    if (!publicAssetsComplete || !cleaned)
+    if (!publicAssetsComplete || !chronologyComplete || !cleaned)
     {
-      process.stderr.write('chatgpt-extract: publication.public-acceptance-incomplete\n');
+      process.stderr.write('chatgpt-extract: publication.public-or-chronology-incomplete\n');
       return 1;
     }
     return 0;
