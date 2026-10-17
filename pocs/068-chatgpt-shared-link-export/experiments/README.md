@@ -1,11 +1,11 @@
 # Two real-page observation trials (experimental)
 
-This is a bounded experiment inside PoC 068, not a released product or an implemented site-specific exporter. It reuses the **current PWC web-control level-3 commands** without modifying the provider.
+This is a bounded experiment inside PoC 068, not a released product or an implemented site-specific exporter. It reuses the **current PWC web-control level-3 commands** without modifying the provider. This revision explicitly supersedes the first physical trial that reported 22 Amazon scroll actions and 20 ChatGPT actions but did not provide a usable viewer or a monotone replay.
 
 The two explicit targets are:
 
 - Amazon Wishlist: https://www.amazon.it/hz/wishlist/ls/33ZKBWLPZJJVO?ref_=list_d_wl_lfu_nav_3
-- ChatGPT shared conversation: https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259
+- ChatGPT shared conversation: https://chatgpt.com/share/6ad1c0d5-49ec-83eb-a79b-85b04b938835
 
 ## Normal path on the actual interactive VM
 
@@ -30,22 +30,35 @@ node experiments/two-site-observation.mjs ./experiments/evidence/two-sites-02
 
 'WEB_CONTROL_CMD' may instead point to the executable client of an already-running isolated PWC service. A headless controller is rejected. Do not change the installed provider default merely for this experiment.
 
-The **explicit destination is required** and must be new; do not use a HOME-based output path. The trial creates one folder per site without reusing old evidence. 'experiments/evidence/' is gitignored because real MHTML/DOM snapshots may contain account-specific data, cookies reflected in markup or other private material. Never commit them to a public GitHub repository before deliberate review/redaction.
+The **explicit destination is required** and must be a new direct child of **this PoC's** `experiments/evidence/`. The runner rejects all other paths rather than allowing HOME, `/run/user` or external directories. The one-command launcher resolves the evidence directory relative to its own PoC checkout, not the calling terminal's current working directory. Only the short-lived Unix-domain IPC socket remains under `/tmp` because its pathname cannot exceed the platform's socket limit; it is not an output artifact. The trial creates one folder per site without reusing old evidence. 'experiments/evidence/' is gitignored because real MHTML/DOM snapshots may contain account-specific data, cookies reflected in markup or other private material. Never commit them to a public GitHub repository before deliberate review/redaction.
 
 For each site the script:
 
 1. Opens a real PWC page and navigates to the specified URL. It records native baseline HTML, MHTML, screenshot, CDP DOMSnapshot and content fingerprints.
 2. Opens a persistent CDP session, installs an event observer, and prints a prompt to the terminal. The **user manually** scrolls, expands and interacts with the website in the visible browser. Return to the terminal and press **Enter** once finished.
-3. Records trusted clicks (targets/selector, not field contents), sampled scroll positions, keyboard activation evidence and the fact of form changes **without any input values**. A detected login redirect stops the site trial. Password entry, purchases, deletions and form submission are not automatically replayed. Recording is intentionally incomplete for unsupported gestures and cross-origin frames; these must not be silently claimed as learned.
+3. Records trusted clicks (targets/selector, not field contents), sampled scroll container evidence, keyboard activation evidence and the fact of form changes **without any input values**. A detected login redirect stops the site trial. Password entry, purchases, deletions and form submission are not automatically replayed. Recording is intentionally incomplete for unsupported gestures and cross-origin frames; these must not be silently claimed as learned.
 4. Captures final manual-page evidence, then creates a fresh page and navigates from the beginning.
-5. Replays scroll positions and **only** native 'summary' elements and buttons already declaring 'aria-expanded', using the existing PWC click command for trusted browser input. Other actions are reported as skipped/unreplayable. An element's semantics are checked again in the live replay before a click. No login bypass or anti-bot workaround.
+5. Uses the demonstrated scroll evidence **only to choose the scroll container**, then scans monotonically forwards by approximately 85% of its viewport as in the working `amazon-wishlist-extract` probe, with 1.5-second loading intervals and three stable bottom observations. It does not replay manual up/down jitter. While traversing the page, it replays **only** visible native `summary` controls or buttons with `aria-expanded` after rechecking their semantics. Other actions are reported as skipped/unreplayable, without scrolling backward to find them. No login bypass or anti-bot workaround.
 6. After every **executed** replay action, stores separate native 'page.mhtml', 'page.html', 'page.png' and CDP 'dom-snapshot.json' plus evidence/checksums. Skipped/unsafe actions are explicitly retained in 'replay-steps.json' **without** creating duplicate snapshots. Captures are sequential, not atomic; before/after DOM fingerprints flag possible changes during the acquisition window.
 7. Produces 'review.html': a generic, navigable **collage of captured screenshots** with references to MHTML and DOM/CSS evidence. It does **not** claim to reconstruct a single functional website. 'site-analysis.json' contains CDP element/layout counts per state and changes, usable as research input for a future site-specific exporter, **not** a completed exporter.
 8. Writes site-level 'report.json', original 'demonstration.json', 'replay-steps.json' and top-level 'summary.json'. Every report explicitly leaves full visual fidelity and content completeness unverified.
 
-Distinct sampled scroll positions are preserved, including intermediate positions needed by virtualized lists. Identical consecutive positions may be deduplicated; scroll capture is still a sampled observation rather than a complete physical gesture recording.
+Distinct manual scroll positions remain in the private `demonstration.json` as **observation evidence**. The automatic replay follows a forward-only viewport scan, capturing each reached step so virtualized content is not silently omitted. The monotone scan is an experimental adaptation of `amazon-wishlist-extract/src/probe.mjs`; it is not yet proven for every scroll container or site.
 
 The script does not automatically publish any captured page. The user must review the outputs locally, including 'review.html', rendered MHTML, screenshots and the reported skipped actions.
+
+
+### Viewing without ephemeral desktop file portals
+
+Never browse a copied 'file:///run/user/...' location created by a desktop document portal; it is not the source evidence folder. All generated review links are relative to the PoC. Start the **read-only localhost viewer** from the PoC after the trial:
+
+~~~sh
+node experiments/serve-evidence.mjs ./experiments/evidence/two-sites-02
+~~~
+
+It prints direct URLs such as 'http://127.0.0.1:<port>/<random-token>/amazon-wishlist/review.html' and the equivalent ChatGPT link. Use those URLs in Chromium. The viewer binds only to 127.0.0.1 and writes no files outside the PoC. MHTML may still download rather than render in some browser configurations; open it from the PoC capture directory for offline verification. The temporary Chromium display session can still internally use an existing desktop 'XDG_RUNTIME_DIR' under /run/user; this is a compositor IPC requirement, **not an exported document location**.
+
+All browser-controlled temporary download/cache directories (TMPDIR and XDG cache/data/config) are now relocated inside the PoC's disposable runtime. The actual evidence is never deleted during launcher cleanup. The report prints the exact absolute '[OUTPUT]', '[FILES]' and '[VIEW]' paths in the PoC.
 
 ## Known engineering boundaries
 
