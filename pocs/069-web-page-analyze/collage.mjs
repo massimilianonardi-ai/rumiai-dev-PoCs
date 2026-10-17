@@ -3,6 +3,38 @@ const escape = value => String(value).replace(/[&<>"']/g, c =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 
+export function assessTileContinuity(first,second) {
+  const a=first?.capture?.originalAnchors||[];
+  const b=second?.capture?.originalAnchors||[];
+  const topA=first?.capture?.before?.top;
+  const topB=second?.capture?.before?.top;
+  const movement=finite(topA)&&finite(topB)?topB-topA:null;
+  const height=first?.capture?.scrollViewport?.height;
+  const overlap=movement!==null&&finite(height)?height-Math.abs(movement):null;
+  const identity=item=>typeof item?.key==='string'
+    ? item.key+':'+item.line
+    : Number.isInteger(item?.fingerprint)&&Array.isArray(item.path)
+      ? item.fingerprint+':'+item.path.join('.'):null;
+  const known=new Map();
+  for(const item of a) {
+    const k=identity(item);
+    if(k&&finite(item.top))known.set(k,item.top);
+  }
+  const offsets=[];
+  for(const item of b) {
+    const k=identity(item);
+    if(k&&known.has(k)&&finite(item.top)&&movement!==null)
+      offsets.push(item.top-known.get(k)+movement);
+  }
+  if(offsets.length<2)
+    return {status:'unverified',matches:offsets.length,movement,overlap};
+  offsets.sort((x,y)=>x-y);
+  const shift=offsets[Math.floor(offsets.length/2)];
+  const spread=Math.max(...offsets.map(x=>Math.abs(x-shift)));
+  return {status:spread<=5&&Math.abs(shift)<=12?'consistent':'shifted',
+    matches:offsets.length,movement,overlap,shift,spread};
+}
+
 export function planCollage(entries) {
   const eligible = entries.filter(e => {
     const cap=e.capture, box=cap?.scrollViewport, geo=cap?.before;
