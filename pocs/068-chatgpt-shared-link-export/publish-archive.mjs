@@ -204,8 +204,12 @@ export async function publishArchive(directory, archive, options = {})
     '',
     '---', ''
   ].join('\n');
-  const markdown = prefix + original.slice(heading + 1).trimEnd() + '\n\n' +
-    assetSummary(media, files);
+  const readable = original.slice(heading + 1).trimEnd()
+    .replaceAll('vedi NON_TEXT_PARTS.json',
+      'vedi [dettagli dei contenuti](data/NON_TEXT_PARTS.json)')
+    .replaceAll('vedi VISIBLE_MESSAGES.jsonl',
+      'vedi [messaggi strutturati](data/VISIBLE_MESSAGES.jsonl)');
+  const markdown = prefix + readable + '\n\n' + assetSummary(media, files);
 
   const friendlyFile = path.join(root, 'README.md');
   const htmlFile = path.join(root, 'conversation.html');
