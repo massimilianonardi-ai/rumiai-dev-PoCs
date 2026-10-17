@@ -111,7 +111,7 @@ experiment.
 
 **Do not double-click `comparison.html` in the desktop file manager.**
 On Linux this may route the file through a temporary document portal alias
-such as `file:///run/user/.../doc/.../comparison.html`: its relative
+such as a temporary `file:` document-portal URI: its relative
 screenshots no longer resolve against the original PoC folder. This is
 a *desktop file-opening problem*, **not** a write location chosen by the PoC.
 Original MHTML and screenshot files are already in the correct PoC directory.
