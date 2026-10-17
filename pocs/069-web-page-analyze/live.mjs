@@ -126,15 +126,50 @@ async function scrollViewport(browser,page,selector){
     'devicePixelRatio:devicePixelRatio};})()';
   return browser.evaluate(page,expression);
 }
+async function visibleTextOcclusion(browser,page,selector)
+{
+  const expression='(() => {const el='+selectorExpression(selector)+
+    ';if(!el||!document.elementFromPoint)return null;'+
+    'const root=el===document.scrollingElement;'+
+    'const r=root?{left:0,top:0,right:innerWidth,bottom:innerHeight}:'+
+    'el.getBoundingClientRect();'+
+    'const bottom=Math.min(innerHeight,r.bottom);'+
+    'const top=Math.max(0,r.top);'+
+    'const walker=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);'+
+    'let node,scanned=0,covered=0,first=bottom;'+
+    'while((node=walker.nextNode())&&scanned++<16000){'+
+    'if((node.textContent||"").trim().length<5)continue;'+
+    'const range=document.createRange();range.selectNodeContents(node);'+
+    'for(const rect of range.getClientRects()){'+
+    'if(rect.bottom<=top+20||rect.top>=bottom-5||'+
+    'rect.top<top||rect.left<r.left||rect.right>r.right||'+
+    'rect.width<12||rect.height<5)continue;'+
+    'const x=Math.max(rect.left+1,Math.min(rect.right-1,'+
+    '(rect.left+rect.right)/2));'+
+    'const y=(rect.top+rect.bottom)/2;'+
+    'const hit=document.elementFromPoint(x,y);'+
+    'const owner=node.parentElement;'+
+    'if(!hit||!owner||owner.contains(hit)||hit.contains(owner))continue;'+
+    'covered++;first=Math.min(first,rect.top);'+
+    '}}'+
+    'return {coveredTextLines:covered,'+
+    'bottomCoveredCssPixels:covered?Math.ceil(bottom-first):0,'+
+    'measured:true};})()';
+  return browser.evaluate(page,expression);
+}
+
 async function move(browser,page,selector,top){
   return browser.evaluate(page,'(() => {const el='+selectorExpression(selector)+
     ';if(!el)return false;el.scrollTop='+Math.round(top)+';return true;})()');
 }
 // Keep adjacent captures overlapped inside the actual visible scroll box.
 // A step based on a larger outer viewport can leave uncaptured intervals.
-export function replayStepSize(viewport,visibleHeight)
+export function replayStepSize(viewport,visibleHeight,coveredBottom=0)
 {
-  const available=Math.min(viewport,visibleHeight);
+  const height=Math.min(viewport,visibleHeight);
+  const occlusion=Number.isFinite(coveredBottom)&&coveredBottom>0
+    ?Math.min(coveredBottom,height):0;
+  const available=height-occlusion;
   if(!Number.isFinite(available)||available<80)
     throw Error('replay.visible-scroll-extent-unavailable');
   return Math.floor(available*.45);
@@ -231,6 +266,7 @@ async function capture(browser,page,state,selector,expectedTop){
   const before=await geometry(browser,page,selector);
   const cropViewport=await scrollViewport(browser,page,selector);
   const originalAnchors=await contentAnchors(browser,page,selectorExpression(selector));
+  const obscuredText=await visibleTextOcclusion(browser,page,selector);
   const liveStyles=await browser.evaluate(page,styleSummaryExpression);
   // The reference is the visible page BEFORE archiving or changing tabs.
   await screenshot(browser,page,path.join(state,'original.png'));
@@ -258,7 +294,7 @@ async function capture(browser,page,state,selector,expectedTop){
   );
   const original=await fs.readFile(path.join(state,'page.mhtml'),'utf8');
   const result={positionBeforeFocus,expectedTop,focusAlignment:alignment,
-    liveStyles,scrollViewport:cropViewport,originalAnchors,
+    liveStyles,scrollViewport:cropViewport,originalAnchors,obscuredText,
     afterScreenshotShift,afterArchiveShift,before,afterScreenshot,after,
     screenshotStable:!!before&&!!afterScreenshot&&
       before.top===afterScreenshot.top&&
@@ -488,7 +524,9 @@ async function replay(browser,page,plan,folder){
       }
       stable=0;
       const visible=await scrollViewport(browser,page,plan.selector);
-      const delta=replayStepSize(before.viewport,visible?.height);
+      const obscured=await visibleTextOcclusion(browser,page,plan.selector);
+      const delta=replayStepSize(before.viewport,visible?.height,
+        obscured?.bottomCoveredCssPixels||0);
       const top=sign>0?Math.min(destination,before.top+delta):
         Math.max(destination,before.top-delta);
       const input=await replayInput(browser,page,plan.selector,
