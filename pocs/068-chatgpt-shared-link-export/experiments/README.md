@@ -56,21 +56,64 @@ Use a **fresh run name** such as `two-sites-03`; the previous evidence remains u
 
 ### Viewing without ephemeral desktop file portals
 
-Never browse a copied 'file:///run/user/...' location created by a desktop document portal; it is not the source evidence folder. All generated review links are relative to the PoC. Start the **read-only localhost viewer** from the PoC after the trial:
+**Do not open `page.html` or `page.mhtml` as if they were standalone
+documents.** PWC's `page.html` serializes the current DOM but not the
+linked CSS/fonts/images. Chrome may launch downloaded `page.mhtml` through
+a desktop document portal (`file:///run/user/...`), invalidating file
+references. The previous local HTTP viewer also denied linked stylesheets
+with its `style-src` policy. Those are viewer defects, **not** evidence
+that the Chromium screenshot lacked styles.
+
+For the **already captured** `two-sites-04`, without replaying anything:
 
 ~~~sh
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_offline_mhtml.py' -v
+python3 experiments/prepare-offline-views.py ./experiments/evidence/two-sites-04
 node experiments/serve-evidence.mjs ./experiments/evidence/two-sites-04
 ~~~
 
-It prints direct URLs such as 'http://127.0.0.1:<port>/<random-token>/amazon-wishlist/review.html' and the equivalent ChatGPT link. Use those URLs in Chromium. The viewer binds only to 127.0.0.1 and writes no files outside the PoC. MHTML may still download rather than render in some browser configurations; open it from the PoC capture directory for offline verification. The temporary Chromium display session can still internally use an existing desktop 'XDG_RUNTIME_DIR' under /run/user; this is a compositor IPC requirement, **not an exported document location**.
+The first command checks the MHTML converter on a synthetic HTML/CSS/font
+fixture. The second reads the immutable `page.mhtml` captures and adds
+`offline.html`, `offline-assets/` and `offline-report.json` **within
+each original PoC capture-state directory**, plus site-level
+`review-offline.html` pages. Original HTML, MHTML, DOM snapshots, PNGs
+and report files remain unchanged. The third prints direct `127.0.0.1`
+links to the two new styled review pages. The viewer redirects legacy
+`review.html` links to `review-offline.html` and refuses browser access
+to raw `page.html` and MHTML; these source artifacts remain readable as
+files only in the PoC, not as misleading CSS-less previews or desktop-portal
+downloads.
 
-All browser-controlled temporary download/cache directories (TMPDIR and XDG cache/data/config) are now relocated inside the PoC's disposable runtime. The actual evidence is never deleted during launcher cleanup. The report prints the exact absolute '[OUTPUT]', '[FILES]' and '[VIEW]' paths in the PoC.
+`prepare-offline-views.py` uses Python's standard MIME parser to extract
+actual CSS, images and fonts embedded in each Chromium MHTML. It rewrites
+referenced stylesheet, CSS `url(...)`, inline-style and HTML asset URLs
+to **PoC-relative derived asset filenames**; it removes executable scripts
+and blocks unsupported local `file:` / `/run/user` resource links. It
+does not download assets from the original site, and will **report missing
+stylesheets** and unresolved resource references in
+`offline-report.json` rather than manufacture visual fidelity.
+CDP screenshots remain the independent visual ground truth. It is a
+derived static view, not a replay of the original site's JavaScript.
+
+The HTML viewer now allows its own locally served CSS/fonts under a strict
+CSP that still blocks scripts and remote resource loading. Every output and
+all derived resource files physically reside inside this PoC's
+`experiments/evidence/`; no output must depend on a desktop portal path.
+The experiment launcher automatically prepares these derived views after
+new acquisitions, even if the replay coverage gate is incomplete.
+
+
+
+The server only listens on loopback `127.0.0.1`; it is not a
+public upload or a remote-hosting endpoint. The native raw MHTML and CSS
+diagnostics remain local/private. Inspect them deliberately before sharing:
+captured pages may contain account-specific information.
 
 ### Physical evidence and current limitations
 
 The **real VM trial** `two-sites-03` started PWC correctly and captured all four evidence formats on both sites. Amazon scanned monotonically in the console from document scroll 0 to 14489 and reported one skipped action plus changing-state warnings. ChatGPT scanned from **15553 to 26925** on an internal scroll container, so the initial conversation viewport was not observed during automatic replay even though the shared page apparently has much more content already mounted in the DOM. The user also saw unexpected up/down motion on Amazon despite the strictly increasing scan log.
 
-The corrected runner now uses viewport CDP screenshots in place of Playwright full-page screenshots, and explicitly resets the new replay page to the top before the baseline. The monitor records the actual first scan position and any backward movement; it refuses to count an auto-scrolled/midpage replay as complete. These corrections are **not physically accepted until a new browser run**. A skipped action still requires inspection in `replay-steps.json`; a numerical skipped count alone cannot establish whether an essential disclosure was omitted.
+The corrected runner now uses viewport CDP screenshots in place of Playwright full-page screenshots, and explicitly resets the new replay page to the top before the baseline. The user subsequently confirmed that the resulting replay behavior is good on both sites, but rejected visual acceptance because the old `page.html` viewing path had missing CSS and `/run/user` portal aliases. The new derived HTML/CSS preview is explicitly **unverified against the actual MHTML** until examined on the VM. The monitor records the actual first scan position and any backward movement; it refuses to count an auto-scrolled/midpage replay as complete. These corrections are **not physically accepted until a new browser run**. A skipped action still requires inspection in `replay-steps.json`; a numerical skipped count alone cannot establish whether an essential disclosure was omitted.
 
 To inspect the existing `two-sites-03` captures without rerunning either website, use the read-only viewer with that specific directory. A new acquisition after this correction must use a new run directory (for example `two-sites-04`). The two runs are distinct evidence and must not overwrite one another.
 
