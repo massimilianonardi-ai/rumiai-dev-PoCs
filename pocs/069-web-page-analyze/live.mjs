@@ -104,6 +104,27 @@ async function geometry(browser,page,selector){
     'viewport:el.clientHeight}:null;})()';
   return browser.evaluate(page,expression);
 }
+async function scrollViewport(browser,page,selector){
+  // Record the actual visible scroll container rectangle in CSS pixels so a
+  // later screenshot collage can crop only content, not fixed page chrome.
+  // Native MHTML and HTML are left completely untouched.
+  const expression='(() => {const el='+selectorExpression(selector)+
+    ';if(!el)return null;const root=el===document.scrollingElement;'+
+    'const r=root?{left:0,top:0,width:innerWidth,height:innerHeight}:'+
+    'el.getBoundingClientRect();'+
+    'const left=root?0:r.left+el.clientLeft;'+
+    'const top=root?0:r.top+el.clientTop;'+
+    'const right=root?innerWidth:left+el.clientWidth;'+
+    'const bottom=root?innerHeight:top+el.clientHeight;'+
+    'const x=Math.max(0,left),y=Math.max(0,top);'+
+    'const width=Math.max(0,Math.min(innerWidth,right)-x);'+
+    'const height=Math.max(0,Math.min(innerHeight,bottom)-y);'+
+    'return {x:Math.round(x),y:Math.round(y),'+
+    'width:Math.round(width),height:Math.round(height),'+
+    'viewportWidth:innerWidth,viewportHeight:innerHeight,'+
+    'devicePixelRatio:devicePixelRatio};})()';
+  return browser.evaluate(page,expression);
+}
 async function move(browser,page,selector,top){
   return browser.evaluate(page,'(() => {const el='+selectorExpression(selector)+
     ';if(!el)return false;el.scrollTop='+Math.round(top)+';return true;})()');
@@ -172,6 +193,7 @@ async function capture(browser,page,state,selector,expectedTop){
     attempts:5,delayMs:220,tolerance:12
   });
   const before=await geometry(browser,page,selector);
+  const cropViewport=await scrollViewport(browser,page,selector);
   const liveStyles=await browser.evaluate(page,styleSummaryExpression);
   // The reference is the visible page BEFORE archiving or changing tabs.
   await screenshot(browser,page,path.join(state,'original.png'));
@@ -189,7 +211,7 @@ async function capture(browser,page,state,selector,expectedTop){
   const after=await geometry(browser,page,selector);
   const original=await fs.readFile(path.join(state,'page.mhtml'),'utf8');
   const result={positionBeforeFocus,expectedTop,focusAlignment:alignment,
-    liveStyles,before,afterScreenshot,after,
+    liveStyles,scrollViewport:cropViewport,before,afterScreenshot,after,
     screenshotStable:!!before&&!!afterScreenshot&&
       before.top===afterScreenshot.top,
     nativeCaptureScrollDrift:!!before&&!!after&&after.top!==before.top,
