@@ -7,6 +7,7 @@ import { inflateRawSync } from 'node:zlib';
 import { publishArchive } from '../publish-archive.mjs';
 import { main as extractMain } from '../chatgpt-extract.mjs';
 import { buildChronologicalPublication } from '../chronological-publication.mjs';
+import { rebuildOne } from '../rebuild-publication.mjs';
 
 function zipContents(bytes)
 {
@@ -118,6 +119,21 @@ test('publication produces GitHub Markdown, offline HTML, PDF and complete ZIP',
       assert.equal(entries.has(item), true, item + ' not in ZIP');
     assert.equal((await fs.readFile(path.join(directory, 'data', 'SHA256SUMS'), 'utf8'))
       .includes('conversation.pdf'), true);
+    const before = await fs.readFile(outcome.markdown, 'utf8');
+    const rebuilt = await rebuildOne(directory, path.join(root, 'reconstructed'),
+      (input, zip) => publishArchive(input, zip, {
+        async renderPdf(htmlPath, pdfPath)
+        {
+          assert.match(await fs.readFile(htmlPath, 'utf8'),
+            /<details class="activity">/);
+          await fs.writeFile(pdfPath,
+            '%PDF-1.7\n' + 'x'.repeat(256) + '\n%%EOF\n');
+        }
+      }));
+    assert.equal(await fs.readFile(rebuilt.markdown, 'utf8'), before);
+    assert.equal(await fs.readFile(outcome.markdown, 'utf8'), before);
+    assert.notEqual(rebuilt.directory, outcome.directory);
+
   }
   finally
   {
