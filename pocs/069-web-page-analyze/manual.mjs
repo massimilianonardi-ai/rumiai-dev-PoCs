@@ -130,6 +130,7 @@ export async function observeManual(browser,page,folder,ask,
   await fs.mkdir(folder,{mode:0o700});
   const network=new NetworkActivity();
   const items=[],warnings=[];
+  const observedSignatures={user:new Set(),assistant:new Set()};
   let session=null,terminalDone=false,terminalError=null;
   let lastCaptureAt=0,lastStateKey=null,lastChange=Date.now();
   let lastRecordedKey=null;
@@ -170,6 +171,11 @@ export async function observeManual(browser,page,folder,ask,
         'window.__rumiaiLiveObservation.sample()');
       if(!sample)throw Error('manual.observer-sample-missing');
       lastSample=sample;
+      for(const item of sample.messages||[]){
+        if((item.role==='user'||item.role==='assistant')&&
+           typeof item.signature==='string')
+          observedSignatures[item.role].add(item.signature);
+      }
       const key=stateKey(sample);
       if(lastStateKey!==key||network.lastChange===now)
         lastChange=now;
@@ -219,7 +225,12 @@ export async function observeManual(browser,page,folder,ask,
     }
     const manifest={kind:'passive-human-observation',frames:items.length,
       messageSignatures:{
-        user:[...messageSignatures.user],assistant:[...messageSignatures.assistant]
+        user:[...observedSignatures.user],
+        assistant:[...observedSignatures.assistant]
+      },
+      screenshotSignatures:{
+        user:[...messageSignatures.user],
+        assistant:[...messageSignatures.assistant]
       },
       roleDetection:'data-message-author-role',
       frameIds:items.map(x=>x.id),warnings,
