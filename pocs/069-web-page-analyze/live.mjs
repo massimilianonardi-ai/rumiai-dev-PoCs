@@ -181,6 +181,9 @@ async function replay(browser,page,plan,folder){
   if(!await move(browser,page,plan.selector,start))
     throw Error('replay.start-alignment-failed');
   await sleep(800);
+  const aligned=await geometry(browser,page,plan.selector);
+  if(!aligned || Math.abs(aligned.top-start)>Math.max(12,aligned.viewport*.05))
+    throw Error('replay.start-position-was-restored-or-drifted');
   const states=[],outcomes=[];
   await inspectState(browser,page,folder,plan.selector,'observed-start',states);
   for(let i=0;i<plan.actions.length;i++){
