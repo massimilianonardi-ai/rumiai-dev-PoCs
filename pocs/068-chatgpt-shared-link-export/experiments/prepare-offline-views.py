@@ -108,12 +108,18 @@ class Archive:
 
     def write_resources(self, dest):
         folder = dest / "offline-assets"
-        folder.mkdir(mode=0o700, exist_ok=False)
+        folder.mkdir(mode=0o700, exist_ok=True)
         for url, (ct, payload, name) in self.resources.items():
             if ct == "text/css":
                 payload = self.css(payload.decode("utf-8", errors="replace"), url,
                                    asset_prefix="").encode()
-            (folder / name).write_bytes(payload)
+            destination = folder / name
+            if destination.exists():
+                if destination.read_bytes() != payload:
+                    raise ValueError("offline.derived-resource-conflict")
+            else:
+                with destination.open("xb") as out:
+                    out.write(payload)
         return folder
 
 
@@ -233,7 +239,12 @@ def render_state(folder):
     if not original.is_file():
         return {"state": folder.name, "present": False}
     if (folder / "offline.html").exists():
-        return {"state": folder.name, "existing": True}
+        stored = folder / "offline-report.json"
+        if not stored.is_file():
+            raise ValueError("offline.derived-report-missing")
+        report = json.loads(stored.read_text(encoding="utf-8"))
+        report["existing"] = True
+        return report
     archive = Archive(original.read_bytes())
     view = StaticHTML(archive)
     view.feed(archive.main.decode("utf-8", errors="replace"))
@@ -271,9 +282,9 @@ def review_page(site, states, reports):
     for folder in states:
         sub = folder.relative_to(site).as_posix()
         report = reports.get(sub, {})
-        style = "CSS resources available" if report.get("offlineCssComplete") else "CSS may be missing"
-        if report.get("existing"):
-            style = "Existing derived view; see its offline-report.json"
+        style = ("CSS links resolved (visual fidelity not verified)"
+                 if report.get("offlineCssComplete")
+                 else "CSS not fully archived; compare screenshot")
         link = ('<a href="' + escape(sub) + '/offline.html">View styled archived HTML</a>'
                 if (folder / "offline.html").exists()
                 else "MHTML unavailable")
@@ -338,10 +349,12 @@ def main(argv):
     print(json.dumps({"root": str(target), "sites": {
         k: {"states": v["states"],
             "errors": sum("error" in item for item in v["results"].values()),
-            "missingCss": sum(bool(item.get("missingStylesheets"))
-                              for item in v["results"].values())}
+            "cssUnverified": sum(item.get("offlineCssComplete") is not True
+                                 for item in v["results"].values())}
         for k, v in all_results.items()}}, ensure_ascii=False, indent=2))
-    return 1 if any("error" in item for r in all_results.values()
+    return 1 if any(("error" in item or
+                     item.get("offlineCssComplete") is not True)
+                    for r in all_results.values()
                     for item in r["results"].values()) else 0
 
 
