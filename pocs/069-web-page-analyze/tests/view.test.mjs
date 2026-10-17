@@ -21,6 +21,13 @@ test('evidence viewer serves past comparisons and denies MHTML/file portal downl
       '<!doctype html><p>collage</p>');
     await fs.writeFile(path.join(state,'original.png'),Buffer.from([137,80,78,71]));
     await fs.writeFile(path.join(state,'page.mhtml'),'raw private archive');
+    const manual=path.join(amazon,'manual');
+    await fs.mkdir(manual);
+    await fs.writeFile(path.join(manual,'manual.html'),
+      '<!doctype html><img src="0000.png">');
+    await fs.writeFile(path.join(manual,'0000.png'),Buffer.from([137,80,78,71]));
+    await fs.writeFile(path.join(manual,'0000.json'),'{}');
+    await fs.writeFile(path.join(manual,'page.mhtml'),'private manual');
     const viewed=await startViewer(path.basename(directory));
     server=viewed.server;
     const original=await fetch(viewed.url+'amazon-wishlist/comparison.html');
@@ -32,8 +39,14 @@ test('evidence viewer serves past comparisons and denies MHTML/file portal downl
     const collage=await fetch(viewed.url+'amazon-wishlist/collage.html');
     assert.equal(collage.status,200);
     assert.match(await collage.text(),/collage/);
+    const manualView=await fetch(viewed.url+'amazon-wishlist/manual/manual.html');
+    assert.equal(manualView.status,200);
+    assert.match(await manualView.text(),/0000.png/);
+    assert.equal((await fetch(viewed.url+'amazon-wishlist/manual/0000.png')).status,200);
+    assert.equal((await fetch(viewed.url+'amazon-wishlist/manual/0000.json')).status,200);
     for(const relative of [
       'amazon-wishlist/states/0000/page.mhtml',
+      'amazon-wishlist/manual/page.mhtml',
       'amazon-wishlist/states/0000/unsupported.json',
       'chatgpt-share/../../.runtime/pwc/package.json'
     ]){
