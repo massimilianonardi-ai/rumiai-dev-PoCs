@@ -420,6 +420,9 @@ async function scanForward(client, page, preferredSelector, clickGoals, output, 
   const steps = [];
   const pending = [...clickGoals];
   const maxRounds = 80;
+  let scanStartTop = null;
+  let backwardDrift = 0;
+  let lastObservedTop = null;
   for (let round = 0; round < maxRounds; round++) {
     // Replay only safe disclosure clicks currently inside the viewport.
     // Never let native click auto-scroll to an offscreen historical target.
@@ -450,6 +453,15 @@ async function scanForward(client, page, preferredSelector, clickGoals, output, 
     await sleep(1500);
     const before = await geometry(client, page, selector);
     if (!before) throw new Error('replay.scroll-container-missing');
+    if (scanStartTop === null) scanStartTop = before.top;
+    if (round === 0 && before.top > 2) {
+      // A client-side auto-scroll after the baseline invalidates this replay.
+      // Do not scan only the tail and then report successful coverage.
+      break;
+    }
+    if (lastObservedTop !== null && before.top < lastObservedTop - 5)
+      backwardDrift++;
+    lastObservedTop = before.top;
     const content = await fingerprint(client, page);
     const unchanged = before.height === previousHeight &&
       content === previousFingerprint;
@@ -467,6 +479,8 @@ async function scanForward(client, page, preferredSelector, clickGoals, output, 
     const after = await geometry(client, page, selector);
     if (!after || (after.top === before.top && after.height === before.height))
       break;
+    if (after.top < before.top - 5) backwardDrift++;
+    lastObservedTop = after.top;
     const index = nextIndex++;
     const stable = await settle(client, page).catch(() =>
       ({ settledHeuristically:false }));
@@ -481,7 +495,8 @@ async function scanForward(client, page, preferredSelector, clickGoals, output, 
       before.top + ' -> ' + after.top +
       ' bottom=' + after.bottom + '\n');
   }
-  return { steps, nextIndex, selector, completed, stableBottom, pending };
+  return { steps, nextIndex, selector, completed, stableBottom, pending,
+    scanStartTop, backwardDrift };
 }
 
 function htmlEscape(value) {
@@ -628,7 +643,8 @@ async function runSite(client, site, output, question) {
       }
       report.replay = { total: steps.length - 1,
         forwardScan: { selector:scan.selector, completed:scan.completed,
-          stableBottom:scan.stableBottom, capturedSteps:scan.steps.length },
+          stableBottom:scan.stableBottom, capturedSteps:scan.steps.length,
+          startTop:scan.scanStartTop, backwardDrift:scan.backwardDrift },
         executed: steps.filter(x => x.result?.status === 'executed').length,
         skipped: steps.filter(x => x.result?.status !== 'executed' && x.result).length,
         allCaptured: steps.every(x => !x.capture || x.capture.allFormatsCaptured),
@@ -655,6 +671,9 @@ async function runSite(client, site, output, question) {
       report.replayStart.afterBaselineTop !== null &&
       report.replayStart.afterBaselineTop <= 2 &&
       report.replay.skipped === 0 && report.replay.forwardScan.completed &&
+      report.replay.forwardScan.startTop !== null &&
+      report.replay.forwardScan.startTop <= 2 &&
+      report.replay.forwardScan.backwardDrift === 0 &&
       report.replay.allCaptureWindowsStable &&
       report.manualInitial.captureWindowStable &&
       report.manualFinal.captureWindowStable;
@@ -664,6 +683,10 @@ async function runSite(client, site, output, question) {
        report.replayStart.afterBaselineTop === null ||
        report.replayStart.afterBaselineTop > 2) &&
         'replay-did-not-start-at-top',
+      report.replay.forwardScan.startTop > 2 &&
+        'forward-scan-began-midpage:' + report.replay.forwardScan.startTop,
+      report.replay.forwardScan.backwardDrift > 0 &&
+        'unexpected-scroll-backward:' + report.replay.forwardScan.backwardDrift,
       !report.replay.forwardScan.completed && 'forward-scan-not-at-stable-bottom',
       report.replay.skipped > 0 && 'unreplayed-actions:' + report.replay.skipped,
       !report.replay.allCaptured && 'missing-native-or-dom-captures',
