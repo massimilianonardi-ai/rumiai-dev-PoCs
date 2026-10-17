@@ -79,6 +79,7 @@ export function planCollage(entries) {
         id:e.id,
         top:finite(cap.before?.top)?cap.before.top:null,
         stable:cap.screenshotStable!==false,
+        capture:cap,
         box:geometryValid?box:null
       };
     }
@@ -166,8 +167,20 @@ export function collageHtml(site,entries){
       'Le sovrapposizioni possono ripetere testo: non vengono tagliate '+
       'sulla sola base di scrollTop. La presenza di immagini contigue non '+
       'dimostra che il contenuto mai catturato sia stato recuperato.</p>';
+    let previousTile=null;
     for(const item of plan.safeTiles)
     {
+      if(previousTile)
+      {
+        const seam=assessTileContinuity(previousTile,item);
+        html+='<p class="note">'+(seam.status==='consistent'?
+          'Riferimenti testuali coerenti':'Discontinuità testuale possibile')+
+          ': '+escape(previousTile.id)+' → '+escape(item.id)+
+          ' · riferimenti comuni '+escape(seam.matches)+
+          (seam.overlap===null?'':
+            ' · sovrapposizione geometrica '+escape(seam.overlap)+' px')+
+          '. Le coordinate da sole non garantiscono continuità.</p>';
+      }
       const source='./states/'+escape(item.id)+'/original.png';
       html+='<section><small>Checkpoint '+escape(item.id)+
         (item.top===null?' · scroll sconosciuto':
@@ -190,6 +203,7 @@ export function collageHtml(site,entries){
           '" src="'+source+'">';
       }
       html+='</section>';
+      previousTile=item;
     }
     html+='<details><summary>Composizione compatta basata su coordinate '+
       '(sperimentale: può eliminare frammenti di testo alle giunzioni)'+
