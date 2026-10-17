@@ -97,6 +97,9 @@ fi
 printf '%s\n' '[PWC_READY] Controller e Chromium disponibili'
 cd "$self"
 node --check live.mjs
+node --check manual.mjs
+node --check observe.js
+node --check serve.mjs
 node --test tests/*.test.mjs
 printf '%s\n' '[LIVE] Amazon, poi ChatGPT. Segui i messaggi del terminale.'
 result=0
