@@ -9,16 +9,26 @@ The two explicit targets are:
 
 ## Normal path on the actual interactive VM
 
-Run a working PWC provider in visible-browser mode first. The client must be invokable as 'web-control', or selected via 'WEB_CONTROL_CMD' pointing to a **single actual executable path** for the PWC client. A headless controller is rejected. Do not change the installed provider default merely for this experiment.
+The easiest normal path starts an **isolated PWC v0.1.6** for this trial and leaves the installed/default web-control provider untouched. It uses the current pinned PWC Git commit verified during preflight, installs the pinned Playwright dependency into a disposable project-side runtime, and cleans the isolated browser profile/service after the trial. It requires network access for the git/npm setup and a working system Chromium, Node and POSIX shell.
 
-In the PoC directory:
+From the PoC directory, after updating the checkout:
 
 ~~~sh
 git pull --ff-only
 node --check experiments/two-site-observation.mjs
 node --test tests/two-site-observation.test.mjs
-node experiments/two-site-observation.mjs ./experiments/evidence/two-sites-01
+sh experiments/run-two-sites.sh ./experiments/evidence/two-sites-01
 ~~~
+
+The last command is **interactive** and runs both URLs in sequence, with no need to install or change an 'srv' default. The output destination must not exist yet. It prints the normal readiness prompt when it is time to interact with Chromium. If the pinned PWC remote HEAD no longer matches the verified provider revision, it fails explicitly rather than silently switching the tested backend.
+
+If a compatible visible PWC service is already running and 'web-control' resolves to its client, the direct experimental command also works:
+
+~~~sh
+node experiments/two-site-observation.mjs ./experiments/evidence/two-sites-02
+~~~
+
+'WEB_CONTROL_CMD' may instead point to the executable client of an already-running isolated PWC service. A headless controller is rejected. Do not change the installed provider default merely for this experiment.
 
 The **explicit destination is required** and must be new; do not use a HOME-based output path. The trial creates one folder per site without reusing old evidence. 'experiments/evidence/' is gitignored because real MHTML/DOM snapshots may contain account-specific data, cookies reflected in markup or other private material. Never commit them to a public GitHub repository before deliberate review/redaction.
 
