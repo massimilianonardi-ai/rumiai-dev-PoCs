@@ -18,10 +18,11 @@ export async function startViewer(run){
   if(!/^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(run))
     throw Error('view.invalid-run-name');
   const evidence=path.join(root,'evidence');
-  if(await fs.realpath(evidence)!==path.join(await fs.realpath(root),'evidence'))
+  const canonical=await fs.realpath(evidence);
+  if(canonical!==path.join(await fs.realpath(root),'evidence'))
     throw Error('view.evidence-outside-poc');
-  const base=await fs.realpath(path.join(evidence,run));
-  if(path.dirname(base)!==path.join(root,'evidence'))
+  const base=await fs.realpath(path.join(canonical,run));
+  if(path.dirname(base)!==canonical)
     throw Error('view.run-outside-poc');
   const server=http.createServer(async(req,res)=>{
     if(req.method!=='GET')return response(res,405,'view.get-only');
