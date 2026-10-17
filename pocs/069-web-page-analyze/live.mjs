@@ -126,7 +126,7 @@ async function scrollViewport(browser,page,selector){
     'devicePixelRatio:devicePixelRatio};})()';
   return browser.evaluate(page,expression);
 }
-async function visibleTextOcclusion(browser,page,selector)
+export async function visibleTextOcclusion(browser,page,selector)
 {
   const expression='(() => {const el='+selectorExpression(selector)+
     ';if(!el||!document.elementFromPoint)return null;'+
