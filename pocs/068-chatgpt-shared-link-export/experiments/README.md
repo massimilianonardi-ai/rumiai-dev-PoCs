@@ -17,7 +17,7 @@ From the PoC directory, after updating the checkout:
 git pull --ff-only
 node --check experiments/two-site-observation.mjs
 node --test tests/two-site-observation.test.mjs
-sh experiments/run-two-sites.sh ./experiments/evidence/two-sites-01
+sh experiments/run-two-sites.sh two-sites-02
 ~~~
 
 The last command is **interactive** and runs both URLs in sequence, with no need to install or change an 'srv' default. The output destination must not exist yet. It prints the normal readiness prompt when it is time to interact with Chromium. If the pinned PWC remote HEAD no longer matches the verified provider revision, it fails explicitly rather than silently switching the tested backend.
@@ -25,7 +25,7 @@ The last command is **interactive** and runs both URLs in sequence, with no need
 If a compatible visible PWC service is already running and 'web-control' resolves to its client, the direct experimental command also works:
 
 ~~~sh
-node experiments/two-site-observation.mjs ./experiments/evidence/two-sites-02
+node experiments/two-site-observation.mjs ./experiments/evidence/two-sites-03
 ~~~
 
 'WEB_CONTROL_CMD' may instead point to the executable client of an already-running isolated PWC service. A headless controller is rejected. Do not change the installed provider default merely for this experiment.
