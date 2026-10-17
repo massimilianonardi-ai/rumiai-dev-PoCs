@@ -591,6 +591,19 @@ async function runSite(client, site, output, question) {
       report.manualFinal.allFormatsCaptured &&
       report.manualInitial.captureWindowStable &&
       report.manualFinal.captureWindowStable;
+    report.incompleteReasons = [
+      observation.overflow && 'debug-event-buffer-overflow',
+      !report.replay.forwardScan.completed && 'forward-scan-not-at-stable-bottom',
+      report.replay.skipped > 0 && 'unreplayed-actions:' + report.replay.skipped,
+      !report.replay.allCaptured && 'missing-native-or-dom-captures',
+      !report.replay.allCaptureWindowsStable && 'replay-capture-state-drift',
+      !report.manualInitial.allFormatsCaptured && 'manual-initial-missing-formats',
+      !report.manualFinal.allFormatsCaptured && 'manual-final-missing-formats',
+      !report.manualInitial.captureWindowStable && 'manual-initial-state-drift',
+      !report.manualFinal.captureWindowStable && 'manual-final-state-drift'
+    ].filter(Boolean);
+    if (report.incompleteReasons.length)
+      report.error = 'observation.incomplete: ' + report.incompleteReasons.join(', ');
     report.accepted = false;
     // This is only a machine evidence gate: no visual replay/MHTML fidelity
     // or site-specific exporter has been accepted.
@@ -664,6 +677,8 @@ export async function main(args = process.argv.slice(2), client = new WebControl
       process.stdout.write('RESULT ' + JSON.stringify(results.at(-1)) + '\n');
       process.stdout.write('[FILES] ' + path.join(folder,'report.json') + '\n');
       process.stdout.write('[VIEW]  ' + path.join(folder,'review.html') + '\n');
+      if (result.incompleteReasons?.length)
+        process.stdout.write('[GAPS]  ' + result.incompleteReasons.join('; ') + '\n');
     }
   } finally {
     readline.close();
