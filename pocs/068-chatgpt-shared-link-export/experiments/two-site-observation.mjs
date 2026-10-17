@@ -358,7 +358,7 @@ async function advance(client, page, selector, pixels) {
   }
 }
 
-async function scanForward(client, page, preferredSelector, output, nextIndex) {
+async function scanForward(client, page, preferredSelector, clickGoals, output, nextIndex) {
   let selector = preferredSelector;
   if (!await geometry(client, page, selector)) selector = 'html';
   let stableBottom = 0;
@@ -366,8 +366,35 @@ async function scanForward(client, page, preferredSelector, output, nextIndex) {
   let previousFingerprint = null;
   let completed = false;
   const steps = [];
+  const pending = [...clickGoals];
   const maxRounds = 80;
   for (let round = 0; round < maxRounds; round++) {
+    // Replay only safe disclosure clicks currently inside the viewport.
+    // Never let native click auto-scroll to an offscreen historical target.
+    for (let c = 0; c < pending.length;) {
+      const action = pending[c];
+      const expression = '(() => {const e=document.querySelector(' +
+        JSON.stringify(action.selector) + ');if(!e)return false;' +
+        'const r=e.getBoundingClientRect();return r.width>0&&r.height>0&&' +
+        'r.top>=0&&r.bottom<=innerHeight&&r.left>=0&&r.right<=innerWidth' +
+        '})()';
+      let visible = false;
+      try { visible = (await client.cdp(page,'Runtime.evaluate',{
+        expression,returnByValue:true })).result?.value === true; }
+      catch { /* Keep this observation explicitly pending. */ }
+      if (!visible) { c++; continue; }
+      const result = await replayAction(client, page, action).catch(error =>
+        ({status:'error',diagnostic:errorId(error)}));
+      const index = nextIndex++;
+      const stable = result.status === 'executed'
+        ? await settle(client,page).catch(()=>({settledHeuristically:false}))
+        : null;
+      const capture = result.status === 'executed'
+        ? await captureState(client,page,path.join(output,'replay',
+          String(index).padStart(4,'0')),'visible-disclosure') : null;
+      steps.push({index,kind:'click',action,result,stable,capture});
+      pending.splice(c,1);
+    }
     await sleep(1500);
     const before = await geometry(client, page, selector);
     if (!before) throw new Error('replay.scroll-container-missing');
@@ -402,7 +429,7 @@ async function scanForward(client, page, preferredSelector, output, nextIndex) {
       before.top + ' -> ' + after.top +
       ' bottom=' + after.bottom + '\n');
   }
-  return { steps, nextIndex, selector, completed, stableBottom };
+  return { steps, nextIndex, selector, completed, stableBottom, pending };
 }
 
 function htmlEscape(value) {
@@ -523,23 +550,20 @@ async function runSite(client, site, output, question) {
       const baseline = await captureState(client, replayPage,
         path.join(output, 'replay', '0000'), 'replay-baseline');
       steps.push({ index: 0, kind: 'baseline', capture: baseline });
+      const goals = actions.slice(1);
+      const replayableClicks = goals.filter(a => a.kind === 'click' &&
+        replayableAction(a));
       const scan = await scanForward(client, replayPage,
-        actions[0].selector, output, 1);
+        actions[0].selector, replayableClicks, output, 1);
       steps.push(...scan.steps);
       let index = scan.nextIndex;
-      for (const action of actions.slice(1)) {
-        let result;
-        try { result = await replayAction(client, replayPage, action); }
-        catch (error) { result = { status:'error', diagnostic:errorId(error) }; }
-        const stable = result.status === 'executed'
-          ? await settle(client, replayPage).catch(() =>
-            ({ settledHeuristically:false })) : null;
-        const capture = result.status === 'executed'
-          ? await captureState(client, replayPage,
-            path.join(output, 'replay', String(index).padStart(4,'0')),
-            'after-' + action.kind) : null;
-        steps.push({ index, kind:action.kind, action, result, stable, capture });
-        index++;
+      // Record unsupported / undiscovered controls without causing any new
+      // scrolling or silently fabricating a completed interaction.
+      const pending = new Set(scan.pending);
+      for (const action of goals) {
+        if (replayableClicks.includes(action) && !pending.has(action)) continue;
+        steps.push({index:index++,kind:action.kind,action,
+          result:{status:'skipped-unsafe-or-not-visible'},capture:null});
       }
       report.replay = { total: steps.length - 1,
         forwardScan: { selector:scan.selector, completed:scan.completed,
