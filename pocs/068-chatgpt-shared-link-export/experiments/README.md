@@ -92,8 +92,13 @@ and blocks unsupported local `file:` / `/run/user` resource links. It
 does not download assets from the original site, and will **report missing
 stylesheets** and unresolved resource references in
 `offline-report.json` rather than manufacture visual fidelity.
-CDP screenshots remain the independent visual ground truth. It is a
-derived static view, not a replay of the original site's JavaScript.
+A missing/unverifiable CSS dependency results in a **nonzero conversion exit
+status** while the original PoC screenshots and any successfully derived
+partial views remain available for inspection. The console's
+`cssUnverified` count is separate from full visual fidelity and does not
+mean the browser itself had no CSS. CDP screenshots remain the independent
+visual ground truth. It is a derived static view, not a replay of the
+original site's JavaScript.
 
 The HTML viewer now allows its own locally served CSS/fonts under a strict
 CSP that still blocks scripts and remote resource loading. Every output and
