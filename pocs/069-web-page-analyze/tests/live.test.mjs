@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {interpret, stabilizePosition, archiveScrollTarget, replayStepSize, visibleTextOcclusion} from '../live.mjs';
+import {Browser, interpret, stabilizePosition, archiveScrollTarget, replayStepSize, visibleTextOcclusion} from '../live.mjs';
 
 function entry(n,kind,direction,top,max=900) {
   return {n,kind,selector:'#messages',direction,top,max,viewport:300};
@@ -151,4 +151,25 @@ test('observation detects source text actually masked by an overlay',async()=>{
   const clear=await visibleTextOcclusion(browser,'page','#messages');
   assert.equal(clear.coveredTextLines,0);
   assert.equal(clear.bottomCoveredCssPixels,0);
+});
+
+test('persistent CDP commands share the managed session and preserve envelope',async()=>{
+  const browser=new Browser('/usr/bin/mock-browser');
+  const issued=[];
+  browser.cmd=async(...args)=>{
+    issued.push(args);
+    if(args[0]==='debug'&&args[1]==='session')
+      return {session:'debug-1',result:{result:{value:17}}};
+    return {result:{value:18}};
+  };
+  browser.registerDebugSession('page-1','debug-1');
+  assert.equal((await browser.cdp('page-1','Runtime.evaluate',
+    {expression:'17'})).result.value,17);
+  assert.deepEqual(issued[0].slice(0,5),
+    ['debug','session','send','debug-1','Runtime.evaluate']);
+  browser.unregisterDebugSession('page-1');
+  assert.equal((await browser.cdp('page-1','Runtime.evaluate',
+    {expression:'18'})).result.value,18);
+  assert.deepEqual(issued[1].slice(0,4),
+    ['debug','cdp','page-1','Runtime.evaluate']);
 });
