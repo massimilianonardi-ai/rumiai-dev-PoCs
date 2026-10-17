@@ -70,12 +70,12 @@ test('publication produces GitHub Markdown, offline HTML, PDF and complete ZIP',
           message: { content: { parts: ['Create an image'] } } },
         { ordinal: 4, role: 'assistant', text: '**Hello**',
           message: { content: { parts: [
-            '**Hello**\\n\\n~~~js\\nconst x = 2;\\n~~~\\n\\n' +
-            '| A | B |\\n|---|---|\\n| 1 | 2 |'
+            '**Hello**\n\n~~~js\nconst x = 2;\n~~~\n\n' +
+            '| A | B |\n|---|---|\n| 1 | 2 |'
           ] } } }
-      ].map(item => JSON.stringify(item)).join('\\n') + '\\n');
+      ].map(item => JSON.stringify(item)).join('\n') + '\n');
     await fs.writeFile(path.join(directory, 'TURN_SURFACES.jsonl'),
-      JSON.stringify({ index: 0, activities: [] }) + '\\n');
+      JSON.stringify({ index: 0, activities: [] }) + '\n');
     for (const filename of ['conversation.raw.json.gz','NON_TEXT_PARTS.json','SHA256SUMS'])
       await fs.writeFile(path.join(directory, filename), 'fixture');
     await fs.writeFile(path.join(directory, 'README.md'), '# Technical export\n');
