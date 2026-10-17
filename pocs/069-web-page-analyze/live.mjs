@@ -126,7 +126,8 @@ export async function stabilizePosition(browser,page,selector,target,{
     const after=await geometry(browser,page,selector);
     observations.push({attempt,desired,before,after});
     if(!after)return {ok:false,reason:'container-disappeared',observations};
-    if(Math.abs(after.top-desired)<=tolerance &&
+    if(target<=before.max+tolerance &&
+       Math.abs(after.top-desired)<=tolerance &&
        Math.abs(after.max-before.max)<=Math.max(30,before.viewport*.1)){
       // A second stable observation distinguishes a late SPA restoration
       // from a successfully applied, fleeting position.
@@ -252,12 +253,15 @@ async function replay(browser,page,plan,folder){
     Math.max(15,plan.start.viewport*.05);
   const start=atBottom?current.max:
     plan.start.max?plan.start.top/plan.start.max*current.max:plan.start.top;
-  if(!await move(browser,page,plan.selector,start))
-    throw Error('replay.start-alignment-failed');
-  await sleep(800);
-  const aligned=await geometry(browser,page,plan.selector);
-  if(!aligned || Math.abs(aligned.top-start)>Math.max(12,aligned.viewport*.05))
-    throw Error('replay.start-position-was-restored-or-drifted');
+  // ChatGPT restores the scroll position asynchronously after navigation.
+  // Retry measured alignment instead of closing the live experiment on the
+  // first deferred SPA scroll. If still unstable, continue producing labelled
+  // partial evidence and never declare replay coverage complete.
+  const alignment=await stabilizePosition(browser,page,plan.selector,start,{
+    attempts:12,delayMs:500,tolerance:Math.max(12,Math.round(current.viewport*.04))
+  });
+  process.stdout.write('[ALLINEAMENTO] start='+Math.round(start)+
+    ' reached='+alignment.position?.top+' stable='+alignment.ok+'\n');
   const states=[],outcomes=[];
   await inspectState(browser,page,folder,plan.selector,'observed-start',states);
   for(let i=0;i<plan.actions.length;i++){
@@ -314,8 +318,9 @@ async function replay(browser,page,plan,folder){
     outcomes.push({kind:'scroll',direction:action.direction,
       target:action.target,steps,complete});
   }
-  return {states,outcomes,complete:outcomes.every(x=>
-    x.kind==='scroll'?x.complete:x.status==='executed')};
+  return {states,outcomes,alignment,
+    complete:alignment.ok&&outcomes.every(x=>
+      x.kind==='scroll'?x.complete:x.status==='executed')};
 }
 
 function comparison(site,states){
