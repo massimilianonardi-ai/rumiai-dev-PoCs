@@ -138,17 +138,43 @@ screenshot PNGs and their small diagnostics; **raw private MHTML, DOM HTML,
 browser profiles and arbitrary filesystem paths are not published** by
 the server. No data is uploaded and no native MHTML is rewritten.
 
-The collage includes the **visible scroll-container content only**, excluding
-fixed UI chrome, when `capture.json` supplies the scroll-container rectangle.
-It arranges actual screenshot segments by observed scroll coordinates and
-records their checkpoint sources, overlaps, unobserved top/bottom ranges,
-drifting scroll extent and any unstable screenshots. Virtualized DOM content
-may disappear or shift; consequently geometric continuity is **provisional**
-and the collage does **not** falsely merge MHTML internals or claim to
-recover invisible text. For `live-01` and `live-02`, which lack the
-rectangle, it falls back to a navigable full-viewport screenshot timeline
-instead of fabricating crops. `live-03` has already been captured and is the
-first candidate with scrolling-container geometry.
+The **default collage view** now preserves the **entire photographed scroll
+container** from every checkpoint. Overlapping checkpoints intentionally repeat
+some text: no vertical content is trimmed merely because absolute `scrollTop`
+coordinates overlap. It keeps geometrically unstable checkpoints too; when
+the scroll-container rectangle is missing, that checkpoint appears as a whole
+viewport image. Fixed page chrome is excluded only when the measured inner
+scroll rectangle is available. The previous coordinate-trimmed composition
+remains available in a collapsed `<details>` section labelled **experimental**:
+it can lose small text fragments at seams when ChatGPT virtualization changes
+the rendered layout without changing reported scroll geometry.
+
+Both views preserve checkpoint provenance, and only the experimental compact
+view claims provisional coordinate intervals. Neither view can recover content
+that was never captured, prove actual visual continuity, merge MHTML internals
+or restore text removed from the virtualized DOM. The new default mode is a
+conservative **montage with deliberate repetition**, not a verified seamless
+page. Runs `live-01` and `live-02` without viewport geometry still fall back
+to full-screenshot timelines.
+
+### Small missing fragments at collage seams
+
+After viewing the regenerated `live-04` collage, the user reported
+**small missing portions between adjacent tiles**, not necessarily the large
+unacquired scroll ranges diagnosed from the log. The cause cannot be
+proved without the private image pixels, but the existing coordinate-only
+greedy strip trimming can discard genuine visible text because the
+virtualized ChatGPT DOM changes its spatial relationship to `scrollTop`.
+
+The default `collage.html` now conservatively displays every full captured
+scroll-container viewport. No coordinate-based vertical cut is applied to
+that default montage, so all already-photographed pixels remain accessible.
+Repeated overlap is intentional. The old compact coordinate-trimmed view is
+available only by expanding the experimental section, and is not a reliable
+completeness reference. Existing `live-04` evidence can be rendered again
+with `sh view.sh live-04`: no new browser replay or MHTML modification is
+needed. This change addresses **collage presentation loss only**, not absent
+source captures or the independently observed live/MHTML offset.
 
 ### Current physical findings and corrections (live-04)
 
