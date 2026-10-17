@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import re
+import shutil
 import threading
 from email import policy
 from email.parser import BytesParser
@@ -129,8 +130,11 @@ def run(name, mode, embedded=False):
     try:
         with sync_playwright() as p:
             # Auxiliary controlled experiment, NOT the RumiAI web-control provider.
+            executable = shutil.which('chromium') or shutil.which('chromium-browser')
+            if executable is None:
+                raise RuntimeError('browser.chromium-not-found')
             browser = p.chromium.launch(headless=(mode == 'scripted'),
-                executable_path='/usr/bin/chromium', args=['--no-sandbox'])
+                executable_path=executable)
             try:
                 context = browser.new_context(viewport={'width':1024,'height':768})
                 page = context.new_page()
