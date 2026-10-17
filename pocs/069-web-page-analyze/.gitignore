@@ -1,0 +1,4 @@
+# All experimental outputs stay physically under this PoC and out of Git.
+evidence/
+__pycache__/
+tests/__pycache__/
