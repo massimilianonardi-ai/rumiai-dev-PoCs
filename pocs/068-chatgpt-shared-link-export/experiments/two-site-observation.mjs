@@ -649,9 +649,12 @@ export async function main(args = process.argv.slice(2), client = new WebControl
     return 2;
   }
   await fs.mkdir(evidenceRoot, { recursive:true, mode:0o700 });
-  const realRoot = await fs.realpath(evidenceRoot);
-  if (realRoot !== evidenceRoot) {
-    process.stderr.write('observation.symlinked-evidence-root-not-allowed\\n');
+  const [realRoot, realProject] = await Promise.all([
+    fs.realpath(evidenceRoot), fs.realpath(project)
+  ]);
+  if (path.relative(realProject, realRoot) !==
+      path.join('experiments', 'evidence')) {
+    process.stderr.write('observation.evidence-root-escapes-poc\\n');
     return 2;
   }
   await fs.mkdir(output, { recursive:true, mode:0o700 });
