@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {contentAnchorShift} from '../alignment.mjs';
+import {contentAnchors,contentAnchorShift} from '../alignment.mjs';
 
 const source=[
   {path:[1,0],top:120,fingerprint:101},
@@ -42,4 +42,40 @@ test('does not infer an offset from one or zero matching anchors',()=>
   const measured=contentAnchorShift(source,[source[0]]);
   assert.equal(measured.usable,false);
   assert.equal(measured.reason,'insufficient-matching-content');
+});
+
+test('browser expression locates the same text elements across MHTML states',async()=>
+{
+  const root={children:[],parentElement:null};
+  const body={children:[],parentElement:root};
+  root.children=[body];
+  const positions=[120,260,490];
+  for(let i=0;i<positions.length;i++)
+  {
+    const element={
+      textContent:'Stable paragraph used to match browser viewport text',
+      parentElement:body,
+      children:[],
+      getBoundingClientRect:()=>({
+        top:positions[i],left:30,right:650,width:620,height:30
+      })
+    };
+    body.children.push(element);
+  }
+  root.querySelectorAll=()=>body.children;
+  const document={documentElement:root,scrollingElement:root};
+  const browser={
+    async evaluate(_page,expression)
+    {
+      return new Function('document','innerWidth','innerHeight',
+        'getComputedStyle','return '+expression)(
+          document,900,800,()=>({position:'static'}));
+    }
+  };
+  const first=await contentAnchors(browser,'page','document.scrollingElement');
+  assert.equal(first.length,3);
+  positions.forEach((value,index)=>{positions[index]=value+11;});
+  const second=await contentAnchors(browser,'page',
+    'document.scrollingElement',first);
+  assert.equal(contentAnchorShift(first,second).shift,11);
 });
