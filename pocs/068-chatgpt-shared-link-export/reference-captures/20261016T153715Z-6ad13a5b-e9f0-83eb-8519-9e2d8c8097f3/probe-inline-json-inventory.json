@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "value": [
+    {
+      "attributes": {
+        "id": "client-bootstrap",
+        "nonce": "",
+        "type": "application/json"
+      },
+      "id": "client-bootstrap",
+      "index": 0,
+      "textLength": 479786
+    }
+  ]
+}

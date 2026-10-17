@@ -1,0 +1,23 @@
+[
+  {
+    "index": 0,
+    "url": "https://chatgpt.com/cdn/assets/noise-watercolor-m3j88gni.webp",
+    "evidence": [
+      {
+        "index": 49,
+        "kind": "performance-img"
+      }
+    ],
+    "status": 200,
+    "final_url": "https://chatgpt.com/cdn/assets/noise-watercolor-m3j88gni.webp",
+    "redirected": false,
+    "content_type": "image/webp",
+    "content_disposition": null,
+    "byte_length": 33578,
+    "too_large": false,
+    "failed": false,
+    "error": null,
+    "sha256": "d095d94a94baa291c04bf876d1a6d8102c154b44d93aef78bff0970d1a818fa7",
+    "local_path": "candidate-resources/001.webp"
+  }
+]

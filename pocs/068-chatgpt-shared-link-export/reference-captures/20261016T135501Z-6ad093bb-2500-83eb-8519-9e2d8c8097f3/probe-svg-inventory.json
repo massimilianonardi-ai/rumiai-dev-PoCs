@@ -1,0 +1,116 @@
+{
+  "ok": true,
+  "value": [
+    {
+      "attributes": {
+        "aria-label": "Logo ChatGPT",
+        "class": "h-6 w-24",
+        "fill": "none",
+        "focusable": "false",
+        "height": "62",
+        "role": "img",
+        "viewBox": "0 0 357 62",
+        "width": "357",
+        "xmlns": "http://www.w3.org/2000/svg"
+      },
+      "context": null,
+      "index": 0,
+      "outerHTMLLength": 2906,
+      "rect": {
+        "bottom": 48,
+        "height": 24,
+        "left": 32,
+        "right": 128,
+        "top": 24,
+        "width": 96,
+        "x": 32,
+        "y": 24
+      }
+    },
+    {
+      "attributes": {
+        "aria-hidden": "true",
+        "height": "19",
+        "width": "19",
+        "xmlns": "http://www.w3.org/2000/svg"
+      },
+      "context": null,
+      "index": 1,
+      "outerHTMLLength": 10507,
+      "rect": {
+        "bottom": 210.75,
+        "height": 19,
+        "left": 550.328125,
+        "right": 569.328125,
+        "top": 191.75,
+        "width": 19,
+        "x": 550.328125,
+        "y": 191.75
+      }
+    },
+    {
+      "attributes": {
+        "aria-hidden": "true",
+        "height": "20",
+        "width": "20",
+        "xmlns": "http://www.w3.org/2000/svg"
+      },
+      "context": null,
+      "index": 2,
+      "outerHTMLLength": 175,
+      "rect": {
+        "bottom": 275.25,
+        "height": 20,
+        "left": 554.515625,
+        "right": 574.515625,
+        "top": 255.25,
+        "width": 20,
+        "x": 554.515625,
+        "y": 255.25
+      }
+    },
+    {
+      "attributes": {
+        "aria-hidden": "true",
+        "height": "17",
+        "width": "17",
+        "xmlns": "http://www.w3.org/2000/svg"
+      },
+      "context": null,
+      "index": 3,
+      "outerHTMLLength": 171,
+      "rect": {
+        "bottom": 337.75,
+        "height": 17,
+        "left": 539.75,
+        "right": 556.75,
+        "top": 320.75,
+        "width": 17,
+        "x": 539.75,
+        "y": 320.75
+      }
+    },
+    {
+      "attributes": {
+        "fill": "none",
+        "height": "24",
+        "viewBox": "0 0 24 24",
+        "width": "24",
+        "xmlns": "http://www.w3.org/2000/svg"
+      },
+      "context": null,
+      "index": 4,
+      "outerHTMLLength": 2604,
+      "rect": {
+        "bottom": 762,
+        "height": 24,
+        "left": 628,
+        "right": 652,
+        "top": 738,
+        "width": 24,
+        "x": 628,
+        "y": 738
+      }
+    }
+  ]
+}

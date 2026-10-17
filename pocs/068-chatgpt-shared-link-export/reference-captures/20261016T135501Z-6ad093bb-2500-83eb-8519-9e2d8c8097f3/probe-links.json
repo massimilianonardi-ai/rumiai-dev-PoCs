@@ -1,0 +1,92 @@
+{
+  "ok": true,
+  "value": [
+    {
+      "attributes": {
+        "aria-label": "ChatGPT Home",
+        "class": "text-token-text-primary absolute start-5 top-5 md:start-8 md:top-6",
+        "data-discover": "true",
+        "href": "/?slm=1"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/?slm=1",
+      "index": 0,
+      "rect": {
+        "bottom": 48,
+        "height": 24,
+        "left": 32,
+        "right": 128,
+        "top": 24,
+        "width": 96,
+        "x": 32,
+        "y": 24
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "class": "text-token-text-secondary cursor-pointer font-semibold underline sm:text-sm",
+        "data-testid": "dismiss-welcome",
+        "href": "#"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/auth/login?next=%2Fshare%2F6ad093bb-2500-83eb-8519-9e2d8c8097f3#",
+      "index": 1,
+      "rect": {
+        "bottom": 587.75,
+        "height": 17,
+        "left": 594.890625,
+        "right": 685.09375,
+        "top": 570.75,
+        "width": 90.203125,
+        "x": 594.890625,
+        "y": 570.75
+      },
+      "text": "Prima provalo"
+    },
+    {
+      "attributes": {
+        "class": "cursor-pointer font-normal underline",
+        "href": "https://openai.com/policies/terms-of-use",
+        "rel": "noopener",
+        "target": "_blank"
+      },
+      "context": null,
+      "href": "https://openai.com/policies/terms-of-use",
+      "index": 2,
+      "rect": {
+        "bottom": 790,
+        "height": 16,
+        "left": 517.21875,
+        "right": 605.34375,
+        "top": 774,
+        "width": 88.125,
+        "x": 517.21875,
+        "y": 774
+      },
+      "text": "Condizioni d'uso"
+    },
+    {
+      "attributes": {
+        "class": "cursor-pointer font-normal underline",
+        "href": "https://openai.com/policies/privacy-policy",
+        "rel": "noopener",
+        "target": "_blank"
+      },
+      "context": null,
+      "href": "https://openai.com/policies/privacy-policy",
+      "index": 3,
+      "rect": {
+        "bottom": 790,
+        "height": 16,
+        "left": 632.578125,
+        "right": 762.78125,
+        "top": 774,
+        "width": 130.203125,
+        "x": 632.578125,
+        "y": 774
+      },
+      "text": "Informativa sulla privacy"
+    }
+  ]
+}

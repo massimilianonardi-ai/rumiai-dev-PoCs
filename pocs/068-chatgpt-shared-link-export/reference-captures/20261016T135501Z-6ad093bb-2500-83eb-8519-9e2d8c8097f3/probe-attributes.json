@@ -1,0 +1,68 @@
+{
+  "ok": true,
+  "value": [
+    {
+      "attributes": {
+        "content": "https://cdn.openai.com/chatgpt/share-og.png"
+      },
+      "context": null,
+      "tag": "meta"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/favicon-l4nq08hd.svg"
+      },
+      "context": null,
+      "tag": "link"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/favicon-l4nq08hd.svg"
+      },
+      "context": null,
+      "tag": "link"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/favicon-48x48-glnpepm0.webp"
+      },
+      "context": null,
+      "tag": "link"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/favicon-180x180-od45eci6.webp"
+      },
+      "context": null,
+      "tag": "link"
+    },
+    {
+      "attributes": {
+        "data-testid": "login-form"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-external-251929b6.svg#f5a288"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#d6f274"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "dismiss-welcome"
+      },
+      "context": null,
+      "tag": "a"
+    }
+  ]
+}

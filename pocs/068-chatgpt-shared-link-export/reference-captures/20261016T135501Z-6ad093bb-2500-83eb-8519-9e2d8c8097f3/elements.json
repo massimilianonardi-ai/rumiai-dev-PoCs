@@ -1,0 +1,255 @@
+{
+  "meta": {
+    "document": {
+      "scrollHeight": 834,
+      "scrollWidth": 1280
+    },
+    "href": "https://chatgpt.com/auth/login?next=%2Fshare%2F6ad093bb-2500-83eb-8519-9e2d8c8097f3",
+    "readyState": "complete",
+    "title": "Inizia | ChatGPT",
+    "userAgent": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) electron-web-control/0.1.6 Chrome/152.0.7977.130 Electron/44.7.0 Safari/537.36",
+    "viewport": {
+      "devicePixelRatio": 1,
+      "height": 834,
+      "width": 1280
+    },
+    "visibilityState": "visible"
+  },
+  "turns": [],
+  "images": [],
+  "sources": [],
+  "links": [
+    {
+      "attributes": {
+        "aria-label": "ChatGPT Home",
+        "class": "text-token-text-primary absolute start-5 top-5 md:start-8 md:top-6",
+        "data-discover": "true",
+        "href": "/?slm=1"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/?slm=1",
+      "index": 0,
+      "rect": {
+        "bottom": 48,
+        "height": 24,
+        "left": 32,
+        "right": 128,
+        "top": 24,
+        "width": 96,
+        "x": 32,
+        "y": 24
+      },
+      "text": ""
+    },
+    {
+      "attributes": {
+        "class": "text-token-text-secondary cursor-pointer font-semibold underline sm:text-sm",
+        "data-testid": "dismiss-welcome",
+        "href": "#"
+      },
+      "context": null,
+      "href": "https://chatgpt.com/auth/login?next=%2Fshare%2F6ad093bb-2500-83eb-8519-9e2d8c8097f3#",
+      "index": 1,
+      "rect": {
+        "bottom": 587.75,
+        "height": 17,
+        "left": 594.890625,
+        "right": 685.09375,
+        "top": 570.75,
+        "width": 90.203125,
+        "x": 594.890625,
+        "y": 570.75
+      },
+      "text": "Prima provalo"
+    },
+    {
+      "attributes": {
+        "class": "cursor-pointer font-normal underline",
+        "href": "https://openai.com/policies/terms-of-use",
+        "rel": "noopener",
+        "target": "_blank"
+      },
+      "context": null,
+      "href": "https://openai.com/policies/terms-of-use",
+      "index": 2,
+      "rect": {
+        "bottom": 790,
+        "height": 16,
+        "left": 517.21875,
+        "right": 605.34375,
+        "top": 774,
+        "width": 88.125,
+        "x": 517.21875,
+        "y": 774
+      },
+      "text": "Condizioni d'uso"
+    },
+    {
+      "attributes": {
+        "class": "cursor-pointer font-normal underline",
+        "href": "https://openai.com/policies/privacy-policy",
+        "rel": "noopener",
+        "target": "_blank"
+      },
+      "context": null,
+      "href": "https://openai.com/policies/privacy-policy",
+      "index": 3,
+      "rect": {
+        "bottom": 790,
+        "height": 16,
+        "left": 632.578125,
+        "right": 762.78125,
+        "top": 774,
+        "width": 130.203125,
+        "x": 632.578125,
+        "y": 774
+      },
+      "text": "Informativa sulla privacy"
+    }
+  ],
+  "buttons": [
+    {
+      "attributes": {
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-secondary h-13 rounded-full text-base",
+        "type": "button"
+      },
+      "context": null,
+      "index": 0,
+      "rect": {
+        "bottom": 227.25,
+        "height": 52,
+        "left": 444,
+        "right": 836,
+        "top": 175.25,
+        "width": 392,
+        "x": 444,
+        "y": 175.25
+      },
+      "text": "Continua con Google"
+    },
+    {
+      "attributes": {
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-secondary h-13 rounded-full text-base",
+        "type": "button"
+      },
+      "context": null,
+      "index": 1,
+      "rect": {
+        "bottom": 291.25,
+        "height": 52,
+        "left": 444,
+        "right": 836,
+        "top": 239.25,
+        "width": 392,
+        "x": 444,
+        "y": 239.25
+      },
+      "text": "Continua con Apple"
+    },
+    {
+      "attributes": {
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-secondary h-13 rounded-full text-base",
+        "type": "button"
+      },
+      "context": null,
+      "index": 2,
+      "rect": {
+        "bottom": 355.25,
+        "height": 52,
+        "left": 444,
+        "right": 836,
+        "top": 303.25,
+        "width": 392,
+        "x": 444,
+        "y": 303.25
+      },
+      "text": "Continua con il telefono"
+    },
+    {
+      "attributes": {
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-primary mt-1.5 h-13 w-full rounded-full text-base",
+        "type": "submit"
+      },
+      "context": null,
+      "index": 3,
+      "rect": {
+        "bottom": 550.75,
+        "height": 52,
+        "left": 444,
+        "right": 836,
+        "top": 498.75,
+        "width": 392,
+        "x": 444,
+        "y": 498.75
+      },
+      "text": "Continua"
+    }
+  ],
+  "media": [],
+  "iframes": [],
+  "interestingAttributes": [
+    {
+      "attributes": {
+        "content": "https://cdn.openai.com/chatgpt/share-og.png"
+      },
+      "context": null,
+      "tag": "meta"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/favicon-l4nq08hd.svg"
+      },
+      "context": null,
+      "tag": "link"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/favicon-l4nq08hd.svg"
+      },
+      "context": null,
+      "tag": "link"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/favicon-48x48-glnpepm0.webp"
+      },
+      "context": null,
+      "tag": "link"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/favicon-180x180-od45eci6.webp"
+      },
+      "context": null,
+      "tag": "link"
+    },
+    {
+      "attributes": {
+        "data-testid": "login-form"
+      },
+      "context": null,
+      "tag": "div"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-external-251929b6.svg#f5a288"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "href": "/cdn/assets/sprites-core-64564785.svg#d6f274"
+      },
+      "context": null,
+      "tag": "use"
+    },
+    {
+      "attributes": {
+        "data-testid": "dismiss-welcome"
+      },
+      "context": null,
+      "tag": "a"
+    }
+  ]
+}

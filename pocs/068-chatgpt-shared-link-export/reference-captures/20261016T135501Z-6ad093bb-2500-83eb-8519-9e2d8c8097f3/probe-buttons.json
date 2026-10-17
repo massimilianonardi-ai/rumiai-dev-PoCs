@@ -1,0 +1,81 @@
+{
+  "ok": true,
+  "value": [
+    {
+      "attributes": {
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-secondary h-13 rounded-full text-base",
+        "type": "button"
+      },
+      "context": null,
+      "index": 0,
+      "rect": {
+        "bottom": 227.25,
+        "height": 52,
+        "left": 444,
+        "right": 836,
+        "top": 175.25,
+        "width": 392,
+        "x": 444,
+        "y": 175.25
+      },
+      "text": "Continua con Google"
+    },
+    {
+      "attributes": {
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-secondary h-13 rounded-full text-base",
+        "type": "button"
+      },
+      "context": null,
+      "index": 1,
+      "rect": {
+        "bottom": 291.25,
+        "height": 52,
+        "left": 444,
+        "right": 836,
+        "top": 239.25,
+        "width": 392,
+        "x": 444,
+        "y": 239.25
+      },
+      "text": "Continua con Apple"
+    },
+    {
+      "attributes": {
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-secondary h-13 rounded-full text-base",
+        "type": "button"
+      },
+      "context": null,
+      "index": 2,
+      "rect": {
+        "bottom": 355.25,
+        "height": 52,
+        "left": 444,
+        "right": 836,
+        "top": 303.25,
+        "width": 392,
+        "x": 444,
+        "y": 303.25
+      },
+      "text": "Continua con il telefono"
+    },
+    {
+      "attributes": {
+        "class": "btn relative group-focus-within/dialog:focus-visible:[outline-width:1.5px] group-focus-within/dialog:focus-visible:[outline-offset:2.5px] group-focus-within/dialog:focus-visible:[outline-style:solid] group-focus-within/dialog:focus-visible:[outline-color:var(--text-primary)] btn-primary mt-1.5 h-13 w-full rounded-full text-base",
+        "type": "submit"
+      },
+      "context": null,
+      "index": 3,
+      "rect": {
+        "bottom": 550.75,
+        "height": 52,
+        "left": 444,
+        "right": 836,
+        "top": 498.75,
+        "width": 392,
+        "x": 444,
+        "y": 498.75
+      },
+      "text": "Continua"
+    }
+  ]
+}

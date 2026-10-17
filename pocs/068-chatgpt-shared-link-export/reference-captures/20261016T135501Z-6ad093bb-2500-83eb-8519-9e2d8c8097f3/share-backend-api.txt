@@ -1,0 +1,1 @@
+{"detail":{"description":"La conversazione è stata eliminata. Avvia una nuova chat.","message":"La conversazione è stata eliminata. Avvia una nuova chat.","reason":"not_found","code":"shared_conversation_deleted"}}
