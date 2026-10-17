@@ -1,6 +1,6 @@
 # PoC 069 — web-page-analyze: live Amazon + ChatGPT
 
-**Status: `live-01` through `live-04` have been run on the user's Linux VM. In `live-04`, ChatGPT screenshot misalignment worsened and scroll replay stopped before the beginning of the conversation. The current follow-up corrections remain physically unvalidated.**
+**Status: `live-01` through `live-05` were executed on the user's Linux VM. `live-05` physically failed for both Amazon and ChatGPT (occlusion-derived stride abort); 33/33 native Node tests passed for that previous code revision. The new human-phase acquisition, readiness gates and stride correction remain physically unvalidated.**
 
 This is an experimental browser-analysis PoC built **directly on the two
 authorized real pages**. All prior fixture experiments, their tests and the
@@ -9,6 +9,56 @@ MHTML unmodified. The generic *visual collage* now combines **only original
 browser screenshot fragments**, with provenance and explicit missing ranges;
 it does not reconstruct HTML/CSS or purport to be one complete MHTML document.
 
+## Current workflow: preserve human observation before replay
+
+The important user correction is that **ChatGPT user prompts are visible while
+the human scrolls**. In older runs the human-controlled page was closed without
+capturing its content: only wheel/scroll events were preserved, followed by
+screenshots from a newly navigated replay page. This could not show where the
+missing user prompts were lost.
+
+The new `observe.js` emits passive samples during the manually driven page:
+scroll position, DOM-mutation revision, image/font state, resource count and
+visible message roles and hashed signatures (no raw prompt text in diagnostic
+JSON). `manual.mjs` asynchronously polls the source browser while the user
+navigates, captures original viewport PNGs at observed quiescent points (and
+provisional overlapping samples during continued activity), and uses the
+existing **persistent web-control level-3 CDP debugger session** to watch
+network request start/finish/failure. Overflow or unavailable network
+observation is reported, never silently treated as complete. All PNGs and
+metadata are private, gitignored files under each site's `manual/` directory.
+
+After Enter, the original page's observation log is saved and the PoC still
+creates an independent replay page. Replay checkpoints also record hashed
+user/assistant identities, and the report compares distinct observed manual
+signatures against those actually present in replay. Missing prompts are
+reported explicitly; if the current page has no recognized role attributes,
+the result is **unverified**, not "zero prompts". A match covers only sampled
+messages and is **not proof that a whole virtualized conversation was captured**.
+Role coverage is checked only on ChatGPT, not Amazon.
+
+The replay now waits for a **bounded quiet period in DOM state, geometry and
+image/font readiness** after scroll inputs rather than relying solely on the
+previous fixed 900 ms pause. A timeout produces an incomplete checkpoint and
+does not fabricate successful loading. This replay gate does **not yet verify
+network quiescence**: the network lifecycle is currently measured during the
+manual observation phase; that limitation is recorded in the readiness
+diagnostics.
+
+The `live-05` regression `replay.visible-scroll-extent-unavailable` was
+triggered by a high text-occlusion estimate. The corrected stride is bounded:
+occlusion reduces overlap progression but can no longer exhaust a valid
+scrolling viewport. The DOM hit-test also restricts obstruction estimates to
+the lower part of the view.
+
+To compare the two stages after an actual **new unused** run, use
+`sh view.sh <run>`, then open the **Navigazione manuale** and **Confronto**
+links printed by the viewer. The pages serve only the explicit screenshot and
+diagnostic allowlist over loopback; private MHTML/DOM profiles are not served.
+Older `live-01`–`live-05` runs are retained without inventing any earlier
+manual PNGs. No archive, CSS, browser screenshot or historic evidence file is
+modified by this update.
+
 ## One physical run
 
 On the Linux VM, from the PoC directory:
@@ -16,7 +66,7 @@ On the Linux VM, from the PoC directory:
 ```sh
 git pull --ff-only
 # Only after checking the next run name is unused:
-sh run-live.sh live-05
+sh run-live.sh live-06
 ```
 
 Requires working visible Chromium, Node 26, npm, git and outbound access to
