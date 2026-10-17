@@ -15,25 +15,33 @@ test('trial replay permits scroll and explicit disclosure controls only', () => 
   assert.equal(replayableAction({kind:'fill',selector:'input',value:'private'}), false);
 });
 
-test('trial preserves distinct virtualized scroll checkpoints and removes only duplicates', () => {
+test('demonstration teaches scan container, not raw back-and-forth scrolling', () => {
   const events = [
     {kind:'scroll',selector:'html',top:200},
     {kind:'scroll',selector:'html',top:350},
-    {kind:'scroll',selector:'html',top:350},
-    {kind:'click',selector:'summary',target:'summary'},
-    {kind:'scroll',selector:'div:nth-of-type(2)',top:400},
+    {kind:'scroll',selector:'html',top:140},
+    {kind:'click',selector:'summary',target:'summary',expandable:false},
+    {kind:'scroll',selector:'div:nth-of-type(2)',top:40},
     {kind:'scroll',selector:'html',top:900},
-    {kind:'key-activation'},
-    {kind:'scroll',selector:'html',top:1100}
+    {kind:'scroll',selector:'html',top:450},
+    {kind:'click',selector:'summary',target:'summary',expandable:false},
+    {kind:'key-activation'}
   ];
   const actions = consolidateActions(events);
-  assert.deepEqual(actions.map(x => [x.kind,x.selector,x.top]), [
-    ['scroll','html',200],
-    ['scroll','html',350],
-    ['click','summary',undefined],
-    ['scroll','div:nth-of-type(2)',400],
-    ['scroll','html',900],
-    ['key-activation',undefined,undefined],
-    ['scroll','html',1100]
+  assert.deepEqual(actions.map(x => x.kind),
+    ['forward-scan','click','key-activation']);
+  assert.equal(actions[0].selector,'html');
+  assert.equal(actions[0].maxObservedTop,900);
+  assert.equal(actions[0].recordedScrollSamples,6);
+  assert.equal(actions.filter(x => x.kind === 'click').length,1);
+});
+
+test('prefer scrollable inner container observed to move further than document', () => {
+  const actions = consolidateActions([
+    {kind:'scroll',selector:'html',top:2},
+    {kind:'scroll',selector:'main > div:nth-of-type(2)',top:400},
+    {kind:'scroll',selector:'main > div:nth-of-type(2)',top:900}
   ]);
+  assert.equal(actions[0].kind,'forward-scan');
+  assert.equal(actions[0].selector,'main > div:nth-of-type(2)');
 });
