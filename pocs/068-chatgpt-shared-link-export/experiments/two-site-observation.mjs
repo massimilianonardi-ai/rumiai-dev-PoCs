@@ -325,6 +325,86 @@ async function replayAction(client, page, action) {
   return { status: 'executed' };
 }
 
+// Forward-only replay follows the proven amazon-wishlist-extract strategy:
+// about 85% of a viewport per round, allow lazy loading to settle, and
+// require three stable bottom observations. Other sites may need extensions.
+async function geometry(client, page, selector) {
+  if (selector === 'html' || selector === 'body') {
+    const g = await client.call('page', 'scroll', page, '0');
+    return { selector:'html', top:g.scrollY, height:g.documentHeight,
+      viewport:g.viewportHeight, bottom:g.atBottom };
+  }
+  const js = '(() => {const e=document.querySelector(' +
+    JSON.stringify(selector) + ');if(!e)return null;return {' +
+    'top:e.scrollTop,height:e.scrollHeight,viewport:e.clientHeight,' +
+    'bottom:e.scrollTop+e.clientHeight>=e.scrollHeight-20}})()';
+  const g = (await client.cdp(page, 'Runtime.evaluate', {
+    expression:js,returnByValue:true
+  })).result?.value;
+  return g ? { selector,...g } : null;
+}
+
+async function advance(client, page, selector, pixels) {
+  if (selector === 'html' || selector === 'body') {
+    await client.call('page', 'scroll', page, String(pixels));
+  } else {
+    const expression = '(() => {const e=document.querySelector(' +
+      JSON.stringify(selector) + ');if(!e)return false;' +
+      'e.scrollTop+= ' + JSON.stringify(pixels) + ';return true})()';
+    const result = await client.cdp(page, 'Runtime.evaluate', {
+      expression,returnByValue:true
+    });
+    if (result.result?.value !== true) throw new Error('replay.scroll-container-missing');
+  }
+}
+
+async function scanForward(client, page, preferredSelector, output, nextIndex) {
+  let selector = preferredSelector;
+  if (!await geometry(client, page, selector)) selector = 'html';
+  let stableBottom = 0;
+  let previousHeight = -1;
+  let previousFingerprint = null;
+  let completed = false;
+  const steps = [];
+  const maxRounds = 80;
+  for (let round = 0; round < maxRounds; round++) {
+    await sleep(1500);
+    const before = await geometry(client, page, selector);
+    if (!before) throw new Error('replay.scroll-container-missing');
+    const content = await fingerprint(client, page);
+    const unchanged = before.height === previousHeight &&
+      content === previousFingerprint;
+    stableBottom = before.bottom && unchanged ? stableBottom + 1 : 0;
+    if (stableBottom >= 3) {
+      completed = true;
+      break;
+    }
+    previousHeight = before.height;
+    previousFingerprint = content;
+    if (before.bottom) continue;
+    const increment = Math.max(400, Math.floor(before.viewport * .85));
+    await advance(client, page, selector, increment);
+    await sleep(1500);
+    const after = await geometry(client, page, selector);
+    if (!after || (after.top === before.top && after.height === before.height))
+      break;
+    const index = nextIndex++;
+    const stable = await settle(client, page).catch(() =>
+      ({ settledHeuristically:false }));
+    const capture = await captureState(client, page,
+      path.join(output, 'replay', String(index).padStart(4,'0')),
+      'forward-scan-' + round);
+    steps.push({ index, kind:'forward-scroll', action:{
+      kind:'forward-scroll',selector,delta:increment,beforeTop:before.top,
+      afterTop:after.top }, result:{status:'executed'},
+      stable,capture });
+    process.stdout.write('  SCAN ' + selector + ' ' +
+      before.top + ' -> ' + after.top +
+      ' bottom=' + after.bottom + '\n');
+  }
+  return { steps, nextIndex, selector, completed, stableBottom };
+}
+
 function htmlEscape(value) {
   return String(value).replace(/[&<>"']/g, char =>
     ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[char]);
@@ -443,25 +523,27 @@ async function runSite(client, site, output, question) {
       const baseline = await captureState(client, replayPage,
         path.join(output, 'replay', '0000'), 'replay-baseline');
       steps.push({ index: 0, kind: 'baseline', capture: baseline });
-      for (let i = 0; i < actions.length; i++) {
-        const action = actions[i];
+      const scan = await scanForward(client, replayPage,
+        actions[0].selector, output, 1);
+      steps.push(...scan.steps);
+      let index = scan.nextIndex;
+      for (const action of actions.slice(1)) {
         let result;
         try { result = await replayAction(client, replayPage, action); }
-        catch (error) { result = { status: 'error', diagnostic: errorId(error) }; }
+        catch (error) { result = { status:'error', diagnostic:errorId(error) }; }
         const stable = result.status === 'executed'
           ? await settle(client, replayPage).catch(() =>
-            ({ settledHeuristically: false })) : null;
-        // Skipped actions remain in replay-steps.json, but do not cause
-        // duplicate heavyweight archives of the same unchanged page.
+            ({ settledHeuristically:false })) : null;
         const capture = result.status === 'executed'
           ? await captureState(client, replayPage,
-            path.join(output, 'replay', String(i + 1).padStart(4, '0')),
-            'after-' + action.kind)
-          : null;
-        steps.push({ index: i + 1, kind: action.kind, action, result,
-          stable, capture });
+            path.join(output, 'replay', String(index).padStart(4,'0')),
+            'after-' + action.kind) : null;
+        steps.push({ index, kind:action.kind, action, result, stable, capture });
+        index++;
       }
-      report.replay = { total: actions.length,
+      report.replay = { total: steps.length - 1,
+        forwardScan: { selector:scan.selector, completed:scan.completed,
+          stableBottom:scan.stableBottom, capturedSteps:scan.steps.length },
         executed: steps.filter(x => x.result?.status === 'executed').length,
         skipped: steps.filter(x => x.result?.status !== 'executed' && x.result).length,
         allCaptured: steps.every(x => !x.capture || x.capture.allFormatsCaptured),
@@ -478,7 +560,8 @@ async function runSite(client, site, output, question) {
       await client.call('page', 'close', replayPage).catch(() => {});
     }
     report.captureTransportComplete = !observation.overflow &&
-      report.replay.skipped === 0 && report.replay.allCaptured &&
+      report.replay.skipped === 0 && report.replay.forwardScan.completed &&
+      report.replay.allCaptured &&
       report.replay.allCaptureWindowsStable &&
       report.manualInitial.allFormatsCaptured &&
       report.manualFinal.allFormatsCaptured &&
