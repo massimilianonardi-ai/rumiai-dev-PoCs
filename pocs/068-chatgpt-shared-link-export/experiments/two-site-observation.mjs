@@ -309,7 +309,12 @@ async function runSite(client, site, output, question) {
   const report = { site: site.name, url: site.url,
     startedAt: new Date().toISOString(), source: 'real PWC browser' };
   try {
-    await client.call('page', 'navigate', page, site.url);
+    const navigation = await client.call('page', 'navigate', page, site.url);
+    const landing = new URL(navigation.url || site.url);
+    report.landing = { path: landing.origin + landing.pathname,
+      status: navigation.status ?? null };
+    if (/\/(?:ap\/signin|signin|login|auth\/login)(?:\/|$)/i.test(landing.pathname))
+      throw new Error('observation.login-wall-no-authenticated-capture');
     report.manualInitial = await captureState(client, page,
       path.join(output, 'manual-initial'), 'manual-initial');
     const debuggerInfo = await client.call('debug', 'session', 'open', page);
