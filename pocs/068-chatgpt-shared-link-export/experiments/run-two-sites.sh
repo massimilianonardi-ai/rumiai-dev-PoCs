@@ -104,8 +104,50 @@ export WEB_CONTROL_CMD
 "$runtime/pwc/bin/web-control-service" > "$output/pwc-service.log" 2>&1 &
 pwc_pid=$!
 
-"$WEB_CONTROL_CMD" status > "$output/pwc-status.json"
+# PWC launches Chromium BEFORE opening its Unix socket. Calling the client
+# immediately after forking the service races browser startup. A single client
+# status command times out after 15 seconds; some physical VMs need longer.
+# Poll with bounded short attempts and detect a dead service independently.
+printf '%s\n' '[PWC] Waiting for Chromium and the PWC service socket'
+ready=0
+attempt=0
+while [ "$attempt" -lt 90 ]
+do
+  if WEB_CONTROL_CONNECT_TIMEOUT_MS=1000 "$WEB_CONTROL_CMD" status \
+    > "$output/pwc-status.json" 2> "$output/pwc-status-error.log"
+  then
+    ready=1
+    break
+  fi
 
+  if ! kill -0 "$pwc_pid" 2>/dev/null
+  then
+    printf '%s\n' 'trial.pwc-service-exited-before-ready' >&2
+    break
+  fi
+
+  attempt=$((attempt + 1))
+  sleep 1
+done
+
+if [ "$ready" -ne 1 ]
+then
+  if [ "$attempt" -ge 90 ]
+  then
+    printf '%s\n' 'trial.pwc-startup-timeout' >&2
+  fi
+  printf '[PWC] Startup log saved in %s\n' "$output/pwc-service.log" >&2
+  printf '%s\n' '--- Last PWC startup diagnostics ---' >&2
+  tail -n 35 "$output/pwc-service.log" >&2 || :
+  printf '%s\n' '--- Client connection diagnostic ---' >&2
+  tail -n 6 "$output/pwc-status-error.log" >&2 || :
+  exit 5
+fi
+
+# A failed readiness probe is not a final error; keep only the successful
+# status evidence. All files stay within this PoC's evidence directory.
+rm -f "$output/pwc-status-error.log"
+printf '%s\n' '[PWC_READY] Browser and controller are responding'
 printf '%s\n' '[RUN] First Amazon Wishlist, then ChatGPT shared conversation'
 printf '%s\n' '[RUN] Use the visible Chromium window; return to this terminal and press Enter after each demonstration.'
 cd "$project_dir"
