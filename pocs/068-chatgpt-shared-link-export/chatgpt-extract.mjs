@@ -29,12 +29,22 @@ export async function main(args = process.argv.slice(2), extract = exportSharedL
     }
     const extracted = await extract(args[0], destination, 30);
     const published = await publish(extracted.directory, extracted.zip);
+    const publicAssetsComplete = extracted.imagesPublicUnresolved === 0 &&
+      extracted.filesMissing === 0;
+    const cleaned = extracted.cleanup?.verified === true &&
+      extracted.cleanup.pagePresent === false;
     process.stdout.write(JSON.stringify({
       ...extracted, ...published,
       imagesPublicUnresolved: extracted.imagesPublicUnresolved,
       filesMissing: extracted.filesMissing,
+      publicAssetsComplete, cleanupVerified: cleaned,
       observationComplete: false
     }, null, 2) + '\n');
+    if (!publicAssetsComplete || !cleaned)
+    {
+      process.stderr.write('chatgpt-extract: publication.public-acceptance-incomplete\n');
+      return 1;
+    }
     return 0;
   }
   catch (error)
