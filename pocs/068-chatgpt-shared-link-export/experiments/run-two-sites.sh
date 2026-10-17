@@ -111,7 +111,7 @@ pwc_pid=$!
 printf '%s\n' '[PWC] Waiting for Chromium and the PWC service socket'
 ready=0
 attempt=0
-while [ "$attempt" -lt 90 ]
+while [ "$attempt" -lt 45 ]
 do
   if WEB_CONTROL_CONNECT_TIMEOUT_MS=1000 "$WEB_CONTROL_CMD" status \
     > "$output/pwc-status.json" 2> "$output/pwc-status-error.log"
@@ -132,7 +132,7 @@ done
 
 if [ "$ready" -ne 1 ]
 then
-  if [ "$attempt" -ge 90 ]
+  if [ "$attempt" -ge 45 ]
   then
     printf '%s\n' 'trial.pwc-startup-timeout' >&2
   fi
