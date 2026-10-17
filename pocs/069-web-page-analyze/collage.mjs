@@ -27,6 +27,30 @@ export function planCollage(entries) {
     ...e,start:e.capture.before.top,
     end:e.capture.before.top+e.capture.scrollViewport.height
   })).sort((a,b)=>a.start-b.start || b.end-a.end);
+  // The readable default MUST keep every observed pixel in the scroll box.
+  // Coordinate-overlap trimming can delete real text on virtualized pages.
+  // Unsafe or geometry-less captures remain accessible as full screenshots.
+  const safeTiles=entries.map(e=>
+  {
+    const cap=e.capture||{};
+    const box=cap.scrollViewport;
+    const geometryValid=!!(box&&
+      finite(box.x)&&finite(box.y)&&
+      finite(box.width)&&finite(box.height)&&
+      finite(box.viewportWidth)&&
+      box.x>=0&&box.y>=0&&
+      box.width>32&&box.height>32&&
+      box.viewportWidth>=box.width);
+    return {
+      id:e.id,
+      top:finite(cap.before?.top)?cap.before.top:null,
+      stable:cap.screenshotStable!==false,
+      box:geometryValid?box:null
+    };
+  }).sort((a,b)=>
+    (a.top??Number.POSITIVE_INFINITY)-(b.top??Number.POSITIVE_INFINITY) ||
+    a.id.localeCompare(b.id));
+
   // Greedy interval coverage, preserving source provenance for every strip.
   const start=sorted[0].start, end=Math.max(...sorted.map(e=>e.end));
   const expectedBottom=Math.max(...eligible.map(e=>
@@ -59,7 +83,7 @@ export function planCollage(entries) {
   }
   if(expectedBottom>end+4)
     gaps.push({start:end,end:expectedBottom});
-  return {type:'strips',segments,gaps,omitted,states:entries.length,
+  return {type:'strips',segments,safeTiles,gaps,omitted,states:entries.length,
     changingExtent,changingViewport,
     completeGeometry:omitted===0 && gaps.length===0 && cursor>=end &&
       !changingExtent && !changingViewport,
@@ -99,6 +123,39 @@ export function collageHtml(site,entries){
         ' src="./states/'+escape(e.id)+'/original.png"></section>';
     }
   }else{
+    html+='<p class="note"><strong>Montaggio conservativo:</strong> '+
+      'ogni tessera mostra tutta l’area scrollabile realmente fotografata. '+
+      'Le sovrapposizioni possono ripetere testo: non vengono tagliate '+
+      'sulla sola base di scrollTop. La presenza di immagini contigue non '+
+      'dimostra che il contenuto mai catturato sia stato recuperato.</p>';
+    for(const item of plan.safeTiles)
+    {
+      const source='./states/'+escape(item.id)+'/original.png';
+      html+='<section><small>Checkpoint '+escape(item.id)+
+        (item.top===null?' · scroll sconosciuto':
+          ' · scrollTop '+escape(item.top))+
+        (item.stable?'':' · screenshot instabile')+
+        '</small>';
+      if(item.box)
+      {
+        const box=item.box;
+        html+='<div class="strip" style="width:'+box.width+
+          'px;max-width:100%;height:'+box.height+'px">'+
+          '<img loading="lazy" alt="Tessera completa '+escape(item.id)+
+          '" src="'+source+'" style="width:'+box.viewportWidth+
+          'px;left:-'+box.x+'px;top:-'+box.y+'px"></div>';
+      }
+      else
+      {
+        html+='<p>Geometria mancante: viewport originale non ritagliato.</p>'+
+          '<img class="fallback" loading="lazy" alt="Viewport '+escape(item.id)+
+          '" src="'+source+'">';
+      }
+      html+='</section>';
+    }
+    html+='<details><summary>Composizione compatta basata su coordinate '+
+      '(sperimentale: può eliminare frammenti di testo alle giunzioni)'+
+      '</summary>';
     if(plan.changingExtent||plan.changingViewport||plan.omitted||plan.gaps.length){
       html+='<p class="note"><strong>Copertura provvisoria.</strong> '+
         (plan.changingExtent?'Altezza scrollabile variabile; ':'')+
@@ -128,6 +185,7 @@ export function collageHtml(site,entries){
         escape(previous)+'–'+escape(plan.span.expectedBottom)+
         '</strong></section>';
     }
+    html+='</details>';
   }
   html+='<p><a href="./comparison.html">Torna al confronto originale/MHTML</a></p>';
   return pageShell(title,html);
