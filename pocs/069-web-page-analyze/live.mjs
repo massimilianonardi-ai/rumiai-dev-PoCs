@@ -195,15 +195,16 @@ async function capture(browser,page,state,selector,expectedTop){
   });
   const before=await geometry(browser,page,selector);
   const cropViewport=await scrollViewport(browser,page,selector);
-  const originalAnchors=await contentAnchors(browser,page,
-    selectorExpression(selector));
+  const originalAnchors=await contentAnchors(browser,page,selectorExpression(selector));
   const liveStyles=await browser.evaluate(page,styleSummaryExpression);
   // The reference is the visible page BEFORE archiving or changing tabs.
   await screenshot(browser,page,path.join(state,'original.png'));
   const afterScreenshot=await geometry(browser,page,selector);
-  const afterScreenshotShift=contentAnchorShift(originalAnchors,
-    await contentAnchors(browser,page,selectorExpression(selector),
-      originalAnchors));
+  const afterScreenshotShift=contentAnchorShift
+  (
+    originalAnchors,
+    await contentAnchors(browser,page,selectorExpression(selector),originalAnchors)
+  );
   const native=await browser.cmd('page','capture',page,state,'mhtml','html');
   for(const [format,name] of [['mhtml','page.mhtml'],['html','page.html']]){
     if(path.resolve(native.files?.[format]||'')!==path.join(state,name))
@@ -215,9 +216,11 @@ async function capture(browser,page,state,selector,expectedTop){
   });
   await save(path.join(state,'dom-snapshot.json'),snap);
   const after=await geometry(browser,page,selector);
-  const afterArchiveShift=contentAnchorShift(originalAnchors,
-    await contentAnchors(browser,page,selectorExpression(selector),
-      originalAnchors));
+  const afterArchiveShift=contentAnchorShift
+  (
+    originalAnchors,
+    await contentAnchors(browser,page,selectorExpression(selector),originalAnchors)
+  );
   const original=await fs.readFile(path.join(state,'page.mhtml'),'utf8');
   const result={positionBeforeFocus,expectedTop,focusAlignment:alignment,
     liveStyles,scrollViewport:cropViewport,originalAnchors,
@@ -252,7 +255,8 @@ export function archiveScrollTarget(original,restored){
     sourceMax:original.max,archiveMax:restored.max,
     extentDifference:restored.max-original.max};
 }
-async function reopen(browser,state,selector,originalGeometry,originalAnchors=[]){
+async function reopen(browser,state,selector,originalGeometry,originalAnchors=[])
+{
   const page=(await browser.cmd('page','new')).id;
   try{
     await browser.cmd('page','navigate',page,
@@ -273,35 +277,49 @@ async function reopen(browser,state,selector,originalGeometry,originalAnchors=[]
     const alignment=await stabilizePosition(browser,page,targetSelector,
       scrollMapping.target,{attempts:4,delayMs:220,tolerance:1});
     const alignedGeometry=await geometry(browser,page,targetSelector);
-    const initialContentShift=contentAnchorShift(originalAnchors,
-      await contentAnchors(browser,page,selectorExpression(targetSelector),
-        originalAnchors));
+    const initialContentShift=contentAnchorShift
+    (
+      originalAnchors,
+      await contentAnchors(browser,page,selectorExpression(targetSelector),originalAnchors)
+    );
     let contentCorrection={attempted:false};
-    if(initialContentShift.usable &&
-       Math.abs(initialContentShift.shift)>2 &&
-       Math.abs(initialContentShift.shift)<=100)
+    if
+    (
+      initialContentShift.usable &&
+      Math.abs(initialContentShift.shift)>2 &&
+      Math.abs(initialContentShift.shift)<=100
+    )
     {
       const desired=(alignedGeometry||restored).top+
         Math.round(initialContentShift.shift);
       const adjusted=await stabilizePosition(browser,page,targetSelector,
         desired,{attempts:4,delayMs:220,tolerance:1});
-      contentCorrection={attempted:true,target:desired,
-        reached:adjusted.position?.top,stable:adjusted.ok};
+      contentCorrection=
+      {
+        attempted:true,
+        target:desired,
+        reached:adjusted.position?.top,
+        stable:adjusted.ok
+      };
     }
     // Never edit archived pixels or MHTML to conceal a layout mismatch.
     const beforeScreenshot=await geometry(browser,page,targetSelector);
     const alignedViewport=await scrollViewport(browser,page,targetSelector);
     await screenshot(browser,page,path.join(state,'reopened.png'));
     const afterScreenshot=await geometry(browser,page,targetSelector);
-    const finalContentShift=contentAnchorShift(originalAnchors,
-      await contentAnchors(browser,page,selectorExpression(targetSelector),
-        originalAnchors));
+    const finalContentShift=contentAnchorShift
+    (
+      originalAnchors,
+      await contentAnchors(browser,page,selectorExpression(targetSelector),originalAnchors)
+    );
     const screenshotStable=!!beforeScreenshot&&!!afterScreenshot&&
       beforeScreenshot.top===afterScreenshot.top;
     const contentAligned=finalContentShift.usable
       ? Math.abs(finalContentShift.shift)<=2 : null;
     const inspected=await browser.evaluate(page,styleSummaryExpression);
-    return {success:true,
+    const result=
+    {
+      success:true,
       positionAligned:alignment.ok && !scrollMapping.clamped&&
         screenshotStable&&contentCorrection.stable!==false,
       contentAligned,contentCorrection,initialContentShift,finalContentShift,
@@ -309,7 +327,9 @@ async function reopen(browser,state,selector,originalGeometry,originalAnchors=[]
       originalGeometry,scrollMapping,
       restoredGeometry:afterScreenshot||beforeScreenshot||restored,
       restoredViewport:alignedViewport,
-      selector:targetSelector,alignment,...inspected};
+      selector:targetSelector,alignment,...inspected
+    };
+    return result;
   }catch(e){return {success:false,error:errorText(e)};}
   finally{
     await browser.cmd('page','close',page).catch(()=>{});
@@ -321,8 +341,10 @@ async function inspectState(browser,page,folder,selector,label,states){
   const intended=await geometry(browser,page,selector);
   if(!intended)throw Error('capture.source-container-unavailable');
   const captureResult=await capture(browser,page,state,selector,intended.top);
-  const offline=await reopen(browser,state,selector,captureResult.before,
-    captureResult.originalAnchors);
+  const offline=await reopen
+  (
+    browser,state,selector,captureResult.before,captureResult.originalAnchors
+  );
   await save(path.join(state,'offline.json'),offline);
   await focus(browser,page);
   const restored=await stabilizePosition(browser,page,selector,
