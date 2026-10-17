@@ -115,8 +115,10 @@ test('fixed input overlay decreases the safe capture stride',()=>{
   assert.equal(replayStepSize(1000,800,200),270);
   assert.ok(replayStepSize(1000,800,200)<replayStepSize(1000,800,0));
 });
-test('a viewport whose text is obscured cannot certify continuous coverage',()=>{
-  assert.throws(()=>replayStepSize(800,500,430),
+test('large occlusion estimates never abort scrolling of a valid viewport',()=>{
+  assert.equal(replayStepSize(800,500,430),146);
+  assert.equal(replayStepSize(800,500,10000),146);
+  assert.throws(()=>replayStepSize(800,70,60),
     /replay.visible-scroll-extent-unavailable/);
 });
 
