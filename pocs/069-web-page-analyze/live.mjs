@@ -437,6 +437,7 @@ async function inspectState(browser,page,folder,selector,label,states){
     unexpectedLocalReferences:captureResult.unexpectedLocalReferences,
     offline:offline.success,offlinePositionAligned:offline.positionAligned,
     offlineContentAligned:offline.contentAligned,
+    obscuredTextLines:captureResult.obscuredText?.coveredTextLines??null,
     offlineScreenshotStable:offline.screenshotStable});
   process.stdout.write('  [STATO] '+index+
     ' intended='+intended.top+
@@ -450,7 +451,8 @@ async function inspectState(browser,page,folder,selector,label,states){
     ' sourceAnchors='+captureResult.originalAnchors?.length+
     ' matchedAnchors='+offline.finalContentShift?.matches+
     ' anchorReason='+offline.finalContentShift?.reason+
-    ' contentShift='+offline.finalContentShift?.shift+'\n');
+    ' contentShift='+offline.finalContentShift?.shift+
+    ' occludedTextLines='+captureResult.obscuredText?.coveredTextLines+'\n');
   if(!restored.ok)
     process.stderr.write('  [GAP] Posizione originale non ripristinata: '+index+'\n');
 }
@@ -720,6 +722,7 @@ async function siteRun(browser,site,output,ask,observer){
       x.offline&&x.offlinePositionAligned&&x.sourceScrollRestored&&
       x.focusPositionAligned&&x.screenshotStable&&x.stable&&
       x.offlineContentAligned!==false&&x.offlineScreenshotStable!==false&&
+      x.obscuredTextLines===0&&
       !x.unexpectedLocalReferences);
     // Open the comparison through Chromium itself, navigating directly to
     // the PoC-owned file URL. Do not launch a desktop file opener/portal.
