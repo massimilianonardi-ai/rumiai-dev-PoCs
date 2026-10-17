@@ -44,7 +44,7 @@ function safeMediaPath(source)
   return decoded;
 }
 
-function renderHtml(markdown, title, available, events, unplaced)
+function renderHtml(markdown, title, source, available, events, unplaced)
 {
   const renderer = new MarkdownIt({
     html: false, linkify: true, breaks: false, typographer: false
@@ -101,7 +101,9 @@ function renderHtml(markdown, title, available, events, unplaced)
   return '<!doctype html>\n<html lang="it"><head><meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1">' +
     '<title>' + escapeHtml(title) + '</title><style>' + css +
-    '</style></head><body><main>' + body + '</main></body></html>\n';
+    '</style></head><body><header><h1>' + escapeHtml(title) + '</h1>' +
+    '<p>Origine: <a href="' + escapeHtml(source) + '">' + escapeHtml(source) +
+    '</a></p></header><main>' + body + '</main></body></html>\n';
 }
 
 async function knownFiles(directory)
@@ -129,8 +131,17 @@ async function renderPdfWithChromium(htmlFile, pdfFile)
 {
   const executable = process.env.WEB_CONTROL_BROWSER_EXECUTABLE || 'chromium';
   const profile = await fs.mkdtemp(path.join(path.dirname(htmlFile), '.print-profile-'));
+  const printFile = path.join(path.dirname(htmlFile),
+    '.print-view-' + process.pid + '.html');
   try
   {
+    // An interactive HTML keeps details collapsed. The archival PDF needs
+    // visible public commentary printed, so expand disclosures only in the
+    // transient local print view without changing conversation.html.
+    const html = await fs.readFile(htmlFile, 'utf8');
+    await fs.writeFile(printFile,
+      html.replaceAll('<details class="activity">',
+        '<details class="activity" open>'), { mode: 0o600, flag: 'wx' });
     const args = [
       '--headless=new', '--disable-gpu', '--no-first-run',
       '--no-default-browser-check', '--disable-background-networking',
@@ -138,7 +149,7 @@ async function renderPdfWithChromium(htmlFile, pdfFile)
       '--virtual-time-budget=8000',
       '--user-data-dir=' + profile,
       '--print-to-pdf=' + pdfFile,
-      pathToFileURL(htmlFile).href
+      pathToFileURL(printFile).href
     ];
     await execFileAsync(executable, args, {
       timeout: 120000, maxBuffer: 2 * 1024 * 1024
@@ -155,6 +166,7 @@ async function renderPdfWithChromium(htmlFile, pdfFile)
   finally
   {
     await fs.rm(profile, { recursive: true, force: true });
+    await fs.rm(printFile, { force: true });
   }
 }
 
@@ -213,8 +225,8 @@ export async function publishArchive(directory, archive, options = {})
   await fs.mkdir(dataDir, { mode: 0o700 });
   await fs.rename(friendlyFile, path.join(dataDir, 'EXPORT-README.md'));
   await fs.writeFile(friendlyFile, markdown, { flag: 'wx', mode: 0o600 });
-  await fs.writeFile(htmlFile, renderHtml(markdown, title, available,
-    chronology.events, chronology.unplaced),
+  await fs.writeFile(htmlFile, renderHtml(markdown, title, acquisition.source,
+    available, chronology.events, chronology.unplaced),
     { flag: 'wx', mode: 0o600 });
   const renderer = options.renderPdf || renderPdfWithChromium;
   await renderer(htmlFile, pdfFile);
