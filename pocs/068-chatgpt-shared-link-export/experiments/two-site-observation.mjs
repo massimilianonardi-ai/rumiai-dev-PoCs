@@ -267,6 +267,81 @@ async function replayAction(client, page, action) {
   return { status: result.result?.value === true ? 'executed' : 'target-unavailable' };
 }
 
+function htmlEscape(value) {
+  return String(value).replace(/[&<>"']/g, char =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[char]);
+}
+
+async function writeReview(output, siteName, steps) {
+  const refs = [
+    { label:'Dimostrazione iniziale', dir:'manual-initial' },
+    { label:'Dimostrazione finale', dir:'manual-final' },
+    ...steps.map(step => ({
+      label:'Replay ' + step.index + ': ' + step.kind +
+        (step.result ? ' (' + step.result.status + ')' : ''),
+      dir:'replay/' + String(step.index).padStart(4, '0')
+    }))
+  ];
+  const cards = refs.map(ref => {
+    const folder = ref.dir;
+    return '<article><h2>' + htmlEscape(ref.label) +
+      '</h2><img src="' + folder +
+      '/page.png" alt="Snapshot screenshot">' +
+      '<p><a href="' + folder + '/page.mhtml">MHTML</a> · ' +
+      '<a href="' + folder + '/page.html">HTML</a> · ' +
+      '<a href="' + folder + '/dom-snapshot.json">DOM/CSS</a> · ' +
+      '<a href="' + folder + '/evidence.json">Checksums</a></p></article>';
+  }).join('\n');
+  const html = '<!doctype html><html lang="it"><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<title>' + htmlEscape(siteName) +
+    ' — stati osservati</title><style>' +
+    'body{font:16px system-ui;margin:2rem auto;max-width:1100px;padding:0 1rem}' +
+    'article{border:1px solid #ccc;border-radius:8px;margin:20px 0;padding:18px}' +
+    'img{width:100%;height:auto;display:block;object-fit:contain}' +
+    'a{color:#175a96}h2{font-size:1.2rem}' +
+    '</style></head><body><h1>' + htmlEscape(siteName) +
+    '</h1><p>Collage di stati: prova visiva, non una ricostruzione fedele ' +
+    'di una pagina interattiva unica. Controllare i singoli MHTML offline.</p>' +
+    cards + '</body></html>\n';
+  await fs.writeFile(path.join(output, 'review.html'), html,
+    { flag:'wx', encoding:'utf8', mode:0o600 });
+}
+
+async function writeSiteAnalysis(output, steps) {
+  const states = [];
+  for (const step of steps) {
+    const folder = path.join(output, 'replay',
+      String(step.index).padStart(4, '0'));
+    const file = path.join(folder, 'dom-snapshot.json');
+    let snapshot;
+    try { snapshot = JSON.parse(await fs.readFile(file, 'utf8')); }
+    catch { states.push({ index:step.index, captured:false }); continue; }
+    const documents = snapshot.documents || [];
+    states.push({
+      index:step.index, captured:true,
+      documentCount:documents.length,
+      domNodeCount:documents.reduce((n, doc) =>
+        n + (doc.nodes?.nodeType?.length || 0), 0),
+      layoutBoxCount:documents.reduce((n, doc) =>
+        n + (doc.layout?.nodeIndex?.length || 0), 0),
+      sourceFile:'replay/' + String(step.index).padStart(4,'0') +
+        '/dom-snapshot.json'
+    });
+  }
+  const pairs = states.slice(1).map((current, index) => ({
+    from:states[index].index, to:current.index,
+    changeInNodeCount:current.captured && states[index].captured
+      ? current.domNodeCount - states[index].domNodeCount : null
+  }));
+  await saveJson(path.join(output, 'site-analysis.json'), {
+    description:'Generic CDP layout evidence for specialized-exporter research',
+    states, transitions:pairs,
+    behaviorInferred:false, specializedExporterImplemented:false,
+    limitations:'Node/layout counts are evidence, not proof of lazy loading or content completeness.'
+  });
+}
+
 async function runSite(client, site, output, question) {
   const pageInfo = await client.call('page', 'new');
   const page = pageInfo.page;
@@ -327,12 +402,16 @@ async function runSite(client, site, output, question) {
           captured: x.capture.allFormatsCaptured,
           settled: x.stable?.settledHeuristically ?? null })) };
       await saveJson(path.join(output, 'replay-steps.json'), steps);
+      await writeReview(output, site.name, steps);
+      await writeSiteAnalysis(output, steps);
     } finally {
       await client.call('page', 'close', replayPage).catch(() => {});
     }
-    report.accepted = !observation.overflow && report.replay.skipped === 0 &&
-      report.replay.allCaptured && report.manualInitial.allFormatsCaptured &&
+    report.captureTransportComplete = !observation.overflow &&
+      report.replay.skipped === 0 && report.replay.allCaptured &&
+      report.manualInitial.allFormatsCaptured &&
       report.manualFinal.allFormatsCaptured;
+    report.accepted = false;
     // This is only a machine evidence gate: no visual replay/MHTML fidelity
     // or site-specific exporter has been accepted.
     report.visualFidelityVerified = false;
@@ -340,6 +419,7 @@ async function runSite(client, site, output, question) {
   } catch (error) {
     report.error = errorId(error);
     report.accepted = false;
+    report.captureTransportComplete = false;
   } finally {
     if (session) await client.call('debug', 'session', 'close', session).catch(() => {});
     await client.call('page', 'close', page).catch(() => {});
@@ -372,14 +452,15 @@ export async function main(args = process.argv.slice(2), client = new WebControl
     for (const site of sites) {
       const folder = path.join(output, site.name);
       if (await fs.stat(folder).then(() => true, () => false)) {
-        results.push({ site: site.name, accepted: false,
+        results.push({ site: site.name, captureTransportComplete: false,
           error: 'observation.output-already-exists' });
         continue;
       }
       await fs.mkdir(folder, { mode: 0o700 });
       const result = await runSite(client, site, folder,
         prompt => readline.question(prompt));
-      results.push({ site: result.site, accepted: result.accepted,
+      results.push({ site: result.site,
+        captureTransportComplete: result.captureTransportComplete === true,
         error: result.error || null, replay: result.replay ? {
           total: result.replay.total, executed: result.replay.executed,
           skipped: result.replay.skipped } : null });
@@ -391,7 +472,7 @@ export async function main(args = process.argv.slice(2), client = new WebControl
   await saveJson(path.join(output, 'summary.json'), {
     results, fullFidelityAccepted: false, siteSpecialistExporterBuilt: false
   });
-  return results.every(x => x.accepted) ? 0 : 1;
+  return results.every(x => x.captureTransportComplete) ? 0 : 1;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === entrypoint)
