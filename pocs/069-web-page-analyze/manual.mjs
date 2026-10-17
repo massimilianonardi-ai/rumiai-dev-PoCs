@@ -178,6 +178,24 @@ export async function observeManual(browser,page,folder,ask,
       }
       session=null;
     }
+    // Preserve the initial visible page before asking the user to scroll.
+    const baseline=await browser.evaluate(page,
+      'window.__rumiaiLiveObservation.sample()');
+    if(!baseline)throw Error('manual.initial-sample-missing');
+    for(const item of baseline.messages||[]){
+      if((item.role==='user'||item.role==='assistant')&&
+         typeof item.signature==='string')
+        observedSignatures[item.role].add(item.signature);
+    }
+    const first=await record(browser,page,folder,0,
+      baseline,network,'initial',false);
+    items.push(first);
+    lastCaptureAt=Date.now();
+    lastRecordedKey=stateKey(baseline);
+    lastStateKey=lastRecordedKey;
+    lastChange=Date.now();
+    process.stdout.write('[MANUALE] 0000 scroll='+
+      String(baseline.scroll?.top??'?')+' initial\n');
     const askTask=Promise.resolve().then(()=>ask(
       'Scorri normalmente, poi premi INVIO nel terminale quando hai finito: '
     )).then(()=>{terminalDone=true;},e=>{
