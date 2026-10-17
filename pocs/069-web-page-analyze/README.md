@@ -4,9 +4,10 @@
 
 This is an experimental browser-analysis PoC built **directly on the two
 authorized real pages**. All prior fixture experiments, their tests and the
-fixture CI workflow were removed from the current tree. There is no generic
-fake website, independent HTML/CSS restyling, screenshot collage masquerading
-as the original website, or old PoC 068 code.
+fixture CI workflow were removed from the current tree. It preserves native
+MHTML unmodified. The generic *visual collage* now combines **only original
+browser screenshot fragments**, with provenance and explicit missing ranges;
+it does not reconstruct HTML/CSS or purport to be one complete MHTML document.
 
 ## One physical run
 
@@ -73,12 +74,13 @@ All persistent files are underneath this checkout, for example:
 
 ```text
 pocs/069-web-page-analyze/
-  evidence/live-02/
+  evidence/live-03/
     amazon-wishlist/
       events.json
       plan.json
       report.json
       comparison.html
+      collage.html           original browser viewport fragments, not HTML of the site
       overall/
         page.mhtml           native final-DOM MHTML, opened in Chromium
         manifest.json        snapshot coverage and original page metrics
@@ -102,10 +104,60 @@ pocs/069-web-page-analyze/
 
 The `comparison.html` file is **only a screenshot comparison** with
 relative image links within this PoC. It is never presented as the original
-HTML page. You may open the comparison with Chromium directly, passing its
-`file:` URI as a browser navigation target, without invoking a desktop file
-manager or document portal. The actual MHTML is directly opened by the
-replay browser as part of the experiment.
+HTML page. The native MHTML is opened directly by Chromium as part of the
+experiment.
+
+### Reopen evidence after the browser trial — no desktop portal
+
+**Do not double-click `comparison.html` in the desktop file manager.**
+On Linux this may route the file through a temporary document portal alias
+such as `file:///run/user/.../doc/.../comparison.html`: its relative
+screenshots no longer resolve against the original PoC folder. This is
+a *desktop file-opening problem*, **not** a write location chosen by the PoC.
+Original MHTML and screenshot files are already in the correct PoC directory.
+
+Instead, from this PoC checkout:
+
+```sh
+sh view.sh live-02
+```
+
+This **does not rerun Amazon or ChatGPT**. It builds/rebuilds only the
+derived screenshot collage and starts a private read-only
+`http://127.0.0.1:<port>/` browser viewer. Open the exact HTTP URLs
+printed in the terminal for Amazon and ChatGPT comparisons and collages.
+As long as `view.sh` runs, the references resolve against the original
+PoC evidence directory; it can be stopped with Ctrl+C and restarted later.
+For a new trial use `sh view.sh live-03`.
+
+The loopback viewer allows only generated comparison/collage HTML,
+screenshot PNGs and their small diagnostics; **raw private MHTML, DOM HTML,
+browser profiles and arbitrary filesystem paths are not published** by
+the server. No data is uploaded and no native MHTML is rewritten.
+
+The collage includes the **visible scroll-container content only**, excluding
+fixed UI chrome, when `capture.json` supplies the scroll-container rectangle.
+It arranges actual screenshot segments by observed scroll coordinates and
+records their checkpoint sources, overlaps, unobserved top/bottom ranges,
+drifting scroll extent and any unstable screenshots. Virtualized DOM content
+may disappear or shift; consequently geometric continuity is **provisional**
+and the collage does **not** falsely merge MHTML internals or claim to
+recover invisible text. For `live-01` and `live-02`, which lack the
+rectangle, it falls back to a navigable full-viewport screenshot timeline
+instead of fabricating crops. Use fresh `live-03` evidence for scrollable
+fragments and visual coverage diagnostics.
+
+### Slight screenshot offset on ChatGPT
+
+The user additionally noticed that **original/live** and
+**reopened-MHTML/automated** screenshots show slightly different portions
+of ChatGPT. Previously `reopen()` mapped the live scroll position as a
+*percentage* of the source document's total scroll range to the MHTML
+scroll range, introducing a pixel shift when the height changed. Now it
+uses the **actual CSS-pixel scrollTop**, tests alignment and records the
+source/archived scroll extents; a position unavailable in the reopened
+MHTML is marked as *clamped/incomplete*, not force-matched by percentage.
+The new behavior has not yet been physically confirmed by the user.
 
 **No captured account data, MHTML, screenshots or browser profile files
 are committed to GitHub.** The `evidence/` and `.runtime/` directories
@@ -150,14 +202,18 @@ reopened counterpart is merely at the wrong scroll offset.
 
 **Actual `live-02` result:** Amazon completed `down→bottom, up→top`
 through checkpoint `0038` with identical intended, screenshot and
-post-archive scroll coordinates, but the operator reported wrong/missing
-styles in intermediate screenshots and the overall MHTML. ChatGPT successfully
+post-archive scroll coordinates. The in-run comparison *appeared* to have
+broken styles; the user subsequently clarified that the **same original
+MHTML displayed perfectly when opened directly in Chromium after the run**. ChatGPT successfully
 aligned its starting position near the bottom (`26925`) and captured
 checkpoints `0000` through `0016`, then stopped around scrollTop `13242`
-with `replay.opposite-direction`. ChatGPT's native MHTML and screenshots
-showed the same CSS regression as Amazon. These visual findings are
-**rejections**, regardless of the `[ESITO] amazon-wishlist captured`
-mechanical status.
+with `replay.opposite-direction`. During the run its previews showed
+the same apparent CSS issues; the user later clarified that **native MHTML
+itself still renders correctly when opened directly in Chromium**. What
+remains unverified is the in-run opening/visual comparison mechanism,
+the missing virtualized chat segments and the screenshot offset. Neither
+`[ESITO] amazon-wishlist captured` nor a successful standalone MHTML
+proves complete content coverage.
 
 The next revision retains ChatGPT's confirmed initial alignment, Amazon's
 validated `down→up` trace and the existing screenshot comparison/final
