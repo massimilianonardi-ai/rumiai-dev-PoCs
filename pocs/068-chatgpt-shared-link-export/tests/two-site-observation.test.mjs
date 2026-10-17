@@ -15,9 +15,10 @@ test('trial replay permits scroll and explicit disclosure controls only', () => 
   assert.equal(replayableAction({kind:'fill',selector:'input',value:'private'}), false);
 });
 
-test('trial scroll reduction preserves click boundaries and distinct containers', () => {
+test('trial preserves distinct virtualized scroll checkpoints and removes only duplicates', () => {
   const events = [
     {kind:'scroll',selector:'html',top:200},
+    {kind:'scroll',selector:'html',top:350},
     {kind:'scroll',selector:'html',top:350},
     {kind:'click',selector:'summary',target:'summary'},
     {kind:'scroll',selector:'div:nth-of-type(2)',top:400},
@@ -27,6 +28,7 @@ test('trial scroll reduction preserves click boundaries and distinct containers'
   ];
   const actions = consolidateActions(events);
   assert.deepEqual(actions.map(x => [x.kind,x.selector,x.top]), [
+    ['scroll','html',200],
     ['scroll','html',350],
     ['click','summary',undefined],
     ['scroll','div:nth-of-type(2)',400],
