@@ -109,6 +109,32 @@ such as 'two-sites-04'; previous evidence remains immutable. To view the results
 'experiments/serve-evidence.mjs' on the PoC's real evidence directory.
 Evidence is gitignored and must not be committed by default.
 
+**Offline visual blocker (2026-10-17):** The physical replay is now
+reported by the user to move correctly on both pages, but the prior viewer
+exposed unstyled raw `page.html` and links to MHTML opened via desktop
+document portals under `/run/user`. Raw `page.html` is a DOM snapshot,
+not a self-contained HTML/CSS archive. A new
+`experiments/prepare-offline-views.py` script reads the **existing PoC-local
+MHTML** and generates `offline.html`, `offline-assets/` (CSS, images, fonts),
+`offline-report.json` and `review-offline.html` without re-fetching pages or
+writing files outside the PoC. The viewer `serve-evidence.mjs` serves only
+these derived pages and screenshots through loopback, with same-origin CSS
+and font loading explicitly allowed, while raw unstyled HTML and downloadable
+MHTML are not offered as misleading browser views. The converter reports
+missing stylesheets, so visual fidelity cannot be declared until the
+new pages are physically compared with the captured PNGs.
+
+For the already captured fourth run, **do not rerun replay** solely for CSS:
+
+~~~sh
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_offline_mhtml.py' -v
+python3 experiments/prepare-offline-views.py ./experiments/evidence/two-sites-04
+node experiments/serve-evidence.mjs ./experiments/evidence/two-sites-04
+~~~
+
+See `experiments/README.md` for what the generated HTML can and cannot
+preserve. The existing `page.mhtml` evidence is never rewritten.
+
 ## Chronological publication correction
 
 The user's physical review of the first published reference archives found a real
