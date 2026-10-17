@@ -52,6 +52,20 @@ function containsInlineFile(message, item)
 
 function referenceOrdinals(item, visible, file)
 {
+  if (file && typeof item.sandbox_uri === 'string')
+  {
+    const shown = visible.filter(message => containsInlineFile(message, item))
+      .map(message => message.ordinal);
+    // A visual occurrence in a message is a stronger anchor than an earlier
+    // tool/download event where the bytes were first produced.
+    if (shown.length) return [...new Set(shown)].sort((a, b) => a - b);
+  }
+  if (!file)
+  {
+    const shown = visible.filter(message => containsInlineImage(message, item))
+      .map(message => message.ordinal);
+    if (shown.length) return [...new Set(shown)].sort((a, b) => a - b);
+  }
   const result = new Set();
   for (const ref of item.references || [])
     if (Number.isInteger(ref.ordinal)) result.add(ref.ordinal);
