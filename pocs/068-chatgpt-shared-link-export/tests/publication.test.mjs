@@ -103,7 +103,8 @@ test('chatgpt-extract uses the requested directory and publishes only after extr
     {
       calls.push(['extract', url, directory, seconds]);
       return { directory: directory + '/archive', zip: directory + '/archive.zip',
-        imagesPublicUnresolved: 0, filesMissing: 0 };
+        imagesPublicUnresolved: 0, filesMissing: 0,
+        cleanup: { verified: true, pagePresent: false } };
     },
     async (directory, zip) =>
     {
