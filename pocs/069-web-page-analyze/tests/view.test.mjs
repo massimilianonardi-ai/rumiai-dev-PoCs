@@ -34,7 +34,7 @@ test('evidence viewer serves past comparisons and denies MHTML/file portal downl
     assert.match(await collage.text(),/collage/);
     for(const relative of [
       'amazon-wishlist/states/0000/page.mhtml',
-      'amazon-wishlist/states/0000/../../comparison.html',
+      'amazon-wishlist/states/0000/unsupported.json',
       'chatgpt-share/../../.runtime/pwc/package.json'
     ]){
       const result=await fetch(viewed.url+relative);
