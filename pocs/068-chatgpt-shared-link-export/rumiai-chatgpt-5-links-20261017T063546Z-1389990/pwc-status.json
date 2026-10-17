@@ -1,0 +1,12 @@
+{
+  "profile": "default",
+  "headless": false,
+  "browserRunning": true,
+  "pages": [
+    {
+      "id": "page-1",
+      "url": "about:blank",
+      "title": ""
+    }
+  ]
+}
