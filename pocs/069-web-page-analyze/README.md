@@ -54,9 +54,17 @@ it showed all 24 at scrollTop 3715; on return to the top it showed all 24 at
 scrollTop 0. Chromium's captured MHTML in this embedded mode includes HTML/CSS
 MIME parts, but the CSS had been inserted directly by the fixture loader:
 **this does not establish that a relative external stylesheet or SVG would
-survive an HTTP-based save and offline reopening**. The run produced no
-validated native Save Page Complete HTML or pixel-fidelity comparison.
-This is early research evidence, not full acceptance.
+survive an HTTP-based save and offline reopening**. An additional **real Chromium** resource test (`tests/test_native_archive.py`)
+uses the browser's normal resource-request path for the same fixture stylesheet,
+with a controlled response supplied by Playwright because this hosted
+environment blocks navigation. Chromium's `Page.captureSnapshot` MHTML
+contained a separate `text/css` MIME part located at the requested resource
+URL; the captured archive contained no `file:///` artifact reference.
+This demonstrates **native MHTML resource packaging**, not correct offline
+reopening, relative-folder complete HTML export, or pixel-level equivalence.
+
+The run produced no validated native **Save Page Complete HTML** or
+pixel-fidelity comparison. This is early research evidence, not full acceptance.
 
 ## Two independent problems
 
