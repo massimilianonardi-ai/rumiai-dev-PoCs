@@ -122,7 +122,12 @@ export function buildChronologicalPublication(visible, audit, turns, media, file
           containsInlineFile(message, item)))
           continue;
         if (!attachments.has(ordinal)) attachments.set(ordinal, []);
-        attachments.get(ordinal).push({ kind: 'attachment', ordinal,
+        const uploaded = item.availability_class === 'user-upload' ||
+          item.references?.some(ref => ref.role === 'user');
+        const label = image
+          ? uploaded ? 'UTENTE — immagine' : 'ASSISTENTE — immagine generata'
+          : 'ALLEGATO — file';
+        attachments.get(ordinal).push({ kind: 'attachment', ordinal, label,
           image, markdown: linkText(item, image) });
       }
     }
@@ -217,7 +222,7 @@ export function timelineMarkdown(events, title, source, messageCount, unplaced)
     if (event.kind === 'message')
       result.push('## ' + event.label, '', event.markdown || '', '');
     else if (event.kind === 'attachment')
-      result.push(event.markdown, '');
+      result.push('## ' + event.label, '', event.markdown, '');
     else if (event.kind === 'thinking' && event.publicCommentary)
       result.push('> **Thinking / attività intermedia visibile**', '',
         event.markdown, '');
