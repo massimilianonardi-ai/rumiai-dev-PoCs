@@ -58,3 +58,67 @@ test('stale screenshot position is excluded from geometric strips',()=>{
   assert.equal(plan.omitted,1);
   assert.equal(plan.completeGeometry,false);
 });
+
+test
+(
+  'conservative montage retains full scroll viewport instead of trimming overlaps',
+  ()=>
+  {
+    const entries=
+    [
+      state('0001',400,400),
+      state('0000',0,400)
+    ];
+    const plan=planCollage(entries);
+    assert.deepEqual(plan.safeTiles.map(item=>item.id),['0000','0001']);
+    assert.equal(plan.segments[1].to-plan.segments[1].from,400);
+    assert.equal(plan.safeTiles[1].box.height,500);
+    const html=collageHtml('chatgpt-share',entries);
+    const montage=html.slice(0,html.indexOf('<details>'));
+    assert.match(montage,/Montaggio conservativo/);
+    assert.match(montage,/Tessera completa 0000/);
+    assert.match(montage,/Tessera completa 0001/);
+    assert.equal((montage.match(/height:500px/g)||[]).length,2);
+    assert.match(html,/Composizione compatta basata su coordinate/);
+  }
+);
+
+test
+(
+  'unsafe or geometry-less checkpoints are visible in the conservative montage',
+  ()=>
+  {
+    const first=state('0000',0,800);
+    const unstable=state('0001',400,800);
+    unstable.capture.screenshotStable=false;
+    const withoutBox=state('0002',800,800);
+    delete withoutBox.capture.scrollViewport;
+    const plan=planCollage([first,unstable,withoutBox]);
+    assert.equal(plan.omitted,2);
+    assert.deepEqual(plan.safeTiles.map(item=>item.id),
+      ['0000','0001','0002']);
+    const html=collageHtml('chatgpt-share',[first,unstable,withoutBox]);
+    const montage=html.slice(0,html.indexOf('<details>'));
+    assert.match(montage,/Tessera completa 0001/);
+    assert.match(montage,/screenshot instabile/);
+    assert.match(montage,/Geometria mancante/);
+    assert.match(montage,/states\/0002\/original.png/);
+  }
+);
+
+test
+(
+  'source geometry changes cannot make the safe montage discard a checkpoint',
+  ()=>
+  {
+    const before=state('0000',100,900,500);
+    const after=state('0001',400,1100,500);
+    const plan=planCollage([before,after]);
+    assert.equal(plan.changingExtent,true);
+    assert.equal(plan.safeTiles.length,2);
+    assert.equal(plan.safeTiles[0].box.height,500);
+    assert.equal(plan.safeTiles[1].box.height,500);
+    const html=collageHtml('chatgpt-share',[before,after]);
+    assert.match(html,/sovrapposizioni possono ripetere testo/);
+  }
+);
