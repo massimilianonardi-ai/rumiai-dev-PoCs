@@ -224,6 +224,20 @@ async function capture(browser,page,state,selector,expectedTop){
   await save(path.join(state,'capture.json'),result);
   return result;
 }
+export function archiveScrollTarget(original,restored){
+  if(!original||!restored||
+     !Number.isFinite(original.top)||!Number.isFinite(restored.max))
+    throw Error('archive.scroll-geometry-unavailable');
+  // MHTML serializes the current DOM; CSS-pixel scroll offsets refer to
+  // that document state, not to a percentage of its total scroll extent.
+  // Mapping 60% of the source to 60% of the archive causes a visible
+  // offset whenever dynamic content changes the document height.
+  const intended=Math.max(0,Math.round(original.top));
+  const target=Math.min(intended,Math.max(0,Math.round(restored.max)));
+  return {intended,target,clamped:target!==intended,
+    sourceMax:original.max,archiveMax:restored.max,
+    extentDifference:restored.max-original.max};
+}
 async function reopen(browser,state,selector,originalGeometry){
   const page=(await browser.cmd('page','new')).id;
   try{
@@ -241,17 +255,19 @@ async function reopen(browser,state,selector,originalGeometry){
       restored=await geometry(browser,page,targetSelector);
     }
     if(!restored)throw Error('offline.scroll-container-not-found');
-    const target=originalGeometry?.max
-      ? Math.round(originalGeometry.top/originalGeometry.max*restored.max)
-      : (originalGeometry?.top??0);
-    const alignment=await stabilizePosition(browser,page,targetSelector,target,{
-      attempts:4,delayMs:220,tolerance:12
-    });
+    const scrollMapping=archiveScrollTarget(originalGeometry,restored);
+    const alignment=await stabilizePosition(browser,page,targetSelector,
+      scrollMapping.target,{attempts:4,delayMs:220,tolerance:8});
+    const alignedGeometry=await geometry(browser,page,targetSelector);
+    const alignedViewport=await scrollViewport(browser,page,targetSelector);
     await screenshot(browser,page,path.join(state,'reopened.png'));
     const inspected=await browser.evaluate(page,styleSummaryExpression);
-    return {success:true,positionAligned:alignment.ok,
+    return {success:true,
+      positionAligned:alignment.ok && !scrollMapping.clamped,
       networkIsolationVerified:false,
-      originalGeometry,restoredGeometry:alignment.position||restored,
+      originalGeometry,scrollMapping,
+      restoredGeometry:alignedGeometry||alignment.position||restored,
+      restoredViewport:alignedViewport,
       selector:targetSelector,alignment,...inspected};
   }catch(e){return {success:false,error:errorText(e)};}
   finally{
