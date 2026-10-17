@@ -130,9 +130,9 @@ def run(name, mode, embedded=False):
     try:
         with sync_playwright() as p:
             # Auxiliary controlled experiment, NOT the RumiAI web-control provider.
-            executable = shutil.which('chromium') or shutil.which('chromium-browser')
-            if executable is None:
-                raise RuntimeError('browser.chromium-not-found')
+            executable = (shutil.which('chromium') or
+                          shutil.which('chromium-browser') or
+                          p.chromium.executable_path)
             browser = p.chromium.launch(headless=(mode == 'scripted'),
                 executable_path=executable)
             try:
