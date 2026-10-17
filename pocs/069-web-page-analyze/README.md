@@ -52,6 +52,11 @@ portal, and the PoC never launches a file chooser to open evidence.
    and a CSS/image observation; failure is recorded rather than hidden.
    No HTML/CSS asset-reference rewriting, remote download, or local viewer
    proxy is used.
+   At the end of the site, the PoC **opens its screenshot-only comparison
+   directly in the same visible Chromium** using the actual PoC-local file
+   URI. You inspect the two renderings side by side and press **Enter** to
+   continue, before it switches to the next site. Neither the desktop file
+   manager nor a document portal is involved.
 6. The process repeats for the **long ChatGPT shared conversation**:
    `https://chatgpt.com/share/6ad1c0d5-49ec-83eb-a79b-85b04b938835`.
 
