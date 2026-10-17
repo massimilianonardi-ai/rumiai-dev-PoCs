@@ -1,135 +1,125 @@
-// Match visible DOM anchors when the same Chromium MHTML is reopened.
-// A uniform translation is correctable; changed/reflowed content is evidence.
-const anchorCode=String.raw`(root,reference) =>
+// Read-only content anchors: actual rendered text, not brittle DOM element paths.
+// Virtualized pages and native MHTML may place identical text at different paths.
+const anchorCode=String.raw`(root,references) =>
 {
   if(!root)return [];
-  const signature=element=>
+  const hashText=value=>
   {
-    const content=(element.textContent||'').trim().slice(0,120);
     let hash=2166136261;
-    for(let i=0;i<content.length;i++)
+    for(let i=0;i<value.length;i++)
     {
-      hash=Math.imul(hash^content.charCodeAt(i),16777619);
+      hash=Math.imul(hash^value.charCodeAt(i),16777619);
     }
     return hash>>>0;
   };
-  const describe=(element,path)=>
-  {
-    if(!element)return null;
-    if(!path)
-    {
-      path=[];
-      let cursor=element;
-      while(cursor!==document.documentElement && cursor.parentElement)
-      {
-        const parent=cursor.parentElement;
-        path.unshift(Array.prototype.indexOf.call(parent.children,cursor));
-        cursor=parent;
-      }
-      if(cursor!==document.documentElement)return null;
-    }
-    const record=
-    {
-      path,
-      top:element.getBoundingClientRect().top,
-      fingerprint:signature(element)
-    };
-    return record;
-  };
-  if(Array.isArray(reference))
-  {
-    const matches=[];
-    for(const item of reference)
-    {
-      let element=document.documentElement;
-      for(const index of item.path)
-      {
-        element=element?.children[index];
-        if(!element)break;
-      }
-      const match=describe(element,item.path);
-      if(match)matches.push(match);
-    }
-    return matches;
-  }
   const bounds=root===document.scrollingElement
     ? {left:0,top:0,right:innerWidth,bottom:innerHeight}
     : root.getBoundingClientRect();
-  const items=[];
-  const candidates=root.querySelectorAll
-  (
-    'p,li,h1,h2,h3,h4,pre,blockquote,td,th'
-  );
-  for(const element of candidates)
+  const countBySignature=new Map();
+  const nodes=[];
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+  let node;
+  let scanned=0;
+  while((node=walker.nextNode()) && scanned++<30000)
   {
-    const rect=element.getBoundingClientRect();
-    if
-    (
-      rect.top<bounds.top+12 || rect.top>bounds.bottom-20 ||
-      rect.left>=bounds.right || rect.right<=bounds.left ||
-      rect.width<40 || rect.height<8 ||
-      (element.textContent||'').trim().length<12
-    )
-    {
-      continue;
-    }
-    const position=getComputedStyle(element).position;
-    if(position==='fixed'||position==='sticky')continue;
-    const item=describe(element);
-    if(item)items.push(item);
+    const value=(node.textContent||'').replace(/\s+/g,' ').trim();
+    if(value.length<12)continue;
+    const key=value.length+':'+hashText(value);
+    const range=document.createRange();
+    range.selectNodeContents(node);
+    const rects=Array.from(range.getClientRects());
+    if(!rects.length)continue;
+    countBySignature.set(key,(countBySignature.get(key)||0)+1);
+    nodes.push({key,rects});
   }
-  items.sort((a,b)=>a.top-b.top);
+  if(Array.isArray(references))
+  {
+    const unique=new Map();
+    for(const item of nodes)
+    {
+      if(countBySignature.get(item.key)===1)unique.set(item.key,item);
+    }
+    const resolved=[];
+    for(const reference of references)
+    {
+      const item=unique.get(reference.key);
+      const rect=item?.rects[reference.line];
+      if(!rect)continue;
+      resolved.push({key:reference.key,line:reference.line,top:rect.top});
+    }
+    return resolved;
+  }
+  const candidates=[];
+  for(const item of nodes)
+  {
+    if(countBySignature.get(item.key)!==1)continue;
+    const parentNode=item.rects.length;
+    for(let index=0;index<parentNode;index++)
+    {
+      const rect=item.rects[index];
+      if
+      (
+        rect.top<bounds.top+12 || rect.bottom>bounds.bottom-12 ||
+        rect.left<bounds.left || rect.right>bounds.right ||
+        rect.width<35 || rect.height<7
+      )
+      {
+        continue;
+      }
+      candidates.push({key:item.key,line:index,top:rect.top});
+      break;
+    }
+  }
+  candidates.sort((a,b)=>a.top-b.top);
   const selected=[];
-  for(const item of items)
+  for(const candidate of candidates)
   {
     if
     (
       selected.length &&
-      item.top-selected[selected.length-1].top<55
+      candidate.top-selected[selected.length-1].top<48
     )
     {
       continue;
     }
-    selected.push(item);
-    if(selected.length===8)break;
+    selected.push(candidate);
+    if(selected.length===12)break;
   }
   return selected;
 }`;
 
-export async function contentAnchors(browser,page,elementExpression,reference=null)
+export async function contentAnchors(browser,page,elementExpression,references=null)
 {
   const expression='('+anchorCode+')('+
-    elementExpression+','+JSON.stringify(reference)+')';
+    elementExpression+','+JSON.stringify(references)+')';
   return browser.evaluate(page,expression);
 }
 
-// Original/reopened scrollTop equality does not prove the same visible text.
-// The median of multiple matching anchors distinguishes translation from reflow.
+// Same CSS scrollTop is not proof of the same visible content.
+// Refuse corrections based on one marker, repeated text or nonuniform reflow.
 export function contentAnchorShift(source,archive)
 {
-  const byPath=new Map();
+  const byKey=new Map();
   for(const item of archive||[])
   {
-    byPath.set(item.path.join('.'),item);
+    byKey.set(item.key+':'+item.line,item);
   }
   const offsets=[];
   for(const item of source||[])
   {
-    const found=byPath.get(item.path.join('.'));
-    if
-    (
-      !found || found.fingerprint!==item.fingerprint ||
-      !Number.isFinite(item.top) || !Number.isFinite(found.top)
-    )
+    const matched=byKey.get(item.key+':'+item.line);
+    if(!matched||
+       !Number.isFinite(item.top)||!Number.isFinite(matched.top))
     {
       continue;
     }
-    offsets.push(found.top-item.top);
+    offsets.push(matched.top-item.top);
   }
   if(offsets.length<2)
   {
     return {usable:false,reason:'insufficient-matching-content',
-      matches:offsets.length};
+      matches:offsets.length,sourceCount:(source||[]).length,
+      archiveCount:(archive||[]).length};
   }
   offsets.sort((a,b)=>a-b);
   const shift=offsets[Math.floor(offsets.length/2)];
