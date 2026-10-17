@@ -45,6 +45,7 @@ pwc_pid=
 socket_suffix=$(printf '%s\n' "$runtime" | cksum)
 socket_suffix=${socket_suffix%% *}
 runtime_alias="/tmp/rumiai-pwc-rt-$socket_suffix"
+alias_created=0
 WEB_CONTROL_SOCKET="/tmp/rumiai-page-trial-$socket_suffix.sock"
 
 cleanup()
@@ -54,7 +55,10 @@ cleanup()
     kill "$pwc_pid" 2>/dev/null || :
     wait "$pwc_pid" 2>/dev/null || :
   fi
-  rm -f "$runtime_alias"
+  if [ "$alias_created" -eq 1 ]
+  then
+    rm -f "$runtime_alias"
+  fi
   rm -rf "$runtime"
   rm -f "$WEB_CONTROL_SOCKET"
 }
@@ -64,6 +68,7 @@ trap 'exit 143' TERM
 
 mkdir -p "$runtime/tmp" "$runtime/cache" "$runtime/config" "$runtime/data"
 ln -s "$runtime" "$runtime_alias"
+alias_created=1
 export TMPDIR="$runtime_alias/tmp"
 export XDG_CACHE_HOME="$runtime_alias/cache"
 export XDG_CONFIG_HOME="$runtime_alias/config"
