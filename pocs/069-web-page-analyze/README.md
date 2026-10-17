@@ -1,6 +1,6 @@
 # PoC 069 — web-page-analyze: live Amazon + ChatGPT
 
-**Status: first physical two-site run completed; viewport/replay defects under correction, still not visually accepted.**
+**Status: `live-01`, `live-02` and `live-03` have been run on the user's Linux VM. A residual ChatGPT live/reopened screenshot offset was reported; the new content-anchor correction remains physically unvalidated.**
 
 This is an experimental browser-analysis PoC built **directly on the two
 authorized real pages**. All prior fixture experiments, their tests and the
@@ -15,7 +15,8 @@ On the Linux VM, from the PoC directory:
 
 ```sh
 git pull --ff-only
-sh run-live.sh live-03
+# Only after checking the next run name is unused:
+sh run-live.sh live-04
 ```
 
 Requires working visible Chromium, Node 26, npm, git and outbound access to
@@ -145,20 +146,39 @@ may disappear or shift; consequently geometric continuity is **provisional**
 and the collage does **not** falsely merge MHTML internals or claim to
 recover invisible text. For `live-01` and `live-02`, which lack the
 rectangle, it falls back to a navigable full-viewport screenshot timeline
-instead of fabricating crops. Use fresh `live-03` evidence for scrollable
-fragments and visual coverage diagnostics.
+instead of fabricating crops. `live-03` has already been captured and is the
+first candidate with scrolling-container geometry.
 
 ### Slight screenshot offset on ChatGPT
 
-The user additionally noticed that **original/live** and
-**reopened-MHTML/automated** screenshots show slightly different portions
-of ChatGPT. Previously `reopen()` mapped the live scroll position as a
-*percentage* of the source document's total scroll range to the MHTML
-scroll range, introducing a pixel shift when the height changed. Now it
-uses the **actual CSS-pixel scrollTop**, tests alignment and records the
-source/archived scroll extents; a position unavailable in the reopened
-MHTML is marked as *clamped/incomplete*, not force-matched by percentage.
-The new behavior has not yet been physically confirmed by the user.
+The user confirmed that both `live-02` and `live-03` were already run,
+and reported that **original/live** and **reopened-MHTML/automated**
+screenshots of ChatGPT still show slightly different vertical content.
+Do not ask the operator to repeat either run. Private captures from
+`live-03` are preserved, not overwritten, and the observed displacement
+has not been numerically measured from those pixels in this environment.
+
+The earlier scroll fix replaced percentage-of-total-height mapping with
+the original CSS-pixel `scrollTop`. That alone cannot guarantee identical
+visible content if the archive reflows. The current implementation now also:
+
+- records up to eight visible textual DOM anchors and hashed signatures
+  before the live screenshot, with post-screenshot and post-archive drift
+  diagnostics;
+- re-identifies matching anchors when the **unmodified native MHTML**
+  is reopened in Chromium;
+- compensates only a small (up to 100 CSS-pixel) **uniform** displacement
+  verified by two or more matching anchors, without manipulating saved
+  screenshot pixels, native MHTML or CSS;
+- flags reflow, missing matches, unreachable targets and any remaining
+  measured offset in `offline.json`, rather than treating scrollTop equality
+  alone as proof of visual equivalence;
+- checks reopened screenshot position again after capture, using 1 CSS-pixel
+  numeric scroll stabilization tolerance.
+
+The new anchor correction has passed isolated logic checks but **has not**
+been run on the user's Chromium VM. Existing `live-03` screenshots are not
+retroactively changed. Future validation needs a new unused run identifier.
 
 **No captured account data, MHTML, screenshots or browser profile files
 are committed to GitHub.** The `evidence/` and `.runtime/` directories
@@ -226,9 +246,10 @@ changes an inferred `up` into a `down` scan. Recovery attempts are saved
 in the replay's `disturbances` array, including whether progression was
 recovered. Partial states and an incomplete coverage flag are preserved.
 
-Use the new run name `live-03`. The private `live-01` and `live-02`
-results remain untouched. This latest correction is **not yet physically
-verified**.
+The previous `live-03` trial is already completed. Preserve all existing
+private runs; the newest content-anchor adjustment requires a distinct,
+unused run name if subsequently validated in a real browser. Its visual
+fidelity is not yet physically verified.
 
 ## Acceptance and current limits
 
