@@ -88,7 +88,12 @@ class Archive:
         full = normalized(value, base)
         if full in self.resources:
             return asset_prefix + self.resources[full][2]
-        self.missing.append({"type": kind, "url": full[:600]})
+        # Original MHTML may contain file:///run/user portal aliases from
+        # Chromium or desktop integration. Never propagate local file paths
+        # into the derived viewer or its public inspection diagnostics.
+        safe = (full[:600] if full.startswith(("https://", "http://"))
+                else "[local-or-unsupported-uri-blocked]")
+        self.missing.append({"type": kind, "url": safe})
         return "about:blank"
 
     def css(self, css, base, asset_prefix="offline-assets/"):
@@ -152,9 +157,9 @@ class StaticHTML(HTMLParser):
             elif key in ("src", "poster", "background"):
                 value = self.archive.resolve(value, self.archive.origin, tag + "-" + key)
             elif key == "href":
-                # Keep only safe anchor navigation, but avoid external network
-                # dependencies for rendering.
-                if value.lower().startswith(("javascript:", "file:", "blob:")):
+                # No browser-local file references may escape via the viewer.
+                if (value.lower().startswith(("javascript:", "file:", "blob:"))
+                        or "/run/user/" in value):
                     value = "#"
             elif key == "srcset":
                 # A comma-separated URL set; data-URLs are not split safely.
@@ -176,7 +181,12 @@ class StaticHTML(HTMLParser):
             self.archive.inline_styles += 1
 
     def handle_startendtag(self, tag, attrs):
+        size = len(self.output)
         self.handle_starttag(tag, attrs)
+        if len(self.output) > size and self.output[-1].endswith(">"):
+            # Preserve self-closing SVG nodes; converting <path/> to <path>
+            # can change subsequent sibling layout.
+            self.output[-1] = self.output[-1][:-1] + "/>"
 
     def handle_endtag(self, tag):
         if tag == "script":
