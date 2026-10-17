@@ -429,24 +429,26 @@ async function runSite(client, site, output, question) {
         const stable = result.status === 'executed'
           ? await settle(client, replayPage).catch(() =>
             ({ settledHeuristically: false })) : null;
-        // Record a checkpoint after every event, including skipped events,
-        // so the report does not silently claim successful replay.
-        const capture = await captureState(client, replayPage,
-          path.join(output, 'replay', String(i + 1).padStart(4, '0')),
-          'after-' + action.kind);
+        // Skipped actions remain in replay-steps.json, but do not cause
+        // duplicate heavyweight archives of the same unchanged page.
+        const capture = result.status === 'executed'
+          ? await captureState(client, replayPage,
+            path.join(output, 'replay', String(i + 1).padStart(4, '0')),
+            'after-' + action.kind)
+          : null;
         steps.push({ index: i + 1, kind: action.kind, action, result,
           stable, capture });
       }
       report.replay = { total: actions.length,
         executed: steps.filter(x => x.result?.status === 'executed').length,
         skipped: steps.filter(x => x.result?.status !== 'executed' && x.result).length,
-        allCaptured: steps.every(x => x.capture.allFormatsCaptured),
-        allCaptureWindowsStable: steps.every(x => x.capture.captureWindowStable),
+        allCaptured: steps.every(x => !x.capture || x.capture.allFormatsCaptured),
+        allCaptureWindowsStable: steps.every(x => !x.capture || x.capture.captureWindowStable),
         steps: steps.map(x => ({ index: x.index, kind: x.kind,
           status: x.result?.status || 'baseline',
-          captured: x.capture.allFormatsCaptured,
+          captured: x.capture?.allFormatsCaptured ?? false,
           settled: x.stable?.settledHeuristically ?? null,
-          stableCapture: x.capture.captureWindowStable })) };
+          stableCapture: x.capture?.captureWindowStable ?? null })) };
       await saveJson(path.join(output, 'replay-steps.json'), steps);
       await writeReview(output, site.name, steps);
       await writeSiteAnalysis(output, steps);
