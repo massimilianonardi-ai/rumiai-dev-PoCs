@@ -41,11 +41,14 @@ test('prior runs without viewport geometry fall back to historical screenshots',
 });
 
 test('partial virtualized ChatGPT traversal explicitly reports missing beginning',()=>{
-  const plan=planCollage([state('0010',13242,26925),
-    state('0009',14042,26925)]);
+  const entries=[state('0010',13242,26925),state('0009',14042,26925)];
+  const plan=planCollage(entries);
   assert.equal(plan.gaps[0].start,0);
   assert.equal(plan.gaps[0].end,13242);
   assert.equal(plan.completeGeometry,false);
+  const html=collageHtml('chatgpt-share',entries);
+  assert.match(html,/Intervallo non acquisito: 0–13242/);
+  assert.match(html,/Intervallo non acquisito: 14542–27425/);
 });
 test('stale screenshot position is excluded from geometric strips',()=>{
   const good=state('0000',0,0,500);
