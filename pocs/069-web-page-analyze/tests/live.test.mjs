@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {interpret, stabilizePosition, archiveScrollTarget, replayStepSize} from '../live.mjs';
+import {interpret, stabilizePosition, archiveScrollTarget, replayStepSize, visibleTextOcclusion} from '../live.mjs';
 
 function entry(n,kind,direction,top,max=900) {
   return {n,kind,selector:'#messages',direction,top,max,viewport:300};
@@ -118,4 +118,35 @@ test('fixed input overlay decreases the safe capture stride',()=>{
 test('a viewport whose text is obscured cannot certify continuous coverage',()=>{
   assert.throws(()=>replayStepSize(800,500,430),
     /replay.visible-scroll-extent-unavailable/);
+});
+
+test('observation detects source text actually masked by an overlay',async()=>{
+  let overlaid=true;
+  const root={getBoundingClientRect:()=>({left:0,top:0,right:800,bottom:700})};
+  const owner={contains:hit=>hit===owner};
+  const node={textContent:'A useful line of chat text',parentElement:owner};
+  const document={
+    scrollingElement:{},
+    querySelector:()=>root,
+    elementFromPoint:()=>overlaid?{contains:()=>false}:owner,
+    createTreeWalker:()=>{
+      let used=false;
+      return {nextNode:()=>used?null:(used=true,node)};
+    },
+    createRange:()=>({
+      selectNodeContents(){},
+      getClientRects:()=>[{top:620,bottom:644,left:100,right:500,
+        width:400,height:24}]
+    })
+  };
+  const browser={evaluate:async(_page,expression)=>new Function(
+    'document','NodeFilter','innerWidth','innerHeight',
+    'return '+expression)(document,{SHOW_TEXT:4},800,700)};
+  const hidden=await visibleTextOcclusion(browser,'page','#messages');
+  assert.equal(hidden.coveredTextLines,1);
+  assert.equal(hidden.bottomCoveredCssPixels,80);
+  overlaid=false;
+  const clear=await visibleTextOcclusion(browser,'page','#messages');
+  assert.equal(clear.coveredTextLines,0);
+  assert.equal(clear.bottomCoveredCssPixels,0);
 });
