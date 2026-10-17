@@ -104,7 +104,7 @@ test('publication produces GitHub Markdown, offline HTML, PDF and complete ZIP',
     assert.match(markdown, /Thinking/);
     const first = markdown.indexOf('## UTENTE');
     const image = markdown.indexOf('![immagine](media/001-test.png)');
-    const last = markdown.indexOf('## ASSISTENTE');
+    const last = markdown.indexOf('## ASSISTENTE\n');
     const file = markdown.indexOf('files/001-a.txt');
     assert.ok(first < image && image < last && last < file,
       'chronology must preserve generated image and attachment positions');
