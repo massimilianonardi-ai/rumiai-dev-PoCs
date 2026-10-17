@@ -39,6 +39,36 @@ export async function createPreview(folder, port=0) {
       }
       let relative=decodeURIComponent(url.pathname.slice(prefix.length));
       if(!relative || relative.endsWith('/'))relative+='index.html';
+      // The old review linked directly to raw page.html (whose stylesheet
+      // URLs still point at the original web origin) and to .mhtml, which
+      // browsers often download through desktop document portals under
+      // /run/user. Route visitors to the derived PoC-local styled preview.
+      if (relative.endsWith('/review.html')) {
+        const fixed = relative.slice(0, -'review.html'.length) +
+          'review-offline.html';
+        try {
+          await fs.access(path.join(root, fixed));
+          res.writeHead(302, {
+            'Location': prefix + fixed,
+            'Cache-Control': 'no-store'
+          });
+          res.end();
+          return;
+        } catch {
+          res.writeHead(409, { 'Content-Type':'text/plain; charset=utf-8' });
+          res.end('PoC offline view not yet prepared. Run: ' +
+            'python3 experiments/prepare-offline-views.py ' +
+            './experiments/evidence/<run-name>\n');
+          return;
+        }
+      }
+      if (relative.endsWith('/page.html') || relative.endsWith('.mhtml')) {
+        res.writeHead(409, { 'Content-Type':'text/plain; charset=utf-8' });
+        res.end('Raw HTML/MHTML is immutable evidence in the PoC, ' +
+          'not a standalone styled browser preview. ' +
+          'Open offline.html through review-offline.html instead.\n');
+        return;
+      }
       const parts=relative.split('/');
       if(parts.some(p=>p===''||p==='.'||p==='..'||p.startsWith('.'))) {
         res.writeHead(404);res.end('Not found');return;
@@ -57,7 +87,10 @@ export async function createPreview(folder, port=0) {
         'Cache-Control':'no-store',
         'X-Content-Type-Options':'nosniff',
         'Referrer-Policy':'no-referrer',
-        'Content-Security-Policy':"default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline';"
+        'Content-Security-Policy':"default-src 'none'; " +
+          "img-src 'self' data:; style-src 'self' 'unsafe-inline'; " +
+          "font-src 'self' data:; script-src 'none'; " +
+          "connect-src 'none'; form-action 'none'; frame-src 'none';"
       });
       res.end(content);
     }catch{res.writeHead(404);res.end('Not found');}
@@ -83,9 +116,9 @@ export async function main(args=process.argv.slice(2)){
   process.stdout.write('Archivio: '+preview.root+'\n');
   for(const [folder,title] of lines){
     try{
-      await fs.access(path.join(preview.root,folder,'review.html'));
-      process.stdout.write(title+': '+preview.origin+folder+'/review.html\n');
-    }catch{process.stdout.write(title+': review.html non disponibile\n');}
+      await fs.access(path.join(preview.root,folder,'review-offline.html'));
+      process.stdout.write(title+': '+preview.origin+folder+'/review-offline.html\n');
+    }catch{process.stdout.write(title+': review-offline.html non disponibile (prepare-offline-views.py)\n');}
   }
   process.stdout.write('Server locale in sola lettura. CTRL+C per chiudere.\n');
   await new Promise(resolve=>{
