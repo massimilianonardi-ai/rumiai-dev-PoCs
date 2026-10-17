@@ -38,7 +38,17 @@ mkdir -p "$output"
 printf '[OUTPUT] All persistent evidence: %s\n' "$output"
 runtime=$(mktemp -d "$output/.pwc-runtime.XXXXXXXX")
 pwc_pid=
-WEB_CONTROL_SOCKET="/tmp/rumiai-page-trial-$$.sock"
+# Redirect every tool-controlled temporary artifact into the PoC runtime.
+# XDG_RUNTIME_DIR is intentionally preserved: it belongs to the already
+# running desktop compositor, not to this capture/output pipeline.
+mkdir -p "$runtime/tmp" "$runtime/cache" "$runtime/config" "$runtime/data"
+export TMPDIR="$runtime/tmp"
+export XDG_CACHE_HOME="$runtime/cache"
+export XDG_CONFIG_HOME="$runtime/config"
+export XDG_DATA_HOME="$runtime/data"
+# Short-lived local control socket uses /tmp because a Unix socket pathname
+# cannot fit this checkout's deeply nested absolute path.
+WEB_CONTROL_SOCKET="/tmp/rumiai-page-trial-$.sock"
 
 cleanup()
 {
