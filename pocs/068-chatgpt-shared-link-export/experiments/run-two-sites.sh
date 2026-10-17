@@ -48,7 +48,9 @@ export XDG_CONFIG_HOME="$runtime/config"
 export XDG_DATA_HOME="$runtime/data"
 # Short-lived local control socket uses /tmp because a Unix socket pathname
 # cannot fit this checkout's deeply nested absolute path.
-WEB_CONTROL_SOCKET="/tmp/rumiai-page-trial-$.sock"
+socket_suffix=$(printf '%s\n' "$runtime" | cksum)
+socket_suffix=${socket_suffix%% *}
+WEB_CONTROL_SOCKET="/tmp/rumiai-page-trial-$socket_suffix.sock"
 
 cleanup()
 {
