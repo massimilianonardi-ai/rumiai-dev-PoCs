@@ -152,7 +152,9 @@ export async function visibleTextOcclusion(browser,page,selector)
     'const range=document.createRange();range.selectNodeContents(node);'+
     'for(const rect of range.getClientRects()){'+
     'if(rect.bottom<=top+20||rect.top>=bottom-5||'+
-    'rect.top<top||rect.left<r.left||rect.right>r.right||'+
+    'rect.top<top||'+
+    'rect.top<bottom-Math.min(240,(bottom-top)*.4)||'+
+    'rect.left<r.left||rect.right>r.right||'+
     'rect.width<12||rect.height<5)continue;'+
     'const x=Math.max(rect.left+1,Math.min(rect.right-1,'+
     '(rect.left+rect.right)/2));'+
@@ -177,12 +179,14 @@ async function move(browser,page,selector,top){
 export function replayStepSize(viewport,visibleHeight,coveredBottom=0)
 {
   const height=Math.min(viewport,visibleHeight);
-  const occlusion=Number.isFinite(coveredBottom)&&coveredBottom>0
-    ?Math.min(coveredBottom,height):0;
-  const available=height-occlusion;
-  if(!Number.isFinite(available)||available<80)
+  if(!Number.isFinite(height)||height<80)
     throw Error('replay.visible-scroll-extent-unavailable');
-  return Math.floor(available*.45);
+  // An occlusion hit-test can overestimate what the fixed UI covers.
+  // Record the warning, but never let it suppress an otherwise valid
+  // scrolling viewport (the live-05 Amazon/ChatGPT regression).
+  const occlusion=Number.isFinite(coveredBottom)&&coveredBottom>0
+    ?Math.min(coveredBottom,height*.35):0;
+  return Math.max(40,Math.floor((height-occlusion)*.45));
 }
 
 async function replayInput(browser,page,selector,sign,delta,target,inference)
