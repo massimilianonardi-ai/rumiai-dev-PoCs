@@ -144,6 +144,19 @@ export async function stabilizePosition(browser,page,selector,target,{
 async function focus(browser,page){
   await browser.cdp(page,'Page.bringToFront');
 }
+const styleSummaryExpression = `(() => {
+  const body=document.body||document.documentElement;
+  const css=body?getComputedStyle(body):null;
+  return {scheme:location.protocol, styles:document.styleSheets.length,
+    stylesheetLinks:document.querySelectorAll('link[rel~="stylesheet"]').length,
+    bodyFont:css?.fontFamily||null,
+    bodyColor:css?.color||null,
+    bodyBackground:css?.backgroundColor||null,
+    imagesLoaded:[...document.images].filter(image=>
+      image.complete&&image.naturalWidth>0).length,
+    imageCount:document.images.length,
+    textLength:body?.innerText?.length||0};
+})()`;
 async function screenshot(browser,page,filename){
   const r=await browser.cdp(page,'Page.captureScreenshot',
     {format:'png',fromSurface:true,captureBeyondViewport:false});
@@ -159,6 +172,7 @@ async function capture(browser,page,state,selector,expectedTop){
     attempts:5,delayMs:220,tolerance:12
   });
   const before=await geometry(browser,page,selector);
+  const liveStyles=await browser.evaluate(page,styleSummaryExpression);
   // The reference is the visible page BEFORE archiving or changing tabs.
   await screenshot(browser,page,path.join(state,'original.png'));
   const afterScreenshot=await geometry(browser,page,selector);
@@ -175,7 +189,7 @@ async function capture(browser,page,state,selector,expectedTop){
   const after=await geometry(browser,page,selector);
   const original=await fs.readFile(path.join(state,'page.mhtml'),'utf8');
   const result={positionBeforeFocus,expectedTop,focusAlignment:alignment,
-    before,afterScreenshot,after,
+    liveStyles,before,afterScreenshot,after,
     screenshotStable:!!before&&!!afterScreenshot&&
       before.top===afterScreenshot.top,
     nativeCaptureScrollDrift:!!before&&!!after&&after.top!==before.top,
@@ -212,10 +226,7 @@ async function reopen(browser,state,selector,originalGeometry){
       attempts:4,delayMs:220,tolerance:12
     });
     await screenshot(browser,page,path.join(state,'reopened.png'));
-    const inspected=await browser.evaluate(page,
-      '({scheme:location.protocol,styles:document.styleSheets.length,'+
-      'images:[...document.images].map(x=>x.complete&&x.naturalWidth>0),' +
-      'textLength:document.body?.innerText?.length||0})');
+    const inspected=await browser.evaluate(page,styleSummaryExpression);
     return {success:true,positionAligned:alignment.ok,
       networkIsolationVerified:false,
       originalGeometry,restoredGeometry:alignment.position||restored,
