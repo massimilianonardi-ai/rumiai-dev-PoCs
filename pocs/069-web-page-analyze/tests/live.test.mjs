@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {interpret, stabilizePosition, archiveScrollTarget} from '../live.mjs';
+import {interpret, stabilizePosition, archiveScrollTarget, replayStepSize} from '../live.mjs';
 
 function entry(n,kind,direction,top,max=900) {
   return {n,kind,selector:'#messages',direction,top,max,viewport:300};
@@ -97,4 +97,15 @@ test('unreachable original position in reopened MHTML is flagged as incomplete',
     {top:0,max:26712,viewport:900});
   assert.equal(offset.target,26712);
   assert.equal(offset.clamped,true);
+});
+
+test('replay stride is less than half the actual visible inner scroll box',()=>
+{
+  assert.equal(replayStepSize(1000,1000),450);
+  assert.equal(replayStepSize(1000,620),279);
+  assert.ok(replayStepSize(800,500)<500);
+});
+test('invalid visible viewport never claims continuous coverage',()=>
+{
+  assert.throws(()=>replayStepSize(900,0),/replay.visible-scroll-extent-unavailable/);
 });
