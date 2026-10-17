@@ -323,6 +323,52 @@ async function replay(browser,page,plan,folder){
       x.kind==='scroll'?x.complete:x.status==='executed')};
 }
 
+async function captureOverall(browser,page,folder,states){
+  // This is one native MHTML of the final, already explored live DOM.
+  // It may not include earlier virtualized/discarded nodes; no merge is
+  // attempted and no false claim of whole-session completeness is made.
+  const overall=path.join(folder,'overall');
+  await fs.mkdir(overall,{mode:0o700});
+  await focus(browser,page);
+  const observed=await browser.evaluate(page,
+    '({title:document.title,textLength:document.body?.innerText?.length||0,'+
+    'elementCount:document.querySelectorAll("*").length,'+
+    'stylesheetCount:document.styleSheets.length,'+
+    'imageCount:document.images.length})');
+  const native=await browser.cmd('page','capture',page,overall,'mhtml');
+  if(path.resolve(native.files?.mhtml||'')!==path.join(overall,'page.mhtml'))
+    throw Error('overall.native-mhtml-path-escaped');
+  const data=await fs.readFile(path.join(overall,'page.mhtml'),'utf8');
+  const metadata={
+    kind:'native-final-dom-mhtml',
+    file:'overall/page.mhtml',
+    sourceState:'live replay after final observed action',
+    capturedCheckpoints:states.length,
+    virtualizedContentMayBeAbsent:true,
+    completeAcrossAllObservedStates:false,
+    observed,bytes:Buffer.byteLength(data),
+    cssParts:(data.match(/content-type:\s*text\/css/gi)||[]).length,
+    unexpectedLocalReferences:/content-location:\s*file:/i.test(data)
+  };
+  await save(path.join(overall,'manifest.json'),metadata);
+  return metadata;
+}
+async function showOverall(browser,folder,ask){
+  const filename=path.join(folder,'overall','page.mhtml');
+  let opened=null;
+  try{
+    opened=(await browser.cmd('page','new')).id;
+    await browser.cmd('page','navigate',opened,pathToFileURL(filename).href);
+    await focus(browser,opened);
+    process.stdout.write('[MHTML] Archivio nativo dello stato finale aperto in Chromium\n');
+    await ask('Esamina l’MHTML complessivo candidato, poi premi INVIO: ');
+    return {opened:true,file:'overall/page.mhtml'};
+  }catch(e){
+    return {opened:false,error:errorText(e),file:'overall/page.mhtml'};
+  }finally{
+    if(opened)await browser.cmd('page','close',opened).catch(()=>{});
+  }
+}
 function comparison(site,states){
   const sections=states.map(x=>'<section><h2>'+x.index+' — '+x.label+
     '</h2><p>Chromium online a sinistra; MHTML originale riaperto offline a destra.</p>'+
@@ -369,6 +415,10 @@ async function siteRun(browser,site,output,ask,observer){
     await browser.cmd('page','navigate',replayPage,site.url);
     await sleep(1800);
     report.replay=await replay(browser,replayPage,plan,path.join(folder,'states'));
+    // Preserve a separate native final-page archive in addition to the
+    // individual chronological viewport checkpoints.
+    report.overall=await captureOverall(browser,replayPage,folder,
+      report.replay.states);
     await write(path.join(folder,'comparison.html'),
       comparison(site.name,report.replay.states));
     report.complete=report.replay.complete&&report.replay.states.every(x=>
@@ -389,6 +439,7 @@ async function siteRun(browser,site,output,ask,observer){
     }finally{
       if(reviewPage)await browser.cmd('page','close',reviewPage).catch(()=>{});
     }
+    report.overallReview=await showOverall(browser,folder,ask);
   }catch(e){report.error=errorText(e);}
   finally{
     if(page)await browser.cmd('page','close',page).catch(()=>{});
