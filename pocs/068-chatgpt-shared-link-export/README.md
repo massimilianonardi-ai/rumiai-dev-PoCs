@@ -97,9 +97,14 @@ logged as unreplayable; full visual/content fidelity remains unaccepted.
 See 'experiments/README.md' for the one-command interactive VM trial,
 privacy restrictions and review criteria. All persistent output is enforced
 under this PoC's 'experiments/evidence/', regardless of the invoking current
-directory; external/HOME/'/run/user' destinations are rejected. Use a fresh
-run name such as 'two-sites-02' after the rejected first run; previous evidence
-is never overwritten. To view the results without browser document-portal
+directory; external/HOME/'/run/user' destinations are rejected. The physical
+'two-sites-03' trial acquired all four formats but exposed two issues: Amazon
+showed visible scroll jumps during a monotone scan, and ChatGPT's automatic
+replay started at the internal scroll position 15553, omitting the beginning.
+The revised PoC uses CDP viewport screenshots instead of full-page screenshots
+and resets replay containers to top before scanning, while monitoring backward
+drift. The revised physical result is still pending. Use a fresh run directory
+such as 'two-sites-04'; previous evidence remains immutable. To view the results without browser document-portal
 '/run/user' aliases, run the included read-only localhost viewer
 'experiments/serve-evidence.mjs' on the PoC's real evidence directory.
 Evidence is gitignored and must not be committed by default.
