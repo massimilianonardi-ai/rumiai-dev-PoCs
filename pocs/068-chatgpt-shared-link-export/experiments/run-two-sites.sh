@@ -161,4 +161,22 @@ printf '%s\n' '[PWC_READY] Browser and controller are responding'
 printf '%s\n' '[RUN] First Amazon Wishlist, then ChatGPT shared conversation'
 printf '%s\n' '[RUN] Use the visible Chromium window; return to this terminal and press Enter after each demonstration.'
 cd "$project_dir"
-node experiments/two-site-observation.mjs "$output"
+
+# Even an intentionally incomplete replay can produce usable immutable MHTML
+# evidence. Always derive the static styled views after the acquisition
+# process, preserving the original exit status and native captures.
+trial_status=0
+node experiments/two-site-observation.mjs "$output" || trial_status=$?
+printf '%s\n' '[OFFLINE] Building PoC-local HTML/CSS/assets from existing MHTML'
+if python3 experiments/prepare-offline-views.py "$output"
+then
+  printf '%s\n' '[OFFLINE] Derived views ready'
+else
+  printf '%s\n' 'trial.offline-view-preparation-failed: inspect PoC reports' >&2
+  if [ "$trial_status" -eq 0 ]
+  then
+    trial_status=6
+  fi
+fi
+printf '[VIEW] Start: node experiments/serve-evidence.mjs ./experiments/evidence/%s\n' "$run_name"
+exit "$trial_status"
