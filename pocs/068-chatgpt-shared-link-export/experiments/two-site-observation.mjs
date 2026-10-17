@@ -63,6 +63,7 @@ export function consolidateActions(events) {
 // Click replay is limited to native summary/expandable buttons.
 const observerScript = String.raw`
 (() => {
+  if (window !== window.top) return; // Do not instrument unrelated frame origins.
   if (window.__rumiaiTrialInstalled) return;
   window.__rumiaiTrialInstalled = true;
   function cssPath(element) {
