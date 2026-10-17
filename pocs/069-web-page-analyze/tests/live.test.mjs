@@ -37,7 +37,7 @@ test('keyboard or scroll-bar changes are learned without wheel events',()=>{
     entry(4,'scroll',null,350)
   ]);
   assert.deepEqual(p.actions.map(a=>a.direction),['down','up']);
-  assert.equal(p.inference,'scroll-deltas-only');
+  assert.equal(p.inference,'scroll-deltas');
 });
 test('disclosure boundaries remain ordered',()=>{
   const p=interpret([
