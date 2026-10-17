@@ -387,6 +387,7 @@ async function replay(browser,page,plan,folder){
     }
     outcomes.push({kind:'scroll',direction:action.direction,
       target:action.target,steps,complete,error:phaseError});
+    if(phaseError) break; // A failed directional phase invalidates subsequent intents.
   }
   } catch(e) {
     executionError=errorText(e);
