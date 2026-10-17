@@ -253,9 +253,11 @@ def render_state(folder):
         "htmlInlineStyleTags": archive.inline_styles,
         "missingStylesheets": missing_css,
         "missingResourceCount": len(archive.missing),
-        "offlineCssComplete": not missing_css and
-                              (archive.inline_styles > 0 or
-                               archive.stylesheet_references > 0),
+        "offlineCssComplete": (
+            not missing_css and (
+                archive.inline_styles > 0 or archive.stylesheet_references > 0
+            )
+        ),
         "visualFidelityVerified": False,
         "originalMhtmlPreserved": True,
         "notice": "Derived script-free HTML; compare to recorded page.png. Not a pixel-perfect reconstruction."
