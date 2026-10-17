@@ -67,6 +67,8 @@ class Archive:
         if not urlsplit(self.origin).scheme:
             self.origin = "https://archived.invalid/"
         self.files = {}
+        self.stylesheet_references = 0
+        self.inline_styles = 0
         self.missing = []
         self.resources = {}
         for location, (ct, payload) in self.parts.items():
@@ -79,24 +81,24 @@ class Archive:
             filename = hashlib.sha256(resolved.encode()).hexdigest()[:20] + suffix
             self.resources[resolved] = (ct, payload, filename)
 
-    def resolve(self, value, base, kind="resource"):
+    def resolve(self, value, base, kind="resource", asset_prefix="offline-assets/"):
         value = str(value or "").strip()
         if value.startswith(("data:", "#")):
             return value
         full = normalized(value, base)
         if full in self.resources:
-            return "offline-assets/" + self.resources[full][2]
+            return asset_prefix + self.resources[full][2]
         self.missing.append({"type": kind, "url": full[:600]})
         return "about:blank"
 
-    def css(self, css, base):
+    def css(self, css, base, asset_prefix="offline-assets/"):
         def replace_url(match):
             value = match.group(2)
-            return "url(" + json.dumps(self.resolve(value, base, "css-resource")) + ")"
+            return "url(" + json.dumps(self.resolve(value, base, "css-resource", asset_prefix)) + ")"
         content = URL_PATTERN.sub(replace_url, css)
         def replace_import(match):
             value = match.group(2)
-            return '@import "' + self.resolve(value, base, "css-import") + '"'
+            return '@import "' + self.resolve(value, base, "css-import", asset_prefix) + '"'
         return IMPORT_PATTERN.sub(replace_import, content)
 
     def write_resources(self, dest):
@@ -104,7 +106,8 @@ class Archive:
         folder.mkdir(mode=0o700, exist_ok=False)
         for url, (ct, payload, name) in self.resources.items():
             if ct == "text/css":
-                payload = self.css(payload.decode("utf-8", errors="replace"), url).encode()
+                payload = self.css(payload.decode("utf-8", errors="replace"), url,
+                                   asset_prefix="").encode()
             (folder / name).write_bytes(payload)
         return folder
 
@@ -142,6 +145,7 @@ class StaticHTML(HTMLParser):
                 value = self.archive.css(value, self.archive.origin)
             elif tag == "link" and key == "href":
                 if "stylesheet" in (original.get("rel") or "").lower():
+                    self.archive.stylesheet_references += 1
                     value = self.archive.resolve(value, self.archive.origin, "stylesheet")
                 else:
                     continue  # Ignore prefetch, favicon, manifest and preload links.
@@ -169,6 +173,7 @@ class StaticHTML(HTMLParser):
         self.output.append("<" + tag + values + ">")
         if tag == "style":
             self.in_style = True
+            self.archive.inline_styles += 1
 
     def handle_startendtag(self, tag, attrs):
         self.handle_starttag(tag, attrs)
@@ -234,9 +239,13 @@ def render_state(folder):
         "archivedUsableResources": len(archive.resources),
         "archivedStylesheets": sum(1 for ct, _, _ in archive.resources.values()
                                     if ct == "text/css"),
+        "htmlStylesheetLinks": archive.stylesheet_references,
+        "htmlInlineStyleTags": archive.inline_styles,
         "missingStylesheets": missing_css,
         "missingResourceCount": len(archive.missing),
-        "offlineCssComplete": not missing_css,
+        "offlineCssComplete": not missing_css and
+                              (archive.inline_styles > 0 or
+                               archive.stylesheet_references > 0),
         "visualFidelityVerified": False,
         "originalMhtmlPreserved": True,
         "notice": "Derived script-free HTML; compare to recorded page.png. Not a pixel-perfect reconstruction."
