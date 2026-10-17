@@ -1,2 +1,4 @@
 node_modules/
 archive/
+# Browser trial evidence may include private rendered site/account data.
+experiments/evidence/
