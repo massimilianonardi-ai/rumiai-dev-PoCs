@@ -88,9 +88,12 @@ portal, and the PoC never launches a file chooser to open evidence.
 ### During the run
 
 1. **Amazon wishlist** opens in the visible Chromium window.
-2. Manually explore the content, scrolling **in whichever direction you need**
+2. Before manual scrolling begins, the PoC saves the original visible
+   viewport. Then explore the content **in whichever direction you need**
    (including down to the bottom then up to the beginning), expanding safe
-   sections if relevant. When finished, press **Enter in the terminal**.
+   sections if relevant. While you scroll, it passively captures additional
+   PNGs and activity/message signatures under `manual/`, without steering
+   the page or taking focus. When finished, press **Enter in the terminal**.
 3. The PoC saves the observed raw wheel/scroll/disclosure events in
    `events.json` and derives an ordered `plan.json`. Wheel direction is
    respected; the plan is **not** replaced with a hard-coded forward scan.
@@ -126,8 +129,14 @@ All persistent files are underneath this checkout, for example:
 
 ```text
 pocs/069-web-page-analyze/
-  evidence/live-03/
+  evidence/live-06/   # illustrative new name, only if unused
     amazon-wishlist/
+      manual/
+        manual.html           source browser screenshot gallery
+        manifest.json         role signatures and network event status
+        0000.png              first human-visible screenshot
+        0000.json             message hash and scroll diagnostics
+        ...
       events.json
       plan.json
       report.json
