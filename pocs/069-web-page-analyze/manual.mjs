@@ -89,6 +89,35 @@ export function shouldSampleCapture({initial=false,changed=false,
     return {capture:true,settled:false,reason:'active-progress'};
   return {capture:false};
 }
+// Replay readiness is bounded and evidence-based: a stable DOM/layout window,
+// not the unsupported claim that a SPA can never start loading again.
+export async function waitForObservedStability(browser,page,
+  {quietMs=650,timeoutMs=5000,pollMs=250}={}){
+  const start=Date.now();
+  let changesAt=start,lastKey=null,observations=0,last=null;
+  while(Date.now()-start<timeoutMs){
+    const sample=await browser.evaluate(page,
+      'window.__rumiaiLiveObservation.sample()');
+    if(!sample)return {settled:false,reason:'observer-unavailable',
+      observations};
+    observations++;
+    last=sample;
+    const key=stateKey(sample);
+    if(key!==lastKey){lastKey=key;changesAt=Date.now();}
+    if(observations>=2&&Date.now()-changesAt>=quietMs&&
+       sample.incompleteImages===0&&sample.fontStatus!=='loading'){
+      return {settled:true,reason:'dom-and-resources-quiet',
+        observations,elapsedMs:Date.now()-start,
+        networkQuiescenceVerified:false,
+        scroll:sample.scroll};
+    }
+    await sleep(pollMs);
+  }
+  return {settled:false,reason:'dom-stability-timeout',
+    observations,elapsedMs:Date.now()-start,
+    networkQuiescenceVerified:false,
+    scroll:last?.scroll||null};
+}
 function stateKey(sample){
   const geometry=sample.scroll||{};
   const identities=(sample.messages||[]).map(m=>
