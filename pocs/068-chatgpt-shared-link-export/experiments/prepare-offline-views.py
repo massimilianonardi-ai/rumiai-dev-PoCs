@@ -140,7 +140,10 @@ class StaticHTML(HTMLParser):
         if tag == "base":
             return
         original = dict(attrs)
-        if tag == "meta" and original.get("http-equiv", "").lower() == "refresh":
+        if tag == "meta" and original.get("http-equiv", "").lower() in (
+                "refresh", "content-security-policy", "set-cookie"):
+            # The archive viewer supplies its own strict local CSP. A
+            # source-origin CSP could prohibit locally archived stylesheets.
             return
         if tag in ("iframe", "object", "embed"):
             self.output.append('<span data-offline-unavailable="embedded-frame">[Embedded frame not archived]</span>')
