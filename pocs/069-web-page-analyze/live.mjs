@@ -310,7 +310,7 @@ async function replay(browser,page,plan,folder){
       }
       outcomes.push({kind:'disclosure',status});continue;
     }
-    let steps=0,stable=0,complete=false;
+    let steps=0,stable=0,complete=false,phaseError=null;
     const sign=action.direction==='down'?1:-1;
     while(steps<100){
       const before=await geometry(browser,page,plan.selector);
@@ -337,11 +337,11 @@ async function replay(browser,page,plan,folder){
       // direction, measure the disturbance, and retry a bounded number of
       // directional steps. Do not count an uncorrected shift as coverage.
       let recovery=0;
-      const reversed=position=>sign>0
-        ? position.top<before.top-4 : position.top>before.top+4;
-      if(reversed(after)){
+      const progressed=position=>sign>0
+        ? position.top>before.top+3 : position.top<before.top-3;
+      if(!progressed(after)){
         const unexpected=after.top;
-        while(reversed(after)&&recovery<4){
+        while(!progressed(after)&&recovery<4){
           recovery++;
           const now=await geometry(browser,page,plan.selector);
           if(!now)throw Error('replay.container-lost-during-drift-recovery');
@@ -356,7 +356,7 @@ async function replay(browser,page,plan,folder){
           after=await geometry(browser,page,plan.selector);
           if(!after)throw Error('replay.geometry-lost-during-drift-recovery');
         }
-        const recovered=!reversed(after);
+        const recovered=progressed(after);
         disturbances.push({phase:i,direction:action.direction,
           from:before.top,requested:top,unexpected,retries:recovery,
           result:after.top,recovered});
@@ -364,9 +364,7 @@ async function replay(browser,page,plan,folder){
           ' from='+before.top+' unexpected='+unexpected+
           ' recovered='+recovered+' result='+after.top+'\n');
         if(!recovered){
-          outcomes.push({kind:'scroll',direction:action.direction,
-            target:action.target,steps,complete:false,
-            error:'replay.opposite-direction-after-recovery'});
+          phaseError='replay.directional-progress-not-restored';
           break;
         }
       }
@@ -376,7 +374,7 @@ async function replay(browser,page,plan,folder){
       process.stdout.write('  '+action.direction+' '+before.top+' → '+after.top+'\n');
     }
     outcomes.push({kind:'scroll',direction:action.direction,
-      target:action.target,steps,complete});
+      target:action.target,steps,complete,error:phaseError});
   }
   } catch(e) {
     executionError=errorText(e);
