@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { replayableAction, consolidateActions, main } from '../experiments/two-site-observation.mjs';
+import { replayableAction, consolidateActions, resetReplayToStart, main } from '../experiments/two-site-observation.mjs';
 
 test('trial replay permits scroll and explicit disclosure controls only', () => {
   assert.equal(replayableAction({kind:'scroll',selector:'html',top:0}), true);
@@ -44,6 +44,43 @@ test('prefer scrollable inner container observed to move further than document',
   ]);
   assert.equal(actions[0].kind,'forward-scan');
   assert.equal(actions[0].selector,'main > div:nth-of-type(2)');
+});
+
+test('replay resets both document and selected scroll container before first checkpoint', async () => {
+  let source = '';
+  const client = {
+    async cdp(_page, method, params) {
+      assert.equal(method, 'Runtime.evaluate');
+      source = params.expression;
+      return { result: { value: { found: true, documentTop: 0,
+        containerTop: 0 } } };
+    },
+    async call() {
+      return { scrollY: 0, documentHeight: 8000,
+        viewportHeight: 1000, atBottom: false };
+    }
+  };
+  const result = await resetReplayToStart(client, 'page-1', 'html');
+  assert.equal(result.atStart, true);
+  assert.equal(result.observedTop, 0);
+  assert.match(source, /scrollTo/);
+  assert.match(source, /behavior:"instant"/);
+});
+
+test('replay refuses to consider an automatically restored midpage scroll as top', async () => {
+  const client = {
+    async cdp() {
+      return { result: { value: { found: true, documentTop: 0,
+        containerTop: 0 } } };
+    },
+    async call() {
+      return { scrollY: 15553, documentHeight: 30000,
+        viewportHeight: 1000, atBottom: false };
+    }
+  };
+  const result = await resetReplayToStart(client, 'page-2', 'html');
+  assert.equal(result.atStart, false);
+  assert.equal(result.observedTop, 15553);
 });
 
 test('rejects /run/user and every other output outside the PoC before contacting browser', async () => {
