@@ -66,6 +66,53 @@ reopening, relative-folder complete HTML export, or pixel-level equivalence.
 The run produced no validated native **Save Page Complete HTML** or
 pixel-fidelity comparison. This is early research evidence, not full acceptance.
 
+## Native Chromium MHTML offline acceptance (2026-10-17)
+
+A separate, bounded **end-to-end browser acceptance test** is now available:
+`tests/test_native_offline.py`. It does **not** convert or rewrite resources.
+The test:
+
+1. serves the real four-file fixture over a loopback HTTP server;
+2. navigates with Chromium to the real `index.html` URL, checks the external
+   stylesheet and SVG have actually loaded, and records a viewport screenshot;
+3. saves the **unmodified CDP MHTML** inside a disposable subdirectory of this
+   PoC's `evidence/` and checks that it contains the actual `text/css` and
+   `image/svg+xml` MIME parts;
+4. opens that saved MHTML as a `file://` document in a new Chromium page,
+   with external HTTP(S) traffic explicitly blocked;
+5. verifies the restored computed stylesheet, SVG image, heading, item count,
+   and a screenshot comparison (up to 3% materially different pixels).
+
+It also checks the MHTML does not contain a desktop portal path and keeps
+`dom.html` distinct as **unbundled DOM serialization**.
+
+The hosted assistant's Chromium 144 **refused local HTTP navigation** with
+`net::ERR_BLOCKED_BY_ADMINISTRATOR`, even though a normal Python HTTP client
+successfully retrieved `index.html`, `style.css`, `mark.svg` and
+`fixture.js` with HTTP 200. Therefore this environment has **not** passed
+the new complete offline acceptance; the refusal is recorded as a genuine
+environment blocker, not turned into a mocked pass.
+
+A PoC-scoped GitHub Actions workflow
+[`poc-069-web-page-analyze.yml`](../../.github/workflows/poc-069-web-page-analyze.yml)
+runs the actual Python browser tests on a Linux runner, installing Chromium
+through Playwright. The workflow is not claimed green until its job result is
+independently checked. No private Amazon/ChatGPT URLs or data are used in it.
+
+When running the same acceptance directly from this PoC checkout on a host
+with Chromium and Python `playwright`/Pillow:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p test_native_offline.py -v
+```
+
+This is a **test**, not the general exporter. The MHTML data and screenshots
+exist only in a temporary folder **under this PoC's `evidence/`** and are
+removed after the test. There is no external output location, browser-opening
+portal dependency, postprocessing converter, or false declaration of a native
+Chromium **Save Page Complete HTML** result. That distinct browser feature
+remains untested.
+
 ## Two independent problems
 
 ### 1. Record and understand the demonstration
