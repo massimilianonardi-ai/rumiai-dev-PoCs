@@ -363,7 +363,7 @@ function mediaFiles(assets) {
   return { files, manifest, byPointer };
 }
 
-function markdownMessage(item, mediaByPointer, sandboxByUri) {
+export function markdownMessage(item, mediaByPointer, sandboxByUri) {
   const parts = item.message?.content?.parts;
   if (!Array.isArray(parts)) return item.text ||
     '[contenuto non testuale; vedi VISIBLE_MESSAGES.jsonl]';
