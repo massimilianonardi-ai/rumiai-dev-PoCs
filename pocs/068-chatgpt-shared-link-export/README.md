@@ -78,13 +78,15 @@ See 'docs/chatgpt-extract.md' for the exact contract and limitations.
 A separate generic-browser experiment is available under
 'experiments/two-site-observation.mjs'. It targets **exactly** the two
 user-selected URLs (Amazon Wishlist 33ZKBWLPZJJVO and ChatGPT share
-6ad1c0f5-7110-83eb-bc19-356d48fc1259), through an existing visible PWC
+6ad1c0d5-49ec-83eb-a79b-85b04b938835), through an existing visible PWC
 controller with web-control 3. The original shared-link exporter and
 historical failed publication evidence are deliberately unchanged.
 
 This experiment uses manual observation of trusted clicks, scroll containers
-and expansion controls, then attempts a **bounded replay** on a newly
-navigated page. Each successful replay checkpoint saves Chromium MHTML,
+and expansion controls, then attempts a **monotone, forward-only replay** on a newly
+navigated page. The recorded manual up/down scroll coordinates are **not**
+replayed verbatim: the scroll container is learned and scanning follows the
+stable-bottom viewport-stepping method already used by amazon-wishlist-extract. Each successful replay checkpoint saves Chromium MHTML,
 current HTML, screenshot, and CDP DOMSnapshot/CSS evidence. A static
 'review.html' is a navigable state collage, while 'site-analysis.json'
 contains preliminary structural measurements for developing specialized
@@ -93,9 +95,14 @@ reconstruction or a specialized site exporter. Unsupported actions are
 logged as unreplayable; full visual/content fidelity remains unaccepted.
 
 See 'experiments/README.md' for the one-command interactive VM trial,
-privacy restrictions and review criteria. Save raw evidence under an explicit
-private project directory, such as './experiments/evidence/two-sites-01';
-this output directory is gitignored and must not be committed by default.
+privacy restrictions and review criteria. All persistent output is enforced
+under this PoC's 'experiments/evidence/', regardless of the invoking current
+directory; external/HOME/'/run/user' destinations are rejected. Use a fresh
+run name such as 'two-sites-02' after the rejected first run; previous evidence
+is never overwritten. To view the results without browser document-portal
+'/run/user' aliases, run the included read-only localhost viewer
+'experiments/serve-evidence.mjs' on the PoC's real evidence directory.
+Evidence is gitignored and must not be committed by default.
 
 ## Chronological publication correction
 
