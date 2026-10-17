@@ -161,7 +161,9 @@ async function inspectState(browser,page,folder,selector,label,states){
   const offline=await reopen(browser,state);
   await save(path.join(state,'offline.json'),offline);
   states.push({index,label,stable:captureResult.stable,
-    cssParts:captureResult.archivedCssParts,offline:offline.success});
+    cssParts:captureResult.archivedCssParts,
+    unexpectedLocalReferences:captureResult.unexpectedLocalReferences,
+    offline:offline.success});
 }
 async function replay(browser,page,plan,folder){
   await fs.mkdir(folder,{mode:0o700});
@@ -288,7 +290,7 @@ async function siteRun(browser,site,output,ask,observer){
     await write(path.join(folder,'comparison.html'),
       comparison(site.name,report.replay.states));
     report.complete=report.replay.complete&&report.replay.states.every(x=>
-      x.offline&&x.stable);
+      x.offline&&x.stable&&!x.unexpectedLocalReferences);
     // Open the comparison through Chromium itself, navigating directly to
     // the PoC-owned file URL. Do not launch a desktop file opener/portal.
     let reviewPage=null;
