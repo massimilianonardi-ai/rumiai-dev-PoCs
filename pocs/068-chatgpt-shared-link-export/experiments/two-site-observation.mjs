@@ -615,9 +615,26 @@ export async function main(args = process.argv.slice(2), client = new WebControl
     process.stderr.write('usage: node experiments/two-site-observation.mjs <explicit-project-output-dir>\n');
     return 2;
   }
+  // No output path, metadata reference or browser evidence may be placed
+  // outside the PoC. In particular do not follow a desktop file portal under
+  // /run/user or use a caller's HOME as a destination.
+  const project = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
+  const evidenceRoot = path.join(project, 'experiments', 'evidence');
   const output = path.resolve(args[0]);
-  await fs.mkdir(output, { recursive: true, mode: 0o700 });
+  if (path.dirname(output) !== evidenceRoot) {
+    process.stderr.write('observation.output-must-be-in-poc: ' +
+      evidenceRoot + '/<new-run-name>\\n');
+    return 2;
+  }
+  await fs.mkdir(evidenceRoot, { recursive:true, mode:0o700 });
+  const realRoot = await fs.realpath(evidenceRoot);
+  if (realRoot !== evidenceRoot) {
+    process.stderr.write('observation.symlinked-evidence-root-not-allowed\\n');
+    return 2;
+  }
+  await fs.mkdir(output, { recursive:true, mode:0o700 });
   process.umask(0o077);
+  process.stdout.write('[OUTPUT] ' + output + '\n');
   const status = await client.call('status');
   process.stdout.write('Provider status: ' +
     JSON.stringify({ browserRunning: status.browserRunning,
@@ -645,6 +662,8 @@ export async function main(args = process.argv.slice(2), client = new WebControl
           total: result.replay.total, executed: result.replay.executed,
           skipped: result.replay.skipped } : null });
       process.stdout.write('RESULT ' + JSON.stringify(results.at(-1)) + '\n');
+      process.stdout.write('[FILES] ' + path.join(folder,'report.json') + '\n');
+      process.stdout.write('[VIEW]  ' + path.join(folder,'review.html') + '\n');
     }
   } finally {
     readline.close();
