@@ -193,8 +193,13 @@ async function captureState(client, page, folder, label) {
   for (const format of ['html', 'mhtml', 'screenshot']) {
     try {
       const info = await client.call('page', 'capture', page, folder, format);
+      const reported = path.resolve(info.files?.[format] || '');
+      const expected = path.resolve(folder, format === 'screenshot'
+        ? 'page.png' : 'page.' + format);
+      if (reported !== expected)
+        throw new Error('capture.provider-path-outside-poc');
       checks.push({ format, status: 'captured',
-        file: path.basename(info.files[format]) });
+        file: path.basename(expected) });
     } catch (error) {
       checks.push({ format, status: 'error', diagnostic: errorId(error) });
     }
