@@ -134,10 +134,14 @@ The updated `live.mjs` now:
   of aborting on the first displaced offset; continues retaining labelled
   partial checkpoints/comparisons when subsequent replay fails;
 - saves `overall/page.mhtml` from the final DOM **without rewriting** and
-  opens it in Chromium after the screenshot comparison.
+  opens it in Chromium after the screenshot comparison. During both individual
+  MHTML comparisons and final-MHTML inspection, a persistent CDP session
+  **blocks HTTP and HTTPS requests**, preventing missing resources from being
+  silently fetched from the source website.
 
-The capture report prints `[STATO]` with original position, position after
-native archival, restore success, and offline-viewport alignment. These
+The capture report prints `[STATO]` with the intended position, before-focus
+position, screenshot position, position after native archival, restoration
+status, and offline-viewport alignment. These
 diagnostics distinguish an actual source-page jump from a screenshot whose
 reopened counterpart is merely at the wrong scroll offset.
 
