@@ -176,6 +176,26 @@ with `sh view.sh live-04`: no new browser replay or MHTML modification is
 needed. This change addresses **collage presentation loss only**, not absent
 source captures or the independently observed live/MHTML offset.
 
+### Current priority: missing captured conversation, not collage overlap
+
+The user's latest inspection confirms **all overlaps in the conservative
+montage look correct**, but **large portions of the conversation are
+missing near the beginning and between the first two tiles**. Do not
+modify tile cut positions as a substitute for missing acquisition.
+`live-04` stopped near `scrollTop=12999` and never reached zero;
+ChatGPT also shifted its virtualized content during a reverse scroll.
+These findings establish incomplete capture, not the exact amount or
+identity of lost text. The first two displayed tiles may be adjacent in
+scroll coordinates without containing adjacent chat text.
+
+The changes to native-wheel replay, smaller overlapping scroll steps,
+anchor-based seam diagnostics, and occlusion handling were committed
+**after** `live-04` and are still not validated on the user's VM. The
+next relevant check is a new unused acquisition (e.g. `live-05`),
+not repeated regenerations of `live-04` collage. It must physically
+reach the conversation beginning and demonstrate text continuity before
+the ChatGPT export can be accepted.
+
 ### Residual defects after conservative montage
 
 The user reviewed the conservative collage of the pre-existing `live-04`
