@@ -285,7 +285,7 @@ async function replay(browser,page,plan,folder){
   });
   process.stdout.write('[ALLINEAMENTO] start='+Math.round(start)+
     ' reached='+alignment.position?.top+' stable='+alignment.ok+'\n');
-  const states=[],outcomes=[];
+  const states=[],outcomes=[],disturbances=[];
   let executionError=null;
   try {
   await inspectState(browser,page,folder,plan.selector,'observed-start',states);
@@ -330,11 +330,46 @@ async function replay(browser,page,plan,folder){
         Math.max(destination,before.top-delta);
       await move(browser,page,plan.selector,top);
       await sleep(650);
-      const after=await geometry(browser,page,plan.selector);
+      let after=await geometry(browser,page,plan.selector);
       if(!after)throw Error('replay.geometry-lost');
-      if(sign>0&&after.top<before.top-4||
-         sign<0&&after.top>before.top+4)
-        throw Error('replay.opposite-direction');
+      // On dynamic pages, newly mounted/unmounted content can move
+      // scrollTop *against* our requested direction. Keep the demonstrated
+      // direction, measure the disturbance, and retry a bounded number of
+      // directional steps. Do not count an uncorrected shift as coverage.
+      let recovery=0;
+      const reversed=position=>sign>0
+        ? position.top<before.top-4 : position.top>before.top+4;
+      if(reversed(after)){
+        const unexpected=after.top;
+        while(reversed(after)&&recovery<4){
+          recovery++;
+          const now=await geometry(browser,page,plan.selector);
+          if(!now)throw Error('replay.container-lost-during-drift-recovery');
+          const updatedEnd=action.target==='top'?0:
+            action.target==='bottom'?now.max:
+            action.max?Math.round(action.to/action.max*now.max):action.to;
+          const retryTarget=sign>0
+            ? Math.min(updatedEnd,now.top+delta)
+            : Math.max(updatedEnd,now.top-delta);
+          await move(browser,page,plan.selector,retryTarget);
+          await sleep(650);
+          after=await geometry(browser,page,plan.selector);
+          if(!after)throw Error('replay.geometry-lost-during-drift-recovery');
+        }
+        const recovered=!reversed(after);
+        disturbances.push({phase:i,direction:action.direction,
+          from:before.top,requested:top,unexpected,retries:recovery,
+          result:after.top,recovered});
+        process.stdout.write('  [DRIFT] '+action.direction+
+          ' from='+before.top+' unexpected='+unexpected+
+          ' recovered='+recovered+' result='+after.top+'\n');
+        if(!recovered){
+          outcomes.push({kind:'scroll',direction:action.direction,
+            target:action.target,steps,complete:false,
+            error:'replay.opposite-direction-after-recovery'});
+          break;
+        }
+      }
       steps++;
       await inspectState(browser,page,folder,plan.selector,
         'phase-'+i+'-'+action.direction+'-'+steps,states);
@@ -348,7 +383,7 @@ async function replay(browser,page,plan,folder){
     process.stderr.write('[GAP] Replay interrotto, checkpoint parziali conservati: '+
       executionError+'\n');
   }
-  return {states,outcomes,alignment,executionError,
+  return {states,outcomes,disturbances,alignment,executionError,
     sourceExtent:plan.start.max,replayInitialExtent:current.max,
     extentSettled:stableExtent>=3,
     complete:!executionError&&alignment.ok&&outcomes.every(x=>
