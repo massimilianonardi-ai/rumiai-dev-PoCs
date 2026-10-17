@@ -182,11 +182,16 @@ export function collageHtml(site,entries){
           '. Le coordinate da sole non garantiscono continuità.</p>';
       }
       const source='./states/'+escape(item.id)+'/original.png';
+      const covered=item.capture?.obscuredText?.coveredTextLines;
       html+='<section><small>Checkpoint '+escape(item.id)+
         (item.top===null?' · scroll sconosciuto':
           ' · scrollTop '+escape(item.top))+
         (item.stable?'':' · screenshot instabile')+
         '</small>';
+      if(Number.isInteger(covered)&&covered>0)
+        html+='<p>Testo rilevato dietro altri elementi della pagina: '+
+          escape(covered)+' frammenti. Non è leggibile nello screenshot '+
+          'e questa tessera non certifica la copertura del contenuto.</p>';
       if(item.box)
       {
         const box=item.box;
