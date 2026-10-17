@@ -17,7 +17,7 @@ From the PoC directory, after updating the checkout:
 git pull --ff-only
 node --check experiments/two-site-observation.mjs
 node --test tests/two-site-observation.test.mjs
-sh experiments/run-two-sites.sh two-sites-03
+sh experiments/run-two-sites.sh two-sites-04
 ~~~
 
 The last command is **interactive** and runs both URLs in sequence, with no need to install or change an 'srv' default. The service startup is now explicitly gated: PWC must open Chromium and respond to `web-control status` before site observation begins. The launcher retries short status probes for a bounded period, detects a terminated service, and prints saved `pwc-service.log` diagnostics if startup fails. A `connect ENOENT` from a single initial status probe is no longer treated as an immediate fatal result. The output destination must not exist yet. It prints the normal readiness prompt when it is time to interact with Chromium. If the pinned PWC remote HEAD no longer matches the verified provider revision, it fails explicitly rather than silently switching the tested backend.
@@ -25,7 +25,7 @@ The last command is **interactive** and runs both URLs in sequence, with no need
 If a compatible visible PWC service is already running and 'web-control' resolves to its client, the direct experimental command also works:
 
 ~~~sh
-node experiments/two-site-observation.mjs ./experiments/evidence/two-sites-03
+node experiments/two-site-observation.mjs ./experiments/evidence/two-sites-04
 ~~~
 
 'WEB_CONTROL_CMD' may instead point to the executable client of an already-running isolated PWC service. A headless controller is rejected. Do not change the installed provider default merely for this experiment.
@@ -37,9 +37,9 @@ For each site the script:
 1. Opens a real PWC page and navigates to the specified URL. It records native baseline HTML, MHTML, screenshot, CDP DOMSnapshot and content fingerprints.
 2. Opens a persistent CDP session, installs an event observer, and prints a prompt to the terminal. The **user manually** scrolls, expands and interacts with the website in the visible browser. Return to the terminal and press **Enter** once finished.
 3. Records trusted clicks (targets/selector, not field contents), sampled scroll container evidence, keyboard activation evidence and the fact of form changes **without any input values**. A detected login redirect stops the site trial. Password entry, purchases, deletions and form submission are not automatically replayed. Recording is intentionally incomplete for unsupported gestures and cross-origin frames; these must not be silently claimed as learned.
-4. Captures final manual-page evidence, then creates a fresh page and navigates from the beginning.
+4. Captures final manual-page evidence, then opens a new page and navigates from the beginning. After settling, it explicitly resets both document scroll and the observed scroll container to **top=0** before the replay baseline. Auto-restored midpage scroll is reported as incomplete rather than silently treated as the beginning of the conversation.
 5. Uses the demonstrated scroll evidence **only to choose the scroll container**, then scans monotonically forwards by approximately 85% of its viewport as in the working `amazon-wishlist-extract` probe, with 1.5-second loading intervals and three stable bottom observations. It does not replay manual up/down jitter. While traversing the page, it replays **only** visible native `summary` controls or buttons with `aria-expanded` after rechecking their semantics. Other actions are reported as skipped/unreplayable, without scrolling backward to find them. No login bypass or anti-bot workaround.
-6. After every **executed** replay action, stores separate native 'page.mhtml', 'page.html', 'page.png' and CDP 'dom-snapshot.json' plus evidence/checksums. Skipped/unsafe actions are explicitly retained in 'replay-steps.json' **without** creating duplicate snapshots. Captures are sequential, not atomic; before/after DOM fingerprints flag possible changes during the acquisition window.
+6. After every **executed** replay action, stores native 'page.mhtml' and 'page.html', a **CDP viewport screenshot** in 'page.png', and a CDP 'dom-snapshot.json' with evidence/checksums. It no longer requests Playwright's `fullPage:true` screenshots during scanning: that option can interfere with visually stable viewport playback on long dynamic pages. The screenshot captures exactly the currently displayed viewport; the independent MHTML and DOM/CSS snapshots retain the document structure. Skipped/unsafe actions remain in 'replay-steps.json' without duplicate snapshots. Acquisitions are sequential, not atomic; before/after DOM fingerprints flag possible changes.
 7. Produces 'review.html': a generic, navigable **collage of captured screenshots** with references to MHTML and DOM/CSS evidence. It does **not** claim to reconstruct a single functional website. 'site-analysis.json' contains CDP element/layout counts per state and changes, usable as research input for a future site-specific exporter, **not** a completed exporter.
 8. Writes site-level 'report.json', original 'demonstration.json', 'replay-steps.json' and top-level 'summary.json'. Every report explicitly leaves full visual fidelity and content completeness unverified.
 
@@ -59,12 +59,20 @@ Use a **fresh run name** such as `two-sites-03`; the previous evidence remains u
 Never browse a copied 'file:///run/user/...' location created by a desktop document portal; it is not the source evidence folder. All generated review links are relative to the PoC. Start the **read-only localhost viewer** from the PoC after the trial:
 
 ~~~sh
-node experiments/serve-evidence.mjs ./experiments/evidence/two-sites-03
+node experiments/serve-evidence.mjs ./experiments/evidence/two-sites-04
 ~~~
 
 It prints direct URLs such as 'http://127.0.0.1:<port>/<random-token>/amazon-wishlist/review.html' and the equivalent ChatGPT link. Use those URLs in Chromium. The viewer binds only to 127.0.0.1 and writes no files outside the PoC. MHTML may still download rather than render in some browser configurations; open it from the PoC capture directory for offline verification. The temporary Chromium display session can still internally use an existing desktop 'XDG_RUNTIME_DIR' under /run/user; this is a compositor IPC requirement, **not an exported document location**.
 
 All browser-controlled temporary download/cache directories (TMPDIR and XDG cache/data/config) are now relocated inside the PoC's disposable runtime. The actual evidence is never deleted during launcher cleanup. The report prints the exact absolute '[OUTPUT]', '[FILES]' and '[VIEW]' paths in the PoC.
+
+### Physical evidence and current limitations
+
+The **real VM trial** `two-sites-03` started PWC correctly and captured all four evidence formats on both sites. Amazon scanned monotonically in the console from document scroll 0 to 14489 and reported one skipped action plus changing-state warnings. ChatGPT scanned from **15553 to 26925** on an internal scroll container, so the initial conversation viewport was not observed during automatic replay even though the shared page apparently has much more content already mounted in the DOM. The user also saw unexpected up/down motion on Amazon despite the strictly increasing scan log.
+
+The corrected runner now uses viewport CDP screenshots in place of Playwright full-page screenshots, and explicitly resets the new replay page to the top before the baseline. The monitor records the actual first scan position and any backward movement; it refuses to count an auto-scrolled/midpage replay as complete. These corrections are **not physically accepted until a new browser run**. A skipped action still requires inspection in `replay-steps.json`; a numerical skipped count alone cannot establish whether an essential disclosure was omitted.
+
+To inspect the existing `two-sites-03` captures without rerunning either website, use the read-only viewer with that specific directory. A new acquisition after this correction must use a new run directory (for example `two-sites-04`). The two runs are distinct evidence and must not overwrite one another.
 
 ## Known engineering boundaries
 
