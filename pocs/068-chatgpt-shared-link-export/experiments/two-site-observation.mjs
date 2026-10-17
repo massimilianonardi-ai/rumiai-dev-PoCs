@@ -367,6 +367,35 @@ async function geometry(client, page, selector) {
   return g ? { selector,...g } : null;
 }
 
+export async function resetReplayToStart(client, page, preferredSelector) {
+  // A freshly opened tab is not necessarily at scrollTop=0: applications
+  // sometimes auto-scroll to their latest content after navigation.
+  // Reset both the document and the observed scroll container before the
+  // first replay screenshot, without losing the manually observed evidence.
+  const expression = '(() => {' +
+    'window.scrollTo({top:0,left:0,behavior:"instant"});' +
+    'const selector=' + JSON.stringify(preferredSelector) + ';' +
+    'const el=selector==="html"||selector==="body"?' +
+    'document.scrollingElement:document.querySelector(selector);' +
+    'if(!el)return {found:false};' +
+    'el.scrollTo({top:0,left:0,behavior:"instant"});' +
+    'return {found:true,documentTop:Math.round(window.scrollY),' +
+    'containerTop:Math.round(el.scrollTop)};' +
+    '})()';
+  const answer = await client.cdp(page, 'Runtime.evaluate', {
+    expression, returnByValue: true
+  });
+  const initial = answer.result?.value;
+  if (!initial?.found) return { atStart: false,
+    diagnostic: 'replay.scroll-container-not-found', selector: preferredSelector };
+  await sleep(250);
+  const observation = await geometry(client, page, preferredSelector);
+  return { atStart: observation !== null && observation.top <= 2,
+    selector: preferredSelector, observedTop: observation?.top ?? null,
+    documentTop: initial.documentTop,
+    containerTop: initial.containerTop };
+}
+
 async function advance(client, page, selector, pixels) {
   if (selector === 'html' || selector === 'body') {
     await client.call('page', 'scroll', page, String(pixels));
@@ -569,10 +598,19 @@ async function runSite(client, site, output, question) {
       report.replayInitialSettle = await settle(client, replayPage).catch(() =>
         ({ settledHeuristically: false }));
       const actions = consolidateActions(observation.events);
+      // Reset after navigation and its JavaScript settling, before baseline.
+      // This is essential for shared ChatGPT pages that open at the bottom.
+      report.replayStart = await resetReplayToStart(client, replayPage,
+        actions[0].selector);
       const steps = [];
       const baseline = await captureState(client, replayPage,
         path.join(output, 'replay', '0000'), 'replay-baseline');
       steps.push({ index: 0, kind: 'baseline', capture: baseline });
+      // CDP snapshots are sequential; verify the baseline did not drift
+      // away from the beginning before starting forward-only exploration.
+      const positionAfterBaseline = await geometry(client, replayPage,
+        actions[0].selector);
+      report.replayStart.afterBaselineTop = positionAfterBaseline?.top ?? null;
       const goals = actions.slice(1);
       const replayableClicks = goals.filter(a => a.kind === 'click' &&
         replayableAction(a));
@@ -613,12 +651,19 @@ async function runSite(client, site, output, question) {
       report.manualInitial.allFormatsCaptured &&
       report.manualFinal.allFormatsCaptured;
     report.replayCoverageReady = !observation.overflow &&
+      report.replayStart.atStart &&
+      report.replayStart.afterBaselineTop !== null &&
+      report.replayStart.afterBaselineTop <= 2 &&
       report.replay.skipped === 0 && report.replay.forwardScan.completed &&
       report.replay.allCaptureWindowsStable &&
       report.manualInitial.captureWindowStable &&
       report.manualFinal.captureWindowStable;
     report.incompleteReasons = [
       observation.overflow && 'debug-event-buffer-overflow',
+      (!report.replayStart.atStart ||
+       report.replayStart.afterBaselineTop === null ||
+       report.replayStart.afterBaselineTop > 2) &&
+        'replay-did-not-start-at-top',
       !report.replay.forwardScan.completed && 'forward-scan-not-at-stable-bottom',
       report.replay.skipped > 0 && 'unreplayed-actions:' + report.replay.skipped,
       !report.replay.allCaptured && 'missing-native-or-dom-captures',
