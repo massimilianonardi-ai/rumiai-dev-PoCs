@@ -252,94 +252,29 @@ async function recordDemonstration(client, session, question) {
 async function replayAction(client, page, action) {
   if (!replayableAction(action))
     return { status: 'skipped-unsafe-or-unreplayable' };
-  const expr = action.kind === 'scroll'
-    ? '(() => {const el=document.querySelector(' +
+  if (action.kind === 'scroll') {
+    const expr = '(() => {const el=document.querySelector(' +
       JSON.stringify(action.selector) + ');if(!el)return false;' +
-      'el.scrollTop=' + JSON.stringify(action.top) + ';return true})()'
-    : '(() => {const el=document.querySelector(' +
-      JSON.stringify(action.selector) + ');if(!el)return false;' +
-      'const safe=el.localName==="summary" || (el.localName==="button" && ' +
-      'el.hasAttribute("aria-expanded"));if(!safe)return false;' +
-      'el.click();return true})()';
-  const result = await client.cdp(page, 'Runtime.evaluate', {
-    expression: expr, returnByValue: true, awaitPromise: false
-  });
-  return { status: result.result?.value === true ? 'executed' : 'target-unavailable' };
-}
-
-function htmlEscape(value) {
-  return String(value).replace(/[&<>"']/g, char =>
-    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[char]);
-}
-
-async function writeReview(output, siteName, steps) {
-  const refs = [
-    { label:'Dimostrazione iniziale', dir:'manual-initial' },
-    { label:'Dimostrazione finale', dir:'manual-final' },
-    ...steps.map(step => ({
-      label:'Replay ' + step.index + ': ' + step.kind +
-        (step.result ? ' (' + step.result.status + ')' : ''),
-      dir:'replay/' + String(step.index).padStart(4, '0')
-    }))
-  ];
-  const cards = refs.map(ref => {
-    const folder = ref.dir;
-    return '<article><h2>' + htmlEscape(ref.label) +
-      '</h2><img src="' + folder +
-      '/page.png" alt="Snapshot screenshot">' +
-      '<p><a href="' + folder + '/page.mhtml">MHTML</a> · ' +
-      '<a href="' + folder + '/page.html">HTML</a> · ' +
-      '<a href="' + folder + '/dom-snapshot.json">DOM/CSS</a> · ' +
-      '<a href="' + folder + '/evidence.json">Checksums</a></p></article>';
-  }).join('\n');
-  const html = '<!doctype html><html lang="it"><head><meta charset="utf-8">' +
-    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
-    '<title>' + htmlEscape(siteName) +
-    ' — stati osservati</title><style>' +
-    'body{font:16px system-ui;margin:2rem auto;max-width:1100px;padding:0 1rem}' +
-    'article{border:1px solid #ccc;border-radius:8px;margin:20px 0;padding:18px}' +
-    'img{width:100%;height:auto;display:block;object-fit:contain}' +
-    'a{color:#175a96}h2{font-size:1.2rem}' +
-    '</style></head><body><h1>' + htmlEscape(siteName) +
-    '</h1><p>Collage di stati: prova visiva, non una ricostruzione fedele ' +
-    'di una pagina interattiva unica. Controllare i singoli MHTML offline.</p>' +
-    cards + '</body></html>\n';
-  await fs.writeFile(path.join(output, 'review.html'), html,
-    { flag:'wx', encoding:'utf8', mode:0o600 });
-}
-
-async function writeSiteAnalysis(output, steps) {
-  const states = [];
-  for (const step of steps) {
-    const folder = path.join(output, 'replay',
-      String(step.index).padStart(4, '0'));
-    const file = path.join(folder, 'dom-snapshot.json');
-    let snapshot;
-    try { snapshot = JSON.parse(await fs.readFile(file, 'utf8')); }
-    catch { states.push({ index:step.index, captured:false }); continue; }
-    const documents = snapshot.documents || [];
-    states.push({
-      index:step.index, captured:true,
-      documentCount:documents.length,
-      domNodeCount:documents.reduce((n, doc) =>
-        n + (doc.nodes?.nodeType?.length || 0), 0),
-      layoutBoxCount:documents.reduce((n, doc) =>
-        n + (doc.layout?.nodeIndex?.length || 0), 0),
-      sourceFile:'replay/' + String(step.index).padStart(4,'0') +
-        '/dom-snapshot.json'
+      'el.scrollTop=' + JSON.stringify(action.top) + ';return true})()';
+    const result = await client.cdp(page, 'Runtime.evaluate', {
+      expression: expr, returnByValue: true
     });
+    return { status: result.result?.value === true ? 'executed' :
+      'target-unavailable' };
   }
-  const pairs = states.slice(1).map((current, index) => ({
-    from:states[index].index, to:current.index,
-    changeInNodeCount:current.captured && states[index].captured
-      ? current.domNodeCount - states[index].domNodeCount : null
-  }));
-  await saveJson(path.join(output, 'site-analysis.json'), {
-    description:'Generic CDP layout evidence for specialized-exporter research',
-    states, transitions:pairs,
-    behaviorInferred:false, specializedExporterImplemented:false,
-    limitations:'Node/layout counts are evidence, not proof of lazy loading or content completeness.'
+  // Check DOM semantics again on replay; do not trust the label logged during
+  // demonstration. Then use native web-control click (trusted browser input).
+  const expr = '(() => {const el=document.querySelector(' +
+    JSON.stringify(action.selector) + ');return !!el && (' +
+    'el.localName==="summary" || (el.localName==="button" && ' +
+    'el.hasAttribute("aria-expanded") && !el.closest("form")));})()';
+  const check = await client.cdp(page, 'Runtime.evaluate', {
+    expression: expr, returnByValue: true
   });
+  if (check.result?.value !== true)
+    return { status: 'target-unavailable-or-not-safe' };
+  await client.call('page', 'click', page, action.selector);
+  return { status: 'executed' };
 }
 
 async function runSite(client, site, output, question) {
