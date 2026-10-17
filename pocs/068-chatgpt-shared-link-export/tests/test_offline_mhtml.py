@@ -18,7 +18,6 @@ spec.loader.exec_module(offline)
 
 def fixture(css_href=True):
     root = MIMEMultipart("related")
-    root["Content-Type"] = 'multipart/related; boundary="test-boundary"; type="text/html"'
     document = (
         '<!doctype html><html><head>'
         + ('<link rel="stylesheet" href="/static/main.css">' if css_href else '')
