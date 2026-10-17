@@ -1,0 +1,518 @@
+{
+  "model": "Hindmarsh-Rose three-variable model; x is membrane-potential-like state",
+  "parameters": {
+    "a": 1.0,
+    "b": 3.0,
+    "c": 1.0,
+    "d": 5.0,
+    "r": 0.005,
+    "s": 4.0,
+    "xr": -1.618,
+    "I": 3.25,
+    "dt": 0.02,
+    "substeps_per_input_symbol": 8,
+    "population": 16,
+    "couplings": [
+      0.0,
+      0.05,
+      0.2,
+      0.5
+    ]
+  },
+  "noise_definition": "Gaussian state kick on x at each input-symbol boundary; sigma=5% of clean x SD",
+  "mismatch_definition": "fixed independent \u00b11% variation in external current per cell",
+  "input": "shared iid uniform [-1,1], drive amplitude 0.3",
+  "seeds": [
+    11,
+    29,
+    47
+  ],
+  "isolated_cell_finite_time_largest_lyapunov_estimate": {
+    "dt": 0.02,
+    "value": 0.018794880527526703,
+    "dt_half": 0.01,
+    "value_half": 0.023973308006346394
+  },
+  "rows": [
+    {
+      "seed": 11,
+      "coupling": 0.0,
+      "condition": "clean",
+      "pair_disagreement_over_clean_sd": 0.5849321013325847,
+      "collective_shift_over_clean_sd": 0.0,
+      "total_trajectory_shift_over_clean_sd": 0.0,
+      "clean_state_effective_rank": 3.39071533263846,
+      "noise_sigma_state_units": 0.0
+    },
+    {
+      "seed": 11,
+      "coupling": 0.0,
+      "condition": "independent_process_noise",
+      "pair_disagreement_over_clean_sd": 0.809966289231221,
+      "collective_shift_over_clean_sd": 0.37576972447134876,
+      "total_trajectory_shift_over_clean_sd": 1.0389407428082913,
+      "clean_state_effective_rank": 3.39071533263846,
+      "noise_sigma_state_units": 0.028662240451658917
+    },
+    {
+      "seed": 11,
+      "coupling": 0.0,
+      "condition": "common_process_noise",
+      "pair_disagreement_over_clean_sd": 0.6960457819898622,
+      "collective_shift_over_clean_sd": 0.6893170113652438,
+      "total_trajectory_shift_over_clean_sd": 1.1710503177398983,
+      "clean_state_effective_rank": 3.39071533263846,
+      "noise_sigma_state_units": 0.028662240451658917
+    },
+    {
+      "seed": 11,
+      "coupling": 0.0,
+      "condition": "current_mismatch_1pct",
+      "pair_disagreement_over_clean_sd": 0.7253771687218169,
+      "collective_shift_over_clean_sd": 0.3735100867941954,
+      "total_trajectory_shift_over_clean_sd": 1.054778998842339,
+      "clean_state_effective_rank": 3.39071533263846,
+      "noise_sigma_state_units": 0.0
+    },
+    {
+      "seed": 11,
+      "coupling": 0.05,
+      "condition": "clean",
+      "pair_disagreement_over_clean_sd": 0.6233728070117882,
+      "collective_shift_over_clean_sd": 0.0,
+      "total_trajectory_shift_over_clean_sd": 0.0,
+      "clean_state_effective_rank": 4.623923282833942,
+      "noise_sigma_state_units": 0.0
+    },
+    {
+      "seed": 11,
+      "coupling": 0.05,
+      "condition": "independent_process_noise",
+      "pair_disagreement_over_clean_sd": 0.741023012401784,
+      "collective_shift_over_clean_sd": 0.4212259383636656,
+      "total_trajectory_shift_over_clean_sd": 1.0436982789789861,
+      "clean_state_effective_rank": 4.623923282833942,
+      "noise_sigma_state_units": 0.030345311569245994
+    },
+    {
+      "seed": 11,
+      "coupling": 0.05,
+      "condition": "common_process_noise",
+      "pair_disagreement_over_clean_sd": 0.595586993357596,
+      "collective_shift_over_clean_sd": 0.7489197300481008,
+      "total_trajectory_shift_over_clean_sd": 1.152903340230834,
+      "clean_state_effective_rank": 4.623923282833942,
+      "noise_sigma_state_units": 0.030345311569245994
+    },
+    {
+      "seed": 11,
+      "coupling": 0.05,
+      "condition": "current_mismatch_1pct",
+      "pair_disagreement_over_clean_sd": 0.6912435050340071,
+      "collective_shift_over_clean_sd": 0.44462560412042434,
+      "total_trajectory_shift_over_clean_sd": 1.0395582364691178,
+      "clean_state_effective_rank": 4.623923282833942,
+      "noise_sigma_state_units": 0.0
+    },
+    {
+      "seed": 11,
+      "coupling": 0.2,
+      "condition": "clean",
+      "pair_disagreement_over_clean_sd": 0.5980513831331584,
+      "collective_shift_over_clean_sd": 0.0,
+      "total_trajectory_shift_over_clean_sd": 0.0,
+      "clean_state_effective_rank": 3.931431427445193,
+      "noise_sigma_state_units": 0.0
+    },
+    {
+      "seed": 11,
+      "coupling": 0.2,
+      "condition": "independent_process_noise",
+      "pair_disagreement_over_clean_sd": 0.6854080129443073,
+      "collective_shift_over_clean_sd": 0.7338602438208387,
+      "total_trajectory_shift_over_clean_sd": 1.1652804917584716,
+      "clean_state_effective_rank": 3.931431427445193,
+      "noise_sigma_state_units": 0.033625449196934186
+    },
+    {
+      "seed": 11,
+      "coupling": 0.2,
+      "condition": "common_process_noise",
+      "pair_disagreement_over_clean_sd": 0.5899043279645025,
+      "collective_shift_over_clean_sd": 0.704206201319589,
+      "total_trajectory_shift_over_clean_sd": 1.095760366880616,
+      "clean_state_effective_rank": 3.931431427445193,
+      "noise_sigma_state_units": 0.033625449196934186
+    },
+    {
+      "seed": 11,
+      "coupling": 0.2,
+      "condition": "current_mismatch_1pct",
+      "pair_disagreement_over_clean_sd": 0.543012981457314,
+      "collective_shift_over_clean_sd": 0.6355988070640555,
+      "total_trajectory_shift_over_clean_sd": 1.0276491691676477,
+      "clean_state_effective_rank": 3.931431427445193,
+      "noise_sigma_state_units": 0.0
+    },
+    {
+      "seed": 11,
+      "coupling": 0.5,
+      "condition": "clean",
+      "pair_disagreement_over_clean_sd": 0.5288129038787411,
+      "collective_shift_over_clean_sd": 0.0,
+      "total_trajectory_shift_over_clean_sd": 0.0,
+      "clean_state_effective_rank": 2.4535111241573264,
+      "noise_sigma_state_units": 0.0
+    },
+    {
+      "seed": 11,
+      "coupling": 0.5,
+      "condition": "independent_process_noise",
+      "pair_disagreement_over_clean_sd": 0.5132263736952959,
+      "collective_shift_over_clean_sd": 1.017216778734736,
+      "total_trajectory_shift_over_clean_sd": 1.2433282344166017,
+      "clean_state_effective_rank": 2.4535111241573264,
+      "noise_sigma_state_units": 0.03352053395591158
+    },
+    {
+      "seed": 11,
+      "coupling": 0.5,
+      "condition": "common_process_noise",
+      "pair_disagreement_over_clean_sd": 0.3986209868606116,
+      "collective_shift_over_clean_sd": 0.7447865285551111,
+      "total_trajectory_shift_over_clean_sd": 0.9666345041660889,
+      "clean_state_effective_rank": 2.4535111241573264,
+      "noise_sigma_state_units": 0.03352053395591158
+    },
+    {
+      "seed": 11,
+      "coupling": 0.5,
+      "condition": "current_mismatch_1pct",
+      "pair_disagreement_over_clean_sd": 0.5092058439852659,
+      "collective_shift_over_clean_sd": 0.8206696081309737,
+      "total_trajectory_shift_over_clean_sd": 1.122173988457747,
+      "clean_state_effective_rank": 2.4535111241573264,
+      "noise_sigma_state_units": 0.0
+    },
+    {
+      "seed": 29,
+      "coupling": 0.0,
+      "condition": "clean",
+      "pair_disagreement_over_clean_sd": 0.5416785530090562,
+      "collective_shift_over_clean_sd": 0.0,
+      "total_trajectory_shift_over_clean_sd": 0.0,
+      "clean_state_effective_rank": 3.2038640834899765,
+      "noise_sigma_state_units": 0.0
+    },
+    {
+      "seed": 29,
+      "coupling": 0.0,
+      "condition": "independent_process_noise",
+      "pair_disagreement_over_clean_sd": 0.7733107414448318,
+      "collective_shift_over_clean_sd": 0.4138189713356349,
+      "total_trajectory_shift_over_clean_sd": 1.0302699819380439,
+      "clean_state_effective_rank": 3.2038640834899765,
+      "noise_sigma_state_units": 0.028417383986578067
+    },
+    {
+      "seed": 29,
+      "coupling": 0.0,
+      "condition": "common_process_noise",
+      "pair_disagreement_over_clean_sd": 0.7157354451974208,
+      "collective_shift_over_clean_sd": 0.4446890635824885,
+      "total_trajectory_shift_over_clean_sd": 0.916837426383475,
+      "clean_state_effective_rank": 3.2038640834899765,
+      "noise_sigma_state_units": 0.028417383986578067
+    },
+    {
+      "seed": 29,
+      "coupling": 0.0,
+      "condition": "current_mismatch_1pct",
+      "pair_disagreement_over_clean_sd": 0.6851141141685377,
+      "collective_shift_over_clean_sd": 0.3877984017801587,
+      "total_trajectory_shift_over_clean_sd": 0.9140430869163425,
+      "clean_state_effective_rank": 3.2038640834899765,
+      "noise_sigma_state_units": 0.0
+    },
+    {
+      "seed": 29,
+      "coupling": 0.05,
+      "condition": "clean",
+      "pair_disagreement_over_clean_sd": 0.6164444144269873,
+      "collective_shift_over_clean_sd": 0.0,
+      "total_trajectory_shift_over_clean_sd": 0.0,
+      "clean_state_effective_rank": 4.297949771384228,
+      "noise_sigma_state_units": 0.0
+    },
+    {
+      "seed": 29,
+      "coupling": 0.05,
+      "condition": "independent_process_noise",
+      "pair_disagreement_over_clean_sd": 0.7230922160347084,
+      "collective_shift_over_clean_sd": 0.5161837032015737,
+      "total_trajectory_shift_over_clean_sd": 1.061194450985395,
+      "clean_state_effective_rank": 4.297949771384228,
+      "noise_sigma_state_units": 0.030124426608257218
+    },
+    {
+      "seed": 29,
+      "coupling": 0.05,
+      "condition": "common_process_noise",
+      "pair_disagreement_over_clean_sd": 0.5934045417801238,
+      "collective_shift_over_clean_sd": 0.6059886677614861,
+      "total_trajectory_shift_over_clean_sd": 1.0508067202846474,
+      "clean_state_effective_rank": 4.297949771384228,
+      "noise_sigma_state_units": 0.030124426608257218
+    },
+    {
+      "seed": 29,
+      "coupling": 0.05,
+      "condition": "current_mismatch_1pct",
+      "pair_disagreement_over_clean_sd": 0.6263848219738954,
+      "collective_shift_over_clean_sd": 0.6388651833506171,
+      "total_trajectory_shift_over_clean_sd": 1.0867437400587578,
+      "clean_state_effective_rank": 4.297949771384228,
+      "noise_sigma_state_units": 0.0
+    },
+    {
+      "seed": 29,
+      "coupling": 0.2,
+      "condition": "clean",
+      "pair_disagreement_over_clean_sd": 0.6016721988545745,
+      "collective_shift_over_clean_sd": 0.0,
+      "total_trajectory_shift_over_clean_sd": 0.0,
+      "clean_state_effective_rank": 3.607229281129668,
+      "noise_sigma_state_units": 0.0
+    },
+    {
+      "seed": 29,
+      "coupling": 0.2,
+      "condition": "independent_process_noise",
+      "pair_disagreement_over_clean_sd": 0.742190349241053,
+      "collective_shift_over_clean_sd": 0.7070012813290836,
+      "total_trajectory_shift_over_clean_sd": 1.2097793866861772,
+      "clean_state_effective_rank": 3.607229281129668,
+      "noise_sigma_state_units": 0.03218224320017264
+    },
+    {
+      "seed": 29,
+      "coupling": 0.2,
+      "condition": "common_process_noise",
+      "pair_disagreement_over_clean_sd": 0.6530860481320651,
+      "collective_shift_over_clean_sd": 0.8987438269142711,
+      "total_trajectory_shift_over_clean_sd": 1.2699636887652463,
+      "clean_state_effective_rank": 3.607229281129668,
+      "noise_sigma_state_units": 0.03218224320017264
+    },
+    {
+      "seed": 29,
+      "coupling": 0.2,
+      "condition": "current_mismatch_1pct",
+      "pair_disagreement_over_clean_sd": 0.7113371727966972,
+      "collective_shift_over_clean_sd": 0.6592686331695801,
+      "total_trajectory_shift_over_clean_sd": 1.0806256291600005,
+      "clean_state_effective_rank": 3.607229281129668,
+      "noise_sigma_state_units": 0.0
+    },
+    {
+      "seed": 29,
+      "coupling": 0.5,
+      "condition": "clean",
+      "pair_disagreement_over_clean_sd": 0.42084124880919227,
+      "collective_shift_over_clean_sd": 0.0,
+      "total_trajectory_shift_over_clean_sd": 0.0,
+      "clean_state_effective_rank": 1.9499617354186134,
+      "noise_sigma_state_units": 0.0
+    },
+    {
+      "seed": 29,
+      "coupling": 0.5,
+      "condition": "independent_process_noise",
+      "pair_disagreement_over_clean_sd": 0.46876527591910566,
+      "collective_shift_over_clean_sd": 1.3209781266791074,
+      "total_trajectory_shift_over_clean_sd": 1.44748365923902,
+      "clean_state_effective_rank": 1.9499617354186134,
+      "noise_sigma_state_units": 0.03387748949805659
+    },
+    {
+      "seed": 29,
+      "coupling": 0.5,
+      "condition": "common_process_noise",
+      "pair_disagreement_over_clean_sd": 0.2654572956879179,
+      "collective_shift_over_clean_sd": 1.2943310164917419,
+      "total_trajectory_shift_over_clean_sd": 1.3643238148249068,
+      "clean_state_effective_rank": 1.9499617354186134,
+      "noise_sigma_state_units": 0.03387748949805659
+    },
+    {
+      "seed": 29,
+      "coupling": 0.5,
+      "condition": "current_mismatch_1pct",
+      "pair_disagreement_over_clean_sd": 0.4663462598165505,
+      "collective_shift_over_clean_sd": 1.4207831966684574,
+      "total_trajectory_shift_over_clean_sd": 1.55644466628489,
+      "clean_state_effective_rank": 1.9499617354186134,
+      "noise_sigma_state_units": 0.0
+    },
+    {
+      "seed": 47,
+      "coupling": 0.0,
+      "condition": "clean",
+      "pair_disagreement_over_clean_sd": 0.6338167337588191,
+      "collective_shift_over_clean_sd": 0.0,
+      "total_trajectory_shift_over_clean_sd": 0.0,
+      "clean_state_effective_rank": 4.2884696174790955,
+      "noise_sigma_state_units": 0.0
+    },
+    {
+      "seed": 47,
+      "coupling": 0.0,
+      "condition": "independent_process_noise",
+      "pair_disagreement_over_clean_sd": 0.7484522930023266,
+      "collective_shift_over_clean_sd": 0.4844101055868647,
+      "total_trajectory_shift_over_clean_sd": 1.1074504421072306,
+      "clean_state_effective_rank": 4.2884696174790955,
+      "noise_sigma_state_units": 0.029693466239016388
+    },
+    {
+      "seed": 47,
+      "coupling": 0.0,
+      "condition": "common_process_noise",
+      "pair_disagreement_over_clean_sd": 0.6491848666662918,
+      "collective_shift_over_clean_sd": 0.5749140256768644,
+      "total_trajectory_shift_over_clean_sd": 1.081351136511619,
+      "clean_state_effective_rank": 4.2884696174790955,
+      "noise_sigma_state_units": 0.029693466239016388
+    },
+    {
+      "seed": 47,
+      "coupling": 0.0,
+      "condition": "current_mismatch_1pct",
+      "pair_disagreement_over_clean_sd": 0.6862415549243495,
+      "collective_shift_over_clean_sd": 0.3579773964115332,
+      "total_trajectory_shift_over_clean_sd": 0.9379709585096404,
+      "clean_state_effective_rank": 4.2884696174790955,
+      "noise_sigma_state_units": 0.0
+    },
+    {
+      "seed": 47,
+      "coupling": 0.05,
+      "condition": "clean",
+      "pair_disagreement_over_clean_sd": 0.6092198706542089,
+      "collective_shift_over_clean_sd": 0.0,
+      "total_trajectory_shift_over_clean_sd": 0.0,
+      "clean_state_effective_rank": 4.232004282056966,
+      "noise_sigma_state_units": 0.0
+    },
+    {
+      "seed": 47,
+      "coupling": 0.05,
+      "condition": "independent_process_noise",
+      "pair_disagreement_over_clean_sd": 0.7421287663103945,
+      "collective_shift_over_clean_sd": 0.43955801016533547,
+      "total_trajectory_shift_over_clean_sd": 1.031710080605243,
+      "clean_state_effective_rank": 4.232004282056966,
+      "noise_sigma_state_units": 0.030357320435084458
+    },
+    {
+      "seed": 47,
+      "coupling": 0.05,
+      "condition": "common_process_noise",
+      "pair_disagreement_over_clean_sd": 0.6211873958472205,
+      "collective_shift_over_clean_sd": 0.49071557045933156,
+      "total_trajectory_shift_over_clean_sd": 1.0416836171935147,
+      "clean_state_effective_rank": 4.232004282056966,
+      "noise_sigma_state_units": 0.030357320435084458
+    },
+    {
+      "seed": 47,
+      "coupling": 0.05,
+      "condition": "current_mismatch_1pct",
+      "pair_disagreement_over_clean_sd": 0.6155426783083257,
+      "collective_shift_over_clean_sd": 0.4630887087350729,
+      "total_trajectory_shift_over_clean_sd": 0.9829117842266811,
+      "clean_state_effective_rank": 4.232004282056966,
+      "noise_sigma_state_units": 0.0
+    },
+    {
+      "seed": 47,
+      "coupling": 0.2,
+      "condition": "clean",
+      "pair_disagreement_over_clean_sd": 0.581730468819604,
+      "collective_shift_over_clean_sd": 0.0,
+      "total_trajectory_shift_over_clean_sd": 0.0,
+      "clean_state_effective_rank": 3.396637065753062,
+      "noise_sigma_state_units": 0.0
+    },
+    {
+      "seed": 47,
+      "coupling": 0.2,
+      "condition": "independent_process_noise",
+      "pair_disagreement_over_clean_sd": 0.6886482043270398,
+      "collective_shift_over_clean_sd": 0.6202375931610214,
+      "total_trajectory_shift_over_clean_sd": 1.1021324583368677,
+      "clean_state_effective_rank": 3.396637065753062,
+      "noise_sigma_state_units": 0.033367378700536875
+    },
+    {
+      "seed": 47,
+      "coupling": 0.2,
+      "condition": "common_process_noise",
+      "pair_disagreement_over_clean_sd": 0.43697631247322033,
+      "collective_shift_over_clean_sd": 0.9918575100524953,
+      "total_trajectory_shift_over_clean_sd": 1.2295685410733757,
+      "clean_state_effective_rank": 3.396637065753062,
+      "noise_sigma_state_units": 0.033367378700536875
+    },
+    {
+      "seed": 47,
+      "coupling": 0.2,
+      "condition": "current_mismatch_1pct",
+      "pair_disagreement_over_clean_sd": 0.6396457359066926,
+      "collective_shift_over_clean_sd": 0.668746446182657,
+      "total_trajectory_shift_over_clean_sd": 1.0985702946972287,
+      "clean_state_effective_rank": 3.396637065753062,
+      "noise_sigma_state_units": 0.0
+    },
+    {
+      "seed": 47,
+      "coupling": 0.5,
+      "condition": "clean",
+      "pair_disagreement_over_clean_sd": 0.5020990549427377,
+      "collective_shift_over_clean_sd": 0.0,
+      "total_trajectory_shift_over_clean_sd": 0.0,
+      "clean_state_effective_rank": 2.3103357669187554,
+      "noise_sigma_state_units": 0.0
+    },
+    {
+      "seed": 47,
+      "coupling": 0.5,
+      "condition": "independent_process_noise",
+      "pair_disagreement_over_clean_sd": 0.45852480109948024,
+      "collective_shift_over_clean_sd": 1.0502624429711627,
+      "total_trajectory_shift_over_clean_sd": 1.244961492626534,
+      "clean_state_effective_rank": 2.3103357669187554,
+      "noise_sigma_state_units": 0.033448870573996585
+    },
+    {
+      "seed": 47,
+      "coupling": 0.5,
+      "condition": "common_process_noise",
+      "pair_disagreement_over_clean_sd": 0.3420296260306001,
+      "collective_shift_over_clean_sd": 1.1855320335088504,
+      "total_trajectory_shift_over_clean_sd": 1.3213485068033066,
+      "clean_state_effective_rank": 2.3103357669187554,
+      "noise_sigma_state_units": 0.033448870573996585
+    },
+    {
+      "seed": 47,
+      "coupling": 0.5,
+      "condition": "current_mismatch_1pct",
+      "pair_disagreement_over_clean_sd": 0.4246797630250546,
+      "collective_shift_over_clean_sd": 1.0702697314266452,
+      "total_trajectory_shift_over_clean_sd": 1.2644940826945847,
+      "clean_state_effective_rank": 2.3103357669187554,
+      "noise_sigma_state_units": 0.0
+    }
+  ]
+}
