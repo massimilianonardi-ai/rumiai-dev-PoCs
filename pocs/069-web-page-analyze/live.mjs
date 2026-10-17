@@ -150,12 +150,16 @@ async function screenshot(browser,page,filename){
   if(!r.data)throw Error('capture.no-viewport-image');
   await write(filename,Buffer.from(r.data,'base64'));
 }
-async function capture(browser,page,state,selector){
+async function capture(browser,page,state,selector,expectedTop){
   await fs.mkdir(state,{mode:0o700});
-  // An original screenshot is a measurement of the live viewport BEFORE
-  // native archival or any new tab changes page focus/scroll position.
+  // Capture the intended position before focus can trigger a SPA reaction.
+  const positionBeforeFocus=await geometry(browser,page,selector);
   await focus(browser,page);
+  const alignment=await stabilizePosition(browser,page,selector,expectedTop,{
+    attempts:5,delayMs:220,tolerance:12
+  });
   const before=await geometry(browser,page,selector);
+  // The reference is the visible page BEFORE archiving or changing tabs.
   await screenshot(browser,page,path.join(state,'original.png'));
   const afterScreenshot=await geometry(browser,page,selector);
   const native=await browser.cmd('page','capture',page,state,'mhtml','html');
@@ -170,7 +174,8 @@ async function capture(browser,page,state,selector){
   await save(path.join(state,'dom-snapshot.json'),snap);
   const after=await geometry(browser,page,selector);
   const original=await fs.readFile(path.join(state,'page.mhtml'),'utf8');
-  const result={before,afterScreenshot,after,
+  const result={positionBeforeFocus,expectedTop,focusAlignment:alignment,
+    before,afterScreenshot,after,
     screenshotStable:!!before&&!!afterScreenshot&&
       before.top===afterScreenshot.top,
     nativeCaptureScrollDrift:!!before&&!!after&&after.top!==before.top,
@@ -220,13 +225,16 @@ async function reopen(browser,state,selector,originalGeometry){
 async function inspectState(browser,page,folder,selector,label,states){
   const index=String(states.length).padStart(4,'0');
   const state=path.join(folder,index);
-  const captureResult=await capture(browser,page,state,selector);
+  const intended=await geometry(browser,page,selector);
+  if(!intended)throw Error('capture.source-container-unavailable');
+  const captureResult=await capture(browser,page,state,selector,intended.top);
   const offline=await reopen(browser,state,selector,captureResult.before);
   await save(path.join(state,'offline.json'),offline);
   await focus(browser,page);
   const restored=await stabilizePosition(browser,page,selector,
     captureResult.before.top,{attempts:5,delayMs:280,tolerance:12});
   states.push({index,label,stable:captureResult.stable,
+    beforeFocus:intended.top,focusPositionAligned:captureResult.focusAlignment.ok,
     screenshotStable:captureResult.screenshotStable,
     captureScrollDrift:captureResult.nativeCaptureScrollDrift,
     sourceScrollRestored:restored.ok,
@@ -238,7 +246,8 @@ async function inspectState(browser,page,folder,selector,label,states){
   process.stdout.write('  [STATO] '+index+' sourceTop='+
     captureResult.before?.top+' afterArchive='+captureResult.after?.top+
     ' restored='+restored.ok+' offlineAligned='+offline.positionAligned+'\n');
-  if(!restored.ok)throw Error('replay.cannot-restore-scroll-after-capture');
+  if(!restored.ok)
+    process.stderr.write('  [GAP] Posizione originale non ripristinata: '+index+'\n');
 }
 async function replay(browser,page,plan,folder){
   await fs.mkdir(folder,{mode:0o700});
@@ -422,7 +431,9 @@ async function siteRun(browser,site,output,ask,observer){
     await write(path.join(folder,'comparison.html'),
       comparison(site.name,report.replay.states));
     report.complete=report.replay.complete&&report.replay.states.every(x=>
-      x.offline&&x.stable&&!x.unexpectedLocalReferences);
+      x.offline&&x.offlinePositionAligned&&x.sourceScrollRestored&&
+      x.focusPositionAligned&&x.screenshotStable&&x.stable&&
+      !x.unexpectedLocalReferences);
     // Open the comparison through Chromium itself, navigating directly to
     // the PoC-owned file URL. Do not launch a desktop file opener/portal.
     let reviewPage=null;
