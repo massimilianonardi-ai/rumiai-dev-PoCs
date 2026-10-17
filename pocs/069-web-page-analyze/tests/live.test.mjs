@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {interpret} from '../live.mjs';
+import {interpret, stabilizePosition} from '../live.mjs';
 
 function entry(n,kind,direction,top,max=900) {
   return {n,kind,selector:'#messages',direction,top,max,viewport:300};
@@ -46,4 +46,38 @@ test('disclosure boundaries remain ordered',()=>{
     entry(4,'wheel','up',200),entry(5,'scroll',null,0)
   ]);
   assert.deepEqual(p.actions.map(a=>a.kind),['scroll','disclosure','scroll']);
+});
+
+function movableBrowser({top=0,max=900,resetOnce=false}={}){
+  return {
+    top,max,resetOnce,
+    async evaluate(_page,expression){
+      if(expression.includes('el.scrollTop=')){
+        const match=expression.match(/el\.scrollTop=(-?\d+)/);
+        if(!match)throw Error('mock: expected numeric scroll target');
+        this.top=Math.max(0,Math.min(this.max,Number(match[1])));
+        return true;
+      }
+      if(resetOnce&&this.top!==0){
+        this.resetOnce=false;
+        this.top=0; // a deferred application scroll overrides first attempt
+      }
+      return {top:this.top,max:this.max,viewport:300};
+    }
+  };
+}
+test('stabilizes target after a deferred SPA position restoration',async()=>{
+  const browser=movableBrowser({resetOnce:true});
+  const result=await stabilizePosition(browser,'page','#messages',600,
+    {attempts:5,delayMs:0,tolerance:2});
+  assert.equal(result.ok,true);
+  assert.equal(result.position.top,600);
+  assert.ok(result.observations.length>=3);
+});
+test('does not accept a target beyond current scrollable content',async()=>{
+  const browser=movableBrowser({top:0,max:100});
+  const result=await stabilizePosition(browser,'page','#messages',800,
+    {attempts:2,delayMs:0,tolerance:2});
+  assert.equal(result.ok,false);
+  assert.equal(result.reason,'position-restored-or-drifted');
 });
