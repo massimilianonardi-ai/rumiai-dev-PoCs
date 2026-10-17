@@ -215,15 +215,22 @@ async function capture(browser,page,state,selector,expectedTop){
   });
   await save(path.join(state,'dom-snapshot.json'),snap);
   const after=await geometry(browser,page,selector);
+  const afterArchiveShift=contentAnchorShift(originalAnchors,
+    await contentAnchors(browser,page,selectorExpression(selector),
+      originalAnchors));
   const original=await fs.readFile(path.join(state,'page.mhtml'),'utf8');
   const result={positionBeforeFocus,expectedTop,focusAlignment:alignment,
     liveStyles,scrollViewport:cropViewport,originalAnchors,
-    afterScreenshotShift,before,afterScreenshot,after,
+    afterScreenshotShift,afterArchiveShift,before,afterScreenshot,after,
     screenshotStable:!!before&&!!afterScreenshot&&
-      before.top===afterScreenshot.top,
+      before.top===afterScreenshot.top&&
+      (afterScreenshotShift.reason==='insufficient-matching-content'||
+       (afterScreenshotShift.usable&&Math.abs(afterScreenshotShift.shift)<=2)),
     nativeCaptureScrollDrift:!!before&&!!after&&after.top!==before.top,
     stable:!!before&&!!after&&
-      before.top===after.top&&before.max===after.max,
+      before.top===after.top&&before.max===after.max&&
+      (afterArchiveShift.reason==='insufficient-matching-content'||
+       (afterArchiveShift.usable&&Math.abs(afterArchiveShift.shift)<=2)),
     bytes:Buffer.byteLength(original),
     archivedCssParts:(original.match(/content-type:\s*text\/css/gi)||[]).length,
     archivedSvgParts:(original.match(/content-type:\s*image\/svg\+xml/gi)||[]).length,
@@ -296,7 +303,7 @@ async function reopen(browser,state,selector,originalGeometry,originalAnchors=[]
     const inspected=await browser.evaluate(page,styleSummaryExpression);
     return {success:true,
       positionAligned:alignment.ok && !scrollMapping.clamped&&
-        screenshotStable,
+        screenshotStable&&contentCorrection.stable!==false,
       contentAligned,contentCorrection,initialContentShift,finalContentShift,
       screenshotStable,networkIsolationVerified:false,
       originalGeometry,scrollMapping,
