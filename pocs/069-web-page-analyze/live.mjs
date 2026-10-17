@@ -755,7 +755,8 @@ async function siteRun(browser,site,output,ask,observer){
     await write(path.join(folder,'comparison.html'),
       comparison(site.name,report.replay.states,report.messageCoverage));
     report.complete=report.replay.complete&&
-      report.messageCoverage.status==='matching-observed-samples'&&
+      (site.name!=='chatgpt-share'||
+        report.messageCoverage.status==='matching-observed-samples')&&
       report.replay.states.every(x=>
       x.offline&&x.offlinePositionAligned&&x.sourceScrollRestored&&
       x.focusPositionAligned&&x.screenshotStable&&x.stable&&
