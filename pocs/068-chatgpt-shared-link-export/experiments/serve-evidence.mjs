@@ -23,8 +23,11 @@ const mime={
 export async function createPreview(folder, port=0) {
   const project=path.resolve(fileURLToPath(new URL('..',import.meta.url)));
   const base=path.join(project,'experiments','evidence');
-  const root=await fs.realpath(folder);
-  if (path.dirname(root)!==base || await fs.realpath(base)!==base)
+  const [root,realBase,realProject]=await Promise.all([
+    fs.realpath(folder),fs.realpath(base),fs.realpath(project)
+  ]);
+  if (path.dirname(root)!==realBase ||
+      path.relative(realProject,realBase)!==path.join('experiments','evidence'))
     throw new Error('preview.evidence-must-be-in-poc');
   const key=randomBytes(16).toString('hex');
   const prefix='/' + key + '/';
