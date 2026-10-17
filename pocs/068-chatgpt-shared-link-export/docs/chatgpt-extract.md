@@ -49,7 +49,19 @@ published-reference-chats/
 
 The Markdown landing page contains readable visible-turn text, inline relative image references and relative attachments. GitHub renders that README.md when opening the chat directory. The HTML is standalone for offline viewing with inline CSS and relative images; the PDF is printed from that HTML with Chromium and includes visible images as PDF page content. Other binary attachments remain alongside the document and are linked by relative path, rather than falsely claimed as embedded in PDF. The source snapshot and technical manifests remain under data/, with a checksum list for all published files. The adjacent ZIP includes the same directory contents.
 
-The Markdown source is the existing structured TRANSCRIPT.md from the validated active-branch exporter, **not** DOM scrolling or a synthetic transcript. No signed CDN asset URL is intentionally emitted into Markdown, HTML or the PDF. Raw source metadata is preserved as forensic evidence.
+The readable chronology now uses the ordered active-branch nodes recorded in AUDIT.json, message objects in VISIBLE_MESSAGES.jsonl and per-node media/file manifest references. The original TRANSCRIPT.md is preserved as forensic evidence, **not** used as a flattened text-only rendering source. Generated images from tool-result nodes appear at their original positions between user messages; downloaded files appear at their actual message/reference positions. An asset without a reliable source position is reported as unplaced, never appended to the end as though it belonged there.
+
+The offline HTML keeps known interim activity and thinking **collapsed** in native details/summary sections, at the original positions, with any safely present public commentary shown inside. Where the public shared snapshot has no displayable thinking text, the disclosure explicitly states that it is unavailable; it never substitutes private chain-of-thought or invented reasoning. The HTML retains links and code/tables from the structured message content. The archival PDF expands these locally available disclosures for printing, while the interactive HTML remains collapsed by default.
+
+Existing published captures can be **re-rendered without invoking PWC or fetching any files again**, preserving earlier exports:
+
+~~~sh
+node rebuild-publication.mjs "./published-reference-chats" "./chronological-reference-chats"
+~~~
+
+This creates fresh immutable directories and ZIPs under the explicit second directory. It can also accept one individual published-chat directory. The previously committed first publication set remains historical evidence, not overwritten. Missing fifth-reference evidence (Mirror, which failed in the latest publication run) must still be acquired independently.
+
+No signed CDN asset URL is intentionally emitted into Markdown, HTML or the PDF. Raw source metadata is preserved as forensic evidence. No signed CDN asset URL is intentionally emitted into Markdown, HTML or the PDF. Raw source metadata is preserved as forensic evidence.
 
 The command fails rather than reporting success if PDF printing fails or a downloaded file referenced in a manifest is absent. Existing old export-share.mjs and reference-acceptance.mjs continue to write their original forensic output for backward compatibility.
 
