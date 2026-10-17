@@ -11,10 +11,10 @@ FIXTURE = Path(__file__).resolve().parent.parent / 'fixture'
 
 class NativeArchiveTests(unittest.TestCase):
     def test_browser_snapshot_includes_external_css_response(self):
-        executable = shutil.which('chromium') or shutil.which('chromium-browser')
-        if not executable:
-            self.skipTest('system Chromium not installed')
         with sync_playwright() as p:
+            executable = (shutil.which('chromium') or
+                          shutil.which('chromium-browser') or
+                          p.chromium.executable_path)
             browser = p.chromium.launch(headless=True, executable_path=executable)
             try:
                 page = browser.new_page()
