@@ -38,18 +38,13 @@ mkdir -p "$output"
 printf '[OUTPUT] All persistent evidence: %s\n' "$output"
 runtime=$(mktemp -d "$output/.pwc-runtime.XXXXXXXX")
 pwc_pid=
-# Redirect every tool-controlled temporary artifact into the PoC runtime.
-# XDG_RUNTIME_DIR is intentionally preserved: it belongs to the already
-# running desktop compositor, not to this capture/output pipeline.
-mkdir -p "$runtime/tmp" "$runtime/cache" "$runtime/config" "$runtime/data"
-export TMPDIR="$runtime/tmp"
-export XDG_CACHE_HOME="$runtime/cache"
-export XDG_CONFIG_HOME="$runtime/config"
-export XDG_DATA_HOME="$runtime/data"
-# Short-lived local control socket uses /tmp because a Unix socket pathname
-# cannot fit this checkout's deeply nested absolute path.
+# All browser state, cache and temporary FILE CONTENTS stay inside the PoC.
+# The checkout pathname is too deep to use directly as a Unix socket path.
+# A short-lived /tmp symlink resolves to this PoC's runtime; only the alias,
+# never any output files, is outside the PoC, and cleanup removes it.
 socket_suffix=$(printf '%s\n' "$runtime" | cksum)
 socket_suffix=${socket_suffix%% *}
+runtime_alias="/tmp/rumiai-pwc-rt-$socket_suffix"
 WEB_CONTROL_SOCKET="/tmp/rumiai-page-trial-$socket_suffix.sock"
 
 cleanup()
@@ -59,12 +54,22 @@ cleanup()
     kill "$pwc_pid" 2>/dev/null || :
     wait "$pwc_pid" 2>/dev/null || :
   fi
+  rm -f "$runtime_alias"
   rm -rf "$runtime"
   rm -f "$WEB_CONTROL_SOCKET"
 }
 trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
+
+mkdir -p "$runtime/tmp" "$runtime/cache" "$runtime/config" "$runtime/data"
+ln -s "$runtime" "$runtime_alias"
+export TMPDIR="$runtime_alias/tmp"
+export XDG_CACHE_HOME="$runtime_alias/cache"
+export XDG_CONFIG_HOME="$runtime_alias/config"
+export XDG_DATA_HOME="$runtime_alias/data"
+# Preserve the host's XDG_RUNTIME_DIR: it is desktop-compositor IPC, not an
+# artifact destination. All our temporary files still resolve into the PoC.
 
 WEB_CONTROL_BROWSER_EXECUTABLE=$(command -v chromium || command -v chromium-browser || :)
 if [ -z "$WEB_CONTROL_BROWSER_EXECUTABLE" ]
@@ -75,7 +80,7 @@ fi
 
 export WEB_CONTROL_BROWSER_EXECUTABLE
 export WEB_CONTROL_SOCKET
-export WEB_CONTROL_HOME="$runtime/browser-profile"
+export WEB_CONTROL_HOME="$runtime_alias/browser-profile"
 export WEB_CONTROL_HEADLESS=0
 export npm_config_cache="$runtime/npm-cache"
 
