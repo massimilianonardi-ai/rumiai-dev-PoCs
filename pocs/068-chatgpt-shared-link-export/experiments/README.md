@@ -17,10 +17,10 @@ From the PoC directory, after updating the checkout:
 git pull --ff-only
 node --check experiments/two-site-observation.mjs
 node --test tests/two-site-observation.test.mjs
-sh experiments/run-two-sites.sh two-sites-02
+sh experiments/run-two-sites.sh two-sites-03
 ~~~
 
-The last command is **interactive** and runs both URLs in sequence, with no need to install or change an 'srv' default. The output destination must not exist yet. It prints the normal readiness prompt when it is time to interact with Chromium. If the pinned PWC remote HEAD no longer matches the verified provider revision, it fails explicitly rather than silently switching the tested backend.
+The last command is **interactive** and runs both URLs in sequence, with no need to install or change an 'srv' default. The service startup is now explicitly gated: PWC must open Chromium and respond to `web-control status` before site observation begins. The launcher retries short status probes for a bounded period, detects a terminated service, and prints saved `pwc-service.log` diagnostics if startup fails. A `connect ENOENT` from a single initial status probe is no longer treated as an immediate fatal result. The output destination must not exist yet. It prints the normal readiness prompt when it is time to interact with Chromium. If the pinned PWC remote HEAD no longer matches the verified provider revision, it fails explicitly rather than silently switching the tested backend.
 
 If a compatible visible PWC service is already running and 'web-control' resolves to its client, the direct experimental command also works:
 
@@ -48,12 +48,18 @@ Distinct manual scroll positions remain in the private `demonstration.json` as *
 The script does not automatically publish any captured page. The user must review the outputs locally, including 'review.html', rendered MHTML, screenshots and the reported skipped actions.
 
 
+### Startup failures on the physical VM
+
+The first corrected-run attempt in `experiments/evidence/two-sites-02` failed **before opening either website** with `web-control: connect ENOENT /tmp/rumiai-page-trial-231337694.sock`. The service creates its socket only **after** Playwright launches the browser; the previous launcher ran the client immediately and therefore could race startup. The same symptom may also mean Chromium aborted: inspect the saved `two-sites-02/pwc-service.log` to distinguish them. Do not claim a browser failure or a fixed physical run without that evidence. The new readiness gate gives specific `trial.pwc-service-exited-before-ready` or `trial.pwc-startup-timeout` diagnostics and prints the last service-log lines, instead of just propagating `ENOENT`.
+
+Use a **fresh run name** such as `two-sites-03`; the previous evidence remains unchanged under this PoC. The new launcher also saves `pwc-status.json` only after the service is reachable and prints `[PWC_READY]` before invoking the interactive browser trial. If this marker never appears, the failure is provider startup, not the page observer or replay.
+
 ### Viewing without ephemeral desktop file portals
 
 Never browse a copied 'file:///run/user/...' location created by a desktop document portal; it is not the source evidence folder. All generated review links are relative to the PoC. Start the **read-only localhost viewer** from the PoC after the trial:
 
 ~~~sh
-node experiments/serve-evidence.mjs ./experiments/evidence/two-sites-02
+node experiments/serve-evidence.mjs ./experiments/evidence/two-sites-03
 ~~~
 
 It prints direct URLs such as 'http://127.0.0.1:<port>/<random-token>/amazon-wishlist/review.html' and the equivalent ChatGPT link. Use those URLs in Chromium. The viewer binds only to 127.0.0.1 and writes no files outside the PoC. MHTML may still download rather than render in some browser configurations; open it from the PoC capture directory for offline verification. The temporary Chromium display session can still internally use an existing desktop 'XDG_RUNTIME_DIR' under /run/user; this is a compositor IPC requirement, **not an exported document location**.
