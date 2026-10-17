@@ -25,7 +25,7 @@ class ObservationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'output.invalid-run-name'):
             run('../outside-poc', 'scripted', embedded=True)
         with self.assertRaisesRegex(ValueError, 'output.invalid-run-name'):
-            run('/run/user/1000/doc/missing', 'scripted', embedded=True)
+            run('/outside-the-poc/blocked', 'scripted', embedded=True)
 
     def test_real_chromium_nested_scroll_and_native_mhtml(self):
         name = 'browser-test-' + uuid.uuid4().hex[:10]
