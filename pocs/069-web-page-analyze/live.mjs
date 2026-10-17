@@ -681,7 +681,7 @@ async function showOverall(browser,folder,ask){
     if(opened)await browser.cmd('page','close',opened).catch(()=>{});
   }
 }
-function comparison(site,states){
+function comparison(site,states,coverage){
   const sections=states.map(x=>'<section><h2>'+x.index+' — '+x.label+
     '</h2><p>Chromium online a sinistra; MHTML originale riaperto in Chromium a destra (autosufficienza offline non verificata).</p>'+
     '<div class="pair"><img src="states/'+x.index+'/original.png">'+
@@ -700,7 +700,13 @@ function comparison(site,states){
     'grid-template-columns:1fr 1fr;gap:12px}.pair img{width:100%;'+
     'border:1px solid #888}section{border:1px solid #aaa;'+
     'padding:1rem;margin:1rem 0}</style><h1>'+site+
-    '</h1><p>Questo documento confronta screenshot, NON ricostruisce il sito.</p>'+
+    '</h1><p>Questo documento confronta screenshot, NON ricostruisce il sito.</p>'+ 
+    '<p>Confronto messaggi osservati: '+(coverage?.status||'non verificato')+
+    ' · prompt utente manuali '+String(coverage?.manualCounts?.user??'?')+
+    ' · prompt utente replay '+String(coverage?.replayCounts?.user??'?')+
+    ' · prompt utente manuali assenti dal replay '+
+    String(coverage?.missingCounts?.user??'?')+
+    '. I numeri riguardano solo i campioni osservati, non tutta la conversazione.</p>'+
     sections+'</html>';
 }
 async function siteRun(browser,site,output,ask,observer){
@@ -747,7 +753,7 @@ async function siteRun(browser,site,output,ask,observer){
         report.overallError+'\n');
     }
     await write(path.join(folder,'comparison.html'),
-      comparison(site.name,report.replay.states));
+      comparison(site.name,report.replay.states,report.messageCoverage));
     report.complete=report.replay.complete&&
       report.messageCoverage.status==='matching-observed-samples'&&
       report.replay.states.every(x=>
