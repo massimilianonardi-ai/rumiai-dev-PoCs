@@ -6,7 +6,8 @@ const finite = value => typeof value === 'number' && Number.isFinite(value);
 export function planCollage(entries) {
   const eligible = entries.filter(e => {
     const cap=e.capture, box=cap?.scrollViewport, geo=cap?.before;
-    return !!(box && geo && finite(geo.top) && finite(geo.max) &&
+    return !!(cap?.screenshotStable !== false && box && geo &&
+      finite(geo.top) && finite(geo.max) &&
       finite(box.x) && finite(box.y) && finite(box.width) &&
       finite(box.height) && finite(box.viewportWidth) &&
       box.width>32 && box.height>32 && box.viewportWidth>=box.width);
@@ -28,7 +29,10 @@ export function planCollage(entries) {
   })).sort((a,b)=>a.start-b.start || b.end-a.end);
   // Greedy interval coverage, preserving source provenance for every strip.
   const start=sorted[0].start, end=Math.max(...sorted.map(e=>e.end));
+  const expectedBottom=Math.max(...eligible.map(e=>
+    e.capture.before.max+e.capture.scrollViewport.height));
   let cursor=start, steps=0;const segments=[],gaps=[];
+  if(start>4)gaps.push({start:0,end:start});
   while(cursor<end && steps<entries.length*3+10){
     steps++;
     const available=sorted.filter(e=>e.start<=cursor && e.end>cursor);
@@ -53,10 +57,13 @@ export function planCollage(entries) {
     });
     cursor=nextBoundary;
   }
+  if(expectedBottom>end+4)
+    gaps.push({start:end,end:expectedBottom});
   return {type:'strips',segments,gaps,omitted,states:entries.length,
     changingExtent,changingViewport,
-    completeGeometry:omitted===0 && gaps.length===0 && cursor>=end,
-    span:{from:start,to:end},reason:changingExtent?
+    completeGeometry:omitted===0 && gaps.length===0 && cursor>=end &&
+      !changingExtent && !changingViewport,
+    span:{from:start,to:end,expectedBottom},reason:changingExtent?
     'scroll extent changed: visual concatenation may contain discontinuities':
     'screen-space fragments only: rendering fidelity and DOM completeness unverified'};
 }
