@@ -10,20 +10,32 @@ then
 fi
 
 umask 077
-case "$1" in
-  /*) output=$1 ;;
-  *) output=$(pwd -P)/$1 ;;
-esac
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
+project_dir=$(CDPATH= cd -- "$script_dir/.." && pwd -P)
 
+# Every persistent artifact MUST be written inside this exact PoC checkout.
+# Reject arbitrary or external paths instead of silently using caller CWD,
+# a browser download portal, /run/user, or HOME.
+case "$1" in
+  "$script_dir/evidence/"*) run_name=${1##*/} ;;
+  ./experiments/evidence/*|experiments/evidence/*) run_name=${1##*/} ;;
+  */*) printf '%s\n' 'trial.output-outside-poc: use experiments/evidence/<new-name>' >&2; exit 2 ;;
+  *) run_name=$1 ;;
+esac
+case "$run_name" in
+  ''|.|..|*[!A-Za-z0-9._-]*)
+    printf '%s\n' 'trial.invalid-evidence-directory-name' >&2
+    exit 2
+    ;;
+esac
+output="$script_dir/evidence/$run_name"
 if [ -e "$output" ]
 then
   printf '%s\n' 'trial.output-already-exists: select a fresh evidence directory' >&2
   exit 2
 fi
-
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
-project_dir=$(CDPATH= cd -- "$script_dir/.." && pwd -P)
 mkdir -p "$output"
+printf '[OUTPUT] All persistent evidence: %s\n' "$output"
 runtime=$(mktemp -d "$output/.pwc-runtime.XXXXXXXX")
 pwc_pid=
 WEB_CONTROL_SOCKET="/tmp/rumiai-page-trial-$$.sock"
