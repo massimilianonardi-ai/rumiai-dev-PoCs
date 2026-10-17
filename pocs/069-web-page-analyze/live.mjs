@@ -289,6 +289,22 @@ async function siteRun(browser,site,output,ask,observer){
       comparison(site.name,report.replay.states));
     report.complete=report.replay.complete&&report.replay.states.every(x=>
       x.offline&&x.stable);
+    // Open the comparison through Chromium itself, navigating directly to
+    // the PoC-owned file URL. Do not launch a desktop file opener/portal.
+    let reviewPage=null;
+    try{
+      reviewPage=(await browser.cmd('page','new')).id;
+      await browser.cmd('page','navigate',reviewPage,
+        pathToFileURL(path.join(folder,'comparison.html')).href);
+      process.stdout.write('[CONFRONTO] Aperto in Chromium: '+site.name+'\n');
+      await ask('Esamina gli screenshot, poi premi INVIO per continuare: ');
+    }catch(e){
+      report.comparisonOpenError=errorText(e);
+      process.stderr.write('[CONFRONTO] Apertura locale non riuscita: '+
+        report.comparisonOpenError+'\n');
+    }finally{
+      if(reviewPage)await browser.cmd('page','close',reviewPage).catch(()=>{});
+    }
   }catch(e){report.error=errorText(e);}
   finally{
     if(page)await browser.cmd('page','close',page).catch(()=>{});
