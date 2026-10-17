@@ -28,9 +28,10 @@ function linkText(item, image)
   if (local)
     return image ? '![immagine](' + local + ')' :
       '[Allegato: ' + linkLabel(item) + '](<' + local + '>)';
-  return image ? '[Immagine non disponibile dal link pubblico: ' +
-      linkLabel(item) + ']' : '[Allegato non disponibile dal link pubblico: ' +
-      linkLabel(item) + ']';
+  const unavailable = item.status === 'deferred-authenticated'
+    ? 'non scaricabile senza autenticazione' : 'non disponibile dal link pubblico';
+  return image ? '[Immagine ' + linkLabel(item) + ': ' + unavailable + ']'
+    : '[Allegato ' + linkLabel(item) + ': ' + unavailable + ']';
 }
 
 function containsInlineImage(message, item)
