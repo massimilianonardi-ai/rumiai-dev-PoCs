@@ -26,6 +26,53 @@ For generated images, the anonymous page is allowed to finish document loading b
 
 **Anonymous phase:** export all structured shared conversation content and publicly accessible artifact binaries without requiring a signed-in session. A real unsigned-session check established that user-uploaded attachments cannot be viewed/downloaded from the public share. Preserve their raw metadata and identify their unavailable binaries; defer authenticated retrieval to a separate second phase after the anonymous export is final. The current image acquisition does not probe user-only uploads for binary content; `MEDIA.json` marks them `deferred-authenticated` with `availability_class: user-upload`, while anonymous-public images whose binaries remain unavailable are `missing` with `availability_class: public-image`. `ACQUISITION.json` and command output report both counts separately. These categories describe the current work phases and do not claim full-fidelity completion. **Known incompleteness:** all five anonymous artifact checks passed in the user-run PWC acceptance log, but ChatGPT-faithful HTML/presentation and full site-completeness are still unverified; `observationComplete` remains false. The committed log records the test program's successful local artifact checks, not an independent remote reread of its ZIPs/manifests. One Mirror user-upload image remains `deferred-authenticated`; a structural snapshot or artifact gate does not prove full-fidelity completeness.
 
+## Release-oriented publication path (not yet physically accepted)
+
+The **new** PoC command 'chatgpt-extract' orchestrates the already validated
+structured public-share acquisition plus a separate, auditable publication step.
+This does not change the web-control provider/facility or the existing
+'export-share.mjs' forensic output and acceptance runner.
+
+From this PoC directory (after 'npm install'):
+
+~~~sh
+node chatgpt-extract.mjs "https://chatgpt.com/share/<id>" "./published-reference-chats"
+~~~
+
+Optionally use 'npm link' here to install the development command name
+'chatgpt-extract <link> <dir>' into the invoking Node.js environment.
+The destination must be an explicit project/workspace directory; this path
+does not default to a user home. The existing web-control 3 controller must
+already be running. Chromium must be available for the **offline PDF print
+stage**, using WEB_CONTROL_BROWSER_EXECUTABLE or the 'chromium' executable.
+The print stage runs a separate temporary local headless profile without
+navigating to ChatGPT or changing the extraction browser.
+
+Each newly exported conversation has a GitHub-readable 'README.md', an
+offline 'conversation.html', a printable 'conversation.pdf' plus 'media/',
+'files/' and technical 'data/'. The companion ZIP includes the three readable
+documents, downloaded binaries and technical source evidence. The readable
+Markdown and HTML use only relative links for downloaded media/files; the
+PDF prints inline image content but does not embed arbitrary binary attachments.
+User-only uploads remain visibly deferred. The render pipeline uses the
+existing structured 'TRANSCRIPT.md', not the DOM-window extraction that
+previously failed.
+
+To re-extract the five selected reference chats with this publication layout
+in one physical PWC session:
+
+~~~sh
+node reference-publication.mjs "./published-reference-chats"
+~~~
+
+The command writes a five-share report alongside five immutable conversation
+directories/ZIPs and does not delete earlier captures. **The previously
+verified 5/5 test was for the artifact gate of the original forensic exporter,
+not for these new Markdown/HTML/PDF outputs.** These outputs still require a
+real PWC+Chromium test on the user's VM and visual inspection for completeness.
+The new command has unit fixtures but no claimed physical publication PASS.
+See 'docs/chatgpt-extract.md' for the exact contract and limitations.
+
 ## Five-share anonymous PWC acceptance
 
 The reference-specific regression runner tests all five user-authorized shared links sequentially through the *existing* isolated PWC client. It invokes the actual `export-share.mjs` command, checks structured counts, stored file/media SHA-256 hashes, archive/ZIP integrity, image/sandbox completeness, and verified page disappearance. Each run creates immutable archives and a separate timestamped `reference-acceptance-*.json` report. User-upload binaries classified `deferred-authenticated` do not count as missing public images.
