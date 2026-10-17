@@ -64,8 +64,69 @@
     add('disclosure', {selector: locator(el),
       element: el.localName, expandable: el.hasAttribute('aria-expanded')});
   }, true);
+  // Passive page state for human-phase evidence; never store message text
+  // in observation metadata. A one-way hash and role allow source/replay checks.
+  let mutationRevision=0;
+  let mutationTime=performance.now();
+  const mutations=new MutationObserver(() => {
+    mutationRevision++;
+    mutationTime=performance.now();
+  });
+  mutations.observe(document.documentElement,{subtree:true,childList:true,
+    characterData:true,attributes:true,
+    attributeFilter:['class','style','aria-busy','data-message-author-role']});
+  function hash(value) {
+    let h=2166136261;
+    for (let i=0;i<value.length;i++)
+      h=Math.imul(h^value.charCodeAt(i),16777619);
+    return (h>>>0).toString(16).padStart(8,'0');
+  }
+  function messages() {
+    const nodes=[...document.querySelectorAll('[data-message-author-role]')];
+    const seen=new Set();
+    return nodes.flatMap(el => {
+      const role=el.getAttribute('data-message-author-role');
+      if(role!=='user'&&role!=='assistant')return [];
+      const content=(el.innerText||'').trim();
+      if(!content)return [];
+      const r=el.getBoundingClientRect();
+      const item={role,signature:content.length+':'+hash(content),
+        length:content.length,top:Math.round(r.top),
+        bottom:Math.round(r.bottom),
+        visible:r.bottom>0&&r.top<innerHeight};
+      const identity=role+':'+item.signature;
+      if(seen.has(identity))return [];
+      seen.add(identity);
+      return [item];
+    });
+  }
+  function sample() {
+    const last=[...entries].reverse().find(e=>
+      e.kind==='scroll'||e.kind==='wheel');
+    const scroll=last?.selector||'html';
+    let node;
+    try {
+      node=scroll==='html'?scrollRoot():document.querySelector(scroll);
+    } catch {}
+    const stateNow=node?state(node):null;
+    const inventory=messages();
+    return {
+      now:Math.round(performance.now()),mutationRevision,
+      mutationTime:Math.round(mutationTime),eventCount:sequence,
+      scroll:stateNow,resourceCount:performance.getEntriesByType('resource').length,
+      incompleteImages:[...document.images].filter(x=>!x.complete).length,
+      fontStatus:document.fonts?.status||'unknown',
+      roleDetection:'data-message-author-role',
+      roles:{
+        user:inventory.filter(x=>x.role==='user').length,
+        assistant:inventory.filter(x=>x.role==='assistant').length
+      },
+      messages:inventory
+    };
+  }
   window.__rumiaiLiveObservation = {
-    dump: () => ({version:1, capturedAt: new Date().toISOString(),
-      overflow: entries.length >= 5000, entries: entries.slice()})
+    sample,
+    dump: () => ({version:2, capturedAt:new Date().toISOString(),
+      overflow: entries.length >= 5000,entries:entries.slice()})
   };
 })()
