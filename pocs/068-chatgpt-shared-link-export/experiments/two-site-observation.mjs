@@ -45,15 +45,32 @@ export function replayableAction(action) {
 }
 
 export function consolidateActions(events) {
-  const result = [];
-  for (const event of events) {
-    if (!['scroll', 'click', 'key-activation', 'input-change'].includes(event.kind)) continue;
-    // Preserve every distinct scroll checkpoint: an intermediate location
-    // may be the only moment when a virtualized page exposes those items.
-    const last = result[result.length - 1];
-    if (event.kind === 'scroll' && last?.kind === 'scroll' &&
-        last.selector === event.selector && last.top === event.top) continue;
-    result.push(event);
+  // A demonstration is observational evidence, NOT a sequence of raw scroll
+  // positions to replay. Choose the most explored scrolling container and
+  // retain disclosures as goals; the replay independently scans forward.
+  const scrolls = events.filter(e => e.kind === 'scroll' &&
+    typeof e.selector === 'string' && Number.isFinite(e.top) && e.top >= 0);
+  const byContainer = new Map();
+  for (const entry of scrolls) {
+    const x = byContainer.get(entry.selector) || { selector: entry.selector,
+      samples: 0, maxObservedTop: 0 };
+    x.samples++;
+    x.maxObservedTop = Math.max(x.maxObservedTop, entry.top);
+    byContainer.set(entry.selector, x);
+  }
+  const selected = [...byContainer.values()].sort((a,b) =>
+    b.maxObservedTop - a.maxObservedTop || b.samples - a.samples)[0];
+  const result = [{ kind: 'forward-scan', selector: selected?.selector || 'html',
+    maxObservedTop: selected?.maxObservedTop || 0,
+    recordedScrollSamples: scrolls.length }];
+  const seen = new Set();
+  for (const e of events) {
+    if (e.kind === 'scroll') continue;
+    if (!['click', 'key-activation', 'input-change'].includes(e.kind)) continue;
+    const key = e.kind + ':' + (e.selector || '') + ':' + (e.target || '');
+    if (e.kind === 'click' && seen.has(key)) continue;
+    seen.add(key);
+    result.push(e);
   }
   return result;
 }
