@@ -621,7 +621,11 @@ function comparison(site,states){
     '<div class="pair"><img src="states/'+x.index+'/original.png">'+
     (x.offline?'<img src="states/'+x.index+'/reopened.png">':
       '<p>Riapertura non riuscita: vedi offline.json</p>')+
-    '</div><p>CSS inclusi: '+x.cssParts+' — <a href="states/'+x.index+
+    '</div><p>Verifica contenuto: '+
+    (x.offlineContentAligned===true?'riferimenti testuali allineati':
+      x.offlineContentAligned===false?'disallineamento misurato':
+      'NON VERIFICATA (riferimenti non confrontabili)')+
+    '.</p><p>CSS inclusi: '+x.cssParts+' — <a href="states/'+x.index+
     '/capture.json">diagnostica live</a> · <a href="states/'+x.index+
     '/offline.json">allineamento MHTML</a></p></section>').join('\n');
   return '<!doctype html><html lang="it"><meta charset="utf-8">'+
