@@ -51,8 +51,9 @@ portal, and the PoC never launches a file chooser to open evidence.
 5. Each unmodified MHTML is **opened directly by the same Chromium provider
    via its actual PoC `file:` URI**. The reopened rendering gets its own PNG
    and a CSS/image observation; failure is recorded rather than hidden.
-   No HTML/CSS asset-reference rewriting, remote download, or local viewer
-   proxy is used.
+   No HTML/CSS asset-reference rewriting or viewer proxy is used **to
+   open native MHTML**. The separate, post-run loopback viewer serves only
+   screenshot comparisons and collage images.
    At the end of the site, the PoC **opens its screenshot-only comparison
    directly in the same visible Chromium** using the actual PoC-local file
    URI. You inspect the two renderings side by side and press **Enter** to
