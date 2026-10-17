@@ -268,6 +268,23 @@ export async function observeManual(browser,page,folder,ask,
       independentFromReplay:true};
     await fs.writeFile(path.join(folder,'manifest.json'),
       JSON.stringify(manifest,null,2)+'\n',{flag:'wx',mode:0o600});
+    const html='<!doctype html><html lang="it"><meta charset="utf-8">'+
+      '<title>Osservazione manuale</title><style>body{font:15px system-ui;'+
+      'max-width:1150px;margin:1.5rem auto;padding:0 1rem}img{max-width:100%;'+
+      'border:1px solid #999}section{padding:1rem 0;border-top:1px solid #aaa}'+
+      '</style><h1>Screenshot originali della navigazione manuale</h1>'+
+      '<p>Immagini catturate prima del replay. I campioni non garantiscono '+
+      'la copertura di ogni singolo frame o messaggio.</p>'+
+      items.map(item=>'<section><h2>Checkpoint '+item.id+'</h2>'+
+        '<p>Scroll '+String(item.scrollBefore?.top??'?')+
+        ' · user '+String(item.roles?.user??'?')+
+        ' · assistant '+String(item.roles?.assistant??'?')+
+        ' · '+item.reason+(item.settled?' (stabile)':' (provvisorio)')+
+        '</p><img loading="lazy" alt="Screenshot manuale '+item.id+'" '+
+        'src="./'+item.id+'.png"><p><a href="./'+item.id+
+        '.json">Diagnostica</a></p></section>').join('')+'</html>';
+    await fs.writeFile(path.join(folder,'manual.html'),html,
+      {flag:'wx',mode:0o600});
     return manifest;
   }finally{
     if(session){
