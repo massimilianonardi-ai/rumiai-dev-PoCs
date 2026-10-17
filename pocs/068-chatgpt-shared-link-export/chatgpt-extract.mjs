@@ -2,7 +2,7 @@
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { exportSharedLink } from './export-share.mjs';
+import { exportSharedLink, webControl } from './export-share.mjs';
 import { publishArchive } from './publish-archive.mjs';
 
 const entrypoint = fileURLToPath(import.meta.url);
@@ -20,6 +20,13 @@ export async function main(args = process.argv.slice(2), extract = exportSharedL
   process.umask(0o077);
   try
   {
+    if (extract === exportSharedLink && process.env.WEB_CONTROL_CMD)
+    {
+      // An explicitly selected isolated PWC controller must never silently
+      // fall back to the installed/default srv provider.
+      try { await webControl('status'); }
+      catch { throw new Error('chatgpt-extract.isolated-controller-unavailable'); }
+    }
     const extracted = await extract(args[0], destination, 30);
     const published = await publish(extracted.directory, extracted.zip);
     process.stdout.write(JSON.stringify({
