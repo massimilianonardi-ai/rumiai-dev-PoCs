@@ -51,6 +51,7 @@ test('publication produces GitHub Markdown, offline HTML, PDF and complete ZIP',
     await fs.writeFile(path.join(directory, 'TRANSCRIPT.md'),
       '# Example & conversation\n\nConversation ID: a\n\n<!-- metadata -->\n\n' +
       '## USER\n\n![test](media/001-test.png)\n\n' +
+      '[immagine non scaricata; vedi NON_TEXT_PARTS.json]\n\n' +
       '## ASSISTANT\n\n**Hello**\n\n~~~js\nconst x = 2;\n~~~\n\n' +
       '| A | B |\n|---|---|\n| 1 | 2 |\n\n');
     for (const filename of ['conversation.raw.json.gz','VISIBLE_MESSAGES.jsonl',
@@ -78,6 +79,7 @@ test('publication produces GitHub Markdown, offline HTML, PDF and complete ZIP',
     assert.match(markdown, /!\[test\]\(media\/001-test.png\)/);
     assert.match(markdown, /files\/001-a.txt/);
     assert.match(markdown, /richiede fase autenticata/);
+    assert.match(markdown, /data\/NON_TEXT_PARTS\.json/);
     const html = await fs.readFile(outcome.html, 'utf8');
     assert.match(html, /media\/001-test.png/);
     assert.doesNotMatch(html, /<script/i);
