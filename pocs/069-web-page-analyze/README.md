@@ -14,7 +14,7 @@ On the Linux VM, from the PoC directory:
 
 ```sh
 git pull --ff-only
-sh run-live.sh live-02
+sh run-live.sh live-03
 ```
 
 Requires working visible Chromium, Node 26, npm, git and outbound access to
@@ -134,10 +134,13 @@ The updated `live.mjs` now:
   of aborting on the first displaced offset; continues retaining labelled
   partial checkpoints/comparisons when subsequent replay fails;
 - saves `overall/page.mhtml` from the final DOM **without rewriting** and
-  opens it in Chromium after the screenshot comparison. During both individual
-  MHTML comparisons and final-MHTML inspection, a persistent CDP session
-  **blocks HTTP and HTTPS requests**, preventing missing resources from being
-  silently fetched from the source website.
+  opens it in Chromium after the screenshot comparison. The experimental
+  `Network.setBlockedURLs` filter from `live-02` has been **removed**:
+  in `live-01` the user confirmed MHTML displayed correctly without that
+  filter, whereas both sites were visually degraded in `live-02`. MHTML
+  reopening now again uses normal Chromium navigation. Because network
+  availability is not forcibly disabled, this is a **visual reopening**
+  check, not proof that the archive is self-contained without internet.
 
 The capture report prints `[STATO]` with the intended position, before-focus
 position, screenshot position, position after native archival, restoration
@@ -145,8 +148,30 @@ status, and offline-viewport alignment. These
 diagnostics distinguish an actual source-page jump from a screenshot whose
 reopened counterpart is merely at the wrong scroll offset.
 
-Use a new run name, `live-02`. The earlier private `live-01` evidence is
-preserved. The revised behavior remains **unverified on the user's VM**.
+**Actual `live-02` result:** Amazon completed `down→bottom, up→top`
+through checkpoint `0038` with identical intended, screenshot and
+post-archive scroll coordinates, but the operator reported wrong/missing
+styles in intermediate screenshots and the overall MHTML. ChatGPT successfully
+aligned its starting position near the bottom (`26925`) and captured
+checkpoints `0000` through `0016`, then stopped around scrollTop `13242`
+with `replay.opposite-direction`. ChatGPT's native MHTML and screenshots
+showed the same CSS regression as Amazon. These visual findings are
+**rejections**, regardless of the `[ESITO] amazon-wishlist captured`
+mechanical status.
+
+The next revision retains ChatGPT's confirmed initial alignment, Amazon's
+validated `down→up` trace and the existing screenshot comparison/final
+MHTML opening. It removes only the newly introduced offline-request blocker,
+records comparable live/reopened stylesheet and body computed-style evidence,
+and gives dynamically shifting scroll containers **up to four bounded
+directional recovery attempts** before marking a phase incomplete. It never
+changes an inferred `up` into a `down` scan. Recovery attempts are saved
+in the replay's `disturbances` array, including whether progression was
+recovered. Partial states and an incomplete coverage flag are preserved.
+
+Use the new run name `live-03`. The private `live-01` and `live-02`
+results remain untouched. This latest correction is **not yet physically
+verified**.
 
 ## Acceptance and current limits
 
@@ -155,8 +180,10 @@ This is a **live site experiment**, not an already proven general exporter.
 The operator must inspect `summary.json`, each `plan.json` and
 `comparison.html`. Specific checks: demonstrated direction transitions
 (including reverse traversal), state coverage, fidelity of images/fonts/CSS,
-and whether MHTML reopens in Chromium without network dependencies. A
-`complete:true` status means all recorded phases and captures passed the
+and whether native MHTML reopens visually in Chromium. The current
+reopening path is **not network-isolated**, so no independent offline
+resource-completeness guarantee is made. A `complete:true` status means
+all recorded phases and captures passed the
 mechanical gates; it does **not** assert visual equivalence or completeness
 of the underlying site content. A skipped control, DOM/mapping mismatch,
 failed MHTML reopen or unstable checkpoint must be reported, not hidden.
