@@ -1,0 +1,28 @@
+name: PoC 069 browser-native offline archive
+on:
+  push:
+    paths:
+      - "pocs/069-web-page-analyze/**"
+      - ".github/workflows/poc-069-web-page-analyze.yml"
+  workflow_dispatch:
+
+jobs:
+  native-offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install real Chromium test environment
+        run: |
+          python -m pip install --disable-pip-version-check "playwright==1.57.0" "Pillow==11.3.0"
+          python -m playwright install --with-deps chromium
+      - name: Browser fixture, direction, and native MHTML tests
+        working-directory: pocs/069-web-page-analyze
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python -m unittest discover -s tests -p "test_*.py" -v
