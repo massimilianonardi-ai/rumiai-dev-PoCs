@@ -13,7 +13,7 @@
   },
   "scripts": {
     "test": "node --test tests/*.mjs && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_share_cdp.py' -v",
-    "check": "node --check export.mjs && node --check extract.mjs && node --check render-html.mjs && node --check export-share.mjs && node --check snapshot-acquire.mjs && node --check snapshot-export.mjs && node --check capture-share-reference.mjs && node --check capture-share-reference-set.mjs && node --check reference-interactions.mjs && node --check reference-acceptance.mjs && node --check publish-archive.mjs && node --check chatgpt-extract.mjs"
+    "check": "node --check export.mjs && node --check extract.mjs && node --check render-html.mjs && node --check export-share.mjs && node --check snapshot-acquire.mjs && node --check snapshot-export.mjs && node --check capture-share-reference.mjs && node --check capture-share-reference-set.mjs && node --check reference-interactions.mjs && node --check reference-acceptance.mjs && node --check publish-archive.mjs && node --check chatgpt-extract.mjs && node --check reference-publication.mjs"
   },
   "bin": {
     "chatgpt-extract": "./chatgpt-extract.mjs"
