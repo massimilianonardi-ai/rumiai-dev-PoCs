@@ -109,3 +109,13 @@ test('invalid visible viewport never claims continuous coverage',()=>
 {
   assert.throws(()=>replayStepSize(900,0),/replay.visible-scroll-extent-unavailable/);
 });
+
+test('fixed input overlay decreases the safe capture stride',()=>{
+  assert.equal(replayStepSize(1000,800,0),360);
+  assert.equal(replayStepSize(1000,800,200),270);
+  assert.ok(replayStepSize(1000,800,200)<replayStepSize(1000,800,0));
+});
+test('a viewport whose text is obscured cannot certify continuous coverage',()=>{
+  assert.throws(()=>replayStepSize(800,500,430),
+    /replay.visible-scroll-extent-unavailable/);
+});
