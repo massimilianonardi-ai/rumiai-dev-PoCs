@@ -188,27 +188,9 @@ async function capture(browser,page,state,selector,expectedTop){
   await save(path.join(state,'capture.json'),result);
   return result;
 }
-async function blockExternalNetwork(browser,page){
-  // An offline screenshot must not succeed by downloading missing CSS or
-  // images from the original live site. Keep a managed CDP session attached
-  // throughout file navigation; one-shot CDP detaches too soon.
-  const opened=await browser.cmd('debug','session','open',page);
-  const session=opened.session;
-  try{
-    await browser.cmd('debug','session','send',session,'Network.enable');
-    await browser.cmd('debug','session','send',session,'Network.setBlockedURLs',
-      JSON.stringify({urls:['http://*','https://*']}));
-    return session;
-  }catch(e){
-    await browser.cmd('debug','session','close',session).catch(()=>{});
-    throw e;
-  }
-}
 async function reopen(browser,state,selector,originalGeometry){
   const page=(await browser.cmd('page','new')).id;
-  let blockedSession=null;
   try{
-    blockedSession=await blockExternalNetwork(browser,page);
     await browser.cmd('page','navigate',page,
       pathToFileURL(path.join(state,'page.mhtml')).href);
     await sleep(600);
@@ -235,13 +217,10 @@ async function reopen(browser,state,selector,originalGeometry){
       'images:[...document.images].map(x=>x.complete&&x.naturalWidth>0),' +
       'textLength:document.body?.innerText?.length||0})');
     return {success:true,positionAligned:alignment.ok,
-      externalNetworkBlocked:true,
       originalGeometry,restoredGeometry:alignment.position||restored,
       selector:targetSelector,alignment,...inspected};
   }catch(e){return {success:false,error:errorText(e)};}
   finally{
-    if(blockedSession)
-      await browser.cmd('debug','session','close',blockedSession).catch(()=>{});
     await browser.cmd('page','close',page).catch(()=>{});
   }
 }
@@ -408,10 +387,9 @@ async function captureOverall(browser,page,folder,states){
 }
 async function showOverall(browser,folder,ask){
   const filename=path.join(folder,'overall','page.mhtml');
-  let opened=null,blockedSession=null;
+  let opened=null;
   try{
     opened=(await browser.cmd('page','new')).id;
-    blockedSession=await blockExternalNetwork(browser,opened);
     await browser.cmd('page','navigate',opened,pathToFileURL(filename).href);
     await focus(browser,opened);
     process.stdout.write('[MHTML] Archivio nativo dello stato finale aperto in Chromium\n');
@@ -420,8 +398,6 @@ async function showOverall(browser,folder,ask){
   }catch(e){
     return {opened:false,error:errorText(e),file:'overall/page.mhtml'};
   }finally{
-    if(blockedSession)
-      await browser.cmd('debug','session','close',blockedSession).catch(()=>{});
     if(opened)await browser.cmd('page','close',opened).catch(()=>{});
   }
 }
