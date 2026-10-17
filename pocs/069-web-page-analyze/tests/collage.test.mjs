@@ -159,3 +159,11 @@ test('matching anchors that move with scroll are only a consistency clue',()=>{
     {key:'first',line:0,top:250},{key:'second',line:0,top:160}];
   assert.equal(assessTileContinuity(one,two).status,'consistent');
 });
+test('the collage visibly warns when a screenshot hides text behind an overlay',()=>{
+  const capture=state('0000',0,900);
+  capture.capture.obscuredText={coveredTextLines:1,bottomCoveredCssPixels:80};
+  const html=collageHtml('chatgpt-share',[capture]);
+  assert.match(html,/Testo rilevato dietro altri elementi/);
+  assert.match(html,/1 frammenti/);
+  assert.doesNotMatch(html,/A useful line of chat text/);
+});
