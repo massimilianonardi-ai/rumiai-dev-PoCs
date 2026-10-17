@@ -150,8 +150,22 @@ class WebControl {
   }
 }
 
+async function fingerprint(client, page) {
+  try {
+    const r = await client.cdp(page, 'Runtime.evaluate', {
+      expression:'JSON.stringify({nodes:document.querySelectorAll("*").length,' +
+        'textLength:document.body?.textContent?.length||0,' +
+        'images:document.images.length,scroll:Math.round(window.scrollY),' +
+        'height:document.documentElement.scrollHeight})',
+      returnByValue:true
+    });
+    return r.result?.value || null;
+  } catch { return null; }
+}
+
 async function captureState(client, page, folder, label) {
   await fs.mkdir(folder, { recursive: true, mode: 0o700 });
+  const beforeFingerprint = await fingerprint(client, page);
   const checks = [];
   for (const format of ['html', 'mhtml', 'screenshot']) {
     try {
@@ -180,7 +194,11 @@ async function captureState(client, page, folder, label) {
   const hashes = {};
   for (const name of fileNames)
     hashes[name] = sha(await fs.readFile(path.join(folder, name)));
+  const afterFingerprint = await fingerprint(client, page);
+  const captureWindowStable = beforeFingerprint !== null &&
+    beforeFingerprint === afterFingerprint;
   const result = { label, capturedAt: new Date().toISOString(), checks, hashes,
+    beforeFingerprint, afterFingerprint, captureWindowStable,
     allFormatsCaptured: checks.length === 4 &&
       checks.every(entry => entry.status === 'captured') };
   await saveJson(path.join(folder, 'evidence.json'), result);
@@ -339,10 +357,12 @@ async function runSite(client, site, output, question) {
         executed: steps.filter(x => x.result?.status === 'executed').length,
         skipped: steps.filter(x => x.result?.status !== 'executed' && x.result).length,
         allCaptured: steps.every(x => x.capture.allFormatsCaptured),
+        allCaptureWindowsStable: steps.every(x => x.capture.captureWindowStable),
         steps: steps.map(x => ({ index: x.index, kind: x.kind,
           status: x.result?.status || 'baseline',
           captured: x.capture.allFormatsCaptured,
-          settled: x.stable?.settledHeuristically ?? null })) };
+          settled: x.stable?.settledHeuristically ?? null,
+          stableCapture: x.capture.captureWindowStable })) };
       await saveJson(path.join(output, 'replay-steps.json'), steps);
       await writeReview(output, site.name, steps);
       await writeSiteAnalysis(output, steps);
@@ -351,6 +371,7 @@ async function runSite(client, site, output, question) {
     }
     report.captureTransportComplete = !observation.overflow &&
       report.replay.skipped === 0 && report.replay.allCaptured &&
+      report.replay.allCaptureWindowsStable &&
       report.manualInitial.allFormatsCaptured &&
       report.manualFinal.allFormatsCaptured;
     report.accepted = false;
