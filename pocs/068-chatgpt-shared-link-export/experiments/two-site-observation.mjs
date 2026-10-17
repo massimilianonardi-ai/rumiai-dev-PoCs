@@ -107,12 +107,17 @@ const observerScript = String.raw`
     const el = event.target === document ? document.scrollingElement
       : event.target;
     if (!el || el.nodeType !== 1) return;
-    const before = recent.get(el) || 0;
-    if (Date.now() - before < 600) return;
-    recent.set(el, Date.now());
-    send({ kind:'scroll',
-      selector:el === document.scrollingElement ? 'html' : cssPath(el),
-      top:Math.max(0, Math.round(el.scrollTop)), at:Date.now() });
+    let info = recent.get(el);
+    if (!info) { info = { last:0, timer:null }; recent.set(el, info); }
+    function sample() {
+      info.last = Date.now();
+      send({ kind:'scroll',
+        selector:el === document.scrollingElement ? 'html' : cssPath(el),
+        top:Math.max(0, Math.round(el.scrollTop)), at:Date.now() });
+    }
+    clearTimeout(info.timer);
+    if (Date.now() - info.last >= 600) sample();
+    info.timer = setTimeout(sample, 450);
   }, true);
   document.addEventListener('change', event => {
     if (!event.isTrusted) return;
@@ -378,7 +383,9 @@ async function runSite(client, site, output, question) {
       report.replay.skipped === 0 && report.replay.allCaptured &&
       report.replay.allCaptureWindowsStable &&
       report.manualInitial.allFormatsCaptured &&
-      report.manualFinal.allFormatsCaptured;
+      report.manualFinal.allFormatsCaptured &&
+      report.manualInitial.captureWindowStable &&
+      report.manualFinal.captureWindowStable;
     report.accepted = false;
     // This is only a machine evidence gate: no visual replay/MHTML fidelity
     // or site-specific exporter has been accepted.
