@@ -135,9 +135,9 @@ async function move(browser,page,selector,top){
 export function replayStepSize(viewport,visibleHeight)
 {
   const available=Math.min(viewport,visibleHeight);
-  if(!Number.isFinite(available)||available<=0)
+  if(!Number.isFinite(available)||available<80)
     throw Error('replay.visible-scroll-extent-unavailable');
-  return Math.max(40,Math.floor(available*.45));
+  return Math.floor(available*.45);
 }
 
 async function replayInput(browser,page,selector,sign,delta,target,inference)
