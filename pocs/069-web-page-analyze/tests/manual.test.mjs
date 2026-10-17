@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {NetworkActivity,shouldSampleCapture,compareMessageCoverage}
-  from '../manual.mjs';
+import {NetworkActivity,shouldSampleCapture,compareMessageCoverage,
+  waitForObservedStability} from '../manual.mjs';
 
 test('network lifecycle preserves inflight and finish/failure counts',()=>{
   const net=new NetworkActivity();
@@ -74,4 +74,32 @@ test('matching observed samples do not prove the entire virtualized chat',()=>{
       {role:'assistant',signature:'a1'}]}]);
   assert.equal(result.status,'matching-observed-samples');
   assert.equal(result.entireConversationVerified,false);
+});
+
+test('replay readiness requires two quiet browser observations',async()=>{
+  let queries=0;
+  const browser={evaluate:async()=> {
+    queries++;
+    return {scroll:{selector:'html',top:120,max:600},
+      mutationRevision:7,eventCount:2,resourceCount:9,
+      incompleteImages:0,fontStatus:'loaded',messages:[]};
+  }};
+  const result=await waitForObservedStability(browser,'page',
+    {quietMs:0,timeoutMs:200,pollMs:0});
+  assert.equal(result.settled,true);
+  assert.ok(queries>=2);
+  assert.equal(result.networkQuiescenceVerified,false);
+});
+
+test('continuously changing DOM does not fake a completed lazy load',async()=>{
+  let changes=0;
+  const browser={evaluate:async()=>({
+    scroll:{selector:'html',top:120,max:600},
+    mutationRevision:++changes,eventCount:2,resourceCount:9,
+    incompleteImages:0,fontStatus:'loaded',messages:[]
+  })};
+  const result=await waitForObservedStability(browser,'page',
+    {quietMs:20,timeoutMs:50,pollMs:1});
+  assert.equal(result.settled,false);
+  assert.equal(result.reason,'dom-stability-timeout');
 });
