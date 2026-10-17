@@ -58,7 +58,7 @@ function movableBrowser({top=0,max=900,resetOnce=false}={}){
         this.top=Math.max(0,Math.min(this.max,Number(match[1])));
         return true;
       }
-      if(resetOnce&&this.top!==0){
+      if(this.resetOnce&&this.top!==0){
         this.resetOnce=false;
         this.top=0; // a deferred application scroll overrides first attempt
       }
