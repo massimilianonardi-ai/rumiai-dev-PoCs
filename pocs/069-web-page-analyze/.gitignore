@@ -1,4 +1,3 @@
-# All experimental outputs stay physically under this PoC and out of Git.
+# Private evidence and isolated Chromium/PWC runtime always live inside this PoC.
 evidence/
-__pycache__/
-tests/__pycache__/
+.runtime/
