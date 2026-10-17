@@ -272,6 +272,8 @@ async function replay(browser,page,plan,folder){
   process.stdout.write('[ALLINEAMENTO] start='+Math.round(start)+
     ' reached='+alignment.position?.top+' stable='+alignment.ok+'\n');
   const states=[],outcomes=[];
+  let executionError=null;
+  try {
   await inspectState(browser,page,folder,plan.selector,'observed-start',states);
   for(let i=0;i<plan.actions.length;i++){
     const action=plan.actions[i];
@@ -327,8 +329,13 @@ async function replay(browser,page,plan,folder){
     outcomes.push({kind:'scroll',direction:action.direction,
       target:action.target,steps,complete});
   }
-  return {states,outcomes,alignment,
-    complete:alignment.ok&&outcomes.every(x=>
+  } catch(e) {
+    executionError=errorText(e);
+    process.stderr.write('[GAP] Replay interrotto, checkpoint parziali conservati: '+
+      executionError+'\n');
+  }
+  return {states,outcomes,alignment,executionError,
+    complete:!executionError&&alignment.ok&&outcomes.every(x=>
       x.kind==='scroll'?x.complete:x.status==='executed')};
 }
 
@@ -426,8 +433,14 @@ async function siteRun(browser,site,output,ask,observer){
     report.replay=await replay(browser,replayPage,plan,path.join(folder,'states'));
     // Preserve a separate native final-page archive in addition to the
     // individual chronological viewport checkpoints.
-    report.overall=await captureOverall(browser,replayPage,folder,
-      report.replay.states);
+    try {
+      report.overall=await captureOverall(browser,replayPage,folder,
+        report.replay.states);
+    }catch(e){
+      report.overallError=errorText(e);
+      process.stderr.write('[GAP] MHTML finale non acquisito: '+
+        report.overallError+'\n');
+    }
     await write(path.join(folder,'comparison.html'),
       comparison(site.name,report.replay.states));
     report.complete=report.replay.complete&&report.replay.states.every(x=>
@@ -450,7 +463,8 @@ async function siteRun(browser,site,output,ask,observer){
     }finally{
       if(reviewPage)await browser.cmd('page','close',reviewPage).catch(()=>{});
     }
-    report.overallReview=await showOverall(browser,folder,ask);
+    if(report.overall)
+      report.overallReview=await showOverall(browser,folder,ask);
   }catch(e){report.error=errorText(e);}
   finally{
     if(page)await browser.cmd('page','close',page).catch(()=>{});
