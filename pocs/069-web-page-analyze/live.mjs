@@ -130,6 +130,41 @@ async function move(browser,page,selector,top){
   return browser.evaluate(page,'(() => {const el='+selectorExpression(selector)+
     ';if(!el)return false;el.scrollTop='+Math.round(top)+';return true;})()');
 }
+// Keep adjacent captures overlapped inside the actual visible scroll box.
+// A step based on a larger outer viewport can leave uncaptured intervals.
+export function replayStepSize(viewport,visibleHeight)
+{
+  const available=Math.min(viewport,visibleHeight);
+  if(!Number.isFinite(available)||available<=0)
+    throw Error('replay.visible-scroll-extent-unavailable');
+  return Math.max(40,Math.floor(available*.45));
+}
+
+async function replayInput(browser,page,selector,sign,delta,target,inference)
+{
+  if(inference==='wheel-direction')
+  {
+    const viewport=await scrollViewport(browser,page,selector);
+    if(!viewport||viewport.width<40||viewport.height<40)
+      throw Error('replay.wheel-target-viewport-missing');
+    await browser.cdp
+    (
+      page,'Input.dispatchMouseEvent',
+      {
+        type:'mouseWheel',
+        x:Math.floor(viewport.x+viewport.width/2),
+        y:Math.floor(viewport.y+viewport.height/2),
+        deltaX:0,
+        deltaY:sign*delta
+      }
+    );
+    return 'browser-wheel';
+  }
+  if(!await move(browser,page,selector,target))
+    throw Error('replay.programmatic-scroll-failed');
+  return 'scrollTop';
+}
+
 export async function stabilizePosition(browser,page,selector,target,{
   attempts=8,delayMs=350,tolerance=12
 }={}){
@@ -376,6 +411,9 @@ async function inspectState(browser,page,folder,selector,label,states){
     ' sourceRestored='+restored.ok+
     ' mhtmlAligned='+offline.positionAligned+
     ' contentAligned='+offline.contentAligned+
+    ' sourceAnchors='+captureResult.originalAnchors?.length+
+    ' matchedAnchors='+offline.finalContentShift?.matches+
+    ' anchorReason='+offline.finalContentShift?.reason+
     ' contentShift='+offline.finalContentShift?.shift+'\n');
   if(!restored.ok)
     process.stderr.write('  [GAP] Posizione originale non ripristinata: '+index+'\n');
@@ -449,11 +487,13 @@ async function replay(browser,page,plan,folder){
         await sleep(400);continue;
       }
       stable=0;
-      const delta=Math.max(160,Math.floor(before.viewport*.8));
+      const visible=await scrollViewport(browser,page,plan.selector);
+      const delta=replayStepSize(before.viewport,visible?.height);
       const top=sign>0?Math.min(destination,before.top+delta):
         Math.max(destination,before.top-delta);
-      await move(browser,page,plan.selector,top);
-      await sleep(650);
+      const input=await replayInput(browser,page,plan.selector,
+        sign,delta,top,plan.inference);
+      await sleep(900);
       let after=await geometry(browser,page,plan.selector);
       if(!after)throw Error('replay.geometry-lost');
       // On dynamic pages, newly mounted/unmounted content can move
@@ -472,17 +512,19 @@ async function replay(browser,page,plan,folder){
           const updatedEnd=action.target==='top'?0:
             action.target==='bottom'?now.max:
             action.max?Math.round(action.to/action.max*now.max):action.to;
+          const retryDelta=Math.max(40,Math.floor(delta/(recovery+1)));
           const retryTarget=sign>0
-            ? Math.min(updatedEnd,now.top+delta)
-            : Math.max(updatedEnd,now.top-delta);
-          await move(browser,page,plan.selector,retryTarget);
-          await sleep(650);
+            ? Math.min(updatedEnd,now.top+retryDelta)
+            : Math.max(updatedEnd,now.top-retryDelta);
+          await replayInput(browser,page,plan.selector,sign,
+            retryDelta,retryTarget,plan.inference);
+          await sleep(900);
           after=await geometry(browser,page,plan.selector);
           if(!after)throw Error('replay.geometry-lost-during-drift-recovery');
         }
         const recovered=progressed(after);
         disturbances.push({phase:i,direction:action.direction,
-          from:before.top,requested:top,unexpected,retries:recovery,
+          input,from:before.top,requested:top,unexpected,retries:recovery,
           result:after.top,recovered});
         process.stdout.write('  [DRIFT] '+action.direction+
           ' from='+before.top+' unexpected='+unexpected+
@@ -493,6 +535,19 @@ async function replay(browser,page,plan,folder){
         }
       }
       steps++;
+      // Large re-layout jumps invalidate numerical continuity even when the
+      // operation eventually moves in the demonstrated direction.
+      if(Math.abs(after.top-before.top)>delta*1.6)
+      {
+        disturbances.push
+        (
+          {
+            phase:i,direction:action.direction,
+            input,from:before.top,requested:top,result:after.top,
+            reason:'scroll-jump-may-hide-content',recovered:false
+          }
+        );
+      }
       await inspectState(browser,page,folder,plan.selector,
         'phase-'+i+'-'+action.direction+'-'+steps,states);
       process.stdout.write('  '+action.direction+' '+before.top+' → '+after.top+'\n');
@@ -509,8 +564,9 @@ async function replay(browser,page,plan,folder){
   return {states,outcomes,disturbances,alignment,executionError,
     sourceExtent:plan.start.max,replayInitialExtent:current.max,
     extentSettled:stableExtent>=3,
-    complete:!executionError&&alignment.ok&&outcomes.every(x=>
-      x.kind==='scroll'?x.complete:x.status==='executed')};
+    complete:!executionError&&alignment.ok&&
+      disturbances.every(x=>x.recovered!==false)&&
+      outcomes.every(x=>x.kind==='scroll'?x.complete:x.status==='executed')};
 }
 
 async function captureOverall(browser,page,folder,states){
