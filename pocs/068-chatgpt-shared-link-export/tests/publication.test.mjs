@@ -6,6 +6,7 @@ import path from 'node:path';
 import { inflateRawSync } from 'node:zlib';
 import { publishArchive } from '../publish-archive.mjs';
 import { main as extractMain } from '../chatgpt-extract.mjs';
+import { buildChronologicalPublication } from '../chronological-publication.mjs';
 
 function zipContents(bytes)
 {
@@ -36,17 +37,26 @@ test('publication produces GitHub Markdown, offline HTML, PDF and complete ZIP',
     await fs.writeFile(path.join(directory, 'files', '001-a.txt'), 'attachment');
     await fs.writeFile(path.join(directory, 'AUDIT.json'), JSON.stringify({
       conversation: { title: 'Example & conversation' },
-      transcript: { visible_messages: 2 }
+      transcript: { visible_messages: 2 },
+      nodes: [
+        { ordinal: 1, classification: 'visible_candidate' },
+        { ordinal: 2, classification: 'internal_reasoning' },
+        { ordinal: 3, classification: 'zero_weight' },
+        { ordinal: 4, classification: 'visible_candidate' },
+        { ordinal: 5, classification: 'tool_traffic' }
+      ]
     }));
     await fs.writeFile(path.join(directory, 'ACQUISITION.json'), JSON.stringify({
       source: 'https://chatgpt.com/share/6ad13a5b-e9f0-83eb-8519-9e2d8c8097f3'
     }));
     await fs.writeFile(path.join(directory, 'MEDIA.json'), JSON.stringify([
-      { file_id: 'test', status: 'downloaded', local_path: 'media/001-test.png' },
-      { file_id: 'user-upload', status: 'deferred-authenticated' }
+      { file_id: 'test', status: 'downloaded', local_path: 'media/001-test.png',
+        references: [{ ordinal: 3 }] },
+      { file_id: 'user-upload', status: 'deferred-authenticated',
+        references: [{ ordinal: 1 }] }
     ]));
     await fs.writeFile(path.join(directory, 'FILES.json'), JSON.stringify([
-      { file_name: 'a.txt', status: 'downloaded', local_path: 'files/001-a.txt' }
+      { file_name: 'a.txt', status: 'downloaded', local_path: 'files/001-a.txt', ordinal: 5 }
     ]));
     await fs.writeFile(path.join(directory, 'TRANSCRIPT.md'),
       '# Example & conversation\n\nConversation ID: a\n\n<!-- metadata -->\n\n' +
@@ -54,8 +64,19 @@ test('publication produces GitHub Markdown, offline HTML, PDF and complete ZIP',
       '[immagine non scaricata; vedi NON_TEXT_PARTS.json]\n\n' +
       '## ASSISTANT\n\n**Hello**\n\n~~~js\nconst x = 2;\n~~~\n\n' +
       '| A | B |\n|---|---|\n| 1 | 2 |\n\n');
-    for (const filename of ['conversation.raw.json.gz','VISIBLE_MESSAGES.jsonl',
-      'TURN_SURFACES.jsonl','NON_TEXT_PARTS.json','SHA256SUMS'])
+    await fs.writeFile(path.join(directory, 'VISIBLE_MESSAGES.jsonl'),
+      [
+        { ordinal: 1, role: 'user', text: 'Create an image',
+          message: { content: { parts: ['Create an image'] } } },
+        { ordinal: 4, role: 'assistant', text: '**Hello**',
+          message: { content: { parts: [
+            '**Hello**\\n\\n~~~js\\nconst x = 2;\\n~~~\\n\\n' +
+            '| A | B |\\n|---|---|\\n| 1 | 2 |'
+          ] } } }
+      ].map(item => JSON.stringify(item)).join('\\n') + '\\n');
+    await fs.writeFile(path.join(directory, 'TURN_SURFACES.jsonl'),
+      JSON.stringify({ index: 0, activities: [] }) + '\\n');
+    for (const filename of ['conversation.raw.json.gz','NON_TEXT_PARTS.json','SHA256SUMS'])
       await fs.writeFile(path.join(directory, filename), 'fixture');
     await fs.writeFile(path.join(directory, 'README.md'), '# Technical export\n');
     const archive = path.join(root, 'Conversation.zip');
@@ -76,12 +97,19 @@ test('publication produces GitHub Markdown, offline HTML, PDF and complete ZIP',
     assert.equal(outcome.htmlFidelityVerified, false);
     const markdown = await fs.readFile(outcome.markdown, 'utf8');
     assert.match(markdown, /^# Example & conversation/);
-    assert.match(markdown, /!\[test\]\(media\/001-test.png\)/);
+    assert.match(markdown, /!\[immagine\]\(media\/001-test.png\)/);
     assert.match(markdown, /files\/001-a.txt/);
-    assert.match(markdown, /richiede fase autenticata/);
-    assert.match(markdown, /data\/NON_TEXT_PARTS\.json/);
+    assert.match(markdown, /non scaricabile senza autenticazione/);
+    assert.match(markdown, /Thinking/);
+    const first = markdown.indexOf('## UTENTE');
+    const image = markdown.indexOf('![immagine](media/001-test.png)');
+    const last = markdown.indexOf('## ASSISTENTE');
+    const file = markdown.indexOf('files/001-a.txt');
+    assert.ok(first < image && image < last && last < file,
+      'chronology must preserve generated image and attachment positions');
     const html = await fs.readFile(outcome.html, 'utf8');
     assert.match(html, /media\/001-test.png/);
+    assert.match(html, /<details class="activity">/);
     assert.doesNotMatch(html, /<script/i);
     const entries = zipContents(await fs.readFile(archive));
     for (const item of ['README.md', 'conversation.html', 'conversation.pdf',
