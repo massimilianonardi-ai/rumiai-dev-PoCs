@@ -65,8 +65,8 @@ function renderHtml(markdown, title, source, available, events, unplaced)
       return '<section class="message"><h2>' + escapeHtml(event.label) +
         '</h2>' + renderer.render(event.markdown || '') + '</section>';
     if (event.kind === 'attachment')
-      return '<section class="attachment">' + renderer.render(event.markdown) +
-        '</section>';
+      return '<section class="attachment"><h2>' + escapeHtml(event.label) +
+        '</h2>' + renderer.render(event.markdown) + '</section>';
     const heading = event.kind === 'thinking'
       ? 'Thinking / attività intermedia' +
         (event.publicCommentary ? ' visibile' : ' — contenuto non disponibile')
