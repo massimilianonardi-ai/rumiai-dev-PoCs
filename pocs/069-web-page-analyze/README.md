@@ -130,7 +130,8 @@ derived screenshot collage and starts a private read-only
 printed in the terminal for Amazon and ChatGPT comparisons and collages.
 As long as `view.sh` runs, the references resolve against the original
 PoC evidence directory; it can be stopped with Ctrl+C and restarted later.
-For a new trial use `sh view.sh live-03`.
+For the already captured `live-04` evidence, use `sh view.sh live-04`.
+This regenerates only the comparison collage; it does not repeat the browser run.
 
 The loopback viewer allows only generated comparison/collage HTML,
 screenshot PNGs and their small diagnostics; **raw private MHTML, DOM HTML,
