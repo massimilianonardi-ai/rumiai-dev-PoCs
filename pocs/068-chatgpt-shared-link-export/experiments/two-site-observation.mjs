@@ -395,6 +395,8 @@ async function runSite(client, site, output, question) {
       status: navigation.status ?? null };
     if (/\/(?:ap\/signin|signin|login|auth\/login)(?:\/|$)/i.test(landing.pathname))
       throw new Error('observation.login-wall-no-authenticated-capture');
+    report.manualInitialSettle = await settle(client, page).catch(() =>
+      ({ settledHeuristically: false }));
     report.manualInitial = await captureState(client, page,
       path.join(output, 'manual-initial'), 'manual-initial');
     const debuggerInfo = await client.call('debug', 'session', 'open', page);
@@ -417,6 +419,8 @@ async function runSite(client, site, output, question) {
     const replayPage = replayInfo.id;
     try {
       await client.call('page', 'navigate', replayPage, site.url);
+      report.replayInitialSettle = await settle(client, replayPage).catch(() =>
+        ({ settledHeuristically: false }));
       const actions = consolidateActions(observation.events);
       const steps = [];
       const baseline = await captureState(client, replayPage,
