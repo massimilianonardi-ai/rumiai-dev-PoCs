@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Browser, interpret, stabilizePosition, archiveScrollTarget, replayStepSize, visibleTextOcclusion} from '../live.mjs';
+import {Browser, interpret, stabilizePosition, archiveScrollTarget, replayStepSize, replayStepBudget, contentCorrectionEligible, visibleTextOcclusion} from '../live.mjs';
 
 function entry(n,kind,direction,top,max=900) {
   return {n,kind,selector:'#messages',direction,top,max,viewport:300};
@@ -172,4 +172,29 @@ test('persistent CDP commands share the managed session and preserve envelope',a
     {expression:'18'})).result.value,18);
   assert.deepEqual(issued[1].slice(0,4),
     ['debug','cdp','page-1','Runtime.evaluate']);
+});
+
+test('long virtualized ChatGPT traversals receive a distance-dependent step budget',()=>{
+  assert.ok(replayStepBudget(26925,700)>100);
+  assert.ok(replayStepBudget(26925,700)<=600);
+  assert.equal(replayStepBudget(1000,700),100);
+  assert.throws(()=>replayStepBudget(3000,0),
+    /replay.step-budget-geometry-unavailable/);
+});
+
+test('large uniform MHTML text shifts require strong evidence and viewport bound',()=>{
+  assert.equal(contentCorrectionEligible(
+    {usable:true,shift:586,matches:10,spread:1},900),true);
+  assert.equal(contentCorrectionEligible(
+    {usable:true,shift:586,matches:2,spread:0},900),false);
+  assert.equal(contentCorrectionEligible(
+    {usable:true,shift:586,matches:10,spread:3},900),false);
+  assert.equal(contentCorrectionEligible(
+    {usable:true,shift:1300,matches:10,spread:0},900),false);
+  assert.equal(contentCorrectionEligible(
+    {usable:false,shift:586,matches:10,spread:30},900),false);
+  assert.equal(contentCorrectionEligible(
+    {usable:true,shift:0,matches:10,spread:0},900),false);
+  assert.equal(contentCorrectionEligible(
+    {usable:true,shift:17,matches:2,spread:0},900),true);
 });
