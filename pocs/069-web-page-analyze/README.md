@@ -1,6 +1,6 @@
 # PoC 069 — web-page-analyze: live Amazon + ChatGPT
 
-**Status: `live-01` through `live-05` were executed on the user's Linux VM. `live-05` physically failed for both Amazon and ChatGPT (occlusion-derived stride abort); 33/33 native Node tests passed for that previous code revision. The new human-phase acquisition, readiness gates and stride correction remain physically unvalidated.**
+**Status: `live-01` through `live-05` are confirmed executed; the user subsequently reports physical feedback consistent with a further run of the human-phase capture revision: Amazon is almost always aligned, ChatGPT user prompts are visible, but ChatGPT source/MHTML alignment is poor and its beginning is still missing. The exact new run identifier and private checkpoint diagnostics have not been supplied. The latest top-coverage and MHTML correction changes remain physically unvalidated.**
 
 This is an experimental browser-analysis PoC built **directly on the two
 authorized real pages**. All prior fixture experiments, their tests and the
@@ -8,6 +8,41 @@ fixture CI workflow were removed from the current tree. It preserves native
 MHTML unmodified. The generic *visual collage* now combines **only original
 browser screenshot fragments**, with provenance and explicit missing ranges;
 it does not reconstruct HTML/CSS or purport to be one complete MHTML document.
+
+## Most recent ChatGPT limitations and coverage instrumentation
+
+User inspection after the human-observation update: **Amazon visual alignment is
+almost always correct**; **ChatGPT user prompts are now visible**; nevertheless
+**ChatGPT's archived/reopened image alignment remains poor** and the beginning
+of the conversation is repeatedly missing. These are direct visual reports,
+not an uploaded screenshot diff or a verified complete replay. Do not infer
+that ChatGPT's original manual source lacks the beginning, or that the MHTML
+scroll coordinate necessarily represents the same virtualized content.
+
+Current corrective changes leave Amazon's rendering and native MHTML untouched:
+
+- Long virtualized reverse scrolls have a **distance-dependent replay step
+  budget** rather than a fixed 100 checkpoints. Failure to reach the target
+  after that budget is recorded explicitly as
+  `replay.step-budget-exhausted`, not mislabeled as completed coverage.
+  Actual top content remains an independent physical/semantic check.
+- MHTML content correction retains the source's multiple unique text-anchor
+  requirements; shifts above 100 CSS pixels are eligible only with **three
+  or more consistent anchors**, spread at most 2 CSS pixels, and a correction
+  within the measured source viewport height (capped at 1200 CSS pixels).
+  It scrolls only the reopened archive, without modifying original screenshots
+  or serialized MHTML. Unsupported reflow remains unaligned.
+- Manual observation and replay now separately record **minimum observed and
+  captured top scroll positions**, and the comparison reports whether each
+  phase actually photographed the geometric top. A coordinate of zero is
+  not proof that the virtualized conversation is semantically complete.
+  The terminal prints `[COPERTURA]` with these distinct measurements.
+- The new regression tests cover the longer budgets and bounded large-offset
+  correction. The existing full-tile collage is unchanged.
+
+The new behavior has **not** been physically validated in the user's Chromium.
+Use a distinct new run name only after confirming prior run names are unused;
+preserve every existing evidence directory.
 
 ## Current workflow: preserve human observation before replay
 
