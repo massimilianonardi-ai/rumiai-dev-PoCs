@@ -717,7 +717,7 @@ async function showOverall(browser,folder,ask){
     if(opened)await browser.cmd('page','close',opened).catch(()=>{});
   }
 }
-function comparison(site,states,coverage){
+function comparison(site,states,coverage,topCoverage){
   const sections=states.map(x=>'<section><h2>'+x.index+' — '+x.label+
     '</h2><p>Chromium online a sinistra; MHTML originale riaperto in Chromium a destra (autosufficienza offline non verificata).</p>'+
     '<div class="pair"><img src="states/'+x.index+'/original.png">'+
@@ -742,7 +742,14 @@ function comparison(site,states,coverage){
     ' · prompt utente replay '+String(coverage?.replayCounts?.user??'?')+
     ' · prompt utente manuali assenti dal replay '+
     String(coverage?.missingCounts?.user??'?')+
-    '. I numeri riguardano solo i campioni osservati, non tutta la conversazione.</p>'+
+    '. I numeri riguardano solo i campioni osservati, non tutta la conversazione.</p>'+ 
+    '<p>Inizio pagina: osservato manualmente '+
+    (topCoverage?.manualTopObserved?'sì':'non verificato')+
+    ' · fotografato manualmente '+
+    (topCoverage?.manualTopCaptured?'sì':'non verificato')+
+    ' · fotografato nel replay '+
+    (topCoverage?.replayTopCaptured?'sì':'no')+
+    '. Sono coordinate del contenitore, non prova di continuità testuale.</p>'+
     sections+'</html>';
 }
 async function siteRun(browser,site,output,ask,observer){
@@ -778,6 +785,22 @@ async function siteRun(browser,site,output,ask,observer){
     report.replay=await replay(browser,replayPage,plan,path.join(folder,'states'));
     report.messageCoverage=compareMessageCoverage(report.manual,
       report.replay.states);
+    const topFrames=report.replay.states.filter(x=>
+      x.screenshotAt?.max>0&&Number.isFinite(x.screenshotAt?.top));
+    const replayMinimumTop=topFrames.length
+      ?Math.min(...topFrames.map(x=>x.screenshotAt.top)):null;
+    report.topCoverage={
+      manualTopObserved:report.manual.topObserved,
+      manualTopCaptured:report.manual.topCaptured,
+      manualMinimumTop:report.manual.minimumObservedTop,
+      replayMinimumTop,
+      replayTopCaptured:replayMinimumTop!==null&&replayMinimumTop<=3
+    };
+    process.stdout.write('[COPERTURA] '+site.name+
+      ' manualTop='+report.topCoverage.manualTopCaptured+
+      ' replayTop='+report.topCoverage.replayTopCaptured+
+      ' minManual='+report.topCoverage.manualMinimumTop+
+      ' minReplay='+report.topCoverage.replayMinimumTop+'\n');
     // Preserve a separate native final-page archive in addition to the
     // individual chronological viewport checkpoints.
     try {
@@ -789,8 +812,12 @@ async function siteRun(browser,site,output,ask,observer){
         report.overallError+'\n');
     }
     await write(path.join(folder,'comparison.html'),
-      comparison(site.name,report.replay.states,report.messageCoverage));
+      comparison(site.name,report.replay.states,
+        report.messageCoverage,report.topCoverage));
     report.complete=report.replay.complete&&
+      (site.name!=='chatgpt-share'||
+        !report.plan?.actions?.some(x=>x.target==='top')||
+        report.topCoverage.replayTopCaptured)&&
       report.manual.incompleteByDesign===false&&
       (site.name!=='chatgpt-share'||
         report.messageCoverage.status==='matching-observed-samples')&&
