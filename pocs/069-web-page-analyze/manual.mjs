@@ -160,6 +160,7 @@ export async function observeManual(browser,page,folder,ask,
   const network=new NetworkActivity();
   const items=[],warnings=[];
   const observedSignatures={user:new Set(),assistant:new Set()};
+  let minimumObservedTop=null;
   let session=null,terminalDone=false,terminalError=null;
   let lastCaptureAt=0,lastStateKey=null,lastChange=Date.now();
   let lastRecordedKey=null;
@@ -187,6 +188,8 @@ export async function observeManual(browser,page,folder,ask,
          typeof item.signature==='string')
         observedSignatures[item.role].add(item.signature);
     }
+    if(baseline.scroll?.max>0&&Number.isFinite(baseline.scroll.top))
+      minimumObservedTop=baseline.scroll.top;
     const first=await record(browser,page,folder,0,
       baseline,network,'initial',false);
     items.push(first);
@@ -218,6 +221,9 @@ export async function observeManual(browser,page,folder,ask,
         'window.__rumiaiLiveObservation.sample()');
       if(!sample)throw Error('manual.observer-sample-missing');
       lastSample=sample;
+      if(sample.scroll?.max>0&&Number.isFinite(sample.scroll.top))
+        minimumObservedTop=minimumObservedTop===null
+          ?sample.scroll.top:Math.min(minimumObservedTop,sample.scroll.top);
       for(const item of sample.messages||[]){
         if((item.role==='user'||item.role==='assistant')&&
            typeof item.signature==='string')
@@ -270,7 +276,14 @@ export async function observeManual(browser,page,folder,ask,
           messageSignatures[entry.role].add(entry.signature);
       }
     }
+    const capturedTops=items.map(x=>x.scrollBefore)
+      .filter(x=>x?.max>0&&Number.isFinite(x.top));
+    const minimumCapturedTop=capturedTops.length
+      ?Math.min(...capturedTops.map(x=>x.top)):null;
     const manifest={kind:'passive-human-observation',frames:items.length,
+      minimumObservedTop,minimumCapturedTop,
+      topObserved:minimumObservedTop!==null&&minimumObservedTop<=3,
+      topCaptured:minimumCapturedTop!==null&&minimumCapturedTop<=3,
       messageSignatures:{
         user:[...observedSignatures.user],
         assistant:[...observedSignatures.assistant]
