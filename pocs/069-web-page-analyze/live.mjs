@@ -190,6 +190,31 @@ export function replayStepSize(viewport,visibleHeight,coveredBottom=0)
   return Math.max(40,Math.floor((height-occlusion)*.45));
 }
 
+export function replayStepBudget(distance,viewport)
+{
+  if(!Number.isFinite(distance)||distance<0||
+     !Number.isFinite(viewport)||viewport<80)
+    throw Error('replay.step-budget-geometry-unavailable');
+  // Virtualized scrolling can advance much less than the wheel delta.
+  // A fixed 100-step limit silently truncates long reverse traversals.
+  const conservativeProgress=Math.max(35,Math.floor(viewport*.12));
+  return Math.min(600,Math.max(100,
+    Math.ceil(distance/conservativeProgress)+40));
+}
+
+export function contentCorrectionEligible(measured,viewport)
+{
+  if(!measured?.usable||!Number.isFinite(measured.shift)||
+     !Number.isFinite(viewport)||viewport<80)return false;
+  const offset=Math.abs(measured.shift);
+  if(offset<=2)return false;
+  if(offset<=100)return measured.matches>=2;
+  // Larger corrections require several independent, tightly agreeing text
+  // anchors and stay inside the measured source viewport size.
+  return measured.matches>=3 && measured.spread<=2 &&
+    offset<=Math.min(1200,Math.round(viewport));
+}
+
 async function replayInput(browser,page,selector,sign,delta,target,inference)
 {
   if(inference==='wheel-direction')
@@ -380,9 +405,8 @@ async function reopen(browser,state,selector,originalGeometry,originalAnchors=[]
     };
     if
     (
-      initialContentShift.usable &&
-      Math.abs(initialContentShift.shift)>2 &&
-      Math.abs(initialContentShift.shift)<=100
+      contentCorrectionEligible(initialContentShift,
+        originalGeometry?.viewport||restored.viewport)
     )
     {
       const desired=(alignedGeometry||restored).top+
@@ -533,7 +557,14 @@ async function replay(browser,page,plan,folder){
     }
     let steps=0,stable=0,complete=false,phaseError=null;
     const sign=action.direction==='down'?1:-1;
-    while(steps<100){
+    const atStart=await geometry(browser,page,plan.selector);
+    if(!atStart)throw Error('replay.container-disappeared');
+    const phaseDestination=action.target==='top'?0:
+      action.target==='bottom'?atStart.max:
+      action.max?Math.round(action.to/action.max*atStart.max):action.to;
+    const stepBudget=replayStepBudget(
+      Math.abs(atStart.top-phaseDestination),atStart.viewport);
+    while(steps<stepBudget){
       const before=await geometry(browser,page,plan.selector);
       if(!before)throw Error('replay.container-disappeared');
       const destination=action.target==='top'?0:
@@ -616,8 +647,13 @@ async function replay(browser,page,plan,folder){
         'phase-'+i+'-'+action.direction+'-'+steps,states);
       process.stdout.write('  '+action.direction+' '+before.top+' → '+after.top+'\n');
     }
+    if(!complete&&!phaseError){
+      phaseError='replay.step-budget-exhausted';
+      process.stderr.write('[GAP] '+action.direction+' non ha raggiunto '+
+        action.target+' dopo '+steps+' checkpoint; limite='+stepBudget+'\n');
+    }
     outcomes.push({kind:'scroll',direction:action.direction,
-      target:action.target,steps,complete,error:phaseError});
+      target:action.target,steps,stepBudget,complete,error:phaseError});
     if(phaseError) break; // A failed directional phase invalidates subsequent intents.
   }
   } catch(e) {
