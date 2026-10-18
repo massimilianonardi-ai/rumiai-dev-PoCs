@@ -101,7 +101,7 @@ On the Linux VM, from the PoC directory:
 ```sh
 git pull --ff-only
 # Only after checking the next run name is unused:
-sh run-live.sh live-06
+sh run-live.sh live-07
 ```
 
 Requires working visible Chromium, Node 26, npm, git and outbound access to
