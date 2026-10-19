@@ -9,6 +9,44 @@ MHTML unmodified. The generic *visual collage* now combines **only original
 browser screenshot fragments**, with provenance and explicit missing ranges;
 it does not reconstruct HTML/CSS or purport to be one complete MHTML document.
 
+## Investigate severe ChatGPT misalignment using the existing run
+
+Latest user feedback after the explicit Playwright `ignoreHTTPSErrors`
+setup: **Amazon is aligned, while ChatGPT is completely misaligned**.
+This is a visual observation on the workstation, not yet a verified
+classification of the source screenshot, MHTML DOM, scroll selector,
+text-anchor reflow or collage join. In particular, the previous strategy
+of correcting the reopened archive's numerical scroll offset cannot
+repair missing, virtualized or differently laid-out content.
+
+**Before changing the capture or making the user repeat the long run**,
+inspect the existing private evidence locally:
+
+```sh
+git pull --ff-only
+node diagnose-run.mjs live-08
+```
+
+Use `live-08` only if that is the actual existing run identifier; the
+command **reads existing files and never starts Chromium, overwrites
+evidence or creates a new run**. It compares the Amazon and ChatGPT
+checkpoint diagnostics, prints category and independent cause-signal
+counts, identifies the first misaligned checkpoints, reports whether
+the original source shifted while being captured, and contrasts
+confirmed scroll-top coverage and sampled user/assistant message
+presence. It highlights when the MHTML reopened with a **different
+scroll container**, when matched text anchors show **nonuniform
+reflow** versus a correctable offset, and when the content identities
+are simply unverified. It never reads or prints user prompt text,
+MHTML contents, DOM dumps or screenshots.
+
+A `contentAligned=null` checkpoint is **unverified**, not evidence of
+successful alignment, even if `positionAligned=true`. A geometrically
+reached `scrollTop=0` also does not prove that the virtualized
+ChatGPT conversation beginning is present. The next design change
+must follow the physical evidence; do not tune generic Amazon
+scroll/CSS behavior based solely on the ChatGPT result.
+
 ## Most recent ChatGPT limitations and coverage instrumentation
 
 User inspection after the human-observation update: **Amazon visual alignment is
