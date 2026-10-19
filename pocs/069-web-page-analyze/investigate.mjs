@@ -333,6 +333,13 @@ async function run(name){
       }
       await fs.writeFile(path.join(directory,'render-'+label+'.json'),
         JSON.stringify(render),{mode:0o600});
+      if(render.fragmentTruncated||render.styleSheetTruncated||
+         render.canvasTruncated||
+         render.styleSheets?.some(x=>x.inaccessible)||
+         render.canvases?.some(x=>x.status!=='captured')){
+        runState.incomplete=true;
+        runState.warnings.push('render-limits-or-inaccessible-'+label);
+      }
     }catch(e){
       runState.warnings.push('render-structure-'+label+':'+errorText(e));
       runState.incomplete=true;
