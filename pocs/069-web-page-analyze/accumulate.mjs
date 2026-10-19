@@ -442,38 +442,66 @@ async function main(name,url){
     // Restore inspect-01's physically observed single-tab startup sequence.
     // In particular no second tab, scroll operation or replay is allowed
     // before the first original-page checkpoint has been captured.
-    context=await chromium.launchPersistentContext(
-      path.join(output,'browser-profile'),{
+    context=await chromium.launchPersistentContext
+    (
+      path.join(output,'browser-profile'),
+      {
         headless:false,executablePath:executable,chromiumSandbox:true,
         viewport:{width:1440,height:1000},ignoreHTTPSErrors:true
-      });
+      }
+    );
     source=await context.newPage();
     source.on('response',res=>{void saveAsset(res);});
     const cdp=await context.newCDPSession(source);
-    await Promise.all([
-      cdp.send('Page.enable'),cdp.send('Debugger.enable'),
-      cdp.send('Profiler.enable'),cdp.send('Network.enable')
-    ]);
+    await Promise.all
+    (
+      [
+        cdp.send('Page.enable'),
+        cdp.send('Debugger.enable'),
+        cdp.send('Profiler.enable'),
+        cdp.send('Network.enable')
+      ]
+    );
     // Keep the original inspect-01 observer and CDP pre-navigation hook.
-    const originalObserver=await fs.readFile(
-      path.join(root,'investigate-observer.js'),'utf8');
-    await cdp.send('Page.addScriptToEvaluateOnNewDocument',
-      {source:originalObserver});
-    const exportObserver=await fs.readFile(
-      path.join(root,'accumulate-observer.js'),'utf8');
-    await cdp.send('Page.addScriptToEvaluateOnNewDocument',
-      {source:exportObserver});
-    await cdp.send('Profiler.startPreciseCoverage',
-      {callCount:true,detailed:true});
+    const originalObserver=await fs.readFile
+    (
+      path.join(root,'investigate-observer.js'),'utf8'
+    );
+    await cdp.send
+    (
+      'Page.addScriptToEvaluateOnNewDocument',
+      {source:originalObserver}
+    );
+    const exportObserver=await fs.readFile
+    (
+      path.join(root,'accumulate-observer.js'),'utf8'
+    );
+    await cdp.send
+    (
+      'Page.addScriptToEvaluateOnNewDocument',
+      {source:exportObserver}
+    );
+    await cdp.send
+    (
+      'Profiler.startPreciseCoverage',
+      {callCount:true,detailed:true}
+    );
     console.log('[ACCUMULA] Avvio ChatGPT condiviso, solo osservazione.');
     await source.goto(url,{waitUntil:'domcontentloaded',timeout:90000});
     await wait(1200);
-    const initial=await source.evaluate(()=>
-      window.__rumiaiInvestigate?.snapshot()||null);
+    const initial=await source.evaluate
+    (
+      () => window.__rumiaiInvestigate?.snapshot()||null
+    );
     if(!initial)throw Error('accumulate.inspect-01-initial-observer-missing');
-    await fs.writeFile(path.join(output,'startup-initial.png'),
-      await source.screenshot({fullPage:false}),{mode:0o600});
-    manifest.inspect01Startup={
+    await fs.writeFile
+    (
+      path.join(output,'startup-initial.png'),
+      await source.screenshot({fullPage:false}),
+      {mode:0o600}
+    );
+    manifest.inspect01Startup=
+    {
       checkpoint:'initial-before-replica-and-before-scroll',
       screenshot:'startup-initial.png',
       observedMountedMessages:initial.messages?.length??null,
