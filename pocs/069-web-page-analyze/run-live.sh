@@ -28,8 +28,22 @@ if [ ! -f "$provider/src/client.mjs" ]; then
   git clone --quiet --depth 1 \
     https://github.com/massimilianonardi-ai/pwc-web-control.git "$provider"
 fi
-expected=403f4fa9bbea419715e9c834e847c6f2b60ae421
+expected=2e1759e994f52000975c6383b8cc7b229cd1b425
+previous=403f4fa9bbea419715e9c834e847c6f2b60ae421
 current=$(git -C "$provider" rev-parse HEAD)
+if [ "$current" = "$previous" ]; then
+  # Preserve the installed Playwright node_modules and any concurrent edits.
+  # Move the existing isolated provider forward only to this exact pin.
+  if ! git -C "$provider" diff --quiet ||
+     ! git -C "$provider" diff --cached --quiet ||
+     ! git -C "$provider" fetch --quiet --no-tags origin main ||
+     ! git -C "$provider" merge --ff-only "$expected"
+  then
+    printf '%s\n' 'run.provider-forward-update-failed' >&2
+    exit 4
+  fi
+  current=$(git -C "$provider" rev-parse HEAD)
+fi
 if [ "$expected" != "$current" ]; then
   printf '%s\n' 'run.provider-head-not-verified' >&2
   exit 4
@@ -71,43 +85,14 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-mkdir -p "$session/tmp" "$session/config" "$session/data" "$session/cache" "$session/home"
+mkdir -p "$session/tmp" "$session/config" "$session/data" "$session/cache"
 ln -s "$session" "$alias"
 alias_created=1
-
-# Chromium Linux does not necessarily use Node's system CA configuration.
-# Only an explicitly selected, approved corporate CA is trusted, and only
-# inside this throwaway PoC-owned HOME/NSS database. No machine/user trust
-# configuration is changed, and certificate verification stays enabled.
-if [ -n "${PWC069_CA_CERT-}" ]; then
-  case "$PWC069_CA_CERT" in
-    /*) : ;;
-    *) printf '%s\n' 'run.browser-ca-path-must-be-absolute' >&2; exit 5 ;;
-  esac
-  if [ ! -f "$PWC069_CA_CERT" ] || [ ! -r "$PWC069_CA_CERT" ]; then
-    printf '%s\n' 'run.browser-ca-file-not-readable' >&2
-    exit 5
-  fi
-  if ! command -v certutil >/dev/null 2>&1; then
-    printf '%s\n' 'run.browser-ca-certutil-missing: install approved NSS tools (libnss3-tools on Debian/Ubuntu)' >&2
-    exit 5
-  fi
-  # Chromium uses the legacy ~/.pki/nssdb when present; newer versions
-  # can also use the XDG and ~/.local/share database locations.
-  for nssdb in "$session/home/.pki/nssdb" \
-    "$session/home/.local/share/pki/nssdb" "$session/data/pki/nssdb"
-  do
-    mkdir -p "$nssdb"
-    if ! certutil -N --empty-password -d "sql:$nssdb" ||
-       ! certutil -A -d "sql:$nssdb" -t 'C,,' \
-         -n 'PoC 069 approved corporate CA' -i "$PWC069_CA_CERT"
-    then
-      printf '%s\n' 'run.browser-ca-import-failed: verify approved root CA PEM' >&2
-      exit 5
-    fi
-  done
-  printf '%s\n' '[PWC] CA aziendale approvata caricata nello store NSS temporaneo'
-fi
+# The user explicitly selected Playwright ignoreHTTPSErrors for this isolated
+# PoC browser. This does not modify npm TLS, other browser profiles, or the
+# provider's secure-by-default behavior in ordinary installations.
+export WEB_CONTROL_IGNORE_HTTPS_ERRORS=1
+printf '%s\n' '[PWC] ignoreHTTPSErrors attivo solo nel browser isolato del PoC'
 export TMPDIR="$alias/tmp"
 export XDG_CACHE_HOME="$alias/cache"
 export XDG_CONFIG_HOME="$alias/config"
@@ -120,13 +105,7 @@ export WEB_CONTROL_CMD="$provider/bin/web-control"
 export WEB_CONTROL_CONNECT_TIMEOUT_MS=1000
 
 service_log="$self/.runtime/service-$1.log"
-# Preserve the existing ordinary browser environment for other hosts.
-# Use the isolated NSS-backed HOME only with the explicit approved CA.
-if [ -n "${PWC069_CA_CERT-}" ]; then
-  HOME="$alias/home" "$provider/bin/web-control-service" > "$service_log" 2>&1 &
-else
-  "$provider/bin/web-control-service" > "$service_log" 2>&1 &
-fi
+"$provider/bin/web-control-service" > "$service_log" 2>&1 &
 service_pid=$!
 ready=0
 count=0
