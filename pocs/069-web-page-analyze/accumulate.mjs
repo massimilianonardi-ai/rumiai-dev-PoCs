@@ -536,7 +536,7 @@ async function main(name,url){
       };
       manifest.stopReason=run.stopReason;
       console.log('[ACCUMULA] Fine ciclo automatico: '+run.stopReason+
-        '; archivio generato anche se la copertura non è certificata.');
+        '; preparo i file dei messaggi effettivamente acquisiti.');
       manifest.notes.push('Automatic traversal has no independently proven end');
     }
     await source.evaluate(()=>window.__rumiaiAccumulate?.scan());
