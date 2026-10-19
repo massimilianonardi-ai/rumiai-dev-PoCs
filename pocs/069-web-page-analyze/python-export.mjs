@@ -164,6 +164,15 @@ function _buildVisible(chain)
 
 // The ZIP format is implemented in Node, avoiding Python and OS-specific zip
 // utilities. Timestamps are fixed for reproducible archives.
+function _pythonGzip(bytes)
+{
+  const result = gzipSync(bytes, {level: 9, mtime: 0});
+  // Python gzip.GzipFile(filename="", mtime=0) sets OS=255 (unknown).
+  // Node/zlib on POSIX otherwise sets OS=3 (Unix).
+  result[9] = 255;
+  return result;
+}
+
 function _crc32(bytes)
 {
   let crc = 0xffffffff;
@@ -316,7 +325,7 @@ async function _writeBundle(outdir, rawJson, snapshot, result, sourceKind, notes
     'Source SHA-256: `' + sha256(raw) + '`\n';
   const files =
   [
-    ['conversation.raw.json.gz', gzipSync(raw, {level: 9, mtime: 0})],
+    ['conversation.raw.json.gz', _pythonGzip(raw)],
     ['TRANSCRIPT.md', utf8(_markdown(title, id, visible, sourceKind))],
     ['VISIBLE_MESSAGES.jsonl', utf8(visible.map(x => JSON.stringify(x)).join('\n') +
       (visible.length ? '\n' : ''))],
