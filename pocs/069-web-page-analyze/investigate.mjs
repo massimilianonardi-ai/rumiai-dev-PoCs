@@ -57,7 +57,7 @@ async function run(name){
   if(await fs.realpath(investigations)!==investigations)
     throw Error('investigation.output-root-symlink');
   await fs.mkdir(directory,{mode:0o700});
-  for(const sub of ['scripts','responses','screenshots'])
+  for(const sub of ['scripts','responses','screenshots','render-assets'])
     await fs.mkdir(path.join(directory,sub),{mode:0o700});
   for(const log of ['network.jsonl','response-schema.jsonl',
     'dom-samples.jsonl','dom-mutations.jsonl','checkpoints.jsonl'])
@@ -76,6 +76,7 @@ async function run(name){
     startedAt:new Date().toISOString(),endedAt:null,checkpoints:[],
     scripts:{parsed:0,saved:0,totalBytes:0,skipped:0,failures:0},
     responses:{seen:0,saved:0,totalBytes:0,skipped:0,failures:0},
+    renderAssets:{seen:0,saved:0,totalBytes:0,skipped:0,failures:0},
     samples:0,mutationEvents:0,mutationDropped:0,workerUrls:[],
     warnings:[],incomplete:false};
   async function persistManifest(){
@@ -89,7 +90,10 @@ async function run(name){
   let browser=null,cdp=null,page=null;
   let timer=null,readBusy=false,closed=false,sampleLast='',drainPromise=Promise.resolve();
   let pendingScripts=[],sourceWorkers=0,sourceBusy=0,sourceSequence=0;
-  let scriptMetadata=[],scriptJobs=[],responseJobs=[],pendingResponses=0;
+  let scriptMetadata=[],scriptJobs=[],responseJobs=[],assetJobs=[],pendingResponses=0;
+  let assetCount=0,assetBytes=0;
+  const maxAssetCount=360,maxAssetBytes=100*1024*1024;
+  const assetMimes=[/^text\/css\b/,/^image\//,/^(?:font\/|application\/(?:font|pdf|octet-stream))/,/^audio\//,/^video\//];
   const seenScriptIds=new Set();
   const asyncErrors=[];
   let capturedSourceBytes=0,responseBytes=0,savedResponses=0;
@@ -190,6 +194,46 @@ async function run(name){
     })();
     responseJobs.push(job);
   }
+  function captureRenderedAsset(response){
+    const request=response.request(),mime=(response.headers()['content-type']||'')
+      .split(';')[0].trim().toLowerCase();
+    const rt=request.resourceType();
+    // Only resources the real browser has already requested. The exporter
+    // must separately resolve message attachment pointers not loaded here.
+    if(!['stylesheet','image','font','media'].includes(rt)&&
+       !assetMimes.some(re=>re.test(mime)))return;
+    runState.renderAssets.seen++;
+    if(assetCount>=maxAssetCount){
+      runState.renderAssets.skipped++;return;
+    }
+    const n=assetCount++;
+    const task=(async()=>{
+      try{
+        const body=await response.body();
+        if(body.length>12*1024*1024||
+           assetBytes+body.length>maxAssetBytes){
+          runState.renderAssets.skipped++;return;
+        }
+        assetBytes+=body.length;
+        const extension=/css/.test(mime)?'css':
+          /svg/.test(mime)?'svg':/png/.test(mime)?'png':
+          /jpe?g/.test(mime)?'jpg':/webp/.test(mime)?'webp':
+          /gif/.test(mime)?'gif':/woff2/.test(mime)?'woff2':
+          /woff/.test(mime)?'woff':/pdf/.test(mime)?'pdf':'bin';
+        const file='render-assets/'+String(n).padStart(5,'0')+'.'+extension;
+        await fs.writeFile(path.join(directory,file),body,{flag:'wx',mode:0o600});
+        runState.renderAssets.saved++;runState.renderAssets.totalBytes+=body.length;
+        await output('render-assets.jsonl',{file,url:safeResourceUrl(response.url()),
+          mime,resourceType:rt,sha256:sha(body),bytes:body.length,
+          originalStatus:response.status()});
+      }catch(e){
+        runState.renderAssets.failures++;
+        await output('render-assets.jsonl',{url:safeResourceUrl(response.url()),
+          resourceType:rt,error:errorText(e)});
+      }
+    })();
+    assetJobs.push(task);
+  }
   async function inspectEventListeners(label){
     const results=[];
     for(const [name,expression] of [
@@ -221,6 +265,47 @@ async function run(name){
     const obs=await page.evaluate(()=>
       window.__rumiaiInvestigate?.snapshot()||null).catch(()=>null);
     const listeners=await inspectEventListeners(label);
+    try{
+      // Preserve DOM fragments for rich rendered content such as tables,
+      // SVG charts, canvas metadata and attachment wrappers. Never publish
+      // this page HTML to Git: it can include signed asset references.
+      const render=await page.evaluate(()=>{
+        const scope=document.querySelector('main')||document.body;
+        const rich=scope?[...scope.querySelectorAll(
+          'table,svg,canvas,picture,img,video,audio,[data-message-author-role]')]:[];
+        const limit=420,htmlMax=2800000;
+        let used=0;
+        const fragments=[];
+        for(const node of rich){
+          if(fragments.length>=limit)break;
+          const html=node.outerHTML||'';
+          if(used+html.length>htmlMax)break;
+          used+=html.length;
+          fragments.push({tag:node.localName,
+            id:node.id||null,
+            role:node.getAttribute('data-message-author-role'),
+            html});
+        }
+        const sheets=[...document.styleSheets].slice(0,150).map(sheet=>{
+          let rules=[],inaccessible=false;
+          try{
+            rules=[...sheet.cssRules].slice(0,25000)
+              .map(r=>r.cssText).join('\n').slice(0,1000000);
+          }catch{inaccessible=true;}
+          return {href:sheet.href||null,inline:!sheet.href,
+            inaccessible,cssText:rules};
+        });
+        return {fragments,totalElements:rich.length,
+          fragmentTruncated:fragments.length<rich.length,
+          styleSheets:sheets,styleSheetTruncated:document.styleSheets.length>150,
+          viewport:{width:innerWidth,height:innerHeight}};
+      });
+      await fs.writeFile(path.join(directory,'render-'+label+'.json'),
+        JSON.stringify(render),{mode:0o600});
+    }catch(e){
+      runState.warnings.push('render-structure-'+label+':'+errorText(e));
+      runState.incomplete=true;
+    }
     try{
       const documentSnapshot=await cdp.send('DOMSnapshot.captureSnapshot',{
         computedStyles:['display','position','overflow-y','transform'],
@@ -328,7 +413,10 @@ async function run(name){
         url:safeResourceUrl(request.url()),method:request.method(),
         resourceType:request.resourceType()}).catch(e=>asyncErrors.push(errorText(e)));
     });
-    page.on('response',captureResponse);
+    page.on('response',response=>{
+      captureResponse(response);
+      captureRenderedAsset(response);
+    });
     page.on('pageerror',e=>{
       if(runState.warnings.length<25)
         runState.warnings.push('page-exception:'+errorText(e));
@@ -372,6 +460,7 @@ async function run(name){
       await new Promise(resolve=>setTimeout(resolve,150));
     await Promise.allSettled(scriptJobs);
     await Promise.allSettled(responseJobs);
+    await Promise.allSettled(assetJobs);
     await fs.writeFile(path.join(directory,'scripts.json'),
         JSON.stringify(scriptMetadata,null,2)+'\n',{mode:0o600});
     runState.endedAt=new Date().toISOString();
@@ -382,6 +471,7 @@ async function run(name){
     }
     if(runState.scripts.skipped||runState.scripts.failures||
        runState.responses.skipped||runState.responses.failures||
+       runState.renderAssets.skipped||runState.renderAssets.failures||
        runState.mutationDropped||asyncErrors.length||
        runState.workerUrls.length){
       runState.incomplete=true;
@@ -396,7 +486,7 @@ async function run(name){
   process.stdout.write('[INVESTIGA] '+directory+'\n');
   process.stdout.write('[SOMMARIO] '+JSON.stringify({
     status:runState.status,scripts:runState.scripts,checkpoints:runState.checkpoints,
-    responses:runState.responses,samples:runState.samples,
+    responses:runState.responses,renderAssets:runState.renderAssets,samples:runState.samples,
     mutations:runState.mutationEvents,incomplete:runState.incomplete,
     warnings:runState.warnings.slice(0,8)})+'\n');
   if(runState.status!=='captured')process.exitCode=1;
