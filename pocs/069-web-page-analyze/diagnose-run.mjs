@@ -31,12 +31,22 @@ export function classifyCheckpoint(capture,offline,sourceSelector) {
 export function summarizeEvidence(report,records) {
   const counts={};
   const flags=[];
+  const signals={sourceUnstable:0,reflow:0,selectorFallback:0,
+    textUnverified:0,contentDisplaced:0,positionUnreachable:0};
   const selector=report?.plan?.selector||null;
   const processed=records.map(record=>{
     const category=classifyCheckpoint(record.capture,record.offline,selector);
     counts[category]=(counts[category]||0)+1;
     const c=record.capture||{},o=record.offline||{};
     const shift=o.finalContentShift||{};
+    if(c.stable===false||c.screenshotStable===false)signals.sourceUnstable++;
+    if(shift.reason==='content-reflow')signals.reflow++;
+    if(selector&&o.selector&&o.selector!==selector)signals.selectorFallback++;
+    if(!shift.usable)signals.textUnverified++;
+    if(shift.usable&&finite(shift.shift)&&Math.abs(shift.shift)>2)
+      signals.contentDisplaced++;
+    if(o.scrollMapping?.clamped||o.positionAligned===false)
+      signals.positionUnreachable++;
     return {id:record.id,category,
       originalTop:finite(c.before?.top)?c.before.top:null,
       originalMax:finite(c.before?.max)?c.before.max:null,
@@ -48,8 +58,7 @@ export function summarizeEvidence(report,records) {
       sourceStable:c.stable===true&&c.screenshotStable===true,
       positionAligned:o.positionAligned===true,
       contentAligned:o.contentAligned===true,
-      sourceSelector:selector,
-      reopenedSelector:o.selector||null,
+      scrollContainerMatches:selector&&o.selector?selector===o.selector:null,
       reason:shift.reason||null};
   });
   const minTop=processed.map(x=>x.originalTop).filter(finite);
@@ -64,13 +73,14 @@ export function summarizeEvidence(report,records) {
     flags.push('unrecovered-virtualized-scroll-jumps');
   if((replay.activityWaits||[]).some(x=>x.settled===false))
     flags.push('unsettled-capture');
-  if(counts['content-reflow'])flags.push('mhtml-content-reflow');
-  if(counts['different-scroll-container'])flags.push('mhtml-selector-fallback');
-  if(counts['source-not-stable'])flags.push('source-changes-during-capture');
-  if(counts['content-unverified'])flags.push('mhtml-text-not-verifiable');
-  if(counts['content-displaced'])flags.push('mhtml-text-offset-remains');
-  if(counts['scroll-position-incomplete'])flags.push('mhtml-position-unreachable');
-  return {site:report?.site||null,states:processed.length,counts,flags,
+  if(signals.reflow)flags.push('mhtml-content-reflow');
+  if(signals.selectorFallback)flags.push('mhtml-selector-fallback');
+  if(signals.sourceUnstable)flags.push('source-changes-during-capture');
+  if(signals.textUnverified)flags.push('mhtml-text-not-verifiable');
+  if(signals.contentDisplaced)flags.push('mhtml-text-offset-remains');
+  if(signals.positionUnreachable)flags.push('mhtml-position-unreachable');
+  return {site:report?.site||null,states:processed.length,
+    counts,signals,flags,
     replayComplete:replay.complete===true,
     replayError:replay.executionError||null,
     minimumSourceScreenshotTop:minTop.length?Math.min(...minTop):null,
