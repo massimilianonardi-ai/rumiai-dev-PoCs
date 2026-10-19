@@ -1,0 +1,11 @@
+{
+  "name": "web-analyze",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "exports": { ".": "./src/web-analyze.mjs" },
+  "bin": { "web-analyze": "./bin/web-analyze" },
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "dependencies": { "playwright": "1.63.0" }
+}

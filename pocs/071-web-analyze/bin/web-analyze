@@ -1,0 +1,39 @@
+#!/usr/bin/env node
+import { resolve } from 'node:path';
+import { startWebAnalyze } from '../src/web-analyze.mjs';
+
+const [url, runDir, ...rest] = process.argv.slice(2);
+if (!url || !runDir || rest.some(arg => arg !== '--headless'))
+{
+  process.stderr.write('Usage: web-analyze <http(s)-url> <NEW-run-directory> [--headless]\n');
+  process.exitCode = 2;
+}
+else
+{
+  const session = await startWebAnalyze
+  ({
+    url,
+    outputDir: resolve(runDir),
+    profileDir: resolve(process.env.WEB_ANALYZE_PROFILE || './web-analyze-profile'),
+    executablePath: process.env.WEB_ANALYZE_CHROMIUM,
+    headless: rest.includes('--headless')
+  });
+  process.stdout.write(`Chromium running. Logs: ${session.outputDir}\nUse the browser normally. Press Enter here to stop.\n`);
+  const stop = reason => session.stop(reason).then
+  (
+    result => process.stdout.write(`Saved ${result.totalEvents} events in ${session.outputDir}\n`),
+    error => { process.stderr.write(`web-analyze write failure: ${error.message}\n`); process.exitCode = 1; }
+  );
+  let requested = false;
+  const finish = reason =>
+  {
+    if (requested) return;
+    requested = true;
+    void stop(reason);
+  };
+  process.on('SIGINT', () => finish('signal-int'));
+  process.on('SIGTERM', () => finish('signal-term'));
+  session.context.on('close', () => finish('browser-closed'));
+  process.stdin.resume();
+  process.stdin.once('data', () => finish('user-enter'));
+}
