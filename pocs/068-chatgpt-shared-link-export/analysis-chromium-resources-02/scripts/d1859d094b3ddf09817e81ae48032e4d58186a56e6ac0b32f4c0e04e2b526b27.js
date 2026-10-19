@@ -1,0 +1,2 @@
+import{n as e}from"./f025431a-ehagpvg3m4e1cduv.js";import"./13b0edf4-i3xhconliw90y96s.js";import{t}from"./9dff50df-hg9b4el5wifinyda.js";function n(e){return/^https?:\/\/[^/]+$/u.test(e)}var r,i,a,o=e((()=>{if(t(),r=`https://cdn.platform.openai.com/deployments/dil/v14/runner.html`,i=r,a=new URL(i).origin,!n(a))throw Error(`The DIL runner URL must use HTTP or HTTPS`)}));export{o as n,i as t};
+//# sourceMappingURL=49407216-nu4p9rqdec1pl5b3.js.map

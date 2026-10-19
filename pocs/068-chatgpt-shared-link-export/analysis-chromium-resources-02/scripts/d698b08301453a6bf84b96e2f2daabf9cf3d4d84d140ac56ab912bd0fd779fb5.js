@@ -1,0 +1,1 @@
+!function(){let t="blue";try{const s=localStorage.getItem("oai/apps/chatTheme");const v="string"==typeof s?JSON.parse(s):void 0;t=["blue","cyan","green","lime","yellow","orange","pink","magenta","purple"].includes(v)?v:"blue"}catch(e){}document.documentElement.dataset.chatTheme=t}();

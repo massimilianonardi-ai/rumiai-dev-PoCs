@@ -1,0 +1,4 @@
+// Copyright 2020 The Chromium Authors
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+import{mojo}from"//resources/mojo/mojo/public/js/bindings.js";import{UrlDataView}from"./url.mojom-converters.js";import{UrlConverter}from"./url_converter.js";export const MAX_URL_CHARS=2097152;export const UrlSpec={$:{}};const converterForUrl=new UrlConverter;mojo.internal.TypemappedStruct(UrlSpec.$,"Url",UrlDataView,converterForUrl,[mojo.internal.StructField("url",0,0,mojo.internal.String,null,false,0,undefined,(value=>converterForUrl.url(value)))],[[0,16]]);
