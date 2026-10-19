@@ -9,6 +9,15 @@ case "$1" in
   ''|*[!A-Za-z0-9_-]*)
     printf '%s\n' 'accumulate.invalid-name' >&2; exit 2 ;;
 esac
+case "${PWC069_SCROLL_MODE-auto}" in
+  auto|manual) : ;;
+  *) printf '%s\n' 'accumulate.scroll-mode-invalid: expected auto or manual' >&2
+     exit 2 ;;
+esac
+if [ "${PWC069_SCROLL_MODE-auto}" = manual ] && [ ! -t 0 ]; then
+  printf '%s\n' 'accumulate.manual-mode-requires-terminal' >&2
+  exit 2
+fi
 self=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 if [ -L "$self/evidence" ] || [ -L "$self/.runtime" ] ||
    [ -L "$self/evidence/accumulations" ]; then
@@ -51,7 +60,8 @@ node --check "$self/accumulate-core.mjs"
 node --check "$self/accumulate-observer.js"
 node --test "$self/tests/accumulate-"*.test.mjs
 export PWC069_BROWSER_EXECUTABLE="$chromium"
-printf '%s\n' '[ACCUMULA] Chromium originale e replica DOM vuota; wheel automatico.' \
+printf '%s\n' '[ACCUMULA] Chromium originale e replica DOM vuota.' \
+  "[ACCUMULA] Navigazione: ${PWC069_SCROLL_MODE-auto} (manuale=scroll nella finestra originale)." \
   '[ACCUMULA] ignoreHTTPSErrors attivo solo per questo PoC isolato.' \
   '[ACCUMULA] Non effettuare login; controlla visivamente la pagina originale.'
 exec node "$self/accumulate.mjs" "$@"
