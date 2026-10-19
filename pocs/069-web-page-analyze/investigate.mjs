@@ -151,8 +151,11 @@ async function run(name){
     }catch{return false}})();
     runState.responses.seen++;
     // Event-stream responses do not finish. Never wait on response.body().
-    if(!allowed||!/json/.test(mime)||
-       savedResponses>=maxResponses){return;}
+    if(!allowed||!/json/.test(mime))return;
+    if(savedResponses>=maxResponses){
+      runState.responses.skipped++;
+      return;
+    }
     pendingResponses++;
     const n=savedResponses++;
     const job=(async()=>{
