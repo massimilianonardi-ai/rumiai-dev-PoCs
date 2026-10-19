@@ -120,7 +120,13 @@ export WEB_CONTROL_CMD="$provider/bin/web-control"
 export WEB_CONTROL_CONNECT_TIMEOUT_MS=1000
 
 service_log="$self/.runtime/service-$1.log"
-HOME="$alias/home" "$provider/bin/web-control-service" > "$service_log" 2>&1 &
+# Preserve the existing ordinary browser environment for other hosts.
+# Use the isolated NSS-backed HOME only with the explicit approved CA.
+if [ -n "${PWC069_CA_CERT-}" ]; then
+  HOME="$alias/home" "$provider/bin/web-control-service" > "$service_log" 2>&1 &
+else
+  "$provider/bin/web-control-service" > "$service_log" 2>&1 &
+fi
 service_pid=$!
 ready=0
 count=0
