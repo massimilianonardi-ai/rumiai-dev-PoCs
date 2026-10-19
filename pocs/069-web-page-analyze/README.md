@@ -1,6 +1,6 @@
-# PoC 069 — web-page-analyze: live Amazon + ChatGPT
+# PoC 069 — web-page-analyze: runtime analysis and shared-chat DOM accumulation
 
-**Status: prior runs through `live-07` include user-reported physical validation. On the corporate workstation, `live-07` passed 45/45 native tests but neither site navigated because Chromium rejected the TLS certificate chain. The user explicitly selected Playwright `ignoreHTTPSErrors` for the next isolated PoC run; this is implemented but has not yet been physically retested. ChatGPT content alignment and missing beginning remain unresolved.**
+**Current direction (2026-10-19): JavaScript two-page, append-only export of the actual ChatGPT shared-page DOM. Prior scroll/MHTML replay remains historical diagnostic evidence, not the new export algorithm. Complete transcript and rich-media fidelity remain subject to physical validation.**
 
 This is an experimental browser-analysis PoC built **directly on the two
 authorized real pages**. All prior fixture experiments, their tests and the
@@ -9,7 +9,115 @@ MHTML unmodified. The generic *visual collage* now combines **only original
 browser screenshot fragments**, with provenance and explicit missing ranges;
 it does not reconstruct HTML/CSS or purport to be one complete MHTML document.
 
-## Recovered Python exporter — authoritative starting point for the export algorithm
+## Current primary PoC: two Chromium pages, no full snapshot, JavaScript only
+
+The user explicitly corrected the research premises after physically running
+`inspect-01`: **the shared ChatGPT page does not expose a complete loaded
+conversation**, but incrementally mounts/destroys **entire conversation
+segments and message divs**. The shared page now genuinely starts at the
+beginning (user's observation), unlike previous bottom-first captures.
+Do not resurrect a macOS full-`mapping` assumption or wait for the entire
+page to exist simultaneously. The old Python exporter is only historical
+context; **the implementation is JavaScript**.
+
+Evidence from the supplied physical terminal log:
+- `inspect-01` observed 44 distinct mounted identities, 36 removed IDs,
+  28 remounted IDs, 141 mount and 128 unmount events. This strongly supports
+  **real DOM virtualized segments**.
+- All sampled `windowY/rootY` were zero, even while nodes came and went.
+  Therefore numeric `scrollTop` is **not** a valid progress/completeness
+  primitive for this page.
+- `extract-model.mjs` found 0 complete `mapping/current_node` candidates
+  among 30 captured first-party JSON bodies. This does not prove that
+  no other state exists, but supports prioritizing streaming DOM capture
+  over a speculative in-memory snapshot.
+- Script capture was **incomplete**: 995 of 1557 parsed scripts saved;
+  562 not saved and one worker outside main-page CDP coverage. Do not call
+  the existing runtime analysis comprehensive.
+- Existing `inspect-01` private evidence and all older `live-*` and
+  Amazon experiments are preserved; no migration or rewrite.
+
+### Run the new source + invisible accumulating export
+
+```sh
+cd /m/src/git/rumiai-os_TEST/src/rumiai-dev-PoCs/pocs/069-web-page-analyze
+git pull --ff-only
+sh run-accumulate.sh accum-01
+```
+
+Use `accum-01` **only if unused**; the script refuses to overwrite
+an existing run. Optional second argument is a literal public
+`https://chatgpt.com/share/<id>` URL. The experiment requires the same
+isolated pinned Playwright runtime/Chromium as `inspect-01` and sets
+`ignoreHTTPSErrors` **only in its disposable browser context**.
+Do not log in or navigate to unrelated sites in that trust-reduced context.
+
+It opens two actual pages within the same Chromium context:
+
+1. **Original**, visible ChatGPT shared page: the existing
+   `accumulate-observer.js` is injected *before navigation*. A
+   `MutationObserver` retains every identified complete message-turn DOM
+   subtree immediately on mount **and before it is unmounted**, plus
+   changes to previously mounted rich nodes. Stable
+   `data-message-id` and `conversation-turn` identities are preferred.
+   It scans all currently mounted turns, including long messages spanning
+   several viewports. The source browser is driven by ordinary
+   `mouse.wheel` events, **not** by guessed scroll coordinates.
+2. **Export**, initialized visually white/invisible: a detached logical DOM
+   accumulates **copies of original turn nodes** and a common ancestry of
+   wrapper CSS classes. React's original virtualizer cannot destroy the
+   exported copies. The original message markup (text, code, table, SVG,
+   MathML, attachments and image references) is cloned before disposal;
+   canvas elements are converted to PNG data-URI when readable. Scripts
+   and event handlers are removed from this static export (not executable
+   ChatGPT application state).
+
+A Node.js-side append-only `Accumulator` indexes stable identities and
+records adjacency observed in overlapping DOM windows. Already captured
+turns are updated on remount, **not discarded**, while disconnected
+segments and adjacency cycles are flagged. It streams the actual captured
+HTML to gitignored `stream.jsonl` and persists the accumulated records
+to `accumulated.json`; the second tab receives updates during the loop.
+The original page's mutation queue has a bounded memory budget.
+A repeated unchanged *visual viewport* plus no new IDs is a **heuristic
+stop condition**, not proof that the last message was reached.
+
+Network responses containing CSS, images, fonts and selected attachments
+actually requested by the browser are saved locally with content hashes.
+Original stylesheet order, CSS URL asset rebasing and common ancestor
+classes are retained on a best-effort basis. Items referenced by
+`srcset`, `blob:` or links whose bytes were never requested are
+**explicitly incomplete**. Attachments that require separate downloads
+are not yet included merely because a link exists.
+
+The output is stored under gitignored
+`evidence/accumulations/accum-01/`:
+
+- `export/index.html`: static accumulating replica, made visible when
+  finalizing; it uses strict CSP blocking script execution/network loads.
+- `export/assets/`: original captured CSS/image/font/media bytes.
+- `manifest.json`: stop reason, message counts, adjacency continuity,
+  insufficient ID stability, resource failures and missing-media counts.
+- `stream.jsonl`, `accumulated.json` and `resources.json`: original
+  forensic capture, **potentially containing full private chat text**.
+- `browser-profile/`: disposable local browser state.
+
+**Security:** never commit or publish the `evidence/accumulations/`
+directory. Its raw HTML, resource URLs, screenshots if added later, and
+attached content can carry private or signed data. The export page strips
+active JavaScript and uses offline CSP, but faithful visual reproduction
+still requires testing stylesheets, images, charts, math and attachments.
+
+**Validation status:** the accumulator and CSS/URL logic pass isolated
+JavaScript tests, and the source observer's add/remove/identical-remount
+transition was exercised with a fake DOM. The new dual-page Chromium
+workflow and offline rendering **have not yet been run against the real
+shared page**. The exporter intentionally reports
+`completeExportVerified=false` until a measurable end-to-end completeness
+and rich-media audit can justify changing that. Do not infer success from
+one screenshot or an apparent wheel-loop stop.
+
+## Recovered Python exporter — historical macOS snapshot reference (not the shared-page algorithm)
 
 The user previously supplied the real files **`chatgpt-export.py`** and
 **`chatgpt-export.sh`**, including later Python revisions. The original
