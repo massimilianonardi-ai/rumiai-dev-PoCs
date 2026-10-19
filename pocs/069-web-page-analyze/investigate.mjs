@@ -25,6 +25,22 @@ export function safeResourceUrl(value){
     return u.origin+u.pathname; // no queries, fragments, tokens or cookies
   }catch{return '[non-url-script]';}
 }
+// Structural JSON shape only; response values and user prompts stay private.
+export function responseSchema(value,depth=0){
+  if(depth>=5)return {type:'depth-limit'};
+  if(Array.isArray(value))return {type:'array',length:value.length,
+    item:value.length?responseSchema(value[0],depth+1):null};
+  if(value===null)return {type:'null'};
+  if(typeof value==='object'){
+    const keys=Object.keys(value);
+    return {type:'object',keys:keys.slice(0,45),
+      additionalKeys:Math.max(0,keys.length-45),
+      members:Object.fromEntries(keys.slice(0,45).map(k=>[
+        k,responseSchema(value[k],depth+1)]))};
+  }
+  if(typeof value==='string')return {type:'string',length:value.length};
+  return {type:typeof value};
+}
 export function investigationPaths(run){
   if(!/^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(run))
     throw Error('investigation.invalid-name');
@@ -43,8 +59,8 @@ async function run(name){
   await fs.mkdir(directory,{mode:0o700});
   for(const sub of ['scripts','responses','screenshots'])
     await fs.mkdir(path.join(directory,sub),{mode:0o700});
-  for(const log of ['network.jsonl','dom-samples.jsonl',
-    'dom-mutations.jsonl','checkpoints.jsonl'])
+  for(const log of ['network.jsonl','response-schema.jsonl',
+    'dom-samples.jsonl','dom-mutations.jsonl','checkpoints.jsonl'])
     await fs.writeFile(path.join(directory,log),'',
       {flag:'wx',mode:0o600});
   const provider=path.join(root,'.runtime','pwc');
@@ -155,6 +171,14 @@ async function run(name){
         await output('network.jsonl',{kind:'response-body',
           file:filename,bytes:body.length,sha256:sha(body),
           url:safeResourceUrl(url),type:req.resourceType(),mime});
+        try{
+          const decoded=JSON.parse(body.toString('utf8'));
+          await output('response-schema.jsonl',{url:safeResourceUrl(url),
+            sha256:sha(body),structure:responseSchema(decoded)});
+        }catch(e){
+          await output('response-schema.jsonl',{url:safeResourceUrl(url),
+            sha256:sha(body),structure:{type:'not-json'}});
+        }
       }catch(e){
         runState.responses.failures++;
         await output('network.jsonl',{kind:'body-unavailable',
