@@ -133,6 +133,47 @@ The attempted `live-07` shown in the log did **not** create
 before any npm installation. The same name may be reused only while no
 such evidence directory exists. Previous evidence stays untouched.
 
+## Corporate workstation Chromium certificate trust
+
+The user reran `live-07` on the work host on 2026-10-19 with
+`NODE_USE_SYSTEM_CA=1`. Playwright installed, Chromium started, and the
+**native Node test runner passed 45/45**, but the **browser itself** failed
+to navigate to *both* authorized pages with
+`net::ERR_CERT_AUTHORITY_INVALID`. Both results were incomplete and the
+PoC created `evidence/live-07/`, so `live-07` must **never** be rerun or
+overwritten. This is distinct from the earlier npm TLS trust failure.
+
+On Linux, Chromium uses a certificate store including NSS; it does not
+necessarily use the same root CAs selected by Node's
+`NODE_USE_SYSTEM_CA=1`. The PoC launcher now supports a **single
+explicit, approved corporate root CA file** for *Chromium*:
+
+```sh
+# Replace the placeholder with the real IT-approved PEM/CRT file path.
+PWC069_CA_CERT=/absolute/path/company-root-ca.pem sh run-live.sh live-08
+```
+
+`live-08` is an example only if it does not already exist. The operator
+must first identify the approved certificate path. On Linux, the
+`certutil` command from the NSS tools package is required (usually
+`libnss3-tools` on Debian/Ubuntu). Without the selected CA or `certutil`,
+the launcher exits with a specific error rather than disabling TLS.
+`NODE_USE_SYSTEM_CA` and `NODE_EXTRA_CA_CERTS` continue to apply
+separately to Node/npm, not automatically to the Chromium NSS database.
+
+The launcher creates three compatibility-specific NSS stores, all **inside
+its private `.runtime/session.*`**, and imports the explicitly selected
+corporate CA with TLS issuer trust `C,,`. It runs only this PoC's browser
+controller with a temporary HOME pointing to that session. After the run,
+the temporary NSS databases are removed by the existing cleanup trap.
+No root CA is added to the real user HOME, global NSS database or system
+trust store, no certificate bytes are put in GitHub, and neither
+Playwright `ignoreHTTPSErrors` nor Chromium
+`--ignore-certificate-errors` is used.
+
+Chromium's official Linux certificate management reference:
+https://chromium.googlesource.com/chromium/src.git/+/master/docs/linux/cert_management.md
+
 ## One physical run
 
 On the Linux VM, from the PoC directory:
