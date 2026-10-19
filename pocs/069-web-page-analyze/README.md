@@ -9,6 +9,65 @@ MHTML unmodified. The generic *visual collage* now combines **only original
 browser screenshot fragments**, with provenance and explicit missing ranges;
 it does not reconstruct HTML/CSS or purport to be one complete MHTML document.
 
+## Physical `accum-01` result: 17 original turns, automatic wheel stalled
+
+On 2026-10-19 the operator ran the first new two-tab experiment on the
+corporate workstation. The real terminal output confirms that the source
+page and initially invisible replica both opened. The original window
+produced **17 initial turn identities**; after **44 wheel attempts**, the
+export still contained **17 distinct identities**, although 4 remounts were
+observed. The run stopped with `visual-stasis-after-wheel` and
+`complete:false`. Resource evidence: 95 response detections,
+60 saved, 22 failed, 0 deliberately skipped. These are **resource
+detections, not 95 distinct URLs or 95 mandatory assets**; the causes of
+the failures require examination of the existing local manifest.
+
+**Conclusion:** neither original conversation end nor source traversal was
+verified. `orderComponents=1` for just 17 turns is **not** proof that
+later virtualized segments were collected. The local
+`evidence/accumulations/accum-01/` remains untouched; do not rerun the
+same name or interpret its `export/index.html` as a successful export.
+
+The loop now collects **source input-target/scroll ancestry diagnostics**
+(`navigation.jsonl`) and distinguishes new identities from mere
+mount/unmount churn. If automated wheel stops visibly changing the page,
+it does **not** certify the end or close the browser. Instead, when there
+is an interactive terminal, it invites the operator to scroll the
+**same original page manually** while a 250-ms sampler keeps copying
+and permanently retaining newly mounted/detached turns in the same
+invisible second tab. The operator presses **Enter only after visually
+reaching the end**. This last confirmation is human-reported, not yet
+independent completeness proof.
+
+To directly exercise the known-working human navigation path and skip the
+unsuccessful automatic wheel altogether, use a **new unused** run:
+
+```sh
+git pull --ff-only
+PWC069_SCROLL_MODE=manual sh run-accumulate.sh accum-02
+```
+
+During the run, scroll the **visible original ChatGPT page** all the way
+from its first messages to its last messages, then press **Enter in the
+terminal** to finalize. The second tab remains visually invisible
+until the export is finalized. Do **not** close the terminal before
+pressing Enter; the finalized output is still marked incomplete until
+the real full message coverage and rich media are verified.
+
+Before the new run, the older local test can be diagnosed without opening
+or disclosing its transcript:
+
+```sh
+node diagnose-accumulation.mjs accum-01
+```
+
+This reads only `manifest.json`, prints retained turn counts, original
+stop reason, adjacency continuity, CSS/media gaps and grouped **types**
+of response-body failures, without printing message text, raw resource
+URLs, signed links or message IDs. No browser or acquisition starts.
+`navigation.jsonl` is generated only by new runs. If `accum-01`
+already has no raw resource manifest, the error classes may be incomplete.
+
 ## Current primary PoC: two Chromium pages, no full snapshot, JavaScript only
 
 The user explicitly corrected the research premises after physically running
