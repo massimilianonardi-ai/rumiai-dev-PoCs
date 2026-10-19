@@ -262,6 +262,21 @@ async function main(name,url=DEFAULT_URL){
       css.id='rumiai-original-styles';
       css.textContent=styles;
       head.appendChild(css);
+      // Original virtualizer's spacer/absolute placement rules are NOT
+      // meaningful in the accumulated static DOM. Neutralize only the
+      // copied turn containers; leave rich inner content CSS untouched.
+      const flow=document.createElement('style');
+      flow.id='rumiai-static-flow';
+      flow.textContent=
+        '#rumiai-transcript,#rumiai-transcript [data-rumiai-copied-ancestor] {'+
+        'position:static!important;transform:none!important;'+
+        'overflow:visible!important;height:auto!important;'+
+        'max-height:none!important;contain:none!important;}'+
+        '#rumiai-transcript .rumiai-accumulated-turn {'+
+        'position:relative!important;transform:none!important;'+
+        'inset:auto!important;visibility:visible!important;'+
+        'contain:none!important;}';
+      head.appendChild(flow);
       const root=document.getElementById('rumiai-transcript');
       for(const el of root.querySelectorAll('img,source,video,audio,a,link')){
         for(const prop of ['src','poster','href']){
