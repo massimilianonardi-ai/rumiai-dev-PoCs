@@ -23,7 +23,7 @@ test('source observer starts before navigation; initial turns are saved before a
   const firstScan=code.indexOf('await source.evaluate(()=>window.__rumiaiAccumulate.scan())');
   const firstDrain=code.indexOf('await drain();',firstScan);
   const firstWheel=code.indexOf('await source.mouse.wheel(');
-  const manualMode=code.indexOf("PWC069_SCROLL_MODE==='manual'");
+  const manualMode=code.indexOf("const manualOnly=process.env.PWC069_SCROLL_MODE==='manual'");
   for(const position of [initialScript,goto,firstScan,firstDrain,firstWheel,manualMode])
     assert.ok(position>=0,'Expected startup step exists');
   assert.ok(initialScript<goto);
