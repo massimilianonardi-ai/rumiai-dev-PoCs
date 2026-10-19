@@ -88,7 +88,10 @@
   }
   function scrollBoxes(){
     const result=[];
-    for(const el of document.querySelectorAll('main,section,div,article')){
+    // Sidebar panes are not the conversation viewport. Inspect the main
+    // content subtree separately from the window/document root.
+    const scope=document.querySelector('main')||document.body;
+    for(const el of scope?.querySelectorAll('main,section,div,article')||[]){
       if(result.length>=24)break;
       const height=el.scrollHeight-el.clientHeight;
       if(height<35||el.clientHeight<70)continue;
