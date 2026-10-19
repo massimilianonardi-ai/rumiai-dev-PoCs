@@ -43,6 +43,10 @@ async function run(name){
   await fs.mkdir(directory,{mode:0o700});
   for(const sub of ['scripts','responses','screenshots'])
     await fs.mkdir(path.join(directory,sub),{mode:0o700});
+  for(const log of ['network.jsonl','dom-samples.jsonl',
+    'dom-mutations.jsonl','checkpoints.jsonl'])
+    await fs.writeFile(path.join(directory,log),'',
+      {flag:'wx',mode:0o600});
   const provider=path.join(root,'.runtime','pwc');
   const require=createRequire(path.join(provider,'package.json'));
   const {chromium}=require('playwright');
@@ -130,7 +134,8 @@ async function run(name){
         h==='openai.com'||h.endsWith('.openai.com');
     }catch{return false}})();
     runState.responses.seen++;
-    if(!allowed||!/(?:json|event-stream)/.test(mime)||
+    // Event-stream responses do not finish. Never wait on response.body().
+    if(!allowed||!/json/.test(mime)||
        savedResponses>=maxResponses){return;}
     pendingResponses++;
     const n=savedResponses++;
@@ -285,17 +290,22 @@ async function run(name){
     if(page&&!page.isClosed())await sample();
     closed=true;
     if(cdp)await cdp.send('Profiler.stopPreciseCoverage').catch(()=>{});
+    // Dynamic script parsing can enqueue new retrieval jobs while draining.
+    while(pendingScripts.length||sourceBusy)
+      await new Promise(resolve=>setTimeout(resolve,150));
     await Promise.allSettled(scriptJobs);
     await Promise.allSettled(responseJobs);
-    if(scriptMetadata.length)
-      await fs.writeFile(path.join(directory,'scripts.json'),
+    await fs.writeFile(path.join(directory,'scripts.json'),
         JSON.stringify(scriptMetadata,null,2)+'\n',{mode:0o600});
     runState.endedAt=new Date().toISOString();
     if(runState.scripts.skipped||runState.scripts.failures||
        runState.responses.skipped||runState.responses.failures||
-       runState.mutationDropped||asyncErrors.length){
+       runState.mutationDropped||asyncErrors.length||
+       runState.workerUrls.length){
       runState.incomplete=true;
       runState.warnings.push(...asyncErrors.slice(0,10));
+      if(runState.workerUrls.length)
+        runState.warnings.push('worker-scripts-not-in-main-page-cdp-session');
     }
     await persistManifest();
     if(browser)await browser.close().catch(()=>{});
