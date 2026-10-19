@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {analyzeTrace,analyzeCoverage} from '../analyze-investigation.mjs';
-import {safeResourceUrl,investigationPaths} from '../investigate.mjs';
+import {safeResourceUrl,investigationPaths,responseSchema} from '../investigate.mjs';
 
 function snap(at,y,ids,nested=0){
   return {at,scroll:{windowY:y,rootY:y,scrollHeight:12000},
@@ -62,4 +62,15 @@ test('path contract rejects parent and empty run names',()=>{
   assert.throws(()=>investigationPaths('../leak'),/invalid-name/);
   assert.throws(()=>investigationPaths(''),/invalid-name/);
   assert.match(investigationPaths('inspect-01'),/investigations\/inspect-01$/);
+});
+
+test('JSON network schema retains keys/types but never raw response text',()=>{
+  const shape=responseSchema({conversation_id:'secret-id',
+    mapping:{node1:{message:{content:'private user prompt'}}},
+    items:[{id:'abc',parts:['sensitive line']}]});
+  assert.equal(shape.type,'object');
+  assert.ok(shape.keys.includes('mapping'));
+  assert.equal(shape.members.items.item.members.parts.item.type,'string');
+  const serialized=JSON.stringify(shape);
+  assert.doesNotMatch(serialized,/private user prompt|sensitive line|secret-id/);
 });
