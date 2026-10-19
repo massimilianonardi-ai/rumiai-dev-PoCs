@@ -5,6 +5,7 @@ cd "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 sh -n controller.lib.sh
 sh -n install.job
 [ "$(command -p head -n 1 install.job)" = 'exec > "/m/src/git/rsudo-jobs.log" 2>&1' ]
+[ "$(command -p tail -n 1 install.job)" = 'olla_gis_deploy install' ]
 
 root=$(command -p mktemp -d)
 cleanup()
