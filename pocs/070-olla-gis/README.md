@@ -34,13 +34,15 @@ download against that exact digest before extraction.
 These are two rsudo-admin operator-selected sources:
 
 - `controller.lib.sh` — full remote POSIX `sh` installer embedded in library;
-- `install.job` — edit `check` to `install` to perform an authorized apply.
-  First line redirects to the pre-existing operator log path exactly.
+- `install.job` — **already configured for `install`**, following the successful
+  physical GIS read-only `check` on 2026-10-19. Its first line still redirects
+  to the operator log path exactly; review the selected source before execution.
 
 From a credential-loaded RumiAI operator environment, run
 `rsudo-admin`, select **rsudo jobs**, then select those two files.
-Check mode is read-only. Install mode stages the pinned Olla binary
-on `gis` and starts the GIS-local Olla service; it does not mutate
+The previous read-only check has already passed. Running the selected
+`install.job` now stages the pinned Olla binary on `gis` and starts the
+GIS-local Olla service; it does not mutate
 any of the eight Ollama services, network ACLs or firewalls.
 
 If no rsudo-enabled operator connection is available, do **not** interpret
@@ -64,7 +66,7 @@ a green repository check as a physical installation. Keep the step pending.
 
 ## Evidence
 
-**2026-10-19 08:57 Europe/Rome — physical read-only preflight PASS.** The user-supplied `rsudo-jobs(20261019-065800).log` records `rsudo.start` to `10.200.0.19` with `sh -s -- check`, then `OLLA GIS CHECK: local Ollama healthy`, `OLLA GIS CHECK: Olla not staged`, `OLLA GIS CHECK OK`, and `rsudo.end status=0`. The nonfatal `rsudo.env-file-fallback reason=not-provided` warning did not stop the operation. This proves the enterprise operator's actual GIS connection and readiness check, not Olla installation or model inference. **Next run:** in `rsudo-admin jobs`, keep the same `controller.lib.sh` and `install.job`, change the last line from `olla_gis_deploy check` to `olla_gis_deploy install`, and inspect the new operator log. No extra privilege or network configuration is implied by the passing check.
+**2026-10-19 08:57 Europe/Rome — physical read-only preflight PASS.** The user-supplied `rsudo-jobs(20261019-065800).log` records `rsudo.start` to `10.200.0.19` with `sh -s -- check`, then `OLLA GIS CHECK: local Ollama healthy`, `OLLA GIS CHECK: Olla not staged`, `OLLA GIS CHECK OK`, and `rsudo.end status=0`. The nonfatal `rsudo.env-file-fallback reason=not-provided` warning did not stop the operation. This proves the enterprise operator's actual GIS connection and readiness check, not Olla installation or model inference. **Next run:** update the operator checkout to the current PoC commit, then in `rsudo-admin jobs` select the same `controller.lib.sh` and `install.job`. The committed job now **already ends in `olla_gis_deploy install`**: review this edit in the menu and run it. Inspect the newly generated `/m/src/git/rsudo-jobs.log` afterward. No extra privilege or network configuration is implied by the passing check.
 
 2026-10-19: the assistant's execution environment could not connect to
 `gis:22` and could not retrieve the GitHub binary due to missing
