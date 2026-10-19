@@ -304,6 +304,7 @@ async function main(name,url=DEFAULT_URL){
         }
       }
       document.getElementById('rumiai-hidden-until-export').remove();
+      document.getElementById('rumiai-temporary-base')?.remove();
       const csp=document.createElement('meta');
       csp.httpEquiv='Content-Security-Policy';
       csp.content="default-src 'none'; img-src 'self' data: blob:; "+
@@ -333,7 +334,8 @@ async function main(name,url=DEFAULT_URL){
     replica=await context.newPage();
     replica.on('response',res=>{void saveAsset(res);});
     await replica.setContent('<!doctype html><html lang="it"><head>'+
-      '<meta charset="utf-8"><style id="rumiai-hidden-until-export">'+
+      '<meta charset="utf-8"><base id="rumiai-temporary-base" href="'+url+'">'+
+      '<style id="rumiai-hidden-until-export">'+
       '#rumiai-transcript{opacity:0!important}body{background:white}'+
       '</style></head><body><main id="rumiai-transcript"></main></body></html>');
     await source.bringToFront();
@@ -348,13 +350,15 @@ async function main(name,url=DEFAULT_URL){
       ' identità. Procedo con wheel, non con scrollTop.');
     let styles=await captureStyles();
     await source.mouse.move(900,520);
-    let stagnant=0,lastVisual=null,reason='step-budget-exhausted';
+    let stagnant=0,lastVisual=null,lastIdentityAt=Date.now();
+    let reason='step-budget-exhausted';
     for(let step=0;step<MAX_STEPS;step++){
       const old=collector.nodes.size;
       await source.mouse.wheel(0,580);
       await wait(180);
       await source.evaluate(()=>window.__rumiaiAccumulate?.scan());
       await drain();
+      if(collector.nodes.size!==old)lastIdentityAt=Date.now();
       manifest.steps=step+1;
       if(step%4===3){
         const shot=await source.screenshot({type:'jpeg',quality:48});
@@ -362,7 +366,9 @@ async function main(name,url=DEFAULT_URL){
         stagnant=visual===lastVisual&&collector.nodes.size===old?
           stagnant+1:0;
         lastVisual=visual;
-        if(stagnant>=5){reason='visual-stasis-after-wheel';break;}
+        if(stagnant>=6&&Date.now()-lastIdentityAt>=12000){
+          reason='visual-stasis-after-wheel';break;
+        }
       }
       if(step%25===24){
         await writeManifest();
@@ -377,6 +383,10 @@ async function main(name,url=DEFAULT_URL){
       window.__rumiaiAccumulate?.status());
     if(status?.overflow||status?.dropped)manifest.notes.push(
       'Observer packets dropped: '+(status?.dropped||0));
+    if(status?.missingIdentity)manifest.notes.push(
+      'Unidentified nodes during capture: '+status.missingIdentity);
+    if(status?.shadowRootsUnsupported)manifest.notes.push(
+      'Shadow DOM subtrees were not captured');
     manifest.stopReason=reason;
     const finalStyles=await captureStyles();
     // Final list includes late-loaded styles that were not present at start.
