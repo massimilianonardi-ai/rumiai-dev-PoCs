@@ -1,0 +1,46 @@
+{
+  "started": "2026-10-19T20:03:06.421Z",
+  "finished": "2026-10-19T20:03:20.563Z",
+  "requestedUrl": "https://chatgpt.com/share/6ad1c0d5-49ec-83eb-a79b-85b04b938835",
+  "version": "1.63.0",
+  "captures": [
+    {
+      "label": "initial",
+      "time": "2026-10-19T20:03:19.830Z",
+      "url": "https://chatgpt.com/share/6ad1c0d5-49ec-83eb-a79b-85b04b938835",
+      "geometry": {
+        "top": 0,
+        "extent": 0,
+        "viewport": 900,
+        "x": 720,
+        "y": 450
+      },
+      "metrics": {
+        "title": "chat mlp evo",
+        "readyState": "interactive",
+        "elements": 726,
+        "links": 9,
+        "images": 0,
+        "forms": 1,
+        "bodyTextLength": 325,
+        "documentHeight": 900,
+        "windowScrollY": 0,
+        "viewport": {
+          "width": 1440,
+          "height": 900,
+          "deviceScale": 1
+        }
+      },
+      "htmlBytes": 2560463,
+      "htmlPath": "0000-initial.html",
+      "imagePath": "0000-initial.png"
+    }
+  ],
+  "eventCount": 1032,
+  "droppedEvents": 0,
+  "streamError": null,
+  "interrupted": false,
+  "failure": null,
+  "interpretation": "Snapshots describe observed mounted DOM at each checkpoint; virtualized content can be absent between checkpoints.",
+  "sensitiveArtifacts": "HTML, screenshots, trace.zip and MHTML may contain page/session data. Keep the 0700 output directory private."
+}
