@@ -458,25 +458,43 @@ async function main(name,url=DEFAULT_URL){
     console.log('[ACCUMULA] Inizio osservato: '+collector.nodes.size+
       ' identità. Procedo con wheel, non con scrollTop.');
     let styles=await captureStyles();
-    await source.mouse.move(900,520);
+    const firstProbe=await sourceProbe();
+    await source.mouse.move(firstProbe.pointer.x,firstProbe.pointer.y);
+    manifest.navigation={automaticStart:firstProbe,
+      initialTurns:collector.nodes.size,manual:null,
+      attempts:0,newIdentitySteps:0,domChangeSteps:0};
     let stagnant=0,lastVisual=null,lastIdentityAt=Date.now();
     let reason='step-budget-exhausted';
     for(let step=0;step<MAX_STEPS;step++){
-      const old=collector.nodes.size;
+      const before=await sourceProbe();
       await source.mouse.wheel(0,580);
       await wait(180);
       await source.evaluate(()=>window.__rumiaiAccumulate?.scan());
       await drain();
-      if(collector.nodes.size!==old)lastIdentityAt=Date.now();
+      const after=await sourceProbe();
+      const progress=navigationProgress(before,after);
+      if(progress.newIdentities){
+        lastIdentityAt=Date.now();
+        manifest.navigation.newIdentitySteps++;
+      }
+      if(progress.anyDomChange)manifest.navigation.domChangeSteps++;
       manifest.steps=step+1;
+      manifest.navigation.attempts=step+1;
       if(step%4===3){
         const shot=await source.screenshot({type:'jpeg',quality:48});
         const visual=sha(shot);
-        stagnant=visual===lastVisual&&collector.nodes.size===old?
+        stagnant=visual===lastVisual&&!progress.newIdentities?
           stagnant+1:0;
         lastVisual=visual;
-        if(stagnant>=6&&Date.now()-lastIdentityAt>=12000){
-          reason='visual-stasis-after-wheel';break;
+        const evidence={phase:'wheel',step:step+1,turns:collector.nodes.size,
+          progress,probe:after,visualEqualSamples:stagnant};
+        await fs.appendFile(path.join(output,'navigation.jsonl'),
+          JSON.stringify(evidence)+'\n',{mode:0o600});
+        // Identical viewport + no new identities means the wheel is not
+        // progressing our *observed* transcript. It does NOT mean the
+        // original shared chat has reached its final message.
+        if(stagnant>=5&&Date.now()-lastIdentityAt>=10000){
+          reason='wheel-no-observable-progress';break;
         }
       }
       if(step%25===24){
@@ -486,8 +504,18 @@ async function main(name,url=DEFAULT_URL){
           ' componenti='+collector.order().components);
       }
     }
+    // Automatic progress or lack thereof is not a complete transcript
+    // boundary. An operator can finish the SAME run with real scrolling,
+    // while MutationObserver and export-side retention remain running.
+    manifest.automaticStopReason=reason;
+    manifest.navigation.automaticEnd=await sourceProbe();
+    manifest.notes.push('Automatic wheel stop does not certify chat end');
+    manifest.navigation.manual=await humanScrollWhileCapturing();
     await source.evaluate(()=>window.__rumiaiAccumulate?.scan());
     await drain();
+    manifest.stopReason=manifest.navigation.manual?.confirmed?
+      'human-reported-end-not-independently-verified':
+      reason;
     const status=await source.evaluate(()=>
       window.__rumiaiAccumulate?.status());
     if(status?.overflow||status?.dropped)manifest.notes.push(
@@ -496,7 +524,6 @@ async function main(name,url=DEFAULT_URL){
       'Unidentified nodes during capture: '+status.missingIdentity);
     if(status?.shadowRootsUnsupported)manifest.notes.push(
       'Shadow DOM subtrees were not captured');
-    manifest.stopReason=reason;
     const finalStyles=await captureStyles();
     // Final list includes late-loaded styles that were not present at start.
     styles=finalStyles.entries?.length>=styles.entries.length?finalStyles:styles;
