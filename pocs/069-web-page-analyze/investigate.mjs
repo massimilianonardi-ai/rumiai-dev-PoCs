@@ -163,9 +163,47 @@ async function run(name){
     })();
     responseJobs.push(job);
   }
+  async function inspectEventListeners(label){
+    const results=[];
+    for(const [name,expression] of [
+      ['window','window'],['document','document'],
+      ['main',"document.querySelector('main')"]
+    ]){
+      try{
+        const object=await cdp.send('Runtime.evaluate',{
+          expression,returnByValue:false});
+        const id=object?.result?.objectId;
+        if(!id){results.push({target:name,status:'not-found'});continue;}
+        const response=await cdp.send('DOMDebugger.getEventListeners',
+          {objectId:id,depth:0,pierce:false});
+        results.push({target:name,status:'ok',
+          listeners:(response.listeners||[]).map(item=>({
+            type:item.type,scriptId:item.location?.scriptId,
+            line:item.location?.lineNumber,column:item.location?.columnNumber,
+            useCapture:item.useCapture,passive:item.passive
+          }))});
+        await cdp.send('Runtime.releaseObject',{objectId:id}).catch(()=>{});
+      }catch(e){results.push({target:name,status:'unavailable',
+        reason:errorText(e)});}
+    }
+    await fs.writeFile(path.join(directory,'listeners-'+label+'.json'),
+      JSON.stringify(results,null,2)+'\n',{mode:0o600});
+    return results;
+  }
   async function takePhase(label){
     const obs=await page.evaluate(()=>
       window.__rumiaiInvestigate?.snapshot()||null).catch(()=>null);
+    const listeners=await inspectEventListeners(label);
+    try{
+      const documentSnapshot=await cdp.send('DOMSnapshot.captureSnapshot',{
+        computedStyles:['display','position','overflow-y','transform'],
+        includeDOMRects:true});
+      await fs.writeFile(path.join(directory,'dom-'+label+'.json'),
+        JSON.stringify(documentSnapshot),{mode:0o600});
+    }catch(e){
+      runState.warnings.push('dom-snapshot-'+label+':'+errorText(e));
+      runState.incomplete=true;
+    }
     const coverage=await cdp.send('Profiler.takePreciseCoverage')
       .then(x=>x.result||[],e=>({error:errorText(e)}));
     const shot=path.join(directory,'screenshots',label+'.png');
@@ -176,6 +214,7 @@ async function run(name){
     await fs.writeFile(path.join(directory,'coverage-'+label+'.json'),
       JSON.stringify(coverage),{mode:0o600});
     runState.checkpoints.push({label,
+      listenerTargets:listeners.filter(x=>x.status==='ok').length,
       messages:obs?.messages?.length||0,
       windowY:obs?.scroll?.windowY??null,
       rootY:obs?.scroll?.rootY??null,
