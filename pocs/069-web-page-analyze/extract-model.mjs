@@ -7,6 +7,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {investigationPaths} from './investigate.mjs';
 import {conversationModel} from './conversation-model.mjs';
+import {auditRenderingEvidence} from './render-audit.mjs';
 
 export function snapshotCandidates(value,maxDepth=6,maxItems=3000){
   const results=[],seen=new WeakSet();
@@ -36,6 +37,18 @@ export async function extractRun(run){
     .filter(x=>/^[0-9]{5}\.body$/.test(x)).sort();
   let valid=0,invalid=0;
   const summaries=[];
+  let assets=[];
+  try{
+    const raw=await fs.readFile(path.join(dir,'render-assets.jsonl'),'utf8');
+    assets=raw.split('\n').filter(Boolean).map(x=>JSON.parse(x));
+  }catch(e){if(e.code!=='ENOENT')throw e;}
+  const richStates=[];
+  for(const label of ['initial','top','bottom','top-again']){
+    try{
+      const raw=await fs.readFile(path.join(dir,'render-'+label+'.json'),'utf8');
+      richStates.push(JSON.parse(raw));
+    }catch(e){if(e.code!=='ENOENT')throw e;}
+  }
   for(const name of names){
     const filename=path.join(responses,name);
     if(await fs.realpath(filename)!==filename)
@@ -52,7 +65,12 @@ export async function extractRun(run){
         // a flattened Markdown conversion or ad-hoc HTML approximation.
         await fs.writeFile(output,JSON.stringify(model,null,2)+'\n',
           {flag:'wx',mode:0o600});
-        summaries.push({file:name,path:candidate.path,
+        const audit=auditRenderingEvidence(model,assets,richStates);
+        const auditFile='candidate-render-audit-'+id+'.json';
+        await fs.writeFile(path.join(dir,auditFile),
+          JSON.stringify(audit,null,2)+'\n',{flag:'wx',mode:0o600});
+        summaries.push({file:name,path:candidate.path,renderAudit:auditFile,
+          unresolvedReferences:audit.unresolvedReferences,
           output:path.basename(output),
           mappingCount:model.mappingCount,
           activeBranchCount:model.activeBranchCount,
