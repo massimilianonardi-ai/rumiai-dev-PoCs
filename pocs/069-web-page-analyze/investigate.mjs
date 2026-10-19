@@ -154,8 +154,13 @@ async function run(name){
         h==='openai.com'||h.endsWith('.openai.com');
     }catch{return false}})();
     runState.responses.seen++;
-    // Event-stream responses do not finish. Never wait on response.body().
-    if(!allowed||!/json/.test(mime))return;
+    // ChatGPT shared pages may hydrate state via HTML or streamed
+    // React/server-component frames, not just application/json. Preserve
+    // selected actual first-party responses as *private forensic evidence*.
+    // Event streams never finish, so do not block on their response bodies.
+    if(!allowed||/event-stream/.test(mime)||
+       !/(?:json|text\/html|text\/x-component|x-ndjson)/.test(mime))
+      return;
     if(savedResponses>=maxResponses){
       runState.responses.skipped++;
       return;
