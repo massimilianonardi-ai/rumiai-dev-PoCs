@@ -19,7 +19,7 @@ if [ ! -d "$folder" ] || [ -L "$folder" ] ||
   exit 3
 fi
 for f in manifest.json scripts.json dom-samples.jsonl \
-         dom-mutations.jsonl checkpoints.jsonl network.jsonl
+         dom-mutations.jsonl checkpoints.jsonl network.jsonl response-schema.jsonl
 do
   if [ ! -f "$folder/$f" ] || [ -L "$folder/$f" ]; then
     printf '%s\n' "investigation.required-evidence-missing: $f" >&2
@@ -32,7 +32,7 @@ node "$self/analyze-investigation.mjs" "$1" > "$folder/analysis-summary.json"
 (
   cd "$folder"
   set -- analysis-summary.json manifest.json scripts.json scripts \
-    dom-samples.jsonl dom-mutations.jsonl checkpoints.jsonl network.jsonl
+    dom-samples.jsonl dom-mutations.jsonl checkpoints.jsonl network.jsonl response-schema.jsonl
   for f in coverage-*.json; do
     if [ -f "$f" ] && [ ! -L "$f" ]; then set -- "$@" "$f"; fi
   done
