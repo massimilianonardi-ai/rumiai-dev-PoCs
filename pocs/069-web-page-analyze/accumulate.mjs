@@ -12,7 +12,8 @@ import {createInterface} from 'node:readline/promises';
 import {Accumulator} from './accumulate-core.mjs';
 
 const root=path.dirname(fileURLToPath(import.meta.url));
-const DEFAULT_URL='https://chatgpt.com/share/6ad1c0d5-49ec-83eb-a79b-85b04b938835';
+// The supplied shared link is the sole conversation identifier.
+ // No hard-coded fallback conversation or interactive message selection.
 const MAX_STEPS=650,MAX_MESSAGES=5000,MAX_PAYLOAD_BYTES=350*1024*1024;
 const MAX_ASSET_BYTES=160*1024*1024,MAX_ASSETS=800;
 const wait=t=>new Promise(resolve=>setTimeout(resolve,t));
@@ -68,7 +69,8 @@ export function rewriteCssAssets(css,base,resources,missing){
     return 'url("'+absolute.replaceAll('"','%22')+'")';
   });
 }
-async function main(name,url=DEFAULT_URL){
+async function main(name,url){
+  if(!name||!url)throw Error('accumulate.run-name-and-share-url-required');
   validateShareUrl(url);
   const output=runDirectory(name);
   const parent=path.dirname(output);
@@ -572,7 +574,7 @@ async function main(name,url=DEFAULT_URL){
   }
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
-  main(process.argv[2],process.argv[3]||DEFAULT_URL).catch(e=>{
+  main(process.argv[2],process.argv[3]).catch(e=>{
     console.error('[ERRORE] '+fail(e));process.exitCode=1;
   });
 }
