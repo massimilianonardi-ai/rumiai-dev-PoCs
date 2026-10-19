@@ -9,6 +9,115 @@ MHTML unmodified. The generic *visual collage* now combines **only original
 browser screenshot fragments**, with provenance and explicit missing ranges;
 it does not reconstruct HTML/CSS or purport to be one complete MHTML document.
 
+## New primary research path: human + AI analysis of the real ChatGPT runtime
+
+**Final goal:** faithful, complete, deterministic export of a shared ChatGPT
+conversation. **Supporting goal:** a general, deterministic `web-page-analyze`
+mechanism capable of collecting sufficiently deep runtime evidence to let AI
+reason about how a page actually works. Neither goal is met by the earlier
+scroll-coordinate/MHTML replay; Amazon's ordinary lazy loading was the much
+simpler successful case.
+
+**Operator observation (not yet independently validated by the probe):**
+Firefox Developer Tools showed a list of `div` elements containing unique
+IDs; ChatGPT adds/removes items at the head/tail during scrolling, and there
+is no dedicated nested scrolling container. This suggests *window/root
+scrolling plus message-list virtualization*, but the implementation, ID
+stability, remote data boundaries and full conversation completeness remain
+to be verified. Previous generic scroll-replay work did not sufficiently
+instrument this and wrongly treated MHTML position as adequate evidence.
+
+### One fresh interactive investigation — separate from the existing runs
+
+```sh
+cd /m/src/git/rumiai-os_TEST/src/rumiai-dev-PoCs/pocs/069-web-page-analyze
+git pull --ff-only
+sh run-investigation.sh inspect-01
+```
+
+`inspect-01` is **only an example if the name is unused**. The script
+uses the previously pinned PoC-private Playwright runtime, launches a new
+disposable Chromium persistent context with the user-requested
+`ignoreHTTPSErrors: true` opt-in, and instruments the *real authorized
+ChatGPT shared-link page* **before navigation**. It does **not** invoke
+the old Amazon/ChatGPT wheel replay, create MHTML, or modify previous
+`live-*` evidence. Its browser is sandboxed; do not sign in or use
+unrelated sensitive websites in this trust-reduced research context.
+
+The terminal guides three real manual movements: inspect first chat
+messages at the **top**, scroll to the **bottom**, then return to the
+**top**. Press Enter **only after visually reaching each stage**; the
+probe continuously records while the human navigates.
+
+The code and runtime evidence stored locally under ignored
+`evidence/investigations/inspect-01/` includes:
+
+- **`investigate-observer.js`**: a passive pre-navigation
+  `MutationObserver` recording the additions, removals and attribute
+  changes of message-like DOM elements, possible unique IDs and ancestor
+  structure. Periodic DOM samples report the ordered mounted identities,
+  text **hashes/lengths, never literal message text in the trace**,
+  geometry, scroll positions of `window` and the document root, and
+  any candidate internal scrollers. Mutations are counted and loss is
+  flagged; unsupported IDs cannot prove stable identity.
+- **Chrome DevTools Protocol `Debugger.scriptParsed` and
+  `Debugger.getScriptSource`**: saved raw page JavaScript sources,
+  including chunks dynamically parsed during manual scrolling, with URL
+  query removal and SHA-256 provenance in `scripts.json`.
+  `Profiler.takePreciseCoverage` records executed function ranges
+  separately for initial/top/bottom/top-again stages. This is **main-page
+  client JavaScript**; worker scripts, inaccessible dynamic code,
+  oversized files, service/server code and other losses are not
+  magically covered. Event buffers are processed in-process via direct
+  Playwright/CDP, avoiding the current released debugger provider's
+  128-event buffer limitation. This direct-CDP path is a **PoC-only
+  discovery adapter**, not a new `web-control` architecture or contract.
+- **DOMDebugger event-listener inventories** on window/document/main,
+  private DOM snapshots, Chromium viewport screenshots, network request
+  metadata (without request headers, cookies, URL query parameters or
+  POST bodies) and first-party JSON responses in **private local files**.
+  The JSON responses can contain the actual shared chat; they are never
+  automatically committed or included in the AI sharing bundle.
+  Live sites are not patched and all navigation remains human-controlled.
+- **Resource budgets**: bounded number/size of scripts, response
+  payloads, samples and mutations. Failed collections, browser workers,
+  limits and coverage uncertainties are surfaced explicitly. These are
+  diagnostic boundaries rather than silent "all code captured" claims.
+
+### Read the trace and share with the AI
+
+```sh
+node analyze-investigation.mjs inspect-01
+sh prepare-investigation.sh inspect-01
+```
+
+The first command reports message remount/removal counts and identity
+overlap, root-vs-nested scrolling observations, and the actually executed
+JavaScript file/function coverage **by movement phase**. It labels the
+virtualization conclusion as *evidence-backed hypothesis*, not an
+already identified algorithm. The second command writes the local
+`analysis-summary.json` and `analysis-bundle.tar.gz` in the **same
+ignored investigation folder**. Share the archive **privately in this
+ChatGPT conversation** for source-level AI analysis; **do not commit it
+to GitHub** without deliberate review and authorization. The bundle
+includes collected JS source and structural traces, which may contain
+page-specific information; it excludes browser profile, full network
+response bodies, screenshots and private DOM snapshots by default.
+Inspect it before sharing if the conversation is sensitive.
+
+**AI-level next step once real evidence is available:** identify exact
+message-ID/ordering logic, responsible JS functions and possible
+virtualizer, inspect where the complete conversation originates
+(client-side structured state versus network-pagination), and compare
+the inferred mechanism with the user's Firefox observations. Only
+then design a deterministic exporter: first prefer a complete,
+verifiably ordered source of structured message data; otherwise use
+DOM mount/unmount events with identity-based deduplication, explicit
+coverage checks and content serialization while each node is mounted.
+A generated archive must preserve content types and media and pass
+physical first/last-message, order, count and rendering checks.
+**No specific algorithm is certified in advance.**
+
 ## Confirmed physical evidence from committed `live-08` diagnostic
 
 The operator committed `diagnose-live-08.jsonl` at PoC 069 HEAD
