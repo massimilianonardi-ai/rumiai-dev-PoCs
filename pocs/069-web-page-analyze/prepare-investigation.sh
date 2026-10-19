@@ -19,7 +19,8 @@ if [ ! -d "$folder" ] || [ -L "$folder" ] ||
   exit 3
 fi
 for f in manifest.json scripts.json dom-samples.jsonl \
-         dom-mutations.jsonl checkpoints.jsonl network.jsonl response-schema.jsonl
+         dom-mutations.jsonl checkpoints.jsonl network.jsonl response-schema.jsonl \
+         render-assets.jsonl
 do
   if [ ! -f "$folder/$f" ] || [ -L "$folder/$f" ]; then
     printf '%s\n' "investigation.required-evidence-missing: $f" >&2
@@ -32,7 +33,13 @@ node "$self/analyze-investigation.mjs" "$1" > "$folder/analysis-summary.json"
 (
   cd "$folder"
   set -- analysis-summary.json manifest.json scripts.json scripts \
-    dom-samples.jsonl dom-mutations.jsonl checkpoints.jsonl network.jsonl response-schema.jsonl
+    dom-samples.jsonl dom-mutations.jsonl checkpoints.jsonl network.jsonl response-schema.jsonl \
+    render-assets.jsonl
+  # Include CSS rules for renderer investigation, never automatically
+  # include binary image/font/attachment payloads or raw page HTML.
+  for f in render-assets/*.css; do
+    if [ -f "$f" ] && [ ! -L "$f" ]; then set -- "$@" "$f"; fi
+  done
   for f in coverage-*.json; do
     if [ -f "$f" ] && [ ! -L "$f" ]; then set -- "$@" "$f"; fi
   done
@@ -46,4 +53,5 @@ printf '%s\n' '[INDICE] analysis-summary.json' \
   '[PACCHETTO] analysis-bundle.tar.gz' \
   '[PRIVACY] Allegare il pacchetto in questa chat solo se autorizzato.' \
   '[PRIVACY] Contiene script JS e struttura DOM; non va pubblicato su GitHub.' \
+  '[PRIVACY] Include i CSS caricati; immagini/font/allegati e DOM HTML privato sono esclusi.' \
   '[PRIVACY] Profili browser, risposte di rete integrali e PNG sono esclusi.'
