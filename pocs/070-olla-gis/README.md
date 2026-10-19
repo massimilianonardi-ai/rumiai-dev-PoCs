@@ -66,6 +66,21 @@ a green repository check as a physical installation. Keep the step pending.
 
 2026-10-19: the assistant's execution environment could not connect to
 `gis:22` and could not retrieve the GitHub binary due to missing
-external DNS. Only code review and isolated tests can run here.
-Physical install, actual Olla executable tests and eight-host routing
-have **not** been demonstrated.
+external DNS. The isolated GitHub-hosted Ubuntu runner **did download the
+real pinned release**, verified its SHA-256, validated the exact YAML
+embedded in the operator library, launched Olla and sent an actual chat
+through Olla to a **simulated** Ollama backend.
+
+GitHub Actions run [39207369169](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/39207369169)
+passed at exact PoC revision `6f1382612bbb15e40ba13f972ad7c35adfd25245`.
+This test does not execute `rsudo-admin`, `systemd`, the real GIS host,
+real model inference, or network calls to any of the other seven servers.
+**Physical install and real eight-host routing remain unvalidated.**
+
+The GIS operator job's install mode enables a new `olla-gis-poc.service`
+only after checking the pre-existing local Ollama endpoint, validating
+the downloaded archive and passing Olla's own config validation.
+It fails closed rather than overwriting a different binary, YAML or unit
+already present. When running against GIS, the final gate is model discovery
+plus one real bounded proxied `qwen3:4b` inference, not health-only success.
+The remote job is *not* automatically executed when GitHub CI passes.
