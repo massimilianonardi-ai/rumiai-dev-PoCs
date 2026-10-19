@@ -134,7 +134,8 @@ unsuccessful automatic wheel altogether, use a **new unused** run:
 
 ```sh
 git pull --ff-only
-PWC069_SCROLL_MODE=manual sh run-accumulate.sh accum-02
+PWC069_SCROLL_MODE=manual sh run-accumulate.sh accum-02 \
+  'https://chatgpt.com/share/6ad1c0d5-49ec-83eb-a79b-85b04b938835'
 ```
 
 During the run, scroll the **visible original ChatGPT page** all the way
@@ -191,7 +192,8 @@ Evidence from the supplied physical terminal log:
 ```sh
 cd /m/src/git/rumiai-os_TEST/src/rumiai-dev-PoCs/pocs/069-web-page-analyze
 git pull --ff-only
-sh run-accumulate.sh accum-01
+sh run-accumulate.sh accum-01 \
+  'https://chatgpt.com/share/6ad1c0d5-49ec-83eb-a79b-85b04b938835'
 ```
 
 Use `accum-01` **only if unused**; the script refuses to overwrite
