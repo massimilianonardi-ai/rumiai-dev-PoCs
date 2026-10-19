@@ -94,6 +94,45 @@ Older `live-01`–`live-05` runs are retained without inventing any earlier
 manual PNGs. No archive, CSS, browser screenshot or historic evidence file is
 modified by this update.
 
+## Corporate TLS / local trusted CA (npm Playwright setup)
+
+At the user's company workstation, the first attempted `live-07` ended
+**before Chromium or any page acquisition** while npm was installing
+`playwright`:
+
+```text
+npm ERR! SELF_SIGNED_CERT_IN_CHAIN
+request to https://registry.npmjs.org/playwright failed
+```
+
+The PoC's isolated provider installation now sets
+`NODE_USE_SYSTEM_CA=1` **for the npm install subprocess only**, unless
+the operator explicitly supplied another value. Node 26 can thereby
+trust root CAs already installed in the operating system in addition to
+its bundled roots; **TLS certificate validation stays enabled**.
+The launcher preserves any explicitly set `NODE_EXTRA_CA_CERTS` or
+`npm_config_cafile` values and does not copy certificates or npm
+configuration into the repository.
+
+For a workstation with its corporate CA already trusted by Linux, use
+the normal new-run command below. If the corporate CA is **not** in the
+system trust store, use a trusted company-provided PEM bundle, for example:
+
+```sh
+NODE_EXTRA_CA_CERTS=/path/to/approved-company-ca.pem sh run-live.sh live-07
+```
+
+The path above is a placeholder, not a discovered path. Ask local IT
+for the approved CA if necessary. Avoid `strict-ssl=false` and
+`NODE_TLS_REJECT_UNAUTHORIZED=0`. If a trusted corporate npm registry is
+required, configure it through the local authorized npm settings rather
+than changing or bypassing repository security defaults.
+
+The attempted `live-07` shown in the log did **not** create
+`evidence/live-07`: `run-live.sh` validates the unused evidence name
+before any npm installation. The same name may be reused only while no
+such evidence directory exists. Previous evidence stays untouched.
+
 ## One physical run
 
 On the Linux VM, from the PoC directory:
