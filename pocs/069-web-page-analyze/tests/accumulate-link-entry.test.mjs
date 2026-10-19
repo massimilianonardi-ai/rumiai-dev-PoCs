@@ -11,7 +11,7 @@ test('shared URL directly identifies the conversation, without a catalog or sele
   assert.equal(validateShareUrl(share),share);
   const code=await readFile(new URL('../accumulate.mjs',import.meta.url),'utf8');
   assert.match(code,/source\.goto\(url,/);
-  assert.match(code,/main\(process\.argv\[2\],process\.argv\[3\]\|\|DEFAULT_URL\)/);
+  assert.match(code,/main\(process\.argv\[2\],process\.argv\[3\]\)/);
   assert.doesNotMatch(code,/chooseConversation|loadConversations|node:sqlite|local_thread_catalog/);
   assert.doesNotMatch(code,/Page\.navigate\(\{url:.*initialRoute/);
 });
