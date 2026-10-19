@@ -9,6 +9,43 @@ MHTML unmodified. The generic *visual collage* now combines **only original
 browser screenshot fragments**, with provenance and explicit missing ranges;
 it does not reconstruct HTML/CSS or purport to be one complete MHTML document.
 
+## Share URL is the only conversation selection — preserve proven top-first startup
+
+**Current explicit user correction:** The conversation is identified by the
+`https://chatgpt.com/share/<id>` link supplied to the exporter. There is
+**no** SQLite conversation catalog, numerical conversation-choice menu,
+interactive message selection, or macOS `app://` navigation in the
+shared-link export path. The earlier direct Python-to-JavaScript conversion
+of the **macOS** exporter is only a reference for preserving output data
+and semantics; importing its conversation selection and renderer breakpoint
+would **break the web shared-link workflow**. Do not adopt that standalone
+macOS entrypoint in this PoC.
+
+The current JavaScript `run-accumulate.sh` already accepts the shared
+link as the optional second positional argument; when omitted it uses
+the existing fixed PoC share link. Its startup order is deliberately
+preserved: create the original source tab, install the pre-navigation
+message observer, initialize the invisible export tab, navigate **only**
+to the supplied shared URL, wait for message identities, **scan and
+persist the initial DOM before any automatic wheel or manual traversal**.
+The operator verified that recent research runs start at the correct
+beginning of the shared conversation. We must **not** add scroll-to-bottom,
+navigate-to-app-route, restore-scroll, conversation-list UI, or another
+initial-state reset.
+
+Identity-based deduplication in the accumulator is **not selecting**
+which messages to export: every identifiable user/assistant turn seen
+while the shared page mounts or removes its segments must be retained.
+Missing/unstable identities are explicit evidence limitations, never
+an invitation to exclude messages silently.
+
+`tests/accumulate-link-entry.test.mjs` protects the URL-only entry,
+pre-navigation observer, startup capture-before-wheel sequence, and
+absence of catalog/message-choice dependencies. It is a structural
+regression test, not proof of full message or attachment coverage.
+No changes to the working browser startup sequence or source navigation
+code were made for this correction.
+
 ## Physical `accum-01` result: 17 original turns, automatic wheel stalled
 
 On 2026-10-19 the operator ran the first new two-tab experiment on the
