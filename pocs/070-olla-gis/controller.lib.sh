@@ -141,13 +141,37 @@ systemctl enable --now olla-gis-poc.service || {
 count=0
 while [ "$count" -lt 30 ]; do
   if curl -fsS --max-time 3 http://127.0.0.1:40114/internal/health >/dev/null 2>&1; then
-    echo 'OLLA GIS INSTALL OK: local Olla health passed; remote workers NOT configured'
-    exit 0
+    break
   fi
   count=$((count+1))
   sleep 1
 done
-echo 'OLLA GIS ERROR: Olla health timeout' >&2
-exit 21
+if [ "$count" -ge 30 ]; then
+  echo 'OLLA GIS ERROR: Olla health timeout' >&2
+  exit 21
+fi
+# Do not confuse proxy liveness with successful real inference.
+count=0
+while [ "$count" -lt 40 ]; do
+  if curl -fsS --max-time 4 http://127.0.0.1:40114/olla/models |
+     command -p grep -q 'qwen3:4b'; then
+    break
+  fi
+  count=$((count+1))
+  sleep 1
+done
+[ "$count" -lt 40 ] || {
+  echo 'OLLA GIS ERROR: expected qwen3:4b model not discovered' >&2; exit 22;
+}
+response=$(curl -fsS --max-time 180 \
+  -H 'Content-Type: application/json' \
+  --data '{"model":"qwen3:4b","messages":[{"role":"user","content":"Answer OK"}],"think":false,"stream":false,"options":{"num_predict":32}}' \
+  http://127.0.0.1:40114/olla/ollama/api/chat) || {
+  echo 'OLLA GIS ERROR: bounded real proxied inference failed' >&2; exit 23;
+}
+printf '%s\n' "$response" | command -p grep -q '"done":true' || {
+  echo 'OLLA GIS ERROR: proxied response did not complete normally' >&2; exit 24;
+}
+echo 'OLLA GIS INSTALL OK: real qwen3:4b proxied inference; remote workers NOT configured'
 REMOTE_OLLA_GIS
 }
