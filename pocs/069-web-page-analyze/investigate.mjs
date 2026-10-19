@@ -213,6 +213,10 @@ async function run(name){
       snapshot:obs,coverageCount:Array.isArray(coverage)?coverage.length:null});
     await fs.writeFile(path.join(directory,'coverage-'+label+'.json'),
       JSON.stringify(coverage),{mode:0o600});
+    // Persist the current code index at every manual phase. A closed
+    // terminal must not discard all script identities collected so far.
+    await fs.writeFile(path.join(directory,'scripts.json'),
+      JSON.stringify(scriptMetadata,null,2)+'\n',{mode:0o600});
     runState.checkpoints.push({label,
       listenerTargets:listeners.filter(x=>x.status==='ok').length,
       messages:obs?.messages?.length||0,
@@ -273,6 +277,13 @@ async function run(name){
       if(runState.warnings.length<25)
         runState.warnings.push('sampling:'+errorText(e));
     }finally{readBusy=false;}
+  }
+  for(const signal of ['SIGHUP','SIGINT','SIGTERM']){
+    process.once(signal,()=>{
+      runState.incomplete=true;
+      runState.warnings.push('operator-session-interrupted:'+signal);
+      stdin.close(); // reject any pending phase question and enter finally
+    });
   }
   try{
     browser=await chromium.launchPersistentContext(
@@ -337,6 +348,11 @@ async function run(name){
     await fs.writeFile(path.join(directory,'scripts.json'),
         JSON.stringify(scriptMetadata,null,2)+'\n',{mode:0o600});
     runState.endedAt=new Date().toISOString();
+    if(runState.scripts.parsed===0||runState.samples===0||
+       runState.checkpoints.length<4){
+      runState.incomplete=true;
+      runState.warnings.push('runtime-source-or-manual-phases-missing');
+    }
     if(runState.scripts.skipped||runState.scripts.failures||
        runState.responses.skipped||runState.responses.failures||
        runState.mutationDropped||asyncErrors.length||
