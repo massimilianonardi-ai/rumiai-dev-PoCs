@@ -9,9 +9,13 @@ function evidence(){
     incompleteByDesign:false};
   const frames=[
     {id:'0000',scrollBefore:{top:30000,max:30000},
-      screenshotStable:true,reason:'initial'},
+      screenshotStable:true,reason:'initial',
+      messages:[{role:'user',signature:'u0',visible:true},
+        {role:'assistant',signature:'a0',visible:true},
+        {role:'user',signature:'u1',visible:false}]},
     {id:'0001',scrollBefore:{top:0,max:30000},
-      screenshotStable:true,reason:'observed-quiescence'}
+      screenshotStable:true,reason:'observed-quiescence',
+      messages:[{role:'assistant',signature:'a1',visible:false}]}
   ];
   return {manifest,frames};
 }
@@ -23,8 +27,8 @@ test('original manual top and role coverage are separate from replay',()=>{
   assert.equal(summary.sourceTopCaptured,true);
   assert.equal(summary.replayTopCaptured,false);
   assert.equal(summary.messages.user.observed,2);
-  assert.equal(summary.messages.user.withScreenshot,1);
-  assert.equal(summary.messages.user.observedWithoutScreenshot,1);
+  assert.equal(summary.messages.user.inStableViewport,1);
+  assert.equal(summary.messages.user.unverifiedInScreenshot,1);
   assert.equal(summary.replayMissing.user,16);
   assert.equal(summary.fullConversationVerified,false);
 });
@@ -63,4 +67,13 @@ test('empty manual evidence is explicitly not complete',()=>{
   assert.equal(summary.frames,0);
   assert.equal(summary.sourceTopCaptured,false);
   assert.equal(summary.fullConversationVerified,false);
+});
+
+test('offscreen DOM identities are not claimed as photographed content',()=>{
+  const {manifest,frames}=evidence();
+  frames[0].screenshotStable=false;
+  const summary=manualSourceSummary(manifest,frames,null);
+  assert.equal(summary.messages.user.inStableViewport,0);
+  assert.equal(summary.messages.user.unverifiedInScreenshot,2);
+  assert.equal(summary.messages.assistant.inStableViewport,0);
 });
