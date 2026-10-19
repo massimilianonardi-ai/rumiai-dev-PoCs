@@ -226,8 +226,9 @@ async function main(name,url=DEFAULT_URL){
       rules.push(rewriteCssAssets(raw,original||url,assetMap,unresolved));
     }
     const snapshot=collector.report();
-    const html=await replica.evaluate(({styles,assets})=>{
+    const exported=await replica.evaluate(({styles,assets,sourceUrl})=>{
       const resources=new Map(assets);
+      let unresolvedMedia=0,missingAttachments=0,unresolvedSrcset=0;
       const head=document.head;
       const css=document.createElement('style');
       css.id='rumiai-original-styles';
@@ -238,20 +239,40 @@ async function main(name,url=DEFAULT_URL){
         for(const prop of ['src','poster','href']){
           const original=el.getAttribute(prop);
           if(!original)continue;
-          let resolved;try{resolved=new URL(original,
-            'https://chatgpt.com/').href;}catch{continue;}
+          let resolved;try{resolved=new URL(original,sourceUrl).href;}
+          catch{continue;}
           const file=resources.get(resolved);
           if(file)el.setAttribute(prop,file);
           else if(original.startsWith('blob:')){
-            el.setAttribute('data-rumiai-unresolved-blob',original.slice(0,60));
+            unresolvedMedia++;
+            el.setAttribute('data-rumiai-unresolved-blob','true');
             el.removeAttribute(prop);
+          }else if(prop==='src'||prop==='poster'){
+            unresolvedMedia++;
+            el.setAttribute('data-rumiai-resource-missing','true');
+          }else if(prop==='href'&&
+            (el.hasAttribute('download')||
+             /(?:attachment|file|download)/i.test(el.outerHTML.slice(0,320)))){
+            missingAttachments++;
+            el.setAttribute('data-rumiai-attachment-missing','true');
           }
         }
         // Browser srcset parsers contain commas and escape rules:
         // fail closed instead of shipping remote references as offline assets.
         if(el.hasAttribute('srcset')){
+          unresolvedSrcset++;
           el.setAttribute('data-rumiai-unresolved-srcset','true');
           el.removeAttribute('srcset');
+        }
+      }
+      // SVG image nodes can refer to raster assets through href/xlink:href.
+      for(const element of root.querySelectorAll('image')){
+        for(const prop of ['href','xlink:href']){
+          const value=element.getAttribute(prop);if(!value)continue;
+          let absolute;try{absolute=new URL(value,sourceUrl).href;}catch{continue;}
+          if(resources.has(absolute))element.setAttribute(prop,
+            resources.get(absolute));
+          else if(!value.startsWith('#'))unresolvedMedia++;
         }
       }
       document.getElementById('rumiai-hidden-until-export').remove();
@@ -263,9 +284,14 @@ async function main(name,url=DEFAULT_URL){
         "connect-src 'none'; frame-src 'none'; object-src 'none'";
       head.prepend(csp);
       document.title='ChatGPT shared conversation — accumulated DOM PoC';
-      return '<!doctype html>\n'+document.documentElement.outerHTML;
-    },{styles:rules.join('\n\n'),assets:[...assetMap]});
-    await fs.writeFile(path.join(exportsDir,'index.html'),html,{mode:0o600});
+      return {html:'<!doctype html>\n'+document.documentElement.outerHTML,
+        unresolvedMedia,missingAttachments,unresolvedSrcset};
+    },{styles:rules.join('\n\n'),assets:[...assetMap],sourceUrl:url});
+    await fs.writeFile(path.join(exportsDir,'index.html'),
+      exported.html,{mode:0o600});
+    manifest.unresolvedMedia=exported.unresolvedMedia;
+    manifest.unresolvedAttachments=exported.missingAttachments;
+    manifest.unresolvedSrcset=exported.unresolvedSrcset;
     return snapshot;
   }
   try{
