@@ -60,7 +60,8 @@ async function run(name){
   for(const sub of ['scripts','responses','screenshots','render-assets'])
     await fs.mkdir(path.join(directory,sub),{mode:0o700});
   for(const log of ['network.jsonl','response-schema.jsonl',
-    'dom-samples.jsonl','dom-mutations.jsonl','checkpoints.jsonl'])
+    'render-assets.jsonl','dom-samples.jsonl','dom-mutations.jsonl',
+    'checkpoints.jsonl'])
     await fs.writeFile(path.join(directory,log),'',
       {flag:'wx',mode:0o600});
   const provider=path.join(root,'.runtime','pwc');
