@@ -1,2 +1,0 @@
-import{n as e}from"./f025431a-ehagpvg3m4e1cduv.js";import{$nt as t,Qnt as n}from"./4813494d-mflwonje5cjvc1ql.js";import{i as r,t as i}from"./bfb5f53c-nw37gob7l35rkpf3.js";function a({onComposition:e,runIdle:n=t}){return r({onComposition:e,runIdle:n})}var o=e((()=>{n(),i()}));export{o as n,a as t};
-//# sourceMappingURL=11d2e43a-mbefi8nzp19dl4gw.js.map

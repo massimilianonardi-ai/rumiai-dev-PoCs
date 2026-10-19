@@ -1,2 +1,0 @@
-import{n as e}from"./f025431a-ehagpvg3m4e1cduv.js";import{Het as t,ftt as n}from"./4813494d-mflwonje5cjvc1ql.js";function r(e){return e===`document-reference`||e===`folder-reference`?t.DocumentReference:e===`resource-reference`?t.ResourceReference:e===`skill`?t.SkillMention:t.EcosystemMention}function i(e){switch(e){case t.DocumentReference:case t.EcosystemMention:case t.ResourceReference:case t.SkillMention:case t.SystemHint:return e;default:return}}var a=e((()=>{n()}));export{a as n,i as r,r as t};
-//# sourceMappingURL=6fd89734-hg1n08zr4m1uc2v9.js.map

@@ -1,2 +1,0 @@
-import{n as e}from"./f025431a-ehagpvg3m4e1cduv.js";var t,n=e((()=>{t=Object.freeze({AutomationPlanSummary:{nativeSharing:!0},CreateInteractivePoll:{nativeSharing:!0},LearningVizDil:{mergeAppData:!0},SharedActivityPlanner:{nativeSharing:!0}})}));export{t as n,n as t};
-//# sourceMappingURL=a52d698b-ke08aqzmaiwig21v.js.map

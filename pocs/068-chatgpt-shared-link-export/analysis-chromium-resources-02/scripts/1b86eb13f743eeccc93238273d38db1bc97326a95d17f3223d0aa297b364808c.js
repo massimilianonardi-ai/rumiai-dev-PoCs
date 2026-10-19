@@ -1,2 +1,0 @@
-import{n as e}from"./f025431a-ehagpvg3m4e1cduv.js";import{eat as t,nat as n}from"./4813494d-mflwonje5cjvc1ql.js";function r(e){t.addError(Error(`Failed to translate a collaborative Writing Block transaction`),{errorName:e})}var i=e((()=>{n()}));export{r as n,i as t};
-//# sourceMappingURL=4748c0bc-itknrz6vef1561h6.js.map

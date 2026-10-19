@@ -1,1 +1,0 @@
-export class JsTimeConverter{msec(date){return date.valueOf()}convert(view){return new Date(view.msec)}}

@@ -1,1 +1,0 @@
-window.__reactRouterContext.streamController.close();
