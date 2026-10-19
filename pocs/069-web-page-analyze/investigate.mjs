@@ -144,6 +144,15 @@ async function run(name){
     }
     pendingScripts.push(desc);scheduleScript();
   }
+  function boundedResponseBody(response,timeoutMs=12000){
+    let timer;
+    return Promise.race([
+      response.body(),
+      new Promise((_,reject)=>{
+        timer=setTimeout(()=>reject(Error('investigation.body-timeout')),timeoutMs);
+      })
+    ]).finally(()=>clearTimeout(timer));
+  }
   function captureResponse(response){
     const req=response.request();
     const mime=(response.headers()['content-type']||'').toLowerCase();
@@ -169,7 +178,7 @@ async function run(name){
     const n=savedResponses++;
     const job=(async()=>{
       try{
-        const body=await response.body();
+        const body=await boundedResponseBody(response);
         if(body.length>6*1024*1024||
            responseBytes+body.length>maxResponseBytes){
           runState.responses.skipped++;return;
@@ -214,7 +223,7 @@ async function run(name){
     const n=assetCount++;
     const task=(async()=>{
       try{
-        const body=await response.body();
+        const body=await boundedResponseBody(response);
         if(body.length>12*1024*1024||
            assetBytes+body.length>maxAssetBytes){
           runState.renderAssets.skipped++;return;
