@@ -50,6 +50,47 @@ Physical installation is evidenced by the user's actual GIS operator log,
 not by an isolated CI success. Further physical checks require the same
 credential-loaded operator environment.
 
+## Next phase: seven-worker read-only network inventory
+
+The physical GIS-local Olla installation and real proxy inference are
+complete. **No remote workers have been added to Olla yet.**
+
+Use the *separate*, read-only `rsudo-admin jobs` selection:
+
+- `network-check.lib.sh` — discovers the seven worker hosts using their
+  existing `rsudo` credential-group identities and retrieves their actual
+  global IPv4 addresses, loopback Ollama API readiness, service state,
+  listening socket and preferred source address toward GIS.
+- `network-check.job` — executes `olla_gis_network_check` and redirects
+  output to the required fixed path `/m/src/git/rsudo-jobs.log`.
+
+The controller asks GIS to check its existing Olla health and route/perform
+bounded read-only `GET /api/tags` checks for each **discovered candidate**
+worker address on port `11435`. It only probes interfaces within the
+already documented `10.0.*`, `10.100.*` and `10.200.*` networks.
+Multiple eligible worker interfaces are checked separately; no one address
+is silently promoted as authoritative. Addresses outside those network
+ranges are reported as skipped, not probed.
+
+A failed GIS-to-worker HTTP check is expected when Ollama is still bound to
+worker loopback. It **does not** justify opening arbitrary listeners.
+The inspection does not modify Ollama, Olla, service units, firewalls,
+routing tables or NFS. Its returned diagnostics help determine whether an
+approved limited network-access configuration can safely follow.
+
+This phase must be executed from the enterprise operator environment with
+the encrypted `rsudo` credential groups loaded. Isolated CI uses a fake
+`rsudo` boundary only to exercise the actual controller's argument
+sequencing, address filtering and shell syntax; CI cannot establish network
+reachability or security on the real enterprise servers.
+
+**Before any apply:** inspect the real inventory and confirm which caller
+networks are authorized to reach the raw worker Ollama HTTP APIs and how
+that reachability is enforced. Self-hosted Ollama has no built-in client
+authentication; binding `0.0.0.0` without an access perimeter is not
+an acceptable inference of security. In addition, Olla itself currently
+listens only on GIS loopback, so client access to Olla is a separate boundary.
+
 ## Acceptance boundaries
 
 - `gis` must answer its pre-existing loopback `/api/tags` endpoint.
