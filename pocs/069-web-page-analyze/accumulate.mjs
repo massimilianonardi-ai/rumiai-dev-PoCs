@@ -533,6 +533,8 @@ async function main(name,url=DEFAULT_URL){
     const report=await finishHTML(styles);
     manifest.continuity=report;
     manifest.complete=false;
+    if(report.distinct<=manifest.navigation.initialTurns)
+      manifest.notes.push('No new identities beyond the original mounted window');
     if(report.orderComponents>1)manifest.notes.push(
       'Disconnected turn sequences: '+report.orderComponents);
     if(report.orderCycle)manifest.notes.push('Conflicting adjacency cycle');
@@ -547,7 +549,9 @@ async function main(name,url=DEFAULT_URL){
     console.log('[REPORT] '+JSON.stringify({steps:manifest.steps,
       turns:report.distinct,components:report.orderComponents,
       remounts:report.remounts,resources:manifest.resources,
-      stop:reason,complete:false}));
+      stop:manifest.stopReason,manual:manifest.navigation.manual,
+      newIdentities:report.distinct-manifest.navigation.initialTurns,
+      complete:false}));
   }catch(e){
     manifest.status='failed';manifest.notes.push(fail(e));
     console.error('[ERRORE] '+fail(e));process.exitCode=1;
