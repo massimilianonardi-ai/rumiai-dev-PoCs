@@ -1,6 +1,6 @@
 # Olla on GIS: pinned first inference gateway
 
-Status: **operator execution pending** (2026-10-19). This PoC is a
+Status: **real GIS read-only check passed; installation pending** (2026-10-19). This PoC is a
 GIS-local canary, not a validated eight-worker cluster or a new m product API.
 
 ## Fixed operator choices
@@ -63,6 +63,8 @@ a green repository check as a physical installation. Keep the step pending.
   manages Olla from a native package provider until one exists.
 
 ## Evidence
+
+**2026-10-19 08:57 Europe/Rome — physical read-only preflight PASS.** The user-supplied `rsudo-jobs(20261019-065800).log` records `rsudo.start` to `10.200.0.19` with `sh -s -- check`, then `OLLA GIS CHECK: local Ollama healthy`, `OLLA GIS CHECK: Olla not staged`, `OLLA GIS CHECK OK`, and `rsudo.end status=0`. The nonfatal `rsudo.env-file-fallback reason=not-provided` warning did not stop the operation. This proves the enterprise operator's actual GIS connection and readiness check, not Olla installation or model inference. **Next run:** in `rsudo-admin jobs`, keep the same `controller.lib.sh` and `install.job`, change the last line from `olla_gis_deploy check` to `olla_gis_deploy install`, and inspect the new operator log. No extra privilege or network configuration is implied by the passing check.
 
 2026-10-19: the assistant's execution environment could not connect to
 `gis:22` and could not retrieve the GitHub binary due to missing
