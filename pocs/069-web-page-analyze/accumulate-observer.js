@@ -93,8 +93,10 @@
       state.overflow=true;state.dropped++;return;
     }
     const hash=fnv(html),before=seen.get(entry.key);
-    if(before===hash&&kind!=='removed')return;
-    seen.set(entry.key,hash);
+    // Identical markup can be removed and later remounted by a virtualizer.
+    // Both lifecycle transitions must reach the append-only accumulator.
+    if(before?.hash===hash&&kind!=='removed'&&!before.removed)return;
+    seen.set(entry.key,{hash,removed:kind==='removed'});
     if(queue.length>=maxQueued){state.overflow=true;state.dropped++;return;}
     const packet={kind,key:entry.key,role:entry.role,stable:entry.stable,
       hash,html,ancestors:ancestors(entry.turn),at:Math.round(performance.now())};
