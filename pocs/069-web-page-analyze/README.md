@@ -1,6 +1,6 @@
 # PoC 069 — web-page-analyze: live Amazon + ChatGPT
 
-**Status: `live-01` through `live-05` are confirmed executed; the user subsequently reports physical feedback consistent with a further run of the human-phase capture revision: Amazon is almost always aligned, ChatGPT user prompts are visible, but ChatGPT source/MHTML alignment is poor and its beginning is still missing. The exact new run identifier and private checkpoint diagnostics have not been supplied. The latest top-coverage and MHTML correction changes remain physically unvalidated.**
+**Status: prior runs through `live-07` include user-reported physical validation. On the corporate workstation, `live-07` passed 45/45 native tests but neither site navigated because Chromium rejected the TLS certificate chain. The user explicitly selected Playwright `ignoreHTTPSErrors` for the next isolated PoC run; this is implemented but has not yet been physically retested. ChatGPT content alignment and missing beginning remain unresolved.**
 
 This is an experimental browser-analysis PoC built **directly on the two
 authorized real pages**. All prior fixture experiments, their tests and the
@@ -133,46 +133,36 @@ The attempted `live-07` shown in the log did **not** create
 before any npm installation. The same name may be reused only while no
 such evidence directory exists. Previous evidence stays untouched.
 
-## Corporate workstation Chromium certificate trust
+## Corporate workstation: explicit Playwright HTTPS override
 
-The user reran `live-07` on the work host on 2026-10-19 with
-`NODE_USE_SYSTEM_CA=1`. Playwright installed, Chromium started, and the
-**native Node test runner passed 45/45**, but the **browser itself** failed
-to navigate to *both* authorized pages with
-`net::ERR_CERT_AUTHORITY_INVALID`. Both results were incomplete and the
-PoC created `evidence/live-07/`, so `live-07` must **never** be rerun or
-overwritten. This is distinct from the earlier npm TLS trust failure.
+On 2026-10-19, `live-07` passed **45/45 native Node tests**, and Chromium
+started successfully, but navigation to Amazon and ChatGPT both failed with
+`net::ERR_CERT_AUTHORITY_INVALID` on the corporate network. The run created
+`evidence/live-07/`, which must be preserved and **never reused**.
 
-On Linux, Chromium uses a certificate store including NSS; it does not
-necessarily use the same root CAs selected by Node's
-`NODE_USE_SYSTEM_CA=1`. The PoC launcher now supports a **single
-explicit, approved corporate root CA file** for *Chromium*:
+At the user's explicit request, the PoC now enables **Playwright's
+`ignoreHTTPSErrors: true`** for its one isolated, temporary Chromium
+persistent context. The pinned `pwc-web-control` provider implements this
+through its default-off, provider-specific environment option
+`WEB_CONTROL_IGNORE_HTTPS_ERRORS=1`. `run-live.sh` enables it only for
+the subprocess and browser profile belonging to this PoC, and logs the opt-in.
+Other provider/browser installations continue verifying HTTPS certificates
+by default. Chromium sandboxing remains enabled.
 
-```sh
-# Replace the placeholder with the real IT-approved PEM/CRT file path.
-PWC069_CA_CERT=/absolute/path/company-root-ca.pem sh run-live.sh live-08
-```
+**Security tradeoff:** the experimental browser will no longer reject
+untrusted server TLS certificates, including those of the two authorized
+sites. Do not use this isolated session for unrelated sensitive browsing,
+credentials, or production traffic. Node/npm TLS verification is separate:
+the established `NODE_USE_SYSTEM_CA=1` behavior remains for dependency
+installation and does not globally disable npm HTTPS verification.
 
-`live-08` is an example only if it does not already exist. The operator
-must first identify the approved certificate path. On Linux, the
-`certutil` command from the NSS tools package is required (usually
-`libnss3-tools` on Debian/Ubuntu). Without the selected CA or `certutil`,
-the launcher exits with a specific error rather than disabling TLS.
-`NODE_USE_SYSTEM_CA` and `NODE_EXTRA_CA_CERTS` continue to apply
-separately to Node/npm, not automatically to the Chromium NSS database.
-
-The launcher creates three compatibility-specific NSS stores, all **inside
-its private `.runtime/session.*`**, and imports the explicitly selected
-corporate CA with TLS issuer trust `C,,`. It runs only this PoC's browser
-controller with a temporary HOME pointing to that session. After the run,
-the temporary NSS databases are removed by the existing cleanup trap.
-No root CA is added to the real user HOME, global NSS database or system
-trust store, no certificate bytes are put in GitHub, and neither
-Playwright `ignoreHTTPSErrors` nor Chromium
-`--ignore-certificate-errors` is used.
-
-Chromium's official Linux certificate management reference:
-https://chromium.googlesource.com/chromium/src.git/+/master/docs/linux/cert_management.md
+The previous temporary NSS certificate-import approach (`PWC069_CA_CERT`)
+has been removed from the launcher. No IT-issued certificate, `certutil`,
+extra Chromium flags or changes to the real HOME are needed for this override.
+The launcher advances the **existing PoC-private, pinned provider clone**
+forward-only from the previous verified provider commit to the new exact pin.
+It preserves its `node_modules`; dirty or divergent clones fail safely,
+without a force operation.
 
 ## One physical run
 
@@ -181,13 +171,13 @@ On the Linux VM, from the PoC directory:
 ```sh
 git pull --ff-only
 # Only after checking the next run name is unused:
-sh run-live.sh live-07
+sh run-live.sh live-08
 ```
 
 Requires working visible Chromium, Node 26, npm, git and outbound access to
 clone/install the current independently versioned `pwc-web-control 0.1.6`
-provider on its first use. The launcher clones the **verified provider HEAD**
-`403f4fa9bbea419715e9c834e847c6f2b60ae421` once under this PoC's
+provider on its first use. The launcher uses the **verified provider HEAD**
+`2e1759e994f52000975c6383b8cc7b229cd1b425` once under this PoC's
 ignored `.runtime/pwc/`, installs its pinned Playwright runtime and starts
 its normal controller with a disposable PoC-owned browser profile. It does
 **not** change any default installed `web-control` provider or use a personal
