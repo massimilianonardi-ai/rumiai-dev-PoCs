@@ -45,23 +45,47 @@ data is not asserted to be identical to the macOS snapshot. No user/assistant
 message selection is added. `complete=false` remains in force until
 physical beginning/end, identity, order, media and rendering checks pass.
 
-To use the already proven **top-first** link entry with visible manual
-navigation (new, unused run name):
+## Automatic export from the already verified chat beginning
+
+The default command uses the original working **URL-first/top-first**
+navigation and pre-navigation `MutationObserver` without replacing it
+with macOS-specific application routing or a message selector. **No manual
+scrolling and no terminal Enter are required in the default mode.**
 
 ```sh
 cd /m/src/git/rumiai-os_TEST/src/rumiai-dev-PoCs/pocs/069-web-page-analyze
 git pull --ff-only
-PWC069_SCROLL_MODE=manual sh run-accumulate.sh accum-python-01 \
+sh run-accumulate.sh accum-auto-01 \
   'https://chatgpt.com/share/6ad1c0d5-49ec-83eb-a79b-85b04b938835'
 ```
 
-Scroll inside the visible ChatGPT source window from the beginning to
-the last message, then press Enter in the terminal. The exporter saves
-the original ongoing DOM replica as before, plus the Python-layout
-bundle. Do not overwrite an older run. The new
-`tests/accumulate-python-export.test.mjs` checks snapshot semantics,
-archive integrity and honest DOM provenance with Node's native runner;
-these tests are not evidence that the live shared page was fully exported.
+Use any unused run name; previous evidence is never overwritten.
+After capturing and persisting the initial mounted turns, the automatic
+driver tries Chromium `PageDown`, then targeted wheel input and
+`scrollIntoView` of the last mounted turn when progress stalls.
+It samples browser-visible movement and new message identities after
+every action and drains the original observer before the next movement.
+It **always finalizes its available output** when the navigation budget or
+bounded no-progress checks terminate, even if full coverage cannot be
+proven. Output files include `export/index.html`,
+`python-export.zip`, `python-export/`, `manifest.json` and
+`navigation.jsonl` under the gitignored run directory. A ZIP or
+HTML write failure is an error, not an accepted export.
+
+The original Python captures a native Electron snapshot through a
+renderer breakpoint; the public shared page has not been shown to
+expose that same complete snapshot. Automatic browser traversal is
+therefore **not** a claim of byte-identical original snapshot contents:
+`manifest.complete=false` and `completeExportVerified=false` remain
+until actual full-message, order, and media checks are passed.
+Stop reason `automatic-navigation-stalled` is **not** proof of the end.
+
+The explicit `PWC069_SCROLL_MODE=manual` mode remains available only
+for comparative diagnosis; it is not part of the normal export path.
+The tests `accumulate-auto.test.mjs` and
+`accumulate-python-export.test.mjs` protect autonomous traversal and
+Python serialization semantics on simulated inputs; a complete physical
+export of the real shared URL has not yet been demonstrated.
 
 ## Share URL is the only conversation selection — preserve proven top-first startup
 
