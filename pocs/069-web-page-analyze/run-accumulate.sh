@@ -1,13 +1,17 @@
 #!/bin/sh
 # A new source+replica experiment; never modifies existing investigations.
 set -eu
-if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
-  printf '%s\n' 'Uso: sh run-accumulate.sh <nuovo-nome> [https://chatgpt.com/share/...]' >&2
+if [ "$#" -ne 2 ]; then
+  printf '%s\n' 'Uso: sh run-accumulate.sh <nuovo-nome> https://chatgpt.com/share/<id>' >&2
   exit 2
 fi
 case "$1" in
   ''|*[!A-Za-z0-9_-]*)
     printf '%s\n' 'accumulate.invalid-name' >&2; exit 2 ;;
+esac
+case "$2" in
+  https://chatgpt.com/share/*) : ;;
+  *) printf '%s\n' 'accumulate.share-url-required' >&2; exit 2 ;;
 esac
 case "${PWC069_SCROLL_MODE-auto}" in
   auto|manual) : ;;
