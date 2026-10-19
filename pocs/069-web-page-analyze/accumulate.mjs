@@ -137,8 +137,30 @@ async function main(name,url=DEFAULT_URL){
         if(typeof frame.bodyClass==='string')
           document.body.className=frame.bodyClass;
       }
+      // Rebuild the common CSS ancestry of the original message container,
+      // not merely a flat list of innerHTML blocks. Keep one accumulating
+      // holder: changing virtualizer spacers are intentionally excluded.
+      const first=rec.find(x=>Array.isArray(x.ancestors)&&x.ancestors.length);
+      if(first&&!root.dataset.rumiaiAncestryInitialized){
+        let parent=root;
+        for(const item of first.ancestors){
+          if(item.tag==='main'){
+            root.className=item.className||'';
+            continue;
+          }
+          if(!/^(?:div|section|article|ul|ol|li)$/.test(item.tag))continue;
+          const shell=document.createElement(item.tag);
+          shell.className=item.className||'';
+          if(item.role)shell.setAttribute('role',item.role);
+          shell.dataset.rumiaiCopiedAncestor='true';
+          parent.appendChild(shell);parent=shell;
+        }
+        parent.dataset.rumiaiTurnHolder='true';
+        root.dataset.rumiaiAncestryInitialized='true';
+      }
+      const holder=root.querySelector('[data-rumiai-turn-holder="true"]')||root;
       for(const item of rec){
-        const current=[...root.children].find(x=>x.dataset.rumiaiKey===item.key);
+        const current=[...holder.children].find(x=>x.dataset.rumiaiKey===item.key);
         const template=document.createElement('template');
         template.innerHTML=item.html;
         const element=template.content.firstElementChild;
@@ -152,12 +174,12 @@ async function main(name,url=DEFAULT_URL){
         element.classList.add('rumiai-accumulated-turn');
         element.dataset.rumiaiKey=item.key;
         if(current)current.replaceWith(element);
-        else root.append(element);
+        else holder.append(element);
       }
-      const byId=new Map([...root.children].map(x=>[x.dataset.rumiaiKey,x]));
+      const byId=new Map([...holder.children].map(x=>[x.dataset.rumiaiKey,x]));
       for(const id of order){
         const node=byId.get(id);
-        if(node)root.appendChild(node); // reorders without deleting the turn
+        if(node)holder.appendChild(node); // reorders without deleting the turn
       }
     },{rec,order,frame:frames.at(-1)||null});
   }
