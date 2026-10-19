@@ -25,6 +25,8 @@ test('evidence viewer serves past comparisons and denies MHTML/file portal downl
     await fs.mkdir(manual);
     await fs.writeFile(path.join(manual,'manual.html'),
       '<!doctype html><img src="0000.png">');
+    await fs.writeFile(path.join(manual,'source-review.html'),
+      '<!doctype html><h1>Original human browser</h1>');
     await fs.writeFile(path.join(manual,'0000.png'),Buffer.from([137,80,78,71]));
     await fs.writeFile(path.join(manual,'0000.json'),'{}');
     await fs.writeFile(path.join(manual,'page.mhtml'),'private manual');
@@ -42,6 +44,21 @@ test('evidence viewer serves past comparisons and denies MHTML/file portal downl
     const manualView=await fetch(viewed.url+'amazon-wishlist/manual/manual.html');
     assert.equal(manualView.status,200);
     assert.match(await manualView.text(),/0000.png/);
+    const firstPartyReview=await fetch(
+      viewed.url+'amazon-wishlist/manual/source-review.html');
+    assert.equal(firstPartyReview.status,404);
+    // The allowlist is ChatGPT-specific; create the corresponding artifact
+    // without exposing unrelated private site files.
+    const chat=path.join(directory,'chatgpt-share','manual');
+    await fs.mkdir(chat,{recursive:true});
+    await fs.writeFile(path.join(chat,'source-review.html'),
+      '<!doctype html><h1>ChatGPT original</h1>');
+    const primary=await fetch(
+      viewed.url+'chatgpt-share/manual/source-review.html');
+    assert.equal(primary.status,200);
+    assert.match(await primary.text(),/ChatGPT original/);
+    const rootPage=await fetch(viewed.url);
+    assert.match(await rootPage.text(),/Sorgente originale ChatGPT/);
     assert.equal((await fetch(viewed.url+'amazon-wishlist/manual/0000.png')).status,200);
     assert.equal((await fetch(viewed.url+'amazon-wishlist/manual/0000.json')).status,200);
     for(const relative of [
