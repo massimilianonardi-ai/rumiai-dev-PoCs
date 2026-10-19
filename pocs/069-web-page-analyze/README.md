@@ -9,6 +9,67 @@ MHTML unmodified. The generic *visual collage* now combines **only original
 browser screenshot fragments**, with provenance and explicit missing ranges;
 it does not reconstruct HTML/CSS or purport to be one complete MHTML document.
 
+## Confirmed physical evidence from committed `live-08` diagnostic
+
+The operator committed `diagnose-live-08.jsonl` at PoC 069 HEAD
+`e564173a827a939f7e250c5b179ba329ec9b1422`. This contains
+two **diagnostic summaries**, not the private PNGs or full checkpoint JSON.
+
+- Amazon: 37 checkpoints, **28 content-aligned**, 8 with
+  `content-reflow`, 1 source-unstable; the beginning is photographed in
+  both phases and `replayComplete=true`. The occasional reflow is
+  explicitly *not* interpreted as pixel-perfect MHTML fidelity.
+- ChatGPT: 31 checkpoints, **31 with `content-reflow`**, none
+  content-aligned; source screenshot `minTop=17102`, while the
+  manual phase **observed and photographed top=0** and the replay did
+  **not**. `replayComplete=false`, with unrecovered virtualized
+  scroll jumps. In sampled message identities the replay omitted
+  **16 user prompts and 12 assistant responses** observed manually.
+  The original and MHTML scroll selectors matched; the archive's
+  numerical scroll position matched, but 31/31 text comparisons were
+  nonuniform. In the earliest six checkpoints, measured median shifts
+  were 534–586 CSS px with spreads of the same order. **This is not
+  a single uniform offset** and cannot be repaired merely by adjusting
+  MHTML `scrollTop`.
+
+These measured results identify **two independent defects**:
+the fresh-page automated replay does not traverse the first part of
+ChatGPT, and the reopened native MHTML reflows its captured DOM.
+The browser-original manual screenshots exist **locally** in the
+gitignored `evidence/live-08/chatgpt-share/manual/` and represent a
+more faithful visual reference than the replay or native MHTML pair.
+The committed diagnostic is not itself image evidence.
+
+To review the genuine original screenshots **without a new live run**:
+
+```sh
+git pull --ff-only
+sh view.sh live-08
+```
+
+Open the printed **Sorgente originale ChatGPT** local link. The
+`generate-collage.mjs` viewer preparation reads existing manual
+`manifest.json`, numbered checkpoint metadata and PNG file
+existence, and optionally `report.json`, then generates
+`manual/source-review.html` alongside the unchanged originals.
+The browser displays the original PNGs in **chronological order**
+with no crop, MHTML substitution or coordinate-based stitching.
+It identifies the manually photographed top and provides a shortcut
+to it, shows observed vs screenshot-attached message identities,
+and separately reports the messages missing from the replay.
+Repeated frames and potential screenshot gaps remain visible; the
+viewer **does not claim complete textual or image coverage** when
+the user scrolled more quickly than the sampler recorded.
+The original `manual/manual.html`, MHTMLs, PNGs, reports and old
+`collage.html` evidence are preserved. Amazon's original visual
+pipeline has not changed.
+
+This work unit does **not** fix the inherent layout reflow in the
+native ChatGPT MHTML. Do not silently promote a manual PNG montage
+to a self-contained MHTML or claim that the missing ChatGPT beginning
+has been recovered in the *replay*; the now-prominent manual evidence
+and replay remain explicitly separate.
+
 ## Investigate severe ChatGPT misalignment using the existing run
 
 Latest user feedback after the explicit Playwright `ignoreHTTPSErrors`
