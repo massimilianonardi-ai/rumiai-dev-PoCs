@@ -1,0 +1,8 @@
+exec > "/m/src/git/rsudo-jobs.log" 2>&1
+
+# Read-only Olla seven-worker inventory: do not change services or network.
+command -v olla_gis_network_check >/dev/null 2>&1 || {
+  printf '%s\n' 'OLLA NETWORK ERROR: selected network-check.lib.sh is not loaded' >&2
+  return 1
+}
+olla_gis_network_check
