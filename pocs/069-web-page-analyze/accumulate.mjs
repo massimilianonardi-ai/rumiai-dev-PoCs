@@ -439,13 +439,49 @@ async function main(name,url){
     return snapshot;
   }
   try{
+    // Restore inspect-01's physically observed single-tab startup sequence.
+    // In particular no second tab, scroll operation or replay is allowed
+    // before the first original-page checkpoint has been captured.
     context=await chromium.launchPersistentContext(
-      path.join(output,'browser-profile'),{headless:false,
-        executablePath:executable,chromiumSandbox:true,
-        viewport:{width:1440,height:1000},ignoreHTTPSErrors:true});
+      path.join(output,'browser-profile'),{
+        headless:false,executablePath:executable,chromiumSandbox:true,
+        viewport:{width:1440,height:1000},ignoreHTTPSErrors:true
+      });
     source=await context.newPage();
-    await source.addInitScript({path:path.join(root,'accumulate-observer.js')});
     source.on('response',res=>{void saveAsset(res);});
+    const cdp=await context.newCDPSession(source);
+    await Promise.all([
+      cdp.send('Page.enable'),cdp.send('Debugger.enable'),
+      cdp.send('Profiler.enable'),cdp.send('Network.enable')
+    ]);
+    // Keep the original inspect-01 observer and CDP pre-navigation hook.
+    const originalObserver=await fs.readFile(
+      path.join(root,'investigate-observer.js'),'utf8');
+    await cdp.send('Page.addScriptToEvaluateOnNewDocument',
+      {source:originalObserver});
+    const exportObserver=await fs.readFile(
+      path.join(root,'accumulate-observer.js'),'utf8');
+    await cdp.send('Page.addScriptToEvaluateOnNewDocument',
+      {source:exportObserver});
+    await cdp.send('Profiler.startPreciseCoverage',
+      {callCount:true,detailed:true});
+    console.log('[ACCUMULA] Avvio ChatGPT condiviso, solo osservazione.');
+    await source.goto(url,{waitUntil:'domcontentloaded',timeout:90000});
+    await wait(1200);
+    const initial=await source.evaluate(()=>
+      window.__rumiaiInvestigate?.snapshot()||null);
+    if(!initial)throw Error('accumulate.inspect-01-initial-observer-missing');
+    await fs.writeFile(path.join(output,'startup-initial.png'),
+      await source.screenshot({fullPage:false}),{mode:0o600});
+    manifest.inspect01Startup={
+      checkpoint:'initial-before-replica-and-before-scroll',
+      screenshot:'startup-initial.png',
+      observedMountedMessages:initial.messages?.length??null,
+      observedWindowY:initial.scroll?.windowY??null,
+      observedRootY:initial.scroll?.rootY??null
+    };
+    // Only after inspect-01's initial checkpoint may the invisible export
+    // replica be created. The source page is never reset or re-navigated.
     replica=await context.newPage();
     replica.on('response',res=>{void saveAsset(res);});
     await replica.setContent('<!doctype html><html lang="it"><head>'+
@@ -454,11 +490,8 @@ async function main(name,url){
       '#rumiai-transcript{opacity:0!important}body{background:white}'+
       '</style></head><body><main id="rumiai-transcript"></main></body></html>');
     await source.bringToFront();
-    console.log('[ACCUMULA] Sorgente visibile + replica DOM invisibile aperte.');
-    await source.goto(url,{waitUntil:'domcontentloaded',timeout:90000});
     await source.waitForFunction(()=>window.__rumiaiAccumulate?.status()
       .distinct>0,null,{timeout:60000});
-    await wait(800);
     await source.evaluate(()=>window.__rumiaiAccumulate.scan());
     await drain();
     console.log('[ACCUMULA] Inizio osservato: '+collector.nodes.size+
