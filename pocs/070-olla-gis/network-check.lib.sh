@@ -62,6 +62,7 @@ OLLA_REMOTE_WORKER
       printf 'OLLA NETWORK ERROR no-global-ipv4 group=%s\n' "$group" >&2
       return 2
     fi
+    initial_count=$#
     for address in $addresses
     do
       case "$address" in
@@ -69,8 +70,18 @@ OLLA_REMOTE_WORKER
           printf 'OLLA NETWORK ERROR invalid-ipv4 group=%s value=%s\n' "$group" "$address" >&2
           return 3 ;;
       esac
+      case "$address" in
+        10.0.* | 10.100.* | 10.200.*) ;;
+        *)
+          printf 'OLLA NETWORK SKIP group=%s address=%s reason=outside-known-private-networks\n' "$group" "$address"
+          continue ;;
+      esac
       set -- "$@" "$group:$address"
     done
+    if [ "$#" -eq "$initial_count" ]; then
+      printf 'OLLA NETWORK ERROR no-approved-range-address group=%s\n' "$group" >&2
+      return 4
+    fi
   done
 
   # One GIS rsudo operation performs bounded read-only probes to those IPs.
