@@ -10,6 +10,7 @@ import {createRequire} from 'node:module';
 import {createHash} from 'node:crypto';
 import {createInterface} from 'node:readline/promises';
 import {Accumulator} from './accumulate-core.mjs';
+import {exportDomObservation} from './python-export.mjs';
 
 const root=path.dirname(fileURLToPath(import.meta.url));
 // The supplied shared link is the sole conversation identifier.
@@ -533,7 +534,28 @@ async function main(name,url){
     // Final list includes late-loaded styles that were not present at start.
     styles=finalStyles.entries?.length>=styles.entries.length?finalStyles:styles;
     const report=await finishHTML(styles);
+    // Export the same retained turns in the original Python archive layout.
+    // Browser DOM observations must not masquerade as mapping/current_node.
+    const visibleText=await replica.evaluate(()=>[...document.querySelectorAll(
+      '.rumiai-accumulated-turn[data-rumiai-key]')].map(element=>({
+      key:element.dataset.rumiaiKey,
+      text:element.innerText||element.textContent||''
+    })));
+    const textByKey=new Map(visibleText.map(item=>[item.key,item.text]));
+    const ordered=collector.order().keys.map(key=>{
+      const entry=collector.nodes.get(key);
+      return {key,role:entry.role,html:entry.html,text:textByKey.get(key)||''};
+    });
+    const port=await exportDomObservation
+    (
+      {url,ordered,continuity:report},
+      path.join(output,'python-export')
+    );
+    manifest.pythonFormatArchive={folder:'python-export',zip:'python-export.zip',
+      visibleMessages:port.visible_messages,
+      source:'shared-page-dom-observations-not-original-renderer-snapshot'};
     manifest.continuity=report;
+    console.log('[PYTHON-FORMAT] '+port.zip);
     manifest.complete=false;
     if(report.distinct<=manifest.navigation.initialTurns)
       manifest.notes.push('No new identities beyond the original mounted window');
