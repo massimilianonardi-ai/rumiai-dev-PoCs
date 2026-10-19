@@ -87,6 +87,38 @@ The tests `accumulate-auto.test.mjs` and
 Python serialization semantics on simulated inputs; a complete physical
 export of the real shared URL has not yet been demonstrated.
 
+## Restored inspect-01 single-tab startup (2026-10-19)
+
+The operator-confirmed beginning-of-chat startup was **not** originally
+implemented by `accumulate.mjs`. It was `investigate.mjs`, introduced at
+revision `4d229fb29068c4021587778c380bcf4ae629e99f`, running as
+`inspect-01`. It created one visible Chromium tab, enabled CDP
+`Page`/`Debugger`/`Profiler`/`Network`, injected
+`investigate-observer.js` through
+`Page.addScriptToEvaluateOnNewDocument`, started precise coverage, then
+navigated directly to the share URL. Its `initial` checkpoint was recorded
+**without any programmatic scroll**. The user physically confirmed that
+`inspect-01` opened on the first conversation messages.
+
+The export path now **reuses this same first-page startup sequence**, in
+particular the original investigation observer and CDP injection. It adds
+the accumulating observer before the same single navigation but **does not
+open the second export tab until after** the original page's first
+snapshot and viewport screenshot. That untouched initial browser
+screenshot is retained as private `startup-initial.png`, and
+`manifest.json` records an `inspect01Startup` checkpoint. Only then
+does the exporter initialize the invisible replica, drain initial
+identities and begin automatic traversal. No restored scroll, message
+choice, route rewriting or premature second-tab creation is permitted.
+
+This is **source-level recovery** of the observed startup, not a physical
+reconfirmation on the operator's Chromium and not evidence that later
+segments or complete rich assets were exported. The existing automatic
+traversal/export and its incomplete-coverage reporting remain a separate
+open issue. The source of the originally confirmed startup is preserved
+under `investigate.mjs` and Git history, not inferred from the later
+`accumulate.mjs` implementation.
+
 ## Share URL is the only conversation selection — preserve proven top-first startup
 
 **Current explicit user correction:** The conversation is identified by the
@@ -100,11 +132,11 @@ would **break the web shared-link workflow**. Do not adopt that standalone
 macOS entrypoint in this PoC.
 
 The current JavaScript `run-accumulate.sh` requires the shared link as its second positional argument (explicit
-URL, no implicit conversation fallback). Its startup order is deliberately
-preserved: create the original source tab, install the pre-navigation
-message observer, initialize the invisible export tab, navigate **only**
-to the supplied shared URL, wait for message identities, **scan and
-persist the initial DOM before any automatic wheel or manual traversal**.
+URL, no implicit conversation fallback). Its startup order now follows the **historically observed
+`inspect-01` single-tab CDP bootstrap**, not the later two-tab
+`accumulate.mjs` bootstrap: capture the original page's initial checkpoint
+before creating the invisible export tab, then scan and persist initial
+turns before automatic traversal.
 The operator verified that recent research runs start at the correct
 beginning of the shared conversation. We must **not** add scroll-to-bottom,
 navigate-to-app-route, restore-scroll, conversation-list UI, or another
