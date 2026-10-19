@@ -44,9 +44,13 @@ ss -H -ltn | awk -v group="$group" \
 ip -4 -o addr show scope global |
   awk -v group="$group" \
     '$3=="inet" {split($4,a,"/"); print "OLLA_NETWORK_ADDR",group,a[1]}'
-ip -4 route get 10.200.0.19 |
-  awk -v group="$group" \
-    '{for(i=1;i<=NF;i++) if($i=="src" && i<NF) {print "OLLA NETWORK ROUTE_SOURCE", "group=" group, $(i+1); break}}'
+if route=$(ip -4 route get 10.200.0.19 2>&1); then
+  printf '%s\n' "$route" |
+    awk -v group="$group" \
+      '{for(i=1;i<=NF;i++) if($i=="src" && i<NF) {print "OLLA NETWORK ROUTE_SOURCE", "group=" group, $(i+1); break}}'
+else
+  printf 'OLLA NETWORK ROUTE_SOURCE group=%s unavailable\n' "$group"
+fi
 OLLA_REMOTE_WORKER
 ); then
       printf '%s\n' "$report"
