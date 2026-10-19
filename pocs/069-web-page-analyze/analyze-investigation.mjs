@@ -85,6 +85,30 @@ export function analyzeTrace(snapshots,mutations,checkpoints){
     exactImplementationVerified:false
   };
 }
+// Candidate shared-link payloads with the same model as chatgpt-export.py.
+// A schema match is not proof of access to the complete active branch.
+export function matchingSnapshotSchemas(records){
+  const found=[];
+  function visit(shape,path,record,depth){
+    if(!shape||depth>8)return;
+    if(shape.type==='object'){
+      const members=shape.members||{};
+      if(members.mapping?.type==='object'&&
+         members.current_node?.type==='string'){
+        found.push({sourceSha256:record.sha256||null,
+          url:record.url||null,jsonPath:path,
+          mappingKeysSeen:(members.mapping.keys||[]).length,
+          status:'candidate-unverified'});
+      }
+      for(const [k,v] of Object.entries(members))
+        visit(v,path+'/'+k,record,depth+1);
+    }else if(shape.type==='array'&&shape.item){
+      visit(shape.item,path+'/0',record,depth+1);
+    }
+  }
+  for(const r of records)visit(r.structure,'',r,0);
+  return found;
+}
 export function analyzeCoverage(coverageByPhase,metadata){
   const byId=new Map(metadata.map(x=>[x.scriptId,x]));
   return Object.fromEntries(Object.entries(coverageByPhase).map(([phase,items])=>{
@@ -109,7 +133,9 @@ export async function analyzeRun(run){
   if(location!==dir)throw Error('investigation.report-symlink-not-allowed');
   const manifest=JSON.parse(await fs.readFile(path.join(dir,'manifest.json'),'utf8'));
   const scripts=JSON.parse(await fs.readFile(path.join(dir,'scripts.json'),'utf8'));
-  const snapshots=[],mutations=[],checkpoints=[];
+  const snapshots=[],mutations=[],checkpoints=[],schemas=[];
+  try{await lines(path.join(dir,'response-schema.jsonl'),obj=>schemas.push(obj));}
+  catch(e){if(e.code!=='ENOENT')throw e;}
   for(const [file,items] of [
     ['dom-samples.jsonl',snapshots],
     ['dom-mutations.jsonl',mutations],
@@ -124,7 +150,25 @@ export async function analyzeRun(run){
         path.join(dir,'coverage-'+name+'.json'),'utf8'));
     }catch(e){coverage[name]={error:e.code||e.message};}
   }
+  const sourceMarkers=[];
+  for(const script of scripts){
+    if(!script.sourceFile||script.status!=='saved')continue;
+    const sourceFile=path.join(dir,script.sourceFile);
+    if(await fs.realpath(sourceFile)!==sourceFile)
+      throw Error('investigation.script-symlink');
+    const content=await fs.readFile(sourceFile,'utf8');
+    const hits=['mergeActiveBranch','current_node','conversation_id',
+      'mapping'].filter(token=>content.includes(token));
+    if(hits.length)sourceMarkers.push({file:script.sourceFile,
+      sha256:script.sha256,url:script.url,tokens:hits});
+  }
   return {run,
+    priorPythonModel:{
+      source:'user-supplied chatgpt-export.py',
+      structuralPayloadCandidates:matchingSnapshotSchemas(schemas),
+      sourceBundleMarkers:sourceMarkers.slice(0,60),
+      truncatedSourceMatches:Math.max(0,sourceMarkers.length-60),
+      verifiedFromSharedLink:false},
     status:manifest.status,
     incomplete:manifest.incomplete,
     warnings:manifest.warnings,
@@ -133,6 +177,7 @@ export async function analyzeRun(run){
       mainFrameOnly:true,
       coverageCannotProveAllDynamicCode:true},
     network:{...manifest.responses,rawPayloadsRemainPrivate:true},
+    renderAssets:{...manifest.renderAssets,rawAssetsRemainPrivate:true},
     observation:analyzeTrace(snapshots,mutations,checkpoints),
     executedCode:analyzeCoverage(coverage,scripts),
     researchNext:'Inspect active saved JS functions, message ID transitions, '+
