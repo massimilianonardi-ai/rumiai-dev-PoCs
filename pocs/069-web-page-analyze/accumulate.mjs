@@ -229,6 +229,84 @@ async function main(name,url=DEFAULT_URL){
       }
     }finally{draining=false;}
   }
+  async function sourceProbe(){
+    return source.evaluate(()=>{
+      const observer=window.__rumiaiAccumulate;
+      if(!observer)throw Error('accumulate.observer-missing');
+      const main=document.querySelector('main')||document.body;
+      const bounds=main?.getBoundingClientRect();
+      const width=innerWidth,height=innerHeight;
+      const x=Math.max(15,Math.min(width-15,Math.round(
+        bounds&&bounds.width>150?
+          Math.max(bounds.left+20,Math.min(bounds.right-20,
+            bounds.left+bounds.width*0.55)):width*0.55)));
+      const y=Math.max(15,Math.min(height-15,Math.round(
+        bounds&&bounds.height>150?
+          Math.max(bounds.top+20,Math.min(bounds.bottom-20,
+            bounds.top+Math.min(bounds.height*.6,height*.55))):
+          height*.55)));
+      const chain=[];
+      let pointer=document.elementFromPoint(x,y);
+      for(let i=0;pointer&&i<9;i++,pointer=pointer.parentElement){
+        const css=getComputedStyle(pointer);
+        chain.push({tag:pointer.localName,
+          testId:pointer.getAttribute('data-testid')?.slice(0,100)||null,
+          overflowY:css.overflowY,
+          top:Math.round(pointer.scrollTop||0),
+          max:Math.max(0,Math.round(pointer.scrollHeight-pointer.clientHeight))});
+      }
+      const root=document.scrollingElement||document.documentElement;
+      return {...observer.status(),windowY:Math.round(window.scrollY),
+        rootY:Math.round(root?.scrollTop||0),
+        rootMax:Math.round((root?.scrollHeight||0)-(root?.clientHeight||0)),
+        pointer:{x,y,chain},at:Math.round(performance.now())};
+    });
+  }
+  async function humanScrollWhileCapturing(){
+    if(!process.stdin.isTTY){
+      manifest.notes.push('Manual scroll unavailable: no interactive terminal');
+      return {used:false,status:'no-interactive-terminal'};
+    }
+    console.log('[MANUALE] Lo scroll automatico non ha raggiunto nuovi segmenti.');
+    console.log('[MANUALE] Scorri TU nella finestra ChatGPT originale, fino agli ultimi messaggi.');
+    console.log('[MANUALE] Continuo a copiare ogni nodo creato/rimosso nella replica.');
+    console.log('[MANUALE] Premi INVIO nel terminale SOLO quando hai raggiunto la fine.');
+    await source.bringToFront();
+    const input=createInterface({input:process.stdin,output:process.stdout});
+    let busy=false,failure=null,ticks=0;
+    const tick=async()=>{
+      if(busy||closed||source.isClosed())return;
+      busy=true;
+      try{
+        await source.evaluate(()=>window.__rumiaiAccumulate?.scan());
+        await drain();
+        ticks++;
+        if(ticks%24===0){
+          const probe=await sourceProbe();
+          await fs.appendFile(path.join(output,'navigation.jsonl'),
+            JSON.stringify({phase:'manual',turns:collector.nodes.size,
+              probe})+'\n',{mode:0o600});
+          console.log('[MANUALE] Nodi conservati='+collector.nodes.size+
+            ' componenti='+collector.order().components);
+          await writeManifest();
+        }
+      }catch(e){failure=e;}
+      finally{busy=false;}
+    };
+    const interval=setInterval(()=>{void tick();},250);
+    let confirmed=false;
+    try{
+      await input.question('[MANUALE] Fine realmente visibile? INVIO per concludere: ');
+      confirmed=true;
+    }finally{
+      clearInterval(interval);
+      input.close();
+      while(busy)await wait(80);
+      await tick();
+    }
+    if(failure)throw failure;
+    return {used:true,confirmed,ticks};
+  }
   async function captureStyles(){
     return source.evaluate(()=>{
       const entries=[...document.querySelectorAll('style,link[rel~="stylesheet"]')]
