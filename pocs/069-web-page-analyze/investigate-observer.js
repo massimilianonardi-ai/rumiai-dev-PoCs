@@ -21,16 +21,22 @@
       const tag=current.localName;
       const author=current.getAttribute('data-message-author-role');
       if(author&&!role)role=author;
-      if(dataId||author||(id&&isMessageId(id))||(testId&&isMessageId(testId))){
+      if(dataId||author||(id&&(isMessageId(id)||level<=3))||
+         (testId&&isMessageId(testId))){
         ancestors.push({level:level-1,tag,kind:dataId?'data-message-id':
           id?'id':author?'data-message-author-role':'data-testid',
           value:short(dataId||id||testId||author)});
       }
       current=current.parentElement;
     }
-    if(!ancestors.length)return null;
-    const node=ancestors.find(x=>x.kind==='data-message-id'||
-      x.kind==='id'&&isMessageId(x.value))||ancestors[0];
+    if(!ancestors.length||!ancestors.some(x=>
+      x.kind==='data-message-author-role'||x.kind==='data-message-id'||
+      x.kind==='data-testid'&&isMessageId(x.value)||
+      x.kind==='id'&&isMessageId(x.value)))return null;
+    const node=ancestors.find(x=>x.kind==='data-message-id')||
+      ancestors.find(x=>x.kind==='id'&&isMessageId(x.value))||
+      ancestors.find(x=>x.kind==='id'&&x.level<=3)||
+      ancestors[0];
     return {key:node.kind+':'+node.value,role,ancestors};
   }
   function candidates(node){
