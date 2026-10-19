@@ -55,8 +55,10 @@ existence, and optionally `report.json`, then generates
 The browser displays the original PNGs in **chronological order**
 with no crop, MHTML substitution or coordinate-based stitching.
 It identifies the manually photographed top and provides a shortcut
-to it, shows observed vs screenshot-attached message identities,
-and separately reports the messages missing from the replay.
+to it, distinguishes all observed message identities from those
+intersecting the viewport in **stable** manual screenshots (not proof
+that overlays did not hide text), and separately reports identities
+missing from the replay.
 Repeated frames and potential screenshot gaps remain visible; the
 viewer **does not claim complete textual or image coverage** when
 the user scrolled more quickly than the sampler recorded.
