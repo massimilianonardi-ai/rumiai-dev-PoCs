@@ -9,6 +9,93 @@ MHTML unmodified. The generic *visual collage* now combines **only original
 browser screenshot fragments**, with provenance and explicit missing ranges;
 it does not reconstruct HTML/CSS or purport to be one complete MHTML document.
 
+## Recovered Python exporter — authoritative starting point for the export algorithm
+
+The user previously supplied the real files **\`chatgpt-export.py\`** and
+**\`chatgpt-export.sh\`**, including later Python revisions. The original
+Python was reviewed directly (not inferred from a chat summary), and its
+syntax was checked with the native Python compiler; the shell helper passed
+\`sh -n\`. These files are user-provided source, **not current RumiAI
+normative contract or a validated public-share export**.
+
+**What the supplied code actually does:** the shell helper starts/attaches
+to the macOS ChatGPT Electron renderer with CDP enabled. The Python scans
+loaded JavaScript using \`Debugger.getScriptSource\` for the semantic
+\`mergeActiveBranch\` marker, locates the conversation snapshot consumer,
+places a \`Debugger.setBreakpointByUrl\`, inspects the matching paused call
+frame and serializes the snapshot with \`Debugger.evaluateOnCallFrame\`.
+Its exporter takes \`mapping\` and \`current_node\`, traverses parent links,
+rejects cycles/missing ancestors, selects the active branch, classifies
+user/assistant versus tool/internal messages, **retains the complete
+original \`message\` objects**, includes non-string parts and writes raw
+snapshot/visible messages/audit/Markdown. It does **not** reconstruct the
+conversation from DOM scroll positions, and therefore can succeed despite
+message divs being mounted/unmounted. The user reports it already works
+well for their macOS scenario except rendered images/attachments.
+
+**Critical boundary:** this particular script targets \`app://-/index.html\`
+and the macOS-only local catalog \`~/.codex/sqlite/codex-dev.db\`. The target
+of PoC 069 is a public **\`https://chatgpt.com/share/...\`** page; do not
+pretend it exposes \`mergeActiveBranch\` or an identical complete
+\`mapping/current_node\` snapshot until the browser inspection confirms
+that. The right direction is to identify that page's *data source*,
+not to fall back to scrolling as an export primitive. If the web page
+supplies multiple independently loaded data segments, their identities,
+order and completeness must be established without inventing missing
+parents.
+
+**Implemented now in PoC 069, keeping prior \`live-*\` and Amazon unchanged:**
+
+- \`conversation-model.mjs\` reuses the exact active-branch model concept:
+  complete node-chain validation, visibility classification, raw full
+  message preservation and resource-reference inventory.
+- \`extract-model.mjs <investigation-run>\` searches saved first-party JSON
+  responses for an actual \`mapping/current_node\` candidate, checks
+  it with that deterministic algorithm and writes private candidate
+  transcripts and rendering audits. A missing candidate is a legitimate
+  finding, not a reason to fabricate DOM-backed data.
+- \`analyze-investigation.mjs\` searches the **collected actual page
+  JavaScript** for \`mergeActiveBranch\` and related model markers, and
+  checks redacted response schemas for matching fields.
+- The joint investigation now also retains page-loaded **CSS,
+  image, font and media byte responses** (subject to explicit size/count
+  budgets), CSSOM inline/cross-origin accessibility, computed styles,
+  message wrappers, HTML tables, SVG markup, canvas chart PNGs when
+  accessible, event listeners and DOM snapshots. Each missing/tainted/
+  oversized resource is flagged. All raw rich content remains under
+  the **gitignored investigation evidence**, never auto-committed.
+- \`render-audit.mjs\` cross-checks references found in original message
+  objects against actual resource bytes. A file pointer or signed URL
+  alone is **not** accepted as a successfully captured attachment.
+
+The user-facing final **faithful export** will require two separately
+validated stages: (1) complete ordered conversation data independent of
+dynamic DOM, (2) an offline renderer with original semantic structures,
+CSS/fonts, linked images and downloaded attachments. HTML tables and SVG
+may be reconstructed from source data/markup; canvas charts need an
+actual bitmap or accessible chart model. Missing authorization, missing
+attachments, inaccessible stylesheets or changed rendering must be
+reported, never silently substituted with a screenshot collage.
+
+Run the isolated inspection with a new unused name, e.g.:
+
+\`\`\`sh
+git pull --ff-only
+sh run-investigation.sh inspect-01
+node analyze-investigation.mjs inspect-01
+node extract-model.mjs inspect-01
+sh prepare-investigation.sh inspect-01
+\`\`\`
+
+The private \`analysis-bundle.tar.gz\` contains executable JS sources,
+structural diagnostics, selected CSS and resource metadata, **not** raw
+conversation JSON, browser profile, page HTML, image/font/attachment bytes
+or screenshots. The last three commands operate on existing evidence and
+do not navigate the site. Inspect before sharing the bundle privately in
+this conversation. There is **no new physically validated shared-link
+export yet**; success criteria must be determined by inspecting source
+data and comparing every message and rich resource to the live page.
+
 ## New primary research path: human + AI analysis of the real ChatGPT runtime
 
 **Final goal:** faithful, complete, deterministic export of a shared ChatGPT
