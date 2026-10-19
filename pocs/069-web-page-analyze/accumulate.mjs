@@ -8,6 +8,7 @@ import process from 'node:process';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import {createHash} from 'node:crypto';
+import {createInterface} from 'node:readline/promises';
 import {Accumulator} from './accumulate-core.mjs';
 
 const root=path.dirname(fileURLToPath(import.meta.url));
@@ -17,6 +18,21 @@ const MAX_ASSET_BYTES=160*1024*1024,MAX_ASSETS=800;
 const wait=t=>new Promise(resolve=>setTimeout(resolve,t));
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const fail=e=>String(e?.message||e).slice(0,240);
+// Conservative progress evidence. Browser wheel events do not necessarily
+// move a virtualized page, and image similarity alone cannot certify the end.
+export function navigationProgress(before,after){
+  const numeric=(a,b)=>Number.isFinite(a)&&Number.isFinite(b)?b-a:0;
+  const distinctDelta=numeric(before?.distinct,after?.distinct);
+  const mountDelta=numeric(before?.added,after?.added);
+  const removalDelta=numeric(before?.removed,after?.removed);
+  const revisionDelta=numeric(before?.updated,after?.updated);
+  const scrollDelta=numeric(before?.windowY,after?.windowY);
+  return {distinctDelta,mountDelta,removalDelta,revisionDelta,scrollDelta,
+    anyDomChange:mountDelta>0||removalDelta>0||revisionDelta>0,
+    newIdentities:distinctDelta>0,
+    // Not a proof of last page. Allows manual takeover after real stasis.
+    proofOfCompletion:false};
+}
 export function validateShareUrl(value){
   if(!/^https:\/\/chatgpt\.com\/share\/[a-zA-Z0-9-]+$/.test(value))
     throw Error('accumulate.share-url-invalid');
