@@ -60,7 +60,7 @@ rsudo()
 olla_gis_network_check > "$scratch/report"
 [ -s "$scratch/endpoint-args" ]
 [ "$(wc -l < "$scratch/endpoint-args" | tr -d ' ')" -eq 8 ] || exit 70
-[ "$(ls "$scratch"/:*.??? | wc -l | tr -d ' ')" -eq 8 ] || exit 71
+[ "$(ls "$scratch"/:* | wc -l | tr -d ' ')" -eq 8 ] || exit 71
 [ "$(grep -c '^OLLA NETWORK SKIP ' "$scratch/report")" -eq 1 ] || exit 72
 ! grep -q '192.0.2' "$scratch/endpoint-args"
 grep -q '^apps:10.100.0.2$' "$scratch/endpoint-args"
