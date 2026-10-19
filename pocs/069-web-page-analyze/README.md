@@ -9,6 +9,60 @@ MHTML unmodified. The generic *visual collage* now combines **only original
 browser screenshot fragments**, with provenance and explicit missing ranges;
 it does not reconstruct HTML/CSS or purport to be one complete MHTML document.
 
+## JavaScript port of the original Python exporter (2026-10-19)
+
+The PoC now includes `python-export.mjs`, which reproduces the Python
+`chatgpt-export.py` **data/export stage** when provided with a real
+`mapping/current_node` snapshot: traverse only the active parent chain,
+detect missing ancestors and cycles, classify internal/tool messages,
+retain the entire original message objects including non-string parts,
+write `conversation.raw.json.gz`, `TRANSCRIPT.md`,
+`VISIBLE_MESSAGES.jsonl`, `NON_TEXT_PARTS.json`, `AUDIT.json`,
+`README.md`, `SHA256SUMS` and a ZIP archive, entirely in JavaScript.
+The original Python's macOS SQLite catalog, app-specific breakpoint and
+interactive conversation selection are deliberately **not** run against
+the public shared URL.
+
+The **same existing** `run-accumulate.sh` workflow still opens only the
+user-supplied share URL. Its observer installs before navigation; source
+navigation, first captured messages and initial top-of-chat position are
+unchanged. After the original HTML accumulator completes, the exporter
+also writes:
+
+```text
+evidence/accumulations/<run>/python-export/
+evidence/accumulations/<run>/python-export.zip
+```
+
+For the **real shared-page** path this bundle explicitly contains
+`shared-page-dom-observations` with the retained original turn HTML,
+observed text and roles, and its adjacency/continuity evidence.
+It **does not** fabricate the unavailable renderer
+`mapping/current_node` snapshot, source `message` objects, message
+parents, hidden turns, or missing attachments. In other words, the
+Python-compatible **file layout** is reproduced, but the exported source
+data is not asserted to be identical to the macOS snapshot. No user/assistant
+message selection is added. `complete=false` remains in force until
+physical beginning/end, identity, order, media and rendering checks pass.
+
+To use the already proven **top-first** link entry with visible manual
+navigation (new, unused run name):
+
+```sh
+cd /m/src/git/rumiai-os_TEST/src/rumiai-dev-PoCs/pocs/069-web-page-analyze
+git pull --ff-only
+PWC069_SCROLL_MODE=manual sh run-accumulate.sh accum-python-01 \
+  'https://chatgpt.com/share/6ad1c0d5-49ec-83eb-a79b-85b04b938835'
+```
+
+Scroll inside the visible ChatGPT source window from the beginning to
+the last message, then press Enter in the terminal. The exporter saves
+the original ongoing DOM replica as before, plus the Python-layout
+bundle. Do not overwrite an older run. The new
+`tests/accumulate-python-export.test.mjs` checks snapshot semantics,
+archive integrity and honest DOM provenance with Node's native runner;
+these tests are not evidence that the live shared page was fully exported.
+
 ## Share URL is the only conversation selection — preserve proven top-first startup
 
 **Current explicit user correction:** The conversation is identified by the
@@ -21,9 +75,8 @@ and semantics; importing its conversation selection and renderer breakpoint
 would **break the web shared-link workflow**. Do not adopt that standalone
 macOS entrypoint in this PoC.
 
-The current JavaScript `run-accumulate.sh` already accepts the shared
-link as the optional second positional argument; when omitted it uses
-the existing fixed PoC share link. Its startup order is deliberately
+The current JavaScript `run-accumulate.sh` requires the shared link as its second positional argument (explicit
+URL, no implicit conversation fallback). Its startup order is deliberately
 preserved: create the original source tab, install the pre-navigation
 message observer, initialize the invisible export tab, navigate **only**
 to the supplied shared URL, wait for message identities, **scan and
