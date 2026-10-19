@@ -21,3 +21,6 @@ jobs:
 
       - name: Validate exact GIS installer through real systemd on disposable runner
         run: sh pocs/070-olla-gis/test-systemd.sh
+
+      - name: Check read-only seven-worker network operator workflow
+        run: sh pocs/070-olla-gis/test-network-check.sh
