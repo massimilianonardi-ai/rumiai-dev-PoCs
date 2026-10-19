@@ -80,8 +80,21 @@
     }
     // Retain tables, SVG, MathML, code and original semantic markup.
     // Prevent copied active scripts and inline handlers in the export tab.
-    for(const active of clone.querySelectorAll('script,iframe,object,embed,form'))
-      active.remove();
+    for(const script of clone.querySelectorAll('script'))script.remove();
+    for(const active of clone.querySelectorAll('iframe,object,embed')){
+      const target=active.getAttribute('src')||active.getAttribute('data');
+      const inert=clone.ownerDocument.createElement(target?'a':'span');
+      inert.setAttribute('data-rumiai-embedded-original',active.localName);
+      if(target)inert.setAttribute('href',target);
+      inert.textContent='[risorsa incorporata: '+active.localName+']';
+      active.replaceWith(inert);
+    }
+    for(const form of clone.querySelectorAll('form')){
+      const inert=clone.ownerDocument.createElement('div');
+      inert.setAttribute('data-rumiai-original-form','true');
+      while(form.firstChild)inert.appendChild(form.firstChild);
+      form.replaceWith(inert);
+    }
     for(const child of [clone,...clone.querySelectorAll('*')]){
       for(const att of [...child.attributes])
         if(/^on/i.test(att.name))child.removeAttribute(att.name);
