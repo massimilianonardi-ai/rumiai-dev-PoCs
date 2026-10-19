@@ -35,11 +35,22 @@ if [ "$expected" != "$current" ]; then
   exit 4
 fi
 if [ ! -f "$provider/node_modules/playwright/package.json" ]; then
-  (
+  # Node 26 normally uses its bundled CA store. Also trust the operating
+  # system's approved CAs for corporate TLS inspection, without relaxing TLS.
+  # An explicit NODE_USE_SYSTEM_CA=0 is respected. NODE_EXTRA_CA_CERTS and
+  # npm_config_cafile remain available for an approved custom PEM bundle.
+  if ! (
     cd "$provider"
+    NODE_USE_SYSTEM_CA="${NODE_USE_SYSTEM_CA-1}" \
     npm_config_cache="$self/.runtime/npm-cache" \
       npm install --ignore-scripts --no-audit --no-fund --no-package-lock
-  )
+  ); then
+    printf '%s\n' 'run.provider-dependency-install-failed' \
+      'Se compare SELF_SIGNED_CERT_IN_CHAIN, verifica la CA aziendale nello store Linux.' \
+      'In alternativa imposta NODE_EXTRA_CA_CERTS=/percorso/ca-azienda.pem.' \
+      'Non disabilitare strict-ssl o la verifica TLS di Node.js.' >&2
+    exit 5
+  fi
 fi
 
 session=$(mktemp -d "$self/.runtime/session.XXXXXXXX")
