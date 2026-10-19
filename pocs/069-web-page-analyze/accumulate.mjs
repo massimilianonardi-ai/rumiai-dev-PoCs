@@ -10,6 +10,7 @@ import {createRequire} from 'node:module';
 import {createHash} from 'node:crypto';
 import {createInterface} from 'node:readline/promises';
 import {Accumulator} from './accumulate-core.mjs';
+import {traverseAutomatically} from './accumulate-auto.mjs';
 import {exportDomObservation} from './python-export.mjs';
 
 const root=path.dirname(fileURLToPath(import.meta.url));
@@ -468,60 +469,78 @@ async function main(name,url){
     manifest.navigation={automaticStart:firstProbe,
       initialTurns:collector.nodes.size,manual:null,
       attempts:0,newIdentitySteps:0,domChangeSteps:0};
-    let stagnant=0,lastVisual=null,lastIdentityAt=Date.now();
     const manualOnly=process.env.PWC069_SCROLL_MODE==='manual';
-    let reason=manualOnly?'manual-requested':'step-budget-exhausted';
-    for(let step=0;!manualOnly&&step<MAX_STEPS;step++){
-      const before=await sourceProbe();
-      await source.mouse.wheel(0,580);
-      await wait(180);
-      await source.evaluate(()=>window.__rumiaiAccumulate?.scan());
-      await drain();
-      const after=await sourceProbe();
-      const progress=navigationProgress(before,after);
-      if(progress.newIdentities){
-        lastIdentityAt=Date.now();
-        manifest.navigation.newIdentitySteps++;
-      }
-      if(progress.anyDomChange)manifest.navigation.domChangeSteps++;
-      manifest.steps=step+1;
-      manifest.navigation.attempts=step+1;
-      if(step%4===3){
-        const shot=await source.screenshot({type:'jpeg',quality:48});
-        const visual=sha(shot);
-        stagnant=visual===lastVisual&&!progress.newIdentities?
-          stagnant+1:0;
-        lastVisual=visual;
-        const evidence={phase:'wheel',step:step+1,turns:collector.nodes.size,
-          progress,probe:after,visualEqualSamples:stagnant};
-        await fs.appendFile(path.join(output,'navigation.jsonl'),
-          JSON.stringify(evidence)+'\n',{mode:0o600});
-        // Identical viewport + no new identities means the wheel is not
-        // progressing our *observed* transcript. It does NOT mean the
-        // original shared chat has reached its final message.
-        if(stagnant>=5&&Date.now()-lastIdentityAt>=10000){
-          reason='wheel-no-observable-progress';break;
-        }
-      }
-      if(step%25===24){
-        await writeManifest();
-        console.log('[ACCUMULA] wheel='+manifest.steps+
-          ' nodiConservati='+collector.nodes.size+
-          ' componenti='+collector.order().components);
-      }
+    if(manualOnly)
+    {
+      manifest.navigation.manual=await humanScrollWhileCapturing();
+      manifest.stopReason=manifest.navigation.manual?.confirmed?
+        'human-reported-end-not-independently-verified':'manual-not-confirmed';
     }
-    // Automatic progress or lack thereof is not a complete transcript
-    // boundary. An operator can finish the SAME run with real scrolling,
-    // while MutationObserver and export-side retention remain running.
-    manifest.automaticStopReason=reason;
-    manifest.navigation.automaticEnd=await sourceProbe();
-    manifest.notes.push('Automatic wheel stop does not certify chat end');
-    manifest.navigation.manual=await humanScrollWhileCapturing();
+    else
+    {
+      const run=await traverseAutomatically
+      ({
+        source,
+        maxSteps:MAX_STEPS,
+        sample:async()=>
+        {
+          const probe=await sourceProbe();
+          // Measure actual message movement; root scrollY can stay at zero
+          // throughout a virtualized conversation.
+          const geometry=await source.evaluate
+          (
+            () => [...document.querySelectorAll(
+              '[data-testid^="conversation-turn"],[data-message-id]')]
+              .slice(0,24).map(element=>
+              {
+                const r=element.getBoundingClientRect();
+                return [Math.round(r.top),Math.round(r.bottom)].join(':');
+              }).join('|')
+          );
+          const visual=sha(await source.screenshot({type:'jpeg',quality:40}));
+          return {probe,geometry,visual};
+        },
+        flush:async()=>
+        {
+          await source.evaluate(()=>window.__rumiaiAccumulate?.scan());
+          await drain();
+          await wait(120);
+          await source.evaluate(()=>window.__rumiaiAccumulate?.scan());
+          await drain();
+        },
+        onStep:async event=>
+        {
+          manifest.steps=event.step;
+          manifest.navigation.attempts=event.step;
+          if(event.progress.newIdentities)
+            manifest.navigation.newIdentitySteps++;
+          if(event.progress.viewportMoved)
+            manifest.navigation.domChangeSteps++;
+          await fs.appendFile(path.join(output,'navigation.jsonl'),
+            JSON.stringify(event)+'\n',{mode:0o600});
+          if(event.step%25===0)
+          {
+            await writeManifest();
+            console.log('[ACCUMULA] automatico='+event.step+
+              ' trattenuti='+collector.nodes.size+
+              ' ordineComponenti='+collector.order().components);
+          }
+        }
+      });
+      manifest.automaticStopReason=run.stopReason;
+      manifest.navigation.automaticEnd=run.finalProbe;
+      manifest.navigation.automaticProgress=
+      {
+        newIdentitySteps:run.newIdentitySteps,
+        viewportMoveSteps:run.moveSteps,endVerified:run.endVerified
+      };
+      manifest.stopReason=run.stopReason;
+      console.log('[ACCUMULA] Fine ciclo automatico: '+run.stopReason+
+        '; archivio generato anche se la copertura non è certificata.');
+      manifest.notes.push('Automatic traversal has no independently proven end');
+    }
     await source.evaluate(()=>window.__rumiaiAccumulate?.scan());
     await drain();
-    manifest.stopReason=manifest.navigation.manual?.confirmed?
-      'human-reported-end-not-independently-verified':
-      reason;
     const status=await source.evaluate(()=>
       window.__rumiaiAccumulate?.status());
     if(status?.overflow||status?.dropped)manifest.notes.push(
@@ -588,6 +607,7 @@ async function main(name,url){
       manifest.pythonFormatArchive={status:'failed',error:fail(error)};
       manifest.notes.push('Python-format sidecar failed: '+fail(error));
       console.error('[PYTHON-FORMAT-ERROR] '+fail(error));
+      throw error;
     }
     manifest.complete=false;
     if(report.distinct<=manifest.navigation.initialTurns)
