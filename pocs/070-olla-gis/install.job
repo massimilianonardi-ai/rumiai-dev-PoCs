@@ -1,0 +1,9 @@
+exec > "/m/src/git/rsudo-jobs.log" 2>&1
+
+# rsudo-admin jobs: select controller.lib.sh, then select this job.
+# Default read-only preflight. Change 'check' to 'install' to deploy on gis.
+command -v olla_gis_deploy >/dev/null 2>&1 || {
+  printf '%s\n' 'OLLA GIS ERROR: selected library is not loaded' >&2
+  return 1
+}
+olla_gis_deploy check
