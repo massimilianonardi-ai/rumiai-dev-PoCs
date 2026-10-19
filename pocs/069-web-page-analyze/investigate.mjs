@@ -281,10 +281,31 @@ async function run(name){
           const html=node.outerHTML||'';
           if(used+html.length>htmlMax)break;
           used+=html.length;
+          const style=getComputedStyle(node);
+          const computed={};
+          for(const key of ['display','position','font-family','font-size',
+            'font-weight','line-height','color','background-color','white-space',
+            'text-align','direction','width','height','min-width','max-width',
+            'margin-top','margin-bottom','padding-left','padding-right',
+            'border-top','border-bottom','overflow-x','overflow-y',
+            'grid-template-columns','flex-direction','align-items']){
+            computed[key]=style.getPropertyValue(key);
+          }
           fragments.push({tag:node.localName,
             id:node.id||null,
             role:node.getAttribute('data-message-author-role'),
-            html});
+            html,computed});
+        }
+        const canvases=[];
+        for(const [index,node] of [...scope.querySelectorAll('canvas')]
+          .slice(0,32).entries()){
+          try{
+            const encoded=node.toDataURL('image/png');
+            canvases.push({index,width:node.width,height:node.height,
+              image:encoded.length<=7*1024*1024?encoded:null,
+              status:encoded.length<=7*1024*1024?'captured':'oversize'});
+          }catch(e){canvases.push({index,width:node.width,height:node.height,
+            image:null,status:'tainted-or-inaccessible'});}
         }
         const sheets=[...document.styleSheets].slice(0,150).map(sheet=>{
           let rules=[],inaccessible=false;
@@ -297,9 +318,19 @@ async function run(name){
         });
         return {fragments,totalElements:rich.length,
           fragmentTruncated:fragments.length<rich.length,
+          canvases,canvasTruncated:scope.querySelectorAll('canvas').length>32,
           styleSheets:sheets,styleSheetTruncated:document.styleSheets.length>150,
           viewport:{width:innerWidth,height:innerHeight}};
       });
+      for(const canvas of render.canvases||[]){
+        if(!canvas.image)continue;
+        const file='canvas-'+label+'-'+String(canvas.index).padStart(3,'0')+'.png';
+        await fs.writeFile(path.join(directory,file),
+          Buffer.from(canvas.image.split(',')[1],'base64'),
+          {flag:'wx',mode:0o600});
+        canvas.file=file;
+        delete canvas.image;
+      }
       await fs.writeFile(path.join(directory,'render-'+label+'.json'),
         JSON.stringify(render),{mode:0o600});
     }catch(e){
