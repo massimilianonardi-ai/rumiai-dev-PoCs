@@ -522,8 +522,8 @@ async function main(name,url){
       .distinct>0,null,{timeout:60000});
     await source.evaluate(()=>window.__rumiaiAccumulate.scan());
     await drain();
-    console.log('[ACCUMULA] Inizio osservato: '+collector.nodes.size+
-      ' identità. Procedo con wheel, non con scrollTop.');
+    console.log('[ACCUMULA] Checkpoint inspect-01 salvato; nodi iniziali: '+
+      collector.nodes.size+'. La navigazione automatica segue dopo.');
     let styles=await captureStyles();
     const firstProbe=await sourceProbe();
     await source.mouse.move(firstProbe.pointer.x,firstProbe.pointer.y);
