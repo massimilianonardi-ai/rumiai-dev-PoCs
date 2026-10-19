@@ -1,0 +1,2 @@
+import{n as e}from"./f025431a-ehagpvg3m4e1cduv.js";var t,n,r,i=e((()=>{t=`xmz0rW_shimmer`,n=`xmz0rW_Shimmer`,r={shimmer:t,Shimmer:n}}));export{i as n,r as t};
+//# sourceMappingURL=0528277d-mg15jahkr8e8ofud.js.map

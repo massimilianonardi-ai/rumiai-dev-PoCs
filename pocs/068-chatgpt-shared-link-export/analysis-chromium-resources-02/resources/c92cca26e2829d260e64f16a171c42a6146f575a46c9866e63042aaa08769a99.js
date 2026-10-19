@@ -1,0 +1,2 @@
+import{n as e}from"./f025431a-ehagpvg3m4e1cduv.js";var t,n,r,i,a,o,s=e((()=>{t=[`pptx`,`xlsx`],n=[...t,`csv`,`txt`,`md`,`markdown`],r=e=>{let t=e.split(`.`).pop();return t?t.toLowerCase():null},i=e=>{let n=t,i=r(e);return!i||!n.includes(i)?null:i},a=e=>{let t=n,i=r(e);return!i||!t.includes(i)?null:i},o=e=>!!i(e)}));export{o as i,a as n,s as r,i as t};
+//# sourceMappingURL=6fd89734-ny5i76ta4bni7dqo.js.map

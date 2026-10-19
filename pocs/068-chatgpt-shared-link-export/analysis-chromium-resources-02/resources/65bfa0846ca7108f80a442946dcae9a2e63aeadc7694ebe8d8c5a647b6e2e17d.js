@@ -1,0 +1,2 @@
+import{n as e}from"./f025431a-ehagpvg3m4e1cduv.js";var t,n,r,i,a=e((()=>{t=`rwn2ia_AnimatedMascot`,n=`rwn2ia_GeneratedObjectLayer`,r=`rwn2ia_MascotShadow`,i={AnimatedMascot:t,GeneratedObjectLayer:n,MascotShadow:r}}));export{a as n,i as t};
+//# sourceMappingURL=989e5608-jmvmt4r0wnyxd8yp.js.map

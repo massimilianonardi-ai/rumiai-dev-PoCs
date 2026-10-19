@@ -1,0 +1,2 @@
+import{n as e}from"./f025431a-ehagpvg3m4e1cduv.js";function t(){return new URL(`/cdn/assets/mapbox-gl-rtl-text.min-daaqeqij.js`,``+import.meta.url).href}var n=e((()=>{})),r=e((()=>{}));export{t as n,n as r,r as t};
+//# sourceMappingURL=24c0da2c-bx2qul3cpe0cu1wg.js.map

@@ -1,0 +1,2 @@
+import{n as e}from"./f025431a-ehagpvg3m4e1cduv.js";import{n as t,t as n}from"./f0a0a9e6-lo2v4btkyyjsu3sp.js";var r,i=e((()=>{t(),r=n(`GitBranch`,[[`line`,{x1:`6`,x2:`6`,y1:`3`,y2:`15`,key:`17qcm7`}],[`circle`,{cx:`18`,cy:`6`,r:`3`,key:`1h7g24`}],[`circle`,{cx:`6`,cy:`18`,r:`3`,key:`fqmcym`}],[`path`,{d:`M18 9a9 9 0 0 1-9 9`,key:`n2h4wq`}]])}));i();export{r as default,i as t};
+//# sourceMappingURL=aabb37f6-f4y9tolpxd3kvi9i.js.map

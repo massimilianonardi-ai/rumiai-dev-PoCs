@@ -1,0 +1,2 @@
+import{n as e}from"./f025431a-ehagpvg3m4e1cduv.js";var t,n,r,i,a,o,s,c=e((()=>{t=`chatgpt-local-business-entity-lookup`,n=`chatgpt-online-business-entity-lookup`,r=/^lbe1_[A-Za-z0-9_-]{24}$/,i=/^obe1_[A-Za-z0-9_-]{24}$/,a=e=>{let t=e?.trim();return t!=null&&r.test(t)?t:null},o=e=>{let n=e.provider.trim(),r=e.id.trim(),i=a(e.entity_lookup_id)??(n.length===0?a(r):null);return i==null?null:{provider:t,providerBusinessId:i}},s=e=>e==null||!i.test(e)?null:{provider:n,providerBusinessId:e}}));export{s as n,c as r,o as t};
+//# sourceMappingURL=c6ec27cf-iyqtiy5kn2cfvly7.js.map

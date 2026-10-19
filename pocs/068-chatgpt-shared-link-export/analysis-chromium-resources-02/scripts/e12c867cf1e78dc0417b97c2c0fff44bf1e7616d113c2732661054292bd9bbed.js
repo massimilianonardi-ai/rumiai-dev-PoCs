@@ -1,0 +1,3 @@
+import{n as e}from"./f025431a-ehagpvg3m4e1cduv.js";import{a as t,d as n,f as r,r as i}from"./d4c3e8a1-fwrvhqh6h5dyi0r9.js";function a(e){if(!/^\s*---(?:[\t ]*\r?\n|$)/.test(e))return;let r=/^\s*---[\t ]*\r?\n([\s\S]*?)\r?\n---[\t ]*(?:\r?\n|$)/.exec(e);if(r==null)return null;let i=t(r[1]);return i.errors.length>0||!n(i.contents)?null:{document:i,body:e.slice(r[0].length),header:r[0]}}function o(e,{before:t,after:i}){let o=a(e);if(o==null)return e;let s=o.document.get(`config`,!0);if(!n(s))return e;let c=s.get(`themeCSS`,!0);return!r(c)||typeof c.value!=`string`?e:(c.value=[t,c.value,i].filter(Boolean).join(`
+`),`---\n${o.document.toString()}---\n${o.body}`)}var s=e((()=>{i()}));export{s as n,a as r,o as t};
+//# sourceMappingURL=bf44528e-bn99w5w3laie47md.js.map

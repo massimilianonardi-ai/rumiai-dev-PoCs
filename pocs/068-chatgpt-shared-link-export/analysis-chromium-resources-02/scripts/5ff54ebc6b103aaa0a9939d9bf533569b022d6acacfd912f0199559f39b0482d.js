@@ -1,0 +1,2 @@
+import{n as e}from"./f025431a-ehagpvg3m4e1cduv.js";import{Bn as t,Nn as n,Rn as r,wn as i}from"./2340486e-oc6d2eodbcrmxur3.js";function a(){"use forget";let e=(0,o.c)(1),t;return e[0]===Symbol.for(`react.memo_cache_sentinel`)?(t=(0,s.jsx)(`span`,{className:`loading-shimmer-pure-text text-token-text-secondary text-sm font-medium`,children:(0,s.jsx)(n,{id:`artifactPreview.loading`,defaultMessage:`Preparing preview…`})}),e[0]=t):t=e[0],t}var o,s,c=e((()=>{o=i(),r(),s=t()}));export{c as n,a as t};
+//# sourceMappingURL=da2a1f4a-dq0zdmfpzx69si7g.js.map
