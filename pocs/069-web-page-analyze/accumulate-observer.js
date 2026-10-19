@@ -3,7 +3,9 @@
 // The export page is managed by accumulate.mjs in a separate Playwright tab.
 (() => {
   if(window.__rumiaiAccumulate)return;
-  const queue=[],maxQueued=12000,seen=new Map(),dirty=new Set();
+  const queue=[],maxQueued=1600,maxQueueChars=48*1024*1024,
+    seen=new Map(),dirty=new Set();
+  let queuedChars=0;
   const state={added:0,removed:0,updated:0,dropped:0,
     missingIdentity:0,overflow:false,baselineRuns:0,canvasFailures:0,
     shadowRootsUnsupported:true,version:1};
@@ -97,10 +99,12 @@
     // Both lifecycle transitions must reach the append-only accumulator.
     if(before?.hash===hash&&kind!=='removed'&&!before.removed)return;
     seen.set(entry.key,{hash,removed:kind==='removed'});
-    if(queue.length>=maxQueued){state.overflow=true;state.dropped++;return;}
+    if(queue.length>=maxQueued||queuedChars+html.length>maxQueueChars){
+      state.overflow=true;state.dropped++;return;
+    }
     const packet={kind,key:entry.key,role:entry.role,stable:entry.stable,
       hash,html,ancestors:ancestors(entry.turn),at:Math.round(performance.now())};
-    queue.push(packet);
+    queue.push(packet);queuedChars+=html.length;
     state[kind==='removed'?'removed':before?'updated':'added']++;
   }
   function observeElement(el,kind){
@@ -150,8 +154,17 @@
       'srcset','style','data-message-author-role','data-testid']});
   window.__rumiaiAccumulate={
     status:()=>({...state,queued:queue.length,distinct:seen.size}),
-    drain:(limit=120)=>({items:queue.splice(0,Math.min(500,Math.max(1,limit))),
-      ...state,remaining:queue.length}),
+    drain:(limit=120)=>{
+      const items=[];
+      let bytes=0,max=Math.min(150,Math.max(1,limit));
+      while(queue.length&&items.length<max){
+        const next=queue[0],size=next.html?.length||0;
+        if(items.length&&bytes+size>8*1024*1024)break;
+        items.push(queue.shift());bytes+=size;
+        queuedChars-=size;
+      }
+      return {items,...state,remaining:queue.length,queuedChars};
+    },
     scan:collectFrame
   };
   if(document.readyState==='loading'){
