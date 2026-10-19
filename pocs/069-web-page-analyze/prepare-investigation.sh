@@ -40,6 +40,11 @@ node "$self/analyze-investigation.mjs" "$1" > "$folder/analysis-summary.json"
   for f in render-assets/*.css; do
     if [ -f "$f" ] && [ ! -L "$f" ]; then set -- "$@" "$f"; fi
   done
+  # Optional candidate SOURCE summary, never candidate-model-*.json
+  # because those contain complete conversation messages.
+  if [ -f snapshot-candidates.json ] && [ ! -L snapshot-candidates.json ]; then
+    set -- "$@" snapshot-candidates.json
+  fi
   for f in coverage-*.json; do
     if [ -f "$f" ] && [ ! -L "$f" ]; then set -- "$@" "$f"; fi
   done
