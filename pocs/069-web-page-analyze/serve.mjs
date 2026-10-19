@@ -7,6 +7,7 @@ import {fileURLToPath} from 'node:url';
 
 const root=path.dirname(fileURLToPath(import.meta.url));
 const pattern=/^\/(amazon-wishlist|chatgpt-share)\/(comparison\.html|collage\.html|manual\/manual\.html|manual\/manifest\.json|manual\/[0-9]{4,6}\.(?:png|json)|states\/[0-9]{4,6}\/(?:original|reopened)\.png|states\/[0-9]{4,6}\/(?:capture|offline)\.json)$/;
+const sourceReviewRoute='/chatgpt-share/manual/source-review.html';
 const csp="default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; script-src 'none'; connect-src 'none';";
 const response=(res,status,body,mime='text/plain; charset=utf-8')=>{
   res.writeHead(status,{'Content-Type':mime,'Cache-Control':'no-store',
@@ -37,11 +38,15 @@ export async function startViewer(run){
         ['amazon-wishlist','chatgpt-share'].map(site=>
           '<p>'+site+': <a href="/'+site+'/comparison.html">Confronto</a> · '+
           '<a href="/'+site+'/collage.html">Collage</a> · '+
-          '<a href="/'+site+'/manual/manual.html">Navigazione manuale</a></p>').join('')+
+          '<a href="/'+site+'/manual/manual.html">Navigazione manuale</a>'+ 
+          (site==='chatgpt-share'?
+            ' · <a href="/chatgpt-share/manual/source-review.html">Sorgente originale ChatGPT</a>':'')+
+          '</p>').join('')+
         '<p>Solo immagini e diagnostica, tutto dentro il PoC.</p></html>';
       return response(res,200,body,'text/html; charset=utf-8');
     }
-    if(!pattern.test(route))return response(res,404,'view.not-available');
+    if(!pattern.test(route)&&route!==sourceReviewRoute)
+      return response(res,404,'view.not-available');
     try{
       const filename=await fs.realpath(path.join(base,route.slice(1)));
       if(!filename.startsWith(base+path.sep))
@@ -67,6 +72,8 @@ if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.ur
       console.log('[CONFRONTO] '+url+site+'/comparison.html');
       console.log('[COLLAGE] '+url+site+'/collage.html');
       console.log('[MANUALE] '+url+site+'/manual/manual.html');
+      if(site==='chatgpt-share')
+        console.log('[ORIGINALE] '+url+site+'/manual/source-review.html');
     }
     console.log('[VIEW] Ctrl+C per terminare.');
   }).catch(e=>{console.error('[ERRORE] '+e.message);process.exitCode=1;});
