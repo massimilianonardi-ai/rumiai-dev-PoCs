@@ -69,8 +69,9 @@ It opens two actual pages within the same Chromium context:
    exported copies. The original message markup (text, code, table, SVG,
    MathML, attachments and image references) is cloned before disposal;
    canvas elements are converted to PNG data-URI when readable. Scripts
-   and event handlers are removed from this static export (not executable
-   ChatGPT application state).
+   and event handlers are removed from this static export; embedded
+   iframe/object/embed targets are retained as *inert references*, not
+   silently omitted or executed (not executable ChatGPT application state).
 
 A Node.js-side append-only `Accumulator` indexes stable identities and
 records adjacency observed in overlapping DOM windows. Already captured
