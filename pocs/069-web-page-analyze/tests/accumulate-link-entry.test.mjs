@@ -27,7 +27,7 @@ test('source observer starts before navigation; initial turns are saved before a
   const debuggerSession=code.indexOf('context.newCDPSession(source)');
   const initialScript=code.indexOf("path.join(root,'investigate-observer.js')");
   const exportScript=code.indexOf("path.join(root,'accumulate-observer.js')");
-  const hook=code.indexOf("cdp.send('Page.addScriptToEvaluateOnNewDocument'");
+  const hook=code.indexOf("'Page.addScriptToEvaluateOnNewDocument'");
   const goto=code.indexOf('await source.goto(url,');
   const initialSnapshot=code.indexOf('window.__rumiaiInvestigate?.snapshot()');
   const screenshot=code.indexOf("'startup-initial.png'");
