@@ -51,6 +51,7 @@ rsudo()
     printf 'OLLA_NETWORK_ADDR %s 10.100.0.%s\n' "$group" "$number"
     # The controller must not probe an unapproved or extraneous address.
     if [ "$group" = apps ]; then
+      printf 'OLLA_NETWORK_ADDR %s 10.0.0.2\n' "$group"
       printf 'OLLA_NETWORK_ADDR %s 192.0.2.2\n' "$group"
     fi
   fi
