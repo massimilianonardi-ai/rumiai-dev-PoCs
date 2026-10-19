@@ -60,13 +60,14 @@ if [ ! -f "$provider/node_modules/playwright/package.json" ]; then
   }
 fi
 node --check "$self/accumulate.mjs"
+node --check "$self/accumulate-auto.mjs"
 node --check "$self/accumulate-core.mjs"
 node --check "$self/python-export.mjs"
 node --check "$self/accumulate-observer.js"
 node --test "$self/tests/accumulate-"*.test.mjs
 export PWC069_BROWSER_EXECUTABLE="$chromium"
 printf '%s\n' '[ACCUMULA] Chromium originale e replica DOM vuota.' \
-  "[ACCUMULA] Navigazione: ${PWC069_SCROLL_MODE-auto} (manuale=scroll nella finestra originale)." \
+  "[ACCUMULA] Navigazione: ${PWC069_SCROLL_MODE-auto} (auto=senza intervento manuale)." \
   '[ACCUMULA] ignoreHTTPSErrors attivo solo per questo PoC isolato.' \
   '[ACCUMULA] Non effettuare login; controlla visivamente la pagina originale.'
 exec node "$self/accumulate.mjs" "$@"
