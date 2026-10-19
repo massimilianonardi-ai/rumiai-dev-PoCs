@@ -5,7 +5,7 @@ set -eu
 command -v certutil >/dev/null 2>&1 || { printf '%s\n' 'SKIP: certutil missing'; exit 2; }
 command -v openssl >/dev/null 2>&1 || { printf '%s\n' 'SKIP: openssl missing'; exit 2; }
 
-tmp=$(mktemp -d "\${TMPDIR:-/tmp}/rumiai-nss-projection.XXXXXXXX")
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/rumiai-nss-projection.XXXXXXXX")
 trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
 mkdir -p -- "$tmp/authoritative" "$tmp/browser-a" "$tmp/browser-b" "$tmp/unrelated"
 
@@ -29,7 +29,7 @@ done
 certutil -A -d "sql:$tmp/browser-b" -n external-ca -t 'C,,' -i "$tmp/unrelated/root.pem"
 
 fingerprint=$(openssl x509 -in "$tmp/authoritative/root.pem" -outform DER | openssl dgst -sha256 -r)
-fingerprint=\${fingerprint%% *}
+fingerprint=${fingerprint%% *}
 nickname="rumiai-ca-$fingerprint"
 
 # Trial implementation of a projection with an explicit owned-entry manifest.
