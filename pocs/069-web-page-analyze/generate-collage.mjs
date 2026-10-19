@@ -5,6 +5,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {collageHtml} from './collage.mjs';
+import {manualSourceReviewHtml} from './manual-review.mjs';
 
 const root=path.dirname(fileURLToPath(import.meta.url));
 const sites=['amazon-wishlist','chatgpt-share'];
@@ -56,13 +57,64 @@ export async function generate(run) {
         throw Error('collage.destination-is-not-a-regular-file');
     }catch(e){if(e.code!=='ENOENT')throw e;}
     await fs.writeFile(destination,contents,{flag:'w',mode:0o600});
+    // For virtualized ChatGPT the original human-controlled screenshots
+    // are the authoritative visual evidence. Render a separate read-only
+    // review from existing private PNGs/JSON; do not touch the MHTML.
+    let manualReview=null;
+    if(site==='chatgpt-share'){
+      const manual=path.join(dir,'manual');
+      try{
+        if(await fs.realpath(manual)!==manual)
+          throw Error('collage.manual-symlink-not-allowed');
+        const manifestFile=path.join(manual,'manifest.json');
+        if(await fs.realpath(manifestFile)!==manifestFile)
+          throw Error('collage.manual-manifest-symlink-not-allowed');
+        const manifest=JSON.parse(await fs.readFile(manifestFile,'utf8'));
+        const names=(manifest.frameIds||[])
+          .filter(id=>typeof id==='string'&&/^[0-9]{4,6}$/.test(id));
+        const frames=[];
+        for(const id of names){
+          const metadata=path.join(manual,id+'.json');
+          const screenshot=path.join(manual,id+'.png');
+          if(await fs.realpath(metadata)!==metadata||
+             await fs.realpath(screenshot)!==screenshot)
+            throw Error('collage.manual-frame-symlink-not-allowed');
+          const frame=JSON.parse(await fs.readFile(metadata,'utf8'));
+          if(frame.id!==id)throw Error('collage.manual-frame-id-mismatch');
+          frames.push(frame);
+        }
+        let report=null;
+        try{
+          const reportFile=path.join(dir,'report.json');
+          if(await fs.realpath(reportFile)!==reportFile)
+            throw Error('collage.report-symlink-not-allowed');
+          report=JSON.parse(await fs.readFile(reportFile,'utf8'));
+        }catch(e){if(e.code!=='ENOENT')throw e;}
+        const destinationManual=path.join(manual,'source-review.html');
+        try{
+          const prior=await fs.lstat(destinationManual);
+          if(!prior.isFile()||prior.isSymbolicLink())
+            throw Error('collage.manual-destination-not-regular-file');
+        }catch(e){if(e.code!=='ENOENT')throw e;}
+        await fs.writeFile(destinationManual,
+          manualSourceReviewHtml(manifest,frames,report),
+          {flag:'w',mode:0o600});
+        manualReview=destinationManual;
+      }catch(e){
+        if(e.code!=='ENOENT')throw e;
+      }
+    }
     results.push({site,states:captures.length,
-      collage:destination});
+      collage:destination,manualReview});
   }
   return results;
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))
   generate(process.argv[2]).then(items=>{
-    for(const item of items)console.log('[COLLAGE] '+item.site+
-      ' '+item.states+' stati: '+item.collage);
+    for(const item of items){
+      console.log('[COLLAGE] '+item.site+
+        ' '+item.states+' stati: '+item.collage);
+      if(item.manualReview)
+        console.log('[SORGENTE MANUALE] '+item.manualReview);
+    }
   }).catch(e=>{console.error('[ERRORE] '+e.message);process.exitCode=1;});
