@@ -44,7 +44,7 @@ fi
 if [ ! -f "$provider/node_modules/playwright/package.json" ]; then
   (
     cd "$provider"
-    NODE_USE_SYSTEM_CA="\${NODE_USE_SYSTEM_CA-1}" \
+    NODE_USE_SYSTEM_CA="${NODE_USE_SYSTEM_CA-1}" \
       npm_config_cache="$self/.runtime/npm-cache" \
       npm install --ignore-scripts --no-audit --no-fund --no-package-lock
   ) || { printf '%s\n' 'investigation.playwright-install-failed' >&2; exit 4; }
