@@ -1,0 +1,20 @@
+name: Olla GIS canary PoC
+
+on:
+  push:
+    paths:
+      - "pocs/070-olla-gis/**"
+      - ".github/workflows/olla-gis-poc.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  upstream-release-and-routing:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify POSIX source and pinned actual Olla proxy routing
+        run: sh pocs/070-olla-gis/test-local.sh
