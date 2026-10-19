@@ -32,7 +32,7 @@ test('source observer starts before navigation; initial turns are saved before a
   assert.ok(firstDrain<automatic);
   assert.ok(firstDrain<manualMode);
   // Automatic navigation is the normal path. The manual path is opt-in.
-  assert.match(code,/else\\s*\\{\\s*const run=await traverseAutomatically/);
+  assert.match(code,/else\s*\{\s*const run=await traverseAutomatically/);
 });
 
 test('capture retains all detected message turns, not a manually chosen message',async()=>{
