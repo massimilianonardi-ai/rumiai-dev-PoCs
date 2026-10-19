@@ -78,7 +78,13 @@ The code and runtime evidence stored locally under ignored
   POST bodies) and first-party JSON responses in **private local files**.
   The JSON responses can contain the actual shared chat; they are never
   automatically committed or included in the AI sharing bundle.
-  Live sites are not patched and all navigation remains human-controlled.
+  The collector also produces `response-schema.jsonl`: JSON property
+  names, nesting, types and array lengths without literal user text. This
+  redacted schema **is** included in the private AI analysis bundle.
+  The main site scripts are not rewritten and all navigation remains
+  human-controlled, but debugger attachment and precise V8 coverage can
+  **perturb runtime performance and timing**; they are research measurements
+  rather than a production passive exporter.
 - **Resource budgets**: bounded number/size of scripts, response
   payloads, samples and mutations. Failed collections, browser workers,
   limits and coverage uncertainties are surfaced explicitly. These are
