@@ -43,13 +43,7 @@ function _markdown(node, context)
   if (node.nodeType !== 1) return "";
 
   const tag = node.localName.toLowerCase();
-  if (tag === "svg")
-  {
-    return node.querySelector("path,rect,circle,ellipse,line,polygon,polyline")
-      ? "\n\n[SVG graphic — see conversation.html]\n\n" : "";
-  }
-  if (tag === "canvas") return "\n\n[Canvas graphic — unavailable in DOM export]\n\n";
-  if (["button", "script", "style", "noscript", "template"].includes(tag)) return "";
+  if (["button", "svg", "script", "style", "noscript", "template"].includes(tag)) return "";
   if (node.getAttribute("aria-hidden") === "true") return "";
 
   if (tag === "br") return "\n";
@@ -57,9 +51,7 @@ function _markdown(node, context)
   {
     const raw = node.getAttribute("src") || node.getAttribute("data-src")
       || node.getAttribute("srcset")?.split(",")[0]?.trim().split(/\s+/)[0];
-    const inline = /^data:image\/(?:png|jpeg|gif|webp|avif);base64,[A-Za-z0-9+/=]+$/i.test(raw || "")
-      && raw.length <= 28 * 1024 * 1024;
-    const src = inline ? raw : _absoluteUrl(raw, context.baseUrl);
+    const src = _absoluteUrl(raw, context.baseUrl);
     const alt = (node.getAttribute("alt") || "image").replace(/[\[\]]/g, "");
     if (!src)
     {
@@ -126,12 +118,7 @@ function _messageContent(turn)
   const explicit = turn.querySelectorAll("[data-testid='message-content']");
   if (explicit.length === 1) return explicit[0];
   const markdown = turn.querySelectorAll(".markdown");
-  if (markdown.length === 1)
-  {
-    const separateGraphic = [...turn.querySelectorAll("svg,canvas")].some((graphic) =>
-      !markdown[0].contains(graphic) && !graphic.closest("button,[aria-hidden='true']"));
-    if (!separateGraphic) return markdown[0];
-  }
+  if (markdown.length === 1) return markdown[0];
   if (markdown.length > 1 || explicit.length > 1) return turn;
   return turn.querySelector(".whitespace-pre-wrap") || turn;
 }
@@ -166,15 +153,10 @@ export function extractConversation(html, baseUrl)
   const messages = messageNodes.map((node, index) =>
   {
     const role = node.getAttribute("data-message-author-role");
-    const container = node.closest("[data-testid^='conversation-turn-']");
-    const match = container?.getAttribute("data-testid")?.match(/^conversation-turn-(\d+)$/);
-    const turnIndex = match ? Number(match[1]) : null;
-    const messageId = node.getAttribute("data-message-id")
-      || node.closest("[data-message-id]")?.getAttribute("data-message-id") || null;
     const content = _messageContent(node);
     const visible = content.cloneNode(true);
     for (const control of visible.querySelectorAll(
-      "button,script,style,noscript,template,[aria-hidden='true']"))
+      "button,svg,script,style,noscript,template,[aria-hidden='true']"))
     {
       control.remove();
     }
@@ -183,8 +165,6 @@ export function extractConversation(html, baseUrl)
     const text = _plain(visible);
     return {
       index: index + 1,
-      turnIndex,
-      messageId,
       role,
       text,
       markdown: markdown || text,
@@ -239,68 +219,4 @@ export function relinkImages(conversation, downloaded)
       message.markdown = message.markdown.split("(<" + url + ">)").join("(<" + local + ">)");
     }
   }
-}
-
-/**
- * Prepend only demonstrably older turns from a newly rendered DOM window.
- * A matching text body is not a stable identity: messages can be identical.
- * With no IDs/indices, require an actual overlapping suffix/prefix.
- */
-export function prependOlderMessages(existing, incoming)
-{
-  if (!existing.length) return { messages: [...incoming], added: incoming.length, uncertain: false };
-  if (!incoming.length) return { messages: existing, added: 0, uncertain: false };
-
-  const key = (m) => m.messageId
-    ? "id:" + m.messageId
-    : Number.isSafeInteger(m.turnIndex) ? "turn:" + m.turnIndex : null;
-  const seen = new Set(existing.map(key).filter(Boolean));
-  const knownMin = Math.min(...existing.map((m) =>
-    Number.isSafeInteger(m.turnIndex) ? m.turnIndex : Infinity));
-  const indexed = incoming.filter((m) => Number.isSafeInteger(m.turnIndex));
-  const hasIndices = Number.isFinite(knownMin) && indexed.length === incoming.length;
-
-  if (hasIndices)
-  {
-    const older = incoming.filter((m) => m.turnIndex < knownMin && !seen.has(key(m)));
-    const unique = [...new Map(older.map((m) => [m.turnIndex, m])).values()];
-    unique.sort((a, b) => a.turnIndex - b.turnIndex);
-    return { messages: [...unique, ...existing], added: unique.length, uncertain: false };
-  }
-
-  const existingFirst = key(existing[0]);
-  const anchor = existingFirst ? incoming.findIndex((m) => key(m) === existingFirst) : -1;
-  if (anchor >= 0)
-  {
-    const prefix = incoming.slice(0, anchor).filter((m) => key(m) && !seen.has(key(m)));
-    return { messages: [...prefix, ...existing], added: prefix.length, uncertain: false };
-  }
-
-  // Without observed identity, accept only a contiguous overlap. Never
-  // silently append an apparently different whole viewport as a new segment.
-  for (let count = Math.min(existing.length, incoming.length); count > 0; count -= 1)
-  {
-    const matches = incoming.slice(-count).every((m, i) =>
-    {
-      const prior = existing[i];
-      const leftKey = key(m);
-      const rightKey = key(prior);
-      return leftKey && rightKey ? leftKey === rightKey
-        : m.role === prior.role && m.markdown === prior.markdown;
-    });
-    if (matches)
-    {
-      const prefix = incoming.slice(0, incoming.length - count);
-      return { messages: [...prefix, ...existing], added: prefix.length, uncertain: false };
-    }
-  }
-
-  // A completely disjoint window may represent a real skipped segment,
-  // but cannot be ordered/deduplicated conclusively without stronger IDs.
-  if (incoming.every((m) => key(m)) && existing.every((m) => key(m)))
-  {
-    const prefix = incoming.filter((m) => !seen.has(key(m)));
-    return { messages: [...prefix, ...existing], added: prefix.length, uncertain: true };
-  }
-  return { messages: existing, added: 0, uncertain: true };
 }

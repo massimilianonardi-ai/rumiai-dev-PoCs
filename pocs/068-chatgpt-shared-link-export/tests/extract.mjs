@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { extractConversation, markdownDocument, relinkImages, prependOlderMessages } from "../extract.mjs";
+import { extractConversation, markdownDocument, relinkImages } from "../extract.mjs";
 
 const sharedUrl = "https://chatgpt.com/share/12345678-1234-1234-1234-123456789012";
 
@@ -100,71 +100,4 @@ test("retain user line breaks from whitespace-pre-wrap source", () =>
     + '<div class="whitespace-pre-wrap">first\nsecond</div></div>';
   const result = extractConversation(html, sharedUrl);
   assert.match(result.messages[0].markdown, /first\nsecond/);
-});
-
-
-test("prepend only new numbered DOM turns and never duplicate complete windows", () =>
-{
-  const window = (from, to) =>
-  {
-    const nodes = [];
-    for (let i = from; i <= to; i += 1)
-    {
-      nodes.push('<div data-testid="conversation-turn-' + i + '">'
-        + '<article data-message-id="msg-' + i + '" data-message-author-role="'
-        + (i % 2 ? "assistant" : "user") + '"><div class="markdown">'
-        + '<p>Message ' + i + '</p></div></article></div>');
-    }
-    return extractConversation('<html><title>Dynamic share</title><body>'
-      + nodes.join("") + "</body></html>", sharedUrl).messages;
-  };
-
-  let assembled = window(6, 9);
-  for (const current of [window(4, 7), window(2, 5), window(0, 3)])
-  {
-    const joined = prependOlderMessages(assembled, current);
-    assert.equal(joined.added, 2);
-    assembled = joined.messages;
-  }
-  for (let attempt = 0; attempt < 6; attempt += 1)
-  {
-    const same = prependOlderMessages(assembled, window(0, 9));
-    assert.equal(same.added, 0);
-    assembled = same.messages;
-  }
-  assert.deepEqual(assembled.map((m) => m.turnIndex),
-    Array.from({ length: 10 }, (_, i) => i));
-});
-
-test("duplicate text with different numbered turns remains distinct", () =>
-{
-  const first = extractConversation(
-    '<div data-testid="conversation-turn-2"><div data-message-author-role="user">OK</div></div>',
-    sharedUrl).messages;
-  const previous = extractConversation(
-    '<div data-testid="conversation-turn-1"><div data-message-author-role="user">OK</div></div>',
-    sharedUrl).messages;
-  const joined = prependOlderMessages(first, previous);
-  assert.deepEqual(joined.messages.map((m) => m.turnIndex), [1, 2]);
-});
-
-test("unidentified disjoint DOM chunks are not silently prepended", () =>
-{
-  const first = extractConversation(
-    '<div data-message-author-role="assistant">B</div>', sharedUrl).messages;
-  const previous = extractConversation(
-    '<div data-message-author-role="user">A</div>', sharedUrl).messages;
-  const joined = prependOlderMessages(first, previous);
-  assert.equal(joined.uncertain, true);
-  assert.equal(joined.added, 0);
-});
-
-test("SVG chart is retained as an HTML graphic reference", () =>
-{
-  const html = '<div data-message-author-role="assistant"><div class="markdown">'
-    + '<p>Distribution</p><svg width="400" height="200"><rect width="20" height="50"/></svg>'
-    + '</div></div>';
-  const chat = extractConversation(html, sharedUrl);
-  assert.match(chat.messages[0].markdown, /SVG graphic/);
-  assert.match(chat.messages[0].html, /<svg/);
 });
