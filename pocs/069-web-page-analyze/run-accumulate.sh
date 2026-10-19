@@ -61,6 +61,7 @@ if [ ! -f "$provider/node_modules/playwright/package.json" ]; then
 fi
 node --check "$self/accumulate.mjs"
 node --check "$self/accumulate-core.mjs"
+node --check "$self/python-export.mjs"
 node --check "$self/accumulate-observer.js"
 node --test "$self/tests/accumulate-"*.test.mjs
 export PWC069_BROWSER_EXECUTABLE="$chromium"
