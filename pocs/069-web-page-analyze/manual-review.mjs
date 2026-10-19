@@ -7,13 +7,23 @@ const finite=n=>typeof n==='number'&&Number.isFinite(n);
 
 export function manualSourceSummary(manifest,frames,report) {
   const observed=manifest?.messageSignatures||{};
-  const screens=manifest?.screenshotSignatures||{};
+  // The historical manifest's screenshotSignatures include ALL mounted
+  // messages, including nodes outside the viewport. Do NOT count them as
+  // photographed text. Only a stable frame's intersecting DOM nodes provide
+  // limited visibility evidence; overlays may still obstruct text.
   const messages={};
   for(const role of ['user','assistant']){
     const ever=new Set(observed[role]||[]);
-    const saved=new Set(screens[role]||[]);
-    messages[role]={observed:ever.size,withScreenshot:saved.size,
-      observedWithoutScreenshot:[...ever].filter(v=>!saved.has(v)).length};
+    const seen=new Set();
+    for(const frame of frames){
+      if(frame.screenshotStable!==true)continue;
+      for(const entry of frame.messages||[]){
+        if(entry.role===role&&entry.visible===true&&
+           typeof entry.signature==='string')seen.add(entry.signature);
+      }
+    }
+    messages[role]={observed:ever.size,inStableViewport:seen.size,
+      unverifiedInScreenshot:[...ever].filter(v=>!seen.has(v)).length};
   }
   const savedTops=frames.filter(f=>finite(f.scrollBefore?.top))
     .map(f=>f.scrollBefore.top);
@@ -64,10 +74,11 @@ export function manualSourceReviewHtml(manifest,frames,report){
   for(const r of ['user','assistant']){
     const x=summary.messages[r];
     html+='<p>'+role(r)+': '+x.observed+
-      ' identità osservate nel DOM manuale, '+x.withScreenshot+
-      ' identità presenti nei checkpoint fotografati, '+
-      x.observedWithoutScreenshot+
-      ' identità osservate senza screenshot associato.</p>';
+      ' identità osservate nel DOM manuale, '+x.inStableViewport+
+      ' identità intercettate nel viewport durante screenshot stabili, '+
+      x.unverifiedInScreenshot+
+      ' identità non verificate nei viewport fotografati.'+
+      ' La presenza nel DOM visibile non esclude coperture da overlay.</p>';
   }
   if(summary.replayMissing){
     html+='<p class="warning">Messaggi manuali non ritrovati nei checkpoint del replay:'+
