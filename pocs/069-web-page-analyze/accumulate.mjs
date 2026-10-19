@@ -187,28 +187,44 @@ async function main(name,url=DEFAULT_URL){
   }
   async function captureStyles(){
     return source.evaluate(()=>{
-      const links=[...document.querySelectorAll('link[rel~="stylesheet"]')]
-        .map(x=>x.href).filter(Boolean);
-      const inline=[...document.querySelectorAll('style')].slice(0,180)
-        .map(x=>x.textContent||'').filter(Boolean);
+      const entries=[...document.querySelectorAll('style,link[rel~="stylesheet"]')]
+        .slice(0,240).map(x=>x.localName==='style'?
+          {kind:'inline',text:(x.textContent||'').slice(0,1500000)}:
+          {kind:'link',href:x.href}).filter(x=>
+            x.kind==='inline'?Boolean(x.text):Boolean(x.href));
       let inaccessible=0;
       for(const sheet of document.styleSheets){
         try{void sheet.cssRules.length;}catch{inaccessible++;}
       }
-      return {links,inline,stylesheets:document.styleSheets.length,inaccessible};
+      return {entries,stylesheets:document.styleSheets.length,inaccessible};
     });
   }
   async function finishHTML(styleData){
     await Promise.allSettled(assetJobs);
     const cssFiles=assetRecords.filter(x=>x.isCSS);
     const rules=[];
+    // Maintain browser stylesheet precedence: original link/style order.
+    // Dynamic CSS imported or loaded late is additionally included.
+    const used=new Set();
+    for(const entry of styleData.entries||[]){
+      if(entry.kind==='inline'){
+        rules.push(rewriteCssAssets(entry.text,url,assetMap,unresolved));
+      }else if(entry.kind==='link'){
+        const file=assetMap.get(entry.href);
+        if(!file){unresolved.add(entry.href.replace(/[?#].*$/,'')+
+          ' (stylesheet-not-captured)');continue;}
+        used.add(file);
+        const raw=await fs.readFile(path.join(exportsDir,file),'utf8');
+        rules.push(rewriteCssAssets(raw,entry.href,assetMap,unresolved));
+      }
+    }
     for(const file of cssFiles){
+      if(used.has(file.relative))continue;
       const raw=await fs.readFile(path.join(exportsDir,file.relative),'utf8');
-      const original=assetMap.keys().find(u=>assetMap.get(u)===file.relative);
+      const original=[...assetMap].find(([,relative])=>
+        relative===file.relative)?.[0];
       rules.push(rewriteCssAssets(raw,original||url,assetMap,unresolved));
     }
-    for(const inline of styleData.inline||[])
-      rules.push(rewriteCssAssets(inline,url,assetMap,unresolved));
     const snapshot=collector.report();
     const html=await replica.evaluate(({styles,assets})=>{
       const resources=new Map(assets);
@@ -276,7 +292,7 @@ async function main(name,url=DEFAULT_URL){
     await drain();
     console.log('[ACCUMULA] Inizio osservato: '+collector.nodes.size+
       ' identità. Procedo con wheel, non con scrollTop.');
-    const styles=await captureStyles();
+    let styles=await captureStyles();
     await source.mouse.move(900,520);
     let stagnant=0,lastVisual=null,reason='step-budget-exhausted';
     for(let step=0;step<MAX_STEPS;step++){
@@ -308,6 +324,9 @@ async function main(name,url=DEFAULT_URL){
     if(status?.overflow||status?.dropped)manifest.notes.push(
       'Observer packets dropped: '+(status?.dropped||0));
     manifest.stopReason=reason;
+    const finalStyles=await captureStyles();
+    // Final list includes late-loaded styles that were not present at start.
+    styles=finalStyles.entries?.length>=styles.entries.length?finalStyles:styles;
     const report=await finishHTML(styles);
     manifest.continuity=report;
     manifest.complete=false;
