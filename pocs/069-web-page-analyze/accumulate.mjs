@@ -267,7 +267,9 @@ async function main(name,url=DEFAULT_URL){
       manifest.notes.push('Manual scroll unavailable: no interactive terminal');
       return {used:false,status:'no-interactive-terminal'};
     }
-    console.log('[MANUALE] Lo scroll automatico non ha raggiunto nuovi segmenti.');
+    console.log('[MANUALE] Acquisizione manuale attiva: scroll automatico'+
+      (process.env.PWC069_SCROLL_MODE==='manual'?' disattivato.':
+        ' terminato senza prova di completezza.'));
     console.log('[MANUALE] Scorri TU nella finestra ChatGPT originale, fino agli ultimi messaggi.');
     console.log('[MANUALE] Continuo a copiare ogni nodo creato/rimosso nella replica.');
     console.log('[MANUALE] Premi INVIO nel terminale SOLO quando hai raggiunto la fine.');
@@ -464,8 +466,9 @@ async function main(name,url=DEFAULT_URL){
       initialTurns:collector.nodes.size,manual:null,
       attempts:0,newIdentitySteps:0,domChangeSteps:0};
     let stagnant=0,lastVisual=null,lastIdentityAt=Date.now();
-    let reason='step-budget-exhausted';
-    for(let step=0;step<MAX_STEPS;step++){
+    const manualOnly=process.env.PWC069_SCROLL_MODE==='manual';
+    let reason=manualOnly?'manual-requested':'step-budget-exhausted';
+    for(let step=0;!manualOnly&&step<MAX_STEPS;step++){
       const before=await sourceProbe();
       await source.mouse.wheel(0,580);
       await wait(180);
