@@ -71,11 +71,24 @@ real pinned release**, verified its SHA-256, validated the exact YAML
 embedded in the operator library, launched Olla and sent an actual chat
 through Olla to a **simulated** Ollama backend.
 
-GitHub Actions run [39207369169](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/39207369169)
-passed at exact PoC revision `6f1382612bbb15e40ba13f972ad7c35adfd25245`.
-This test does not execute `rsudo-admin`, `systemd`, the real GIS host,
-real model inference, or network calls to any of the other seven servers.
-**Physical install and real eight-host routing remain unvalidated.**
+GitHub Actions [run 39208513826](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/39208513826)
+passed at exact PoC revision `2781b640e5fcc25f9cf70144c388e56d0de3a4d1`.
+Its first job step validates the real pinned Olla executable, configuration
+and proxied HTTP chat with the simulated Ollama backend. The second step
+extracts the **same remote POSIX program** embedded in `controller.lib.sh`,
+runs its read-only `check`, performs the `install` path on a disposable
+GitHub Ubuntu machine, verifies systemd service active/enabled, checks its
+health and proxied chat via that installer, and repeats the installation
+to test same-source behavior. Both steps succeeded.
+
+These are genuine upstream Olla and systemd executions, but the *backend*
+is simulated. The `rsudo-admin` UI, encrypted enterprise credentials, real
+SSH/rsudo transport, actual `gis` host, real model computation, corporate
+network policies and the other seven workers **were not exercised**.
+**Physical GIS install, real inference and eight-host routing remain
+unvalidated.** A fresh attempt from the assistant's environment on
+2026-10-19 got TCP `ConnectionRefusedError` connecting to
+`10.200.0.19:22`; no loaded `rsudo` operator session was available.
 
 The GIS operator job's install mode enables a new `olla-gis-poc.service`
 only after checking the pre-existing local Ollama endpoint, validating
