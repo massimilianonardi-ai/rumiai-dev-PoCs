@@ -533,29 +533,37 @@ async function main(name,url){
     const finalStyles=await captureStyles();
     // Final list includes late-loaded styles that were not present at start.
     styles=finalStyles.entries?.length>=styles.entries.length?finalStyles:styles;
-    const report=await finishHTML(styles);
-    // Export the same retained turns in the original Python archive layout.
-    // Browser DOM observations must not masquerade as mapping/current_node.
+    // Read source text from the finalized replica *before* installing its
+    // offline script-blocking CSP. The original source page is not changed.
     const visibleText=await replica.evaluate(()=>[...document.querySelectorAll(
       '.rumiai-accumulated-turn[data-rumiai-key]')].map(element=>({
       key:element.dataset.rumiaiKey,
       text:element.innerText||element.textContent||''
     })));
-    const textByKey=new Map(visibleText.map(item=>[item.key,item.text]));
-    const ordered=collector.order().keys.map(key=>{
-      const entry=collector.nodes.get(key);
-      return {key,role:entry.role,html:entry.html,text:textByKey.get(key)||''};
-    });
-    const port=await exportDomObservation
-    (
-      {url,ordered,continuity:report},
-      path.join(output,'python-export')
-    );
-    manifest.pythonFormatArchive={folder:'python-export',zip:'python-export.zip',
-      visibleMessages:port.visible_messages,
-      source:'shared-page-dom-observations-not-original-renderer-snapshot'};
+    const report=await finishHTML(styles);
     manifest.continuity=report;
-    console.log('[PYTHON-FORMAT] '+port.zip);
+    // The new sidecar never prevents the existing HTML/accumulated JSON
+    // exporter from completing if archive generation itself fails.
+    try{
+      const textByKey=new Map(visibleText.map(item=>[item.key,item.text]));
+      const ordered=collector.order().keys.map(key=>{
+        const entry=collector.nodes.get(key);
+        return {key,role:entry.role,html:entry.html,text:textByKey.get(key)||''};
+      });
+      const port=await exportDomObservation
+      (
+        {url,ordered,continuity:report},
+        path.join(output,'python-export')
+      );
+      manifest.pythonFormatArchive={folder:'python-export',zip:'python-export.zip',
+        visibleMessages:port.visible_messages,
+        source:'shared-page-dom-observations-not-original-renderer-snapshot'};
+      console.log('[PYTHON-FORMAT] '+port.zip);
+    }catch(e){
+      manifest.pythonFormatArchive={status:'failed',error:fail(e)};
+      manifest.notes.push('Python-format sidecar failed: '+fail(e));
+      console.error('[PYTHON-FORMAT-ERROR] '+fail(e));
+    }
     manifest.complete=false;
     if(report.distinct<=manifest.navigation.initialTurns)
       manifest.notes.push('No new identities beyond the original mounted window');
