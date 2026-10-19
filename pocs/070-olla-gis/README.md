@@ -1,6 +1,6 @@
 # Olla on GIS: pinned first inference gateway
 
-Status: **real GIS read-only check passed; installation pending** (2026-10-19). This PoC is a
+Status: **GIS-local installation and first real proxied inference PASS** (2026-10-19). This PoC is a
 GIS-local canary, not a validated eight-worker cluster or a new m product API.
 
 ## Fixed operator choices
@@ -40,13 +40,15 @@ These are two rsudo-admin operator-selected sources:
 
 From a credential-loaded RumiAI operator environment, run
 `rsudo-admin`, select **rsudo jobs**, then select those two files.
-The previous read-only check has already passed. Running the selected
-`install.job` now stages the pinned Olla binary on `gis` and starts the
-GIS-local Olla service; it does not mutate
-any of the eight Ollama services, network ACLs or firewalls.
+The user has executed both the earlier read-only check and the install job
+successfully on `gis`. The install job staged the pinned Olla binary and
+started the GIS-local Olla service. Its source makes no changes to any of
+the eight Ollama services, network ACLs or firewalls. Re-execution is not
+required to record the already-completed installation.
 
-If no rsudo-enabled operator connection is available, do **not** interpret
-a green repository check as a physical installation. Keep the step pending.
+Physical installation is evidenced by the user's actual GIS operator log,
+not by an isolated CI success. Further physical checks require the same
+credential-loaded operator environment.
 
 ## Acceptance boundaries
 
@@ -66,7 +68,9 @@ a green repository check as a physical installation. Keep the step pending.
 
 ## Evidence
 
-**2026-10-19 08:57 Europe/Rome — physical read-only preflight PASS.** The user-supplied `rsudo-jobs(20261019-065800).log` records `rsudo.start` to `10.200.0.19` with `sh -s -- check`, then `OLLA GIS CHECK: local Ollama healthy`, `OLLA GIS CHECK: Olla not staged`, `OLLA GIS CHECK OK`, and `rsudo.end status=0`. The nonfatal `rsudo.env-file-fallback reason=not-provided` warning did not stop the operation. This proves the enterprise operator's actual GIS connection and readiness check, not Olla installation or model inference. **Next run:** update the operator checkout to the current PoC commit, then in `rsudo-admin jobs` select the same `controller.lib.sh` and `install.job`. The committed job now **already ends in `olla_gis_deploy install`**: review this edit in the menu and run it. Inspect the newly generated `/m/src/git/rsudo-jobs.log` afterward. No extra privilege or network configuration is implied by the passing check.
+**2026-10-19 10:45:24–10:45:33 Europe/Rome — physical GIS installation and real inference PASS.** The user-supplied `rsudo-jobs(20261019-084549).log` (file name is not a log clock source; embedded timestamps are) records `rsudo.start user=mnardi host=10.200.0.19 command="sh -s -- install"`, successful SHA-256 verification (`olla_v0.0.29_linux_amd64.tar.gz: OK`), Olla v0.0.29 Linux amd64 binary revision `421fd808e59a2879059062728d2dcec06d2b23ae`, native config validation (`Result: PASS`), systemd enabling symlink for `olla-gis-poc.service`, and `OLLA GIS INSTALL OK: real qwen3:4b proxied inference; remote workers NOT configured`. `rsudo.end status=0` establishes a successful overall job. The earlier `rsudo.env-file-fallback reason=not-provided` is a nonfatal warning. The exact PoC controller requires successful local Olla health, model discovery and a completed real proxied `/api/chat` response before printing `INSTALL OK`; the log does not reproduce the response contents or test persistence after a reboot. No remote workers are included in this canary. The configured Olla listener is `127.0.0.1:40114`, routing to GIS Ollama at `127.0.0.1:11435`; this path is intentionally inaccessible to off-host application callers. The seven-worker networking, authorized client access, streaming/concurrency/failover and reboot persistence are not yet physically validated.
+
+**2026-10-19 08:57 Europe/Rome — physical read-only preflight PASS.** The user-supplied `rsudo-jobs(20261019-065800).log` records `rsudo.start` to `10.200.0.19` with `sh -s -- check`, then `OLLA GIS CHECK: local Ollama healthy`, `OLLA GIS CHECK: Olla not staged`, `OLLA GIS CHECK OK`, and `rsudo.end status=0`. The nonfatal `rsudo.env-file-fallback reason=not-provided` warning did not stop the operation. This proves the enterprise operator's actual GIS connection and readiness check, not Olla installation or model inference. The subsequently committed `install.job` ends in `olla_gis_deploy install`; it was executed successfully at 10:45. No new job run is needed for the completed GIS-local installation. Network access or worker connectivity is a separate authorized work unit.
 
 2026-10-19: the assistant's execution environment could not connect to
 `gis:22` and could not retrieve the GitHub binary due to missing
@@ -89,15 +93,13 @@ These are genuine upstream Olla and systemd executions, but the *backend*
 is simulated. The `rsudo-admin` UI, encrypted enterprise credentials, real
 SSH/rsudo transport, actual `gis` host, real model computation, corporate
 network policies and the other seven workers **were not exercised**.
-**Physical GIS install, real inference and eight-host routing remain
-unvalidated.** A fresh attempt from the assistant's environment on
-2026-10-19 got TCP `ConnectionRefusedError` connecting to
-`10.200.0.19:22`; no loaded `rsudo` operator session was available.
+**Those GitHub CI runs did not validate physical GIS inference or eight-host routing.** The later user-provided 10:45 operator log now independently proves the GIS-local physical install and a real proxied inference; eight-host routing remains unvalidated. The assistant's environment still lacks the corporate `rsudo` credential session, which does not invalidate the user's successful physical run.
 
 The GIS operator job's install mode enables a new `olla-gis-poc.service`
 only after checking the pre-existing local Ollama endpoint, validating
 the downloaded archive and passing Olla's own config validation.
 It fails closed rather than overwriting a different binary, YAML or unit
-already present. When running against GIS, the final gate is model discovery
-plus one real bounded proxied `qwen3:4b` inference, not health-only success.
-The remote job is *not* automatically executed when GitHub CI passes.
+already present. The GIS install job's final gate is model discovery plus one real bounded
+proxied `qwen3:4b` inference, not health-only success. The user executed
+that job separately from GitHub CI and it passed. Later reboot and
+seven-worker validations remain distinct.
