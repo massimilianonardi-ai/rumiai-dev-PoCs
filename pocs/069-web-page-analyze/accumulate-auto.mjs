@@ -10,13 +10,15 @@ export function observableAdvance(before,after)
   const prior=a.pointer?.chain||[],current=b.pointer?.chain||[];
   const scrollMovement=prior.some((item,index)=>
     current[index]&&item.tag===current[index].tag&&item.top!==current[index].top);
-  return {
+  const observation=
+  {
     newIdentities:Number(b.distinct||0)>Number(a.distinct||0),
     viewportMoved:before?.visual!==after?.visual||
       before?.geometry!==after?.geometry||
       changed('windowY')||changed('rootY')||scrollMovement,
     endVerified:false
   };
+  return observation;
 }
 
 async function advance(source,mode,probe)
@@ -71,12 +73,13 @@ export async function traverseAutomatically
     if(movement.viewportMoved)moveSteps++;
     idle=movement.newIdentities||movement.viewportMoved?0:idle+1;
     steps=step+1;
-    await onStep
-    ({
+    const evidence=
+    {
       step:steps,mode,progress:movement,
       retained:current.probe.distinct,
       idle,probe:current.probe
-    });
+    };
+    await onStep(evidence);
     previous=current;
     if(idle>=idleLimit)
     {
@@ -85,11 +88,13 @@ export async function traverseAutomatically
       if(modeIndex===modes.length)break;
     }
   }
-  return {
+  const report=
+  {
     steps,newIdentitySteps,moveSteps,
     stopReason:modeIndex===modes.length?
       'automatic-navigation-stalled':'automatic-step-budget',
     endVerified:false,
     finalProbe:previous.probe
   };
+  return report;
 }
