@@ -1,0 +1,317 @@
+#!/usr/bin/env node
+// Interactive, research-only ChatGPT shared-page probe. This is NOT an exporter.
+// Direct Playwright/CDP access is intentionally confined to this throwaway PoC
+// because the released web-control event buffer cannot retain large script bursts.
+// No browser extension, site bundle, network request or page DOM is rewritten.
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import process from 'node:process';
+import {fileURLToPath} from 'node:url';
+import {createRequire} from 'node:module';
+import {createHash} from 'node:crypto';
+import {createInterface} from 'node:readline/promises';
+
+const root=path.dirname(fileURLToPath(import.meta.url));
+const pageUrl='https://chatgpt.com/share/6ad1c0d5-49ec-83eb-a79b-85b04b938835';
+const maxScripts=1000,maxSourceBytes=200*1024*1024,maxSingleSource=12*1024*1024;
+const maxResponses=120,maxResponseBytes=40*1024*1024;
+const maxSamples=12000,maxChanges=100000;
+const sha=value=>createHash('sha256').update(value).digest('hex');
+const errorText=e=>String(e?.message||e).slice(0,250);
+export function safeResourceUrl(value){
+  try{
+    const u=new URL(value);
+    if(!/^https?:$/.test(u.protocol))return u.protocol;
+    return u.origin+u.pathname; // no queries, fragments, tokens or cookies
+  }catch{return '[non-url-script]';}
+}
+export function investigationPaths(run){
+  if(!/^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(run))
+    throw Error('investigation.invalid-name');
+  return path.join(root,'evidence','investigations',run);
+}
+async function run(name){
+  const directory=investigationPaths(name);
+  if(await fs.lstat(directory).then(()=>true,e=>e.code==='ENOENT'?false:Promise.reject(e)))
+    throw Error('investigation.evidence-already-exists');
+  const evidence=path.join(root,'evidence');
+  if(await fs.realpath(evidence)!==evidence)throw Error('investigation.evidence-root-symlink');
+  const investigations=path.join(evidence,'investigations');
+  await fs.mkdir(investigations,{recursive:true,mode:0o700});
+  if(await fs.realpath(investigations)!==investigations)
+    throw Error('investigation.output-root-symlink');
+  await fs.mkdir(directory,{mode:0o700});
+  for(const sub of ['scripts','responses','screenshots'])
+    await fs.mkdir(path.join(directory,sub),{mode:0o700});
+  const provider=path.join(root,'.runtime','pwc');
+  const require=createRequire(path.join(provider,'package.json'));
+  const {chromium}=require('playwright');
+  const executable=process.env.WEB_CONTROL_BROWSER_EXECUTABLE||
+    process.env.PWC069_BROWSER_EXECUTABLE;
+  if(!executable||!path.isAbsolute(executable))
+    throw Error('investigation.browser-executable-required');
+  const jsObserver=await fs.readFile(path.join(root,'investigate-observer.js'),'utf8');
+  const stdin=createInterface({input:process.stdin,output:process.stdout});
+  const runState={status:'started',pageUrl:pageUrl,
+    startedAt:new Date().toISOString(),endedAt:null,checkpoints:[],
+    scripts:{parsed:0,saved:0,totalBytes:0,skipped:0,failures:0},
+    responses:{seen:0,saved:0,totalBytes:0,skipped:0,failures:0},
+    samples:0,mutationEvents:0,mutationDropped:0,workerUrls:[],
+    warnings:[],incomplete:false};
+  async function persistManifest(){
+    const temporary=path.join(directory,'manifest.json.tmp');
+    await fs.writeFile(temporary,JSON.stringify(runState,null,2)+'\n',
+      {mode:0o600});
+    await fs.rename(temporary,path.join(directory,'manifest.json'));
+  }
+  const output=(filename,obj)=>fs.appendFile(path.join(directory,filename),
+    JSON.stringify(obj)+'\n',{mode:0o600});
+  let browser=null,cdp=null,page=null;
+  let timer=null,readBusy=false,closed=false,sampleLast='',drainPromise=Promise.resolve();
+  let pendingScripts=[],sourceWorkers=0,sourceBusy=0,sourceSequence=0;
+  let scriptMetadata=[],scriptJobs=[],responseJobs=[],pendingResponses=0;
+  const seenScriptIds=new Set();
+  const asyncErrors=[];
+  let capturedSourceBytes=0,responseBytes=0,savedResponses=0;
+  function scheduleScript(){
+    while(sourceBusy<4&&pendingScripts.length){
+      const desc=pendingScripts.shift();
+      sourceBusy++;
+      const task=(async()=>{
+        try{
+          const data=await cdp.send('Debugger.getScriptSource',
+            {scriptId:desc.scriptId});
+          const source=typeof data.scriptSource==='string'?data.scriptSource:'';
+          const size=Buffer.byteLength(source);
+          if(!size||size>maxSingleSource||
+             capturedSourceBytes+size>maxSourceBytes){
+            runState.scripts.skipped++;
+            desc.status=size?'size-budget':'empty-or-unavailable';
+            desc.bytes=size;return;
+          }
+          capturedSourceBytes+=size;
+          const file='scripts/'+desc.file+'.js';
+          await fs.writeFile(path.join(directory,file),source,
+            {flag:'wx',mode:0o600});
+          runState.scripts.saved++;
+          runState.scripts.totalBytes+=size;
+          desc.status='saved';desc.bytes=size;desc.sha256=sha(source);
+          desc.sourceFile=file;
+        }catch(e){
+          desc.status='error';desc.reason=errorText(e);
+          runState.scripts.failures++;
+        }
+      })().finally(()=>{sourceBusy--;scheduleScript();});
+      scriptJobs.push(task);
+    }
+  }
+  function trackScript(event){
+    if(seenScriptIds.has(event.scriptId))return;
+    seenScriptIds.add(event.scriptId);
+    runState.scripts.parsed++;
+    const desc={scriptId:event.scriptId,
+      url:safeResourceUrl(event.url),
+      sourceMapUrl:safeResourceUrl(event.sourceMapURL||''),
+      startLine:event.startLine,scriptLanguage:event.scriptLanguage||'JavaScript',
+      file:String(++sourceSequence).padStart(5,'0'),status:'queued'};
+    scriptMetadata.push(desc);
+    if(sourceSequence>maxScripts){
+      desc.status='script-budget';runState.scripts.skipped++;return;
+    }
+    pendingScripts.push(desc);scheduleScript();
+  }
+  function captureResponse(response){
+    const req=response.request();
+    const mime=(response.headers()['content-type']||'').toLowerCase();
+    const url=response.url();
+    const allowed=(()=>{try{
+      const h=new URL(url).hostname;
+      return h==='chatgpt.com'||h.endsWith('.chatgpt.com')||
+        h==='openai.com'||h.endsWith('.openai.com');
+    }catch{return false}})();
+    runState.responses.seen++;
+    if(!allowed||!/(?:json|event-stream)/.test(mime)||
+       savedResponses>=maxResponses){return;}
+    pendingResponses++;
+    const n=savedResponses++;
+    const job=(async()=>{
+      try{
+        const body=await response.body();
+        if(body.length>6*1024*1024||
+           responseBytes+body.length>maxResponseBytes){
+          runState.responses.skipped++;return;
+        }
+        responseBytes+=body.length;
+        const filename='responses/'+String(n).padStart(5,'0')+'.body';
+        // These files CAN contain full conversation data and stay gitignored.
+        await fs.writeFile(path.join(directory,filename),body,
+          {flag:'wx',mode:0o600});
+        runState.responses.saved++;runState.responses.totalBytes+=body.length;
+        await output('network.jsonl',{kind:'response-body',
+          file:filename,bytes:body.length,sha256:sha(body),
+          url:safeResourceUrl(url),type:req.resourceType(),mime});
+      }catch(e){
+        runState.responses.failures++;
+        await output('network.jsonl',{kind:'body-unavailable',
+          url:safeResourceUrl(url),reason:errorText(e)});
+      }finally{pendingResponses--;}
+    })();
+    responseJobs.push(job);
+  }
+  async function takePhase(label){
+    const obs=await page.evaluate(()=>
+      window.__rumiaiInvestigate?.snapshot()||null).catch(()=>null);
+    const coverage=await cdp.send('Profiler.takePreciseCoverage')
+      .then(x=>x.result||[],e=>({error:errorText(e)}));
+    const shot=path.join(directory,'screenshots',label+'.png');
+    await page.screenshot({path:shot,fullPage:false}).catch(e=>
+      runState.warnings.push('screenshot-'+label+':'+errorText(e)));
+    await output('checkpoints.jsonl',{label,at:new Date().toISOString(),
+      snapshot:obs,coverageCount:Array.isArray(coverage)?coverage.length:null});
+    await fs.writeFile(path.join(directory,'coverage-'+label+'.json'),
+      JSON.stringify(coverage),{mode:0o600});
+    runState.checkpoints.push({label,
+      messages:obs?.messages?.length||0,
+      windowY:obs?.scroll?.windowY??null,
+      rootY:obs?.scroll?.rootY??null,
+      actualScrollers:obs?.boxes?.filter(x=>x.actualScroller).length||0,
+      scriptCoverage:Array.isArray(coverage)?coverage.length:null});
+    await persistManifest();
+    process.stdout.write('[FASE] '+label+' messaggiDOM='+
+      (obs?.messages?.length??'?')+' scrollY='+
+      String(obs?.scroll?.windowY??'?')+' containerInterni='+
+      String(obs?.boxes?.filter(x=>x.actualScroller).length??'?')+'\n');
+  }
+  async function sample(){
+    if(readBusy||closed||!page)return;
+    readBusy=true;
+    try{
+      const result=await page.evaluate(()=>
+        ({snapshot:window.__rumiaiInvestigate?.snapshot()||null,
+          mutations:window.__rumiaiInvestigate?.drain(1800)||null}));
+      const snap=result.snapshot,changes=result.mutations;
+      if(snap&&runState.samples<maxSamples){
+        const key=sha(JSON.stringify({
+          y:snap.scroll?.windowY,root:snap.scroll?.rootY,
+          keys:snap.messages?.map(m=>[m.key,m.top,m.bottom,m.contentHash]),
+          stats:snap.stats,boxes:snap.boxes?.filter(x=>x.actualScroller)
+        }));
+        if(key!==sampleLast||runState.samples%25===0){
+          await output('dom-samples.jsonl',snap);
+          runState.samples++;
+          sampleLast=key;
+        }
+      }else if(runState.samples>=maxSamples){
+        runState.incomplete=true;
+        if(!runState.warnings.includes('sample-budget'))
+          runState.warnings.push('sample-budget');
+      }
+      if(changes?.events?.length){
+        for(const item of changes.events){
+          if(runState.mutationEvents>=maxChanges){
+            runState.incomplete=true;
+            if(!runState.warnings.includes('mutation-budget'))
+              runState.warnings.push('mutation-budget');
+            break;
+          }
+          await output('dom-mutations.jsonl',item);
+          runState.mutationEvents++;
+        }
+      }
+      if(changes?.stats?.dropped>runState.mutationDropped){
+        runState.mutationDropped=changes.stats.dropped;
+        runState.incomplete=true;
+        if(!runState.warnings.includes('mutation-observer-overflow'))
+          runState.warnings.push('mutation-observer-overflow');
+      }
+    }catch(e){
+      runState.incomplete=true;
+      if(runState.warnings.length<25)
+        runState.warnings.push('sampling:'+errorText(e));
+    }finally{readBusy=false;}
+  }
+  try{
+    browser=await chromium.launchPersistentContext(
+      path.join(directory,'browser-profile'),{
+        headless:false,executablePath:executable,chromiumSandbox:true,
+        viewport:{width:1440,height:1000},ignoreHTTPSErrors:true
+      });
+    browser.on('serviceworker',worker=>
+      runState.workerUrls.push(safeResourceUrl(worker.url())));
+    page=await browser.newPage();
+    page.on('worker',worker=>
+      runState.workerUrls.push(safeResourceUrl(worker.url())));
+    page.on('request',request=>{
+      void output('network.jsonl',{kind:'request',at:new Date().toISOString(),
+        url:safeResourceUrl(request.url()),method:request.method(),
+        resourceType:request.resourceType()}).catch(e=>asyncErrors.push(errorText(e)));
+    });
+    page.on('response',captureResponse);
+    page.on('pageerror',e=>{
+      if(runState.warnings.length<25)
+        runState.warnings.push('page-exception:'+errorText(e));
+    });
+    cdp=await browser.newCDPSession(page);
+    cdp.on('Debugger.scriptParsed',trackScript);
+    await Promise.all([cdp.send('Page.enable'),cdp.send('Debugger.enable'),
+      cdp.send('Profiler.enable'),cdp.send('Network.enable')]);
+    await cdp.send('Page.addScriptToEvaluateOnNewDocument',{source:jsObserver});
+    await cdp.send('Profiler.startPreciseCoverage',
+      {callCount:true,detailed:true});
+    timer=setInterval(()=>{void sample();},300);
+    process.stdout.write('[INVESTIGA] Avvio ChatGPT condiviso, solo osservazione.\n');
+    await page.goto(pageUrl,{waitUntil:'domcontentloaded',timeout:90000});
+    await new Promise(resolve=>setTimeout(resolve,1200));
+    await sample();
+    await takePhase('initial');
+    for(const [name,question] of [
+      ['top','Vai manualmente all’inizio della chat; INVIO quando vedi i primi messaggi: '],
+      ['bottom','Scorri manualmente fino al fondo; INVIO quando vedi gli ultimi messaggi: '],
+      ['top-again','Risali manualmente all’inizio; INVIO quando vedi i primi messaggi: ']
+    ]){
+      await stdin.question(question);
+      await sample();
+      await takePhase(name);
+    }
+    await new Promise(resolve=>setTimeout(resolve,1000));
+    runState.status='captured';
+  }catch(e){
+    runState.incomplete=true;
+    runState.status='failed';
+    runState.warnings.push('investigation-exception:'+errorText(e));
+    process.stderr.write('[ERRORE] '+errorText(e)+'\n');
+  }finally{
+    if(timer)clearInterval(timer);
+    if(page&&!page.isClosed())await sample();
+    closed=true;
+    if(cdp)await cdp.send('Profiler.stopPreciseCoverage').catch(()=>{});
+    await Promise.allSettled(scriptJobs);
+    await Promise.allSettled(responseJobs);
+    if(scriptMetadata.length)
+      await fs.writeFile(path.join(directory,'scripts.json'),
+        JSON.stringify(scriptMetadata,null,2)+'\n',{mode:0o600});
+    runState.endedAt=new Date().toISOString();
+    if(runState.scripts.skipped||runState.scripts.failures||
+       runState.responses.skipped||runState.responses.failures||
+       runState.mutationDropped||asyncErrors.length){
+      runState.incomplete=true;
+      runState.warnings.push(...asyncErrors.slice(0,10));
+    }
+    await persistManifest();
+    if(browser)await browser.close().catch(()=>{});
+    stdin.close();
+  }
+  process.stdout.write('[INVESTIGA] '+directory+'\n');
+  process.stdout.write('[SOMMARIO] '+JSON.stringify({
+    status:runState.status,scripts:runState.scripts,checkpoints:runState.checkpoints,
+    responses:runState.responses,samples:runState.samples,
+    mutations:runState.mutationEvents,incomplete:runState.incomplete,
+    warnings:runState.warnings.slice(0,8)})+'\n');
+  if(runState.status!=='captured')process.exitCode=1;
+}
+if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
+  run(process.argv[2]).catch(e=>{
+    process.stderr.write('[ERRORE] '+errorText(e)+'\n');
+    process.exitCode=1;
+  });
+}
