@@ -128,10 +128,11 @@ for the approved CA if necessary. Avoid `strict-ssl=false` and
 required, configure it through the local authorized npm settings rather
 than changing or bypassing repository security defaults.
 
-The attempted `live-07` shown in the log did **not** create
-`evidence/live-07`: `run-live.sh` validates the unused evidence name
-before any npm installation. The same name may be reused only while no
-such evidence directory exists. Previous evidence stays untouched.
+The **first** attempted `live-07` (npm certificate failure) did
+not create evidence. The **later** attempted `live-07` (successful
+Playwright setup followed by Chromium certificate failure) **did** create
+`evidence/live-07/`. Consequently `live-07` is no longer available
+for reuse. Preserve all previous evidence and use a new run identifier.
 
 ## Corporate workstation: explicit Playwright HTTPS override
 
