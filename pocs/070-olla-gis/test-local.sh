@@ -78,8 +78,21 @@ class Handler(BaseHTTPRequestHandler):
         if self.path not in ("/api/chat","/v1/chat/completions"):
             self.send_error(404)
             return
-        length = int(self.headers.get("Content-Length","0"))
-        request = json.loads(self.rfile.read(length))
+        if "chunked" in self.headers.get("Transfer-Encoding","").lower():
+            chunks = []
+            while True:
+                size_line = self.rfile.readline().strip()
+                size = int(size_line.split(b";",1)[0],16)
+                if size == 0:
+                    while self.rfile.readline().strip(): pass
+                    break
+                chunks.append(self.rfile.read(size))
+                self.rfile.read(2)
+            body = b"".join(chunks)
+        else:
+            length = int(self.headers.get("Content-Length","0"))
+            body = self.rfile.read(length)
+        request = json.loads(body)
         content = {"model":"qwen3:4b","message":{"role":"assistant","content":"backend-gis"},
                    "done":True,"eval_count":3,"total_duration":1000000}
         if request.get("stream",True):
