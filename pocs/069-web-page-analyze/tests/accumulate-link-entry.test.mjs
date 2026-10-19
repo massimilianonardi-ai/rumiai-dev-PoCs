@@ -22,16 +22,17 @@ test('source observer starts before navigation; initial turns are saved before a
   const goto=code.indexOf('await source.goto(url,');
   const firstScan=code.indexOf('await source.evaluate(()=>window.__rumiaiAccumulate.scan())');
   const firstDrain=code.indexOf('await drain();',firstScan);
-  const firstWheel=code.indexOf('await source.mouse.wheel(');
+  const automatic=code.indexOf('const run=await traverseAutomatically');
   const manualMode=code.indexOf("const manualOnly=process.env.PWC069_SCROLL_MODE==='manual'");
-  for(const position of [initialScript,goto,firstScan,firstDrain,firstWheel,manualMode])
+  for(const position of [initialScript,goto,firstScan,firstDrain,automatic,manualMode])
     assert.ok(position>=0,'Expected startup step exists');
   assert.ok(initialScript<goto);
   assert.ok(goto<firstScan);
   assert.ok(firstScan<firstDrain);
-  assert.ok(firstDrain<firstWheel);
-  // Manual-scroll fallback happens only after the initial capture.
-  assert.ok(manualMode>firstDrain);
+  assert.ok(firstDrain<automatic);
+  assert.ok(firstDrain<manualMode);
+  // Automatic navigation is the normal path. The manual path is opt-in.
+  assert.match(code,/else\\s*\\{\\s*const run=await traverseAutomatically/);
 });
 
 test('capture retains all detected message turns, not a manually chosen message',async()=>{
