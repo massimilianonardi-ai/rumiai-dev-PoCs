@@ -156,6 +156,12 @@ async function main(name,url=DEFAULT_URL){
           parent.appendChild(shell);parent=shell;
         }
         parent.dataset.rumiaiTurnHolder='true';
+        // First copy may have arrived from an already detached node with
+        // no ancestry. Relocate it into the newly discovered wrapper.
+        if(parent!==root)
+          for(const old of [...root.children])
+            if(old.classList.contains('rumiai-accumulated-turn'))
+              parent.appendChild(old);
         root.dataset.rumiaiAncestryInitialized='true';
       }
       const holder=root.querySelector('[data-rumiai-turn-holder="true"]')||root;
