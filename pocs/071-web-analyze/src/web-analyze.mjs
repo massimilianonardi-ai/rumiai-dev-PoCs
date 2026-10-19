@@ -133,8 +133,8 @@ export async function startWebAnalyze
       page.on('frameattached', frame => log.record('lifecycle', 'frame-attached', { pageId, url: safeUrl(frame.url()) }));
       page.on('framenavigated', frame => log.record('lifecycle', 'frame-navigated', { pageId, url: safeUrl(frame.url()), isMain: frame === page.mainFrame() }));
       page.on('framedetached', frame => log.record('lifecycle', 'frame-detached', { pageId, url: safeUrl(frame.url()) }));
-      page.on('domcontentloaded', () => log.record('lifecycle', 'domcontentloaded', { pageId, url: safeUrl(page.url()) })));
-      page.on('load', () => log.record('lifecycle', 'load', { pageId, url: safeUrl(page.url()) })));
+      page.on('domcontentloaded', () => log.record('lifecycle', 'domcontentloaded', { pageId, url: safeUrl(page.url()) }));
+      page.on('load', () => log.record('lifecycle', 'load', { pageId, url: safeUrl(page.url()) }));
       page.on('crash', () => log.record('error', 'renderer-crash', { pageId }));
       page.on('close', () => log.record('lifecycle', 'page-close', { pageId }));
       pendingAttachments.set(page, _observeCDP(context, page, log, pageId).then(session => { if (session) sessions.add(session); }));
