@@ -5,6 +5,8 @@ on:
     paths:
       - 'pocs/068-chatgpt-shared-link-export/render-probe.mjs'
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/render-probe.mjs'
+      - 'pocs/068-chatgpt-shared-link-export/assemble-rendered-dom.mjs'
+      - 'pocs/068-chatgpt-shared-link-export/tests/.support/assemble-rendered-dom.mjs'
       - '.github/workflows/poc-068-rendering-probe.yml'
   workflow_dispatch:
 
@@ -26,6 +28,9 @@ jobs:
           cd pocs/068-chatgpt-shared-link-export
           node --check render-probe.mjs
           node --check tests/.support/render-probe.mjs
+          node --check assemble-rendered-dom.mjs
+          node --check tests/.support/assemble-rendered-dom.mjs
+          node tests/.support/assemble-rendered-dom.mjs
           browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           test -n "$browser"
           mkdir -p "$RUNNER_TEMP/poc068-bin"
