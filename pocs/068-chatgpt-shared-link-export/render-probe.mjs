@@ -79,6 +79,10 @@ function pageProbe() {
     scheduled = false;
     for (const turn of document.querySelectorAll('[data-turn-id-container]')) {
       const turnId = turn.getAttribute('data-turn-id-container');
+      // ChatGPT may nest two wrappers with the same turn ID. Archive the
+      // outermost one so one turn is captured once, with its whole subtree.
+      const ancestor = turn.parentElement?.closest('[data-turn-id-container]');
+      if (ancestor?.getAttribute('data-turn-id-container') === turnId) continue;
       const messageIds = [...turn.querySelectorAll('[data-message-id]')]
         .map(element => element.getAttribute('data-message-id')).filter(Boolean);
       if (!turnId || !messageIds.length) continue;
