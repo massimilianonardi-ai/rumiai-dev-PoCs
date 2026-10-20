@@ -77,13 +77,13 @@ node assemble-rendered-dom.mjs ./render-probe-run-01 ./cumulative-dom-01 \
   --raw /private/path/conversation.raw.json.gz
 ```
 
-Use a **new output directory**. The assembler verifies snapshot SHA-256,
+Use a **new output directory outside the capture directory**. The assembler verifies snapshot SHA-256,
 orders original `conversation-turn-N` indices (not capture order), keeps all
 snapshot-version provenance and uses the latest recorded version per turn.
 It emits `index.html`, `audit.json` and `resource-references.json`.
 
 The HTML is deliberately inert: its CSP blocks scripts, external images and
-network requests. It preserves original DOM markup, but does not reproduce
+network requests. It preserves original DOM markup with only minimal presentation CSS, but does not reproduce
 original stylesheets, image bytes, React state or event listeners. The audit
 does not claim conversation completeness without RAW comparison. The input
 archive and output files can contain conversation contents and signed resource
@@ -96,22 +96,3 @@ The URL must be an HTTPS \`chatgpt.com/share/\` conversation link, not a schedul
 ## RumiAI context
 
 Current governing sources: \`rumiai-dev/RULES.md\`, \`CONSISTENCY-GATE.md\`, \`specifications/rumiai-os/WEB-CONTROL.md\`. Active task state: \`rumiai-dev/handoff/chatgpt-shared-link-export.md\`.
-
-## Offline cumulative DOM experiment
-
-After collecting real original-renderer turn snapshots using `render-probe.mjs`, the separate Node.js 22 experimental assembler builds one inert offline page, without navigating the target website:
-
-```sh
-node assemble-rendered-dom.mjs ./render-probe-run-01 ./cumulative-dom-01
-```
-
-The output folder must not already exist and must be outside the capture folder. It contains `index.html`, `audit.json` and `resource-references.json`. Ordinals are taken from the original `conversation-turn-N` DOM attributes; multiple snapshots for one turn are retained in the audit and the most recently recorded version is rendered once.
-
-Optional original-message-ID comparison:
-
-```sh
-node assemble-rendered-dom.mjs ./render-probe-run-01 ./cumulative-with-raw \
-  --raw /private/path/conversation.raw.json.gz
-```
-
-The offline document deliberately does **not** execute scripts or fetch external resources; it is not a full ChatGPT clone, its CSS is minimal, and its resource-references file does not include downloaded assets. All outputs may contain private conversation text or URLs: never commit unreviewed captures or reconstructed pages. Details and the tested capture analysis are in `RENDERING-INVESTIGATION.md`.
