@@ -59,6 +59,22 @@ try {
     'intersection.callback','dom.mutation','scroll.actual','turn.snapshot',
     'sweep.step','sweep.finished'];
   for(const kind of kinds)assert(summary.counts[kind]>0,'missing '+kind);
+  assert(summary.counts['turn.initial'] >= 8, 'initial per-turn state missing');
+  assert(summary.counts['turn.content-mounted'] > 0,
+    'scroll never remounted any turn contents');
+  assert(summary.counts['turn.content-unmounted'] > 0,
+    'scroll never unmounted any turn contents');
+  const registrations = records.filter(e => e.kind === 'listener.register');
+  assert(registrations.some(e => e.event === 'scroll' &&
+    Array.isArray(e.caller) && e.caller.length),
+    'listener registration has no origin callsite');
+  const ioRegistrations = records.filter(e => e.kind === 'intersection.create');
+  assert(ioRegistrations.some(e => Array.isArray(e.caller) && e.caller.length),
+    'observer construction has no origin callsite');
+  const transitions = records.filter(e => e.kind === 'turn.content-mounted' ||
+    e.kind === 'turn.content-unmounted');
+  assert(transitions.every(e => e.turnId && e.messageIds.length),
+    'mount/unmount transitions must keep stable original turn/message identity');
   assert(summary.uniqueTurnSnapshots>=8,'not enough reconstructed turn snapshots');
   const turns=new Set(records.filter(e=>e.kind==='turn.snapshot').map(e=>e.turnId));
   assert(turns.has('turn-0')&&turns.has('turn-15'),'sweep did not capture both ends');
