@@ -1,0 +1,37 @@
+name: PoC 068 Render Observer
+
+on:
+  push:
+    paths:
+      - 'pocs/068-chatgpt-shared-link-export/render-probe.mjs'
+      - 'pocs/068-chatgpt-shared-link-export/tests/.support/render-probe.mjs'
+      - '.github/workflows/poc-068-rendering-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate JS syntax and use actual Chromium browser
+        shell: bash
+        run: |
+          set -eu
+          cd pocs/068-chatgpt-shared-link-export
+          node --check render-probe.mjs
+          node --check tests/.support/render-probe.mjs
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$browser"
+          mkdir -p "$RUNNER_TEMP/poc068-bin"
+          cat > "$RUNNER_TEMP/poc068-bin/chromium" <<EOF
+          #!/bin/sh
+          exec "$browser" "\$@"
+          EOF
+          chmod +x "$RUNNER_TEMP/poc068-bin/chromium"
+          PATH="$RUNNER_TEMP/poc068-bin:$PATH" node tests/.support/render-probe.mjs
