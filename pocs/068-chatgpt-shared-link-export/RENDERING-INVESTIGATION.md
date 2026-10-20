@@ -68,11 +68,49 @@ The latest regression fixture additionally checks per-turn content mount/unmount
 
 Validation: `tests/.support/render-probe.mjs` runs the real entrypoint against a self-hosted virtualized HTML fixture in a real Chromium browser; its assertions check actual IO callback emissions, target scroll, snapshots, original message IDs at both ends and content persistence. GitHub Actions run `39432091366` (2026-10-20) reports PASS: https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/39432091366 . The follow-up commit `2a8cacecbef5c9cda5753d23d78b45acda031e7e` avoids duplicate snapshots for nested wrappers sharing the same turn ID by selecting the outermost wrapper; the updated Chromium test also reports PASS in run `39432702338`: https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/39432702338 . This is **synthetic-fixture browser validation**, not a real ChatGPT replay result. Full-page coverage and faithful DOM reconstruction remain open.
 
+## Real shared-page experiment and cumulative reconstruction (2026-10-20)
+
+The operator supplied a private `render-probe-run-01.zip` captured on the
+agreed real ChatGPT share using `--sweep`. The review found 5,247 events:
+331 native IntersectionObserver callbacks, 135 real scroll events, 82
+observed turn-content mounts, 78 unmounts, 148 snapshot events yielding 147
+distinct HTML files. The 42 snapshotted turn IDs cover the contiguous ordinal
+range **1–42**, with 42 distinct message IDs. A further wrapper was observed
+without any saved rendered message. `conversation-turn-0` was **not**
+captured; its absence is not automatically proof of a missing message.
+
+Native IntersectionObserver #13, with `[data-scroll-root]` and 1,000 px root
+margins, had matching same-turn visibility notifications preceding all observed
+mount/unmount transitions. This is compelling temporal correlation, not an
+instrumented proof of the internal React state update responsible for each
+transition. No independent RAW transcript was included in the ZIP; complete
+conversation coverage remains unverified.
+
+The separate `assemble-rendered-dom.mjs` utility now creates an inert
+cumulative `index.html`, `audit.json` and `resource-references.json`
+from render-probe evidence. It verifies individual hashes, orders by original
+DOM `conversation-turn-N` ordinal, preserves all captured snapshot-version
+provenance and selects the latest version per turn. The optional `--raw`
+argument compares message identities against a separately acquired
+`conversation.raw.json.gz`. The utility's synthetic reconstruction tests and
+real Chromium render-probe regression tests passed in
+[GitHub Actions run 39490178468](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/39490178468).
+The archived real run was independently inspected and a structural HTML
+preview assembled, but **the GitHub-published assembler has not itself been
+executed on the private ZIP in CI**.
+
+This is a structural artifact, not a browser-session replay. It does not
+include original loaded CSS/remote image bytes, internal React state or event
+listeners. Its strict Content Security Policy blocks external/network loads
+and scripts, with original asset reference URLs retained only in the private
+reference audit. Browser profiles or captured HTML containing private content
+must not be committed.
+
 ## Data security and validation boundary
 
 This repository already contains user-committed browser profiles and raw response/script evidence, which may include cookies, session data or signed URLs. Never include raw profiles or new unreviewed captures in another commit. Removing tracked files in a forward commit does **not** erase the history; do not rewrite history without explicit authorization.
 
-The static findings above were verified against the exact Git blob sources and event indices, but the controlled runtime experiment has not yet been executed against the physical ChatGPT page and no complete deterministic DOM recreation has been demonstrated.
+The static findings above were verified against the exact Git blob sources and event indices. A user-operated controlled runtime experiment on the actual ChatGPT share is now available as a private ZIP and supports the observer/turn correlation described below. The full-fidelity, interactive DOM has **not** been recreated.
 
 ## Cumulative offline DOM assembly (2026-10-20)
 
