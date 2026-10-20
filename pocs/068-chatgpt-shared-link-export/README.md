@@ -59,6 +59,36 @@ npm run check
 
 The current tests cover synthetic rendered-HTML extraction and the real exporter command with a simulated external web-control protocol boundary (including versioned files and failure evidence). They do **not** establish successful navigation through a real web-control provider or fidelity against a real shared link. Live provider + share validation, image/download coverage, large and virtualized conversations, source share updates and workspace-restricted links remain open.
 
+## Experimental cumulative DOM assembly (render-probe evidence)
+
+A separate native CDP experiment, `render-probe.mjs`, records real DOM turn
+subtrees as ChatGPT mounts them. For a previously captured private directory,
+assemble the observed turn HTML into one offline **structural** document:
+
+```sh
+node assemble-rendered-dom.mjs ./render-probe-run-01 ./cumulative-dom-01
+```
+
+Optionally, compare the captured message IDs against a separately acquired
+conversation RAW from `chatgpt-export.lib.js`:
+
+```sh
+node assemble-rendered-dom.mjs ./render-probe-run-01 ./cumulative-dom-01 \
+  --raw /private/path/conversation.raw.json.gz
+```
+
+Use a **new output directory**. The assembler verifies snapshot SHA-256,
+orders original `conversation-turn-N` indices (not capture order), keeps all
+snapshot-version provenance and uses the latest recorded version per turn.
+It emits `index.html`, `audit.json` and `resource-references.json`.
+
+The HTML is deliberately inert: its CSP blocks scripts, external images and
+network requests. It preserves original DOM markup, but does not reproduce
+original stylesheets, image bytes, React state or event listeners. The audit
+does not claim conversation completeness without RAW comparison. The input
+archive and output files can contain conversation contents and signed resource
+links: **keep them private and do not commit them**.
+
 ## Security boundaries
 
 The URL must be an HTTPS \`chatgpt.com/share/\` conversation link, not a scheduled-task share. The exporter neither extracts cookies nor bypasses sign-in challenges. Browser profile state remains with web-control. Archive output is private data: do not commit it to public GitHub or share it without review. HTML snapshots and any image URL containing signed query parameters can reveal information, so avoid diagnostic logging of asset URLs.
