@@ -1,2 +1,6 @@
 node_modules/
 archive/
+# Private browser evidence; existing tracked revisions are not purged by these rules.
+analysis-chromium*/
+analysis-pw/
+render-probe-run*/
