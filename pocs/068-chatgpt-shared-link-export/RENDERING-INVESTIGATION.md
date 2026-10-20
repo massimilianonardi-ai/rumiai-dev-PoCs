@@ -49,6 +49,8 @@ The independently instrumented experimental entrypoint is `render-probe.mjs`. It
 - `scroll.actual` with the scroll target's true scrollTop, scrollHeight and clientHeight;
 - `dom.mutation` with affected turn IDs and counts;
 - `turn.snapshot` with turn ID, descendant message IDs, and content-addressed full outerHTML files in `turns/` (per snapshot maximum 2 MiB; oversize explicitly reported).
+- `turn.initial` for the first observed wrapper state, `turn.content-mounted` and `turn.content-unmounted` for observable changes in descendant message presence, and `turn.wrapper-removed` if the wrapper itself vanishes. These are observation-frame transitions, **not** direct instrumented React lifecycle hooks; changes occurring entirely between capture frames can be missed. Transition records preserve original turn/message IDs but omit message HTML.
+- `listener.register`, `intersection.create` and `resize.create` include limited JavaScript origin stack frames, to locate the registration logic in captured JS; URL query strings/fragments are stripped from these callsite hints. Missing/minified symbols and wrapper-library stacks remain possible.
 
 The optional `--sweep` option waits until a `[data-scroll-root]` and turn wrappers appear (up to 120 seconds), then modifies the scroll element's actual scrollTop incrementally forward and backward, allowing browser intersection callbacks and React to execute organically. Synthetic scroll-event dispatch alone is not used. The ordinary manual capture mode remains active until operator signal/browser close. The tool does not inject a fake React renderer, nor does it guarantee snapshots for every turn.
 
@@ -61,6 +63,8 @@ node render-probe.mjs \
 ```
 
 Inspect `render-probe-run-01/summary.json`, `events.jsonl`, and `turns/*.html`. These are private data and should not be committed.
+
+The latest regression fixture additionally checks per-turn content mount/unmount transitions, stable IDs and registration callsites. This does not establish which callback causes each transition on ChatGPT's live page.
 
 Validation: `tests/.support/render-probe.mjs` runs the real entrypoint against a self-hosted virtualized HTML fixture in a real Chromium browser; its assertions check actual IO callback emissions, target scroll, snapshots, original message IDs at both ends and content persistence. GitHub Actions run `39432091366` (2026-10-20) reports PASS: https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/39432091366 . The follow-up commit `2a8cacecbef5c9cda5753d23d78b45acda031e7e` avoids duplicate snapshots for nested wrappers sharing the same turn ID by selecting the outermost wrapper; the updated Chromium test also reports PASS in run `39432702338`: https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/39432702338 . This is **synthetic-fixture browser validation**, not a real ChatGPT replay result. Full-page coverage and faithful DOM reconstruction remain open.
 
