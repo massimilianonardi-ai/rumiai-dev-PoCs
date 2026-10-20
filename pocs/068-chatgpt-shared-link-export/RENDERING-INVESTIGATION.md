@@ -40,6 +40,30 @@ The existing `web-analyze` DOM mutation samples omit individual node IDs, and it
 - Compare observed message IDs with the independently verified `chatgpt-export.lib.js` RAW transcript; report missing turns, repeated IDs, unrendered special components, resource failures and snapshots that exceeded explicit size limits. Only then attempt assembling an offline DOM replica.
 - Preserve the existing Markdown baseline at `rumiai-os@17077e469469f11dddb66a530a1692a663ba9fcb`; a rendering probe belongs to this PoC until its behavior is verified.
 
+## Executable controlled observer probe
+
+The independently instrumented experimental entrypoint is `render-probe.mjs`. It launches Chromium from PATH via native loopback TCP CDP, injects a probe using `Page.addScriptToEvaluateOnNewDocument` **before initial navigation**, and captures:
+- `listener.register` for scroll/wheel/resize listener registration;
+- `intersection.create`, `intersection.observe`, `intersection.callback`;
+- `resize.create`, `resize.observe`, `resize.callback`;
+- `scroll.actual` with the scroll target's true scrollTop, scrollHeight and clientHeight;
+- `dom.mutation` with affected turn IDs and counts;
+- `turn.snapshot` with turn ID, descendant message IDs, and content-addressed full outerHTML files in `turns/` (per snapshot maximum 2 MiB; oversize explicitly reported).
+
+The optional `--sweep` option waits until a `[data-scroll-root]` and turn wrappers appear (up to 120 seconds), then modifies the scroll element's actual scrollTop incrementally forward and backward, allowing browser intersection callbacks and React to execute organically. Synthetic scroll-event dispatch alone is not used. The ordinary manual capture mode remains active until operator signal/browser close. The tool does not inject a fake React renderer, nor does it guarantee snapshots for every turn.
+
+Usage from the PoC directory (choose a **fresh private directory**):
+
+```sh
+node render-probe.mjs \
+  'https://chatgpt.com/share/6ad1c0d5-49ec-83eb-a79b-85b04b938835' \
+  './render-probe-run-01' --sweep
+```
+
+Inspect `render-probe-run-01/summary.json`, `events.jsonl`, and `turns/*.html`. These are private data and should not be committed.
+
+Validation: `tests/.support/render-probe.mjs` runs the real entrypoint against a self-hosted virtualized HTML fixture in a real Chromium browser; its assertions check actual IO callback emissions, target scroll, snapshots, original message IDs at both ends and content persistence. GitHub Actions run `39432091366` (2026-10-20) reports PASS: https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/39432091366 . This is **synthetic-fixture browser validation**, not a real ChatGPT replay result. Full-page coverage and faithful DOM reconstruction remain open.
+
 ## Data security and validation boundary
 
 This repository already contains user-committed browser profiles and raw response/script evidence, which may include cookies, session data or signed URLs. Never include raw profiles or new unreviewed captures in another commit. Removing tracked files in a forward commit does **not** erase the history; do not rewrite history without explicit authorization.
