@@ -23,10 +23,19 @@ function pageProbe() {
       messageId: node.getAttribute('data-message-id') || undefined,
       scrollRoot: node.hasAttribute('data-scroll-root') || undefined};
   };
+  // Keep call sites without persisting query strings or fragments from signed URLs.
+  const caller = () => (new Error().stack || '').split('\n').slice(2, 5)
+    .map(frame => frame.trim().replace(/https?:\/\/[^\s)]+/g, match => {
+      try { const url = new URL(match); return url.origin + url.pathname; }
+      catch { return '[url]'; }
+    }));
   const add = EventTarget.prototype.addEventListener;
   EventTarget.prototype.addEventListener = function(type, callback, opts) {
     if (['scroll','wheel','resize','scrollend'].includes(type))
-      log('listener.register', {event: type, target: identify(this)});
+      log('listener.register', {event: type, target: identify(this),
+        targetType: this === window ? 'window' : this === document ? 'document' : undefined,
+        callbackName: typeof callback === 'function' ? callback.name || null : null,
+        caller: caller()});
     return add.call(this, type, callback, opts);
   };
   let number = 0;
@@ -44,7 +53,8 @@ function pageProbe() {
         }, opts);
         this.probeId = id;
         log('intersection.create', {observerId: id, root: identify(opts.root),
-          rootMargin: opts.rootMargin || '0px', threshold: opts.threshold ?? 0});
+          rootMargin: opts.rootMargin || '0px', threshold: opts.threshold ?? 0,
+          caller: caller()});
       }
       observe(element) {
         log('intersection.observe', {observerId: this.probeId, target: identify(element)});
@@ -65,7 +75,7 @@ function pageProbe() {
           return callback(entries, observer);
         });
         this.probeId = id;
-        log('resize.create', {observerId: id});
+        log('resize.create', {observerId: id, caller: caller()});
       }
       observe(element, opts) {
         log('resize.observe', {observerId: this.probeId, target: identify(element)});
@@ -74,18 +84,30 @@ function pageProbe() {
     };
   }
   const last = new Map();
+  const states = new Map();
   let scheduled = false;
   function capture() {
     scheduled = false;
+    const present = new Set();
     for (const turn of document.querySelectorAll('[data-turn-id-container]')) {
       const turnId = turn.getAttribute('data-turn-id-container');
       // ChatGPT may nest two wrappers with the same turn ID. Archive the
       // outermost one so one turn is captured once, with its whole subtree.
       const ancestor = turn.parentElement?.closest('[data-turn-id-container]');
-      if (ancestor?.getAttribute('data-turn-id-container') === turnId) continue;
+      if (!turnId || ancestor?.getAttribute('data-turn-id-container') === turnId) continue;
+      present.add(turnId);
       const messageIds = [...turn.querySelectorAll('[data-message-id]')]
         .map(element => element.getAttribute('data-message-id')).filter(Boolean);
-      if (!turnId || !messageIds.length) continue;
+      const previous = states.get(turnId);
+      const rendered = messageIds.length > 0;
+      if (!previous) {
+        log('turn.initial', {turnId, rendered, messageIds});
+      } else if (previous.rendered !== rendered) {
+        log(rendered ? 'turn.content-mounted' : 'turn.content-unmounted',
+          {turnId, messageIds: rendered ? messageIds : previous.messageIds});
+      }
+      states.set(turnId, {rendered, messageIds});
+      if (!rendered) continue;
       const html = turn.outerHTML;
       let hash = 2166136261;
       for (let i = 0; i < html.length; ++i)
@@ -96,6 +118,16 @@ function pageProbe() {
       if (html.length > 2097152)
         log('turn.too-large', {turnId, messageIds, length: html.length});
       else log('turn.snapshot', {turnId, messageIds, html});
+    }
+    // Some implementations remove the entire wrapper rather than merely
+    // emptying its children. Do not mistake a wrapper removal for a React
+    // unmount of its descendants: report the two observations separately.
+    for (const [turnId, previous] of states) {
+      if (present.has(turnId)) continue;
+      log('turn.wrapper-removed', {turnId, messageIds: previous.messageIds,
+        hadRenderedContent: previous.rendered});
+      states.delete(turnId);
+      last.delete(turnId);
     }
   }
   function schedule() {
