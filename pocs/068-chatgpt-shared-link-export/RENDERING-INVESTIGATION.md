@@ -73,3 +73,21 @@ Validation: `tests/.support/render-probe.mjs` runs the real entrypoint against a
 This repository already contains user-committed browser profiles and raw response/script evidence, which may include cookies, session data or signed URLs. Never include raw profiles or new unreviewed captures in another commit. Removing tracked files in a forward commit does **not** erase the history; do not rewrite history without explicit authorization.
 
 The static findings above were verified against the exact Git blob sources and event indices, but the controlled runtime experiment has not yet been executed against the physical ChatGPT page and no complete deterministic DOM recreation has been demonstrated.
+
+## Cumulative offline DOM assembly (2026-10-20)
+
+The standalone experimental `assemble-rendered-dom.mjs` consumes an existing `render-probe.mjs` evidence directory. It does **not** navigate ChatGPT and does **not** replace the original renderer. It verifies each snapshot's SHA-256 against both filename and manifest, derives turn order from the captured `data-testid="conversation-turn-N"`, validates `data-turn-id-container` and `data-message-id`, selects the latest sequence-numbered HTML snapshot per turn, and concatenates exactly one original outer wrapper per turn into an **inert** cumulative document. Every previous snapshot version remains recorded in `audit.json`. It rejects duplicate ordinals, cross-turn duplicate message IDs, inconsistent identity, corrupt evidence and existing destination directories.
+
+Invocation from this PoC directory:
+
+```sh
+node assemble-rendered-dom.mjs ./render-probe-run-01 ./cumulative-dom-01
+# Optionally validate IDs against an independently exported source:
+node assemble-rendered-dom.mjs ./render-probe-run-01 ./cumulative-with-raw --raw /private/path/conversation.raw.json.gz
+```
+
+Files: `index.html` (original captured turn subtrees and minimal non-original presentation CSS), `audit.json` (selected hashes, all source versions, ordinal gaps and optional RAW-ID differences), `resource-references.json` (not-downloaded `src`/`href`/`poster`/`srcset` references). External network/script loading is blocked by a Content Security Policy; the HTML is **not** the running ChatGPT application and cannot preserve React state, callbacks, original CSS, asset bytes or interactivity. The assembly is private conversation data and should not be committed.
+
+The operator's uploaded `render-probe-run-01.zip` was locally audited and assembled without opening its Chromium profile. Physical evidence: 148 snapshot events / 147 distinct source HTML blobs map to **42 unique ordered turn IDs and 42 message IDs**, with the captured `conversation-turn-1` through `conversation-turn-42` range contiguous and no duplicate ordinals. The resulting cumulative page contains **42 top-level turn subtrees**; its resource-reference audit finds **13 `src`** and **27 `href`** references (not asset files). The original `conversation.raw.json.gz` was **not included**, so equivalence to the total source conversation is unverified; the additional non-message turn wrapper remains unrepresented, because no HTML snapshot was recorded for it. The private resulting ZIP was delivered to the user separately, not added to Git.
+
+Regression: `tests/.support/assemble-rendered-dom.mjs` verifies ordering, snapshot selection, version retention, RAW gap detection, a non-executable CSP, integrity failure and overwrite refusal. GitHub Actions `39490178468` passed both this synthetic-data test and the existing real-Chromium render-probe fixture: https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/39490178468 . This is **not** a test of the user page with a browser, nor an original-CSS/resource fidelity guarantee.
