@@ -36,7 +36,7 @@ function resource(url,type,mime,extension,bytes,extra={}) {
 }
 const pic=resource('https://chatgpt.com/cdn/assets/i.png','Image','image/png','.png','fakeimage-payload');
 const svg=resource('https://chatgpt.com/cdn/assets/sprites.svg','Other','image/svg+xml','.svg',
-  '<svg xmlns="http://www.w3.org/2000/svg"><symbol id="test"/></svg>');
+  '<svg xmlns="http://www.w3.org/2000/svg"><symbol id="test"><foreignObject width="1" height="1"><div xmlns="http://www.w3.org/1999/xhtml">static</div></foreignObject></symbol></svg>');
 const font=resource('https://chatgpt.com/cdn/assets/f.woff2','Font','application/octet-stream','.woff2',
   'wOF2fake_font_fixture');
 const css=resource('https://chatgpt.com/cdn/assets/root.css','Stylesheet','text/css','.css',
