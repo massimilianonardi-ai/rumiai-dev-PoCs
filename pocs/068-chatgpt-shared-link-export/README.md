@@ -89,6 +89,20 @@ does not claim conversation completeness without RAW comparison. The input
 archive and output files can contain conversation contents and signed resource
 links: **keep them private and do not commit them**.
 
+## Experimental offline CSS and media localization
+
+To use the original CSS, font and image bytes already collected by the native CDP `web-analyze` capture, first build the structural DOM, then attach verified static resources into a **different, new** output directory:
+
+```sh
+node assemble-rendered-dom.mjs ./render-probe-run-01 ./cumulative-dom-01
+node localize-rendered-resources.mjs \
+  ./cumulative-dom-01 ./analysis-chromium-resources-02 ./cumulative-dom-localized-01
+```
+
+Open `cumulative-dom-localized-01/index.html` locally. The output contains `assets/` and `localization-audit.json`. It copies only captured first-party CSS/fonts/images/SVG and verifies every copied body's original SHA-256. Remote URLs without a matching saved response appear in the audit and are not fetched. In particular, Google favicon URLs may not correspond to the original favicon response URLs.
+
+**This is still a static, non-interactive reconstruction:** JS, network access and React are disabled by CSP; scripts, API responses, Chrome profiles and unrelated binary downloads are intentionally excluded. Original stylesheets improve the chance of visual similarity but require real screenshot comparison before claiming parity. Keep all evidence/output private, as original markup and resource URLs may contain personal data.
+
 ## Security boundaries
 
 The URL must be an HTTPS \`chatgpt.com/share/\` conversation link, not a scheduled-task share. The exporter neither extracts cookies nor bypasses sign-in challenges. Browser profile state remains with web-control. Archive output is private data: do not commit it to public GitHub or share it without review. HTML snapshots and any image URL containing signed query parameters can reveal information, so avoid diagnostic logging of asset URLs.
