@@ -106,21 +106,48 @@ export function localize(cumulativeDir, resourceDir, targetDir) {
     throw Error('Input is not the inert cumulative DOM');
   const index = parseIndex(path.join(archive, 'resources.jsonl'));
   const choices = new Map(), styles = [];
+  // A recorded redirect establishes identity even when the original DOM URL
+  // differs from the final downloaded URL (e.g. Google's favicon service).
+  // Only the exact, same-session/same-request 301 chain is trusted here.
+  const redirects = new Map();
+  for (const row of index) {
+    if (row.status !== 'redirect-no-body' ||
+        !/^https:\/\/www\.google\.com\/s2\/favicons(?:\?|$)/.test(row.url || ''))
+      continue;
+    const request = String(row.session) + ':' + String(row.requestId);
+    const urls = redirects.get(request) || [];
+    urls.push(row.url);
+    redirects.set(request, urls);
+  }
+  let redirectAliases = 0;
   let ignored = 0;
   for (const row of index) {
     if (row.status !== 'saved' || typeof row.url !== 'string' || !row.sha256) continue;
     const ext = allowedType(row);
     const url = key(row.url);
-    if (!ext || !url || !allowedHost(new URL(url).hostname)) {ignored++;continue;}
+    if (!ext || !url) {ignored++;continue;}
+    const originalHostAllowed = allowedHost(new URL(url).hostname);
+    const isFavicon = row.resourceType === 'Image' && row.mimeType === 'image/png' &&
+      /^https:\/\/t[0-9]\.gstatic\.com\/faviconV2(?:\?|$)/.test(url);
+    const aliasNames = isFavicon ?
+      redirects.get(String(row.session) + ':' + String(row.requestId)) || [] : [];
+    if (!originalHostAllowed && !aliasNames.length) {ignored++;continue;}
     if (choices.has(url)) continue;
     const entry = {row, filename: 'assets/' + row.sha256 + ext, ext, url};
     choices.set(url, entry);
+    for (const name of aliasNames) {
+      const originalUrl = key(name);
+      if (originalUrl && !choices.has(originalUrl)) {
+        choices.set(originalUrl, entry);
+        redirectAliases++;
+      }
+    }
     if (ext === '.css') styles.push(entry);
   }
   const unresolved = new Set(), matched = new Set();
   const prepared = new Map(), stylesheetFiles = [], copied = [];
   // Verify all candidates before creating output: corrupt input cannot create partial output.
-  for (const entry of choices.values()) {
+  for (const entry of new Set(choices.values())) {
     let content = safeResourceFile(archive, entry.row);
     if (entry.ext === '.woff2' && content.toString('ascii', 0, 4) !== 'wOF2')
       throw Error('Invalid WOFF2 signature in indexed font');
@@ -160,7 +187,7 @@ export function localize(cumulativeDir, resourceDir, targetDir) {
   fs.writeFileSync(path.join(output, 'resource-references.json'), sourceRefs, {flag:'wx', mode:0o600});
   const report = {status:'offline-localized-static-assets', stylesheets:styles.length,
     staticFiles:prepared.size, mediaReferencesMatched:matched.size,
-    unresolvedReferences:[...unresolved].sort(), ignoredNonStaticOrNonFirstParty:ignored,
+    resolvedRedirectAliases:redirectAliases, unresolvedReferences:[...unresolved].sort(), ignoredNonStaticOrNonFirstParty:ignored,
     limitations:['Original React/JavaScript deliberately disabled',
       'Referenced assets not in CDP archive remain unavailable',
       'Original document/body context and theme may affect CSS',
@@ -168,7 +195,8 @@ export function localize(cumulativeDir, resourceDir, targetDir) {
   fs.writeFileSync(path.join(output, 'localization-audit.json'),
     JSON.stringify(report, null, 2) + '\n', {flag:'wx', mode:0o600});
   return {output, stylesheets:styles.length, staticFiles:prepared.size,
-    mediaReferencesMatched:matched.size, unresolved:unresolved.size, ignored};
+    mediaReferencesMatched:matched.size, resolvedRedirectAliases:redirectAliases,
+    unresolved:unresolved.size, ignored};
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname)) {
   if (process.argv.length !== 5) {
