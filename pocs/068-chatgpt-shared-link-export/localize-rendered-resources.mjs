@@ -10,8 +10,12 @@ const allowedHost = name => ['chatgpt.com', 'oaistatic.com', 'openai.com']
   .some(domain => name === domain || name.endsWith('.' + domain));
 const allowedType = row => {
   if (row.resourceType === 'Stylesheet' && row.mimeType === 'text/css') return '.css';
-  if (row.resourceType === 'Font' && /^font\/(woff2?|ttf|otf)$/.test(row.mimeType || ''))
-    return row.mimeType === 'font/woff2' ? '.woff2' : row.mimeType === 'font/woff' ? '.woff' : '.bin';
+  if (row.resourceType === 'Font') {
+    if (row.mimeType === 'application/octet-stream' && /\.woff2(?:\?|$)/.test(row.url || ''))
+      return '.woff2';
+    if (/^font\/(woff2?|ttf|otf)$/.test(row.mimeType || ''))
+      return row.mimeType === 'font/woff2' ? '.woff2' : row.mimeType === 'font/woff' ? '.woff' : '.bin';
+  }
   if (['Image', 'Other'].includes(row.resourceType)) {
     return ({'image/png':'.png', 'image/jpeg':'.jpg', 'image/webp':'.webp',
       'image/gif':'.gif', 'image/svg+xml':'.svg', 'image/x-icon':'.ico',
@@ -118,11 +122,19 @@ export function localize(cumulativeDir, resourceDir, targetDir) {
   // Verify all candidates before creating output: corrupt input cannot create partial output.
   for (const entry of choices.values()) {
     let content = safeResourceFile(archive, entry.row);
+    if (entry.ext === '.woff2' && content.toString('ascii', 0, 4) !== 'wOF2')
+      throw Error('Invalid WOFF2 signature in indexed font');
     if (entry.ext === '.css') {
-      const edited = rewriteCss(content.toString('utf8'), entry.url, choices, unresolved);
+      // Browser-origin @import strings are not required for this frozen document;
+      // stripping them prevents local-file imports from escaping the asset pack.
+      const noImports = content.toString('utf8').replace(
+        /@import\s+(?:url\([^)]*\)|"[^"]*"|'[^']*')[^;]*;/gi,
+        '/* blocked CSS import */');
+      const edited = rewriteCss(noImports, entry.url, choices, unresolved);
       content = Buffer.from(edited, 'utf8');
     }
-    if (entry.ext === '.svg' && /<script\b|onload\s*=/i.test(content.toString('utf8')))
+    if (entry.ext === '.svg' &&
+        /<script\b|<foreignObject\b|\bon[a-z]+\s*=|javascript:/i.test(content.toString('utf8')))
       throw Error('SVG with executable content rejected');
     prepared.set(entry.filename, content);
     copied.push({originalUrl: entry.url, originalSha256: entry.row.sha256,
