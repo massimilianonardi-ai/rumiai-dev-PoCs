@@ -55,8 +55,8 @@ try{
   assert(view.includes("script-src 'none'"));
   assert(view.includes('<a href="https://example.org">'));
   const localCss=fs.readFileSync(path.join(out,'assets',css.sha+'.css'),'utf8');
-  assert(localCss.includes('url("./assets/'+pic.sha+'.png")'));
-  assert(localCss.includes('url("./assets/'+font.sha+'.woff2")'));
+  assert(localCss.includes('url("./'+pic.sha+'.png")'));
+  assert(localCss.includes('url("./'+font.sha+'.woff2")'));
   assert(!localCss.includes('https://external.invalid'));
   assert(!fs.existsSync(path.join(out,'assets',records.at(-1).sha256+'.json')));
   const audit=JSON.parse(fs.readFileSync(path.join(out,'localization-audit.json'),'utf8'));
