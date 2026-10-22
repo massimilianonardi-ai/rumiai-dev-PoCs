@@ -52,7 +52,7 @@ try{
   const out=path.join(temp,'output');
   const summary=localize(cumulative,archive,out);
   assert.equal(summary.stylesheets,1);
-  assert.equal(summary.staticFiles,4);
+  assert.equal(summary.staticFiles,5);
   assert.equal(summary.mediaReferencesMatched,3);
   assert.equal(summary.resolvedRedirectAliases,1);
   const view=fs.readFileSync(path.join(out,'index.html'),'utf8');
