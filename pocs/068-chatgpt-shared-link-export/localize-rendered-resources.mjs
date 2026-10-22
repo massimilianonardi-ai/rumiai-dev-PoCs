@@ -161,7 +161,7 @@ export function localize(cumulativeDir, resourceDir, targetDir) {
       content = Buffer.from(edited, 'utf8');
     }
     if (entry.ext === '.svg' &&
-        /<script\b|<foreignObject\b|\bon[a-z]+\s*=|javascript:/i.test(content.toString('utf8')))
+        /<script\b|<iframe\b|<object\b|<embed\b|\bon[a-z]+\s*=|javascript:/i.test(content.toString('utf8')))
       throw Error('SVG with executable content rejected');
     prepared.set(entry.filename, content);
     copied.push({originalUrl: entry.url, originalSha256: entry.row.sha256,
