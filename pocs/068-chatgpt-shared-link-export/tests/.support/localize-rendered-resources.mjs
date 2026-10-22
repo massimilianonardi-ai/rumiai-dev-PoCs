@@ -35,10 +35,10 @@ function resource(url,type,mime,extension,bytes) {
 const pic=resource('https://chatgpt.com/cdn/assets/i.png','Image','image/png','.png','fakeimage-payload');
 const svg=resource('https://chatgpt.com/cdn/assets/sprites.svg','Other','image/svg+xml','.svg',
   '<svg xmlns="http://www.w3.org/2000/svg"><symbol id="test"/></svg>');
-const font=resource('https://chatgpt.com/cdn/assets/f.woff2','Font','font/woff2','.woff2',
-  'wOFF2_fake_font_fixture');
+const font=resource('https://chatgpt.com/cdn/assets/f.woff2','Font','application/octet-stream','.woff2',
+  'wOF2fake_font_fixture');
 const css=resource('https://chatgpt.com/cdn/assets/root.css','Stylesheet','text/css','.css',
-  '.test{background:url("./i.png")}.font{src:url("./f.woff2")}.remote{background:url("https://external.invalid/tracker")}' );
+  '@import "https://external.invalid/extra.css"; .test{background:url("./i.png")}.font{src:url("./f.woff2")}.remote{background:url("https://external.invalid/tracker")}' );
 resource('https://chatgpt.com/private-api/token','Fetch','application/json','.json','{"secret":"fake"}');
 fs.writeFileSync(path.join(archive,'resources.jsonl'),records.map(x=>JSON.stringify(x)).join('\n')+'\n');
 try{
@@ -58,6 +58,7 @@ try{
   assert(localCss.includes('url("./'+pic.sha+'.png")'));
   assert(localCss.includes('url("./'+font.sha+'.woff2")'));
   assert(!localCss.includes('https://external.invalid'));
+  assert(!localCss.includes('@import'));
   assert(!fs.existsSync(path.join(out,'assets',records.at(-1).sha256+'.json')));
   const audit=JSON.parse(fs.readFileSync(path.join(out,'localization-audit.json'),'utf8'));
   assert(audit.unresolvedReferences.some(x=>x.includes('no-snapshot.invalid')));
