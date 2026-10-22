@@ -50,7 +50,7 @@ function rewriteCss(text, sourceUrl, choices, unresolved) {
       return 'url("about:blank")';
     }
     const fragment = (() => {try {return new URL(value, sourceUrl).hash;} catch {return '';}})();
-    return 'url("./' + match.filename + fragment + '")';
+    return 'url("./' + path.posix.basename(match.filename) + fragment + '")';
   });
 }
 function rewriteMarkup(html, choices, unresolved, matched) {
