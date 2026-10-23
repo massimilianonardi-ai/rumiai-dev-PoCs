@@ -26,13 +26,19 @@ res/sys/lang/it_IT/demo/message
 res/sys/lang/current -> en_US
 ```
 
-The PoC verifies a byte-equivalent output tree (`diff -r`), the physical bootstrap root after relocation, and the two native child commands running in the exported environment. It also checks that `mk --plan` does not execute build actions.
+The PoC verifies a byte-equivalent output tree (`git diff --no-index`), the physical bootstrap root after relocation, and the two native child commands running in the exported environment. It also checks that `mk --plan` does not execute build actions.
 
 ## Repeatable hosted experiment
 
 The workflow `.github/workflows/poc-072-rumiai-os-composition.yml` uses the real `mk.lib.js` from `rumiai-os` at pinned commit `5ca07aeb26dbc04c0b38998bb05edacd8587a977`; the product checkout is only an engine source, **not** the runtime environment being assembled.
 
-Local requirements: POSIX shell, Git, Node.js, `realpath`, standard filesystem utilities and `diff`. No pre-existing `m`, `pkg` or managed Node installation is used.
+Local requirements: POSIX shell, Git, Node.js, `realpath`, standard filesystem utilities and Git's tree comparison. No pre-existing `m`, `pkg` or managed Node installation is used.
+
+## First hosted results
+
+The first completed green run (commit `822555748e052dc6aad871e07046a60293fb21ae`, [run 39964211916](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/39964211916)) passed on Ubuntu and macOS with host Node.js 24.21.0. Both builders produced equivalent file contents, modes and relative selector links; both generated bootstrap entrypoints executed correctly.
+
+The experiment exposed a real host difference: macOS `diff -r` followed the `current -> en_US` directory selector and reported a loop, so the comparison now uses Git's `diff --no-index` to compare symlink entries rather than traverse them. macOS temporary directories may also have a symlinked `/var` path, so bootstrap root checks compare physical roots. Earlier failing runs are evidence of these errors, not successful validation.
 
 ## Boundaries and next experiment
 
