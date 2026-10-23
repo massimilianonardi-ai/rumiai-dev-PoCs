@@ -37,7 +37,7 @@ node -e 'Promise.resolve(require(process.argv[1]).mkMain(process.argv.slice(2)))
 sh "$poc_root/build-posix.sh"
 node -e 'Promise.resolve(require(process.argv[1]).mkMain(process.argv.slice(2))).then(s => { process.exitCode = s; }, e => { console.error(e); process.exitCode = 1; });' -- "$engine" --project "$poc_root" build
 
-diff -r "$WORK/out-posix" "$WORK/out-mk" || { printf '%s\n' 'outputs differ' >&2; exit 1; }
+git diff --no-index -- "$WORK/out-posix" "$WORK/out-mk" || { printf '%s\n' 'outputs differ' >&2; exit 1; }
 
 for name in out-posix out-mk
 do
