@@ -147,3 +147,48 @@ node localize-rendered-resources.mjs ./cumulative-dom-01 \
 - Regression in `tests/.support/localize-rendered-resources.mjs` validates CSS-relative images and WOFF2, SVG symbol fragments, **exact redirect-ID favicon alias mapping with HTML-encoded ampersands**, blocking external CSS imports, preserving inert CSP and ordinary content hyperlinks, rejecting corrupt SHA-256 and refusing to overwrite output. The final focused workflow run is linked in the current handoff; the earlier static-localizer checkpoint PASS was https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/39847215881 . **This is a synthetic resource fixture test, not a real CSS screenshot parity validation.**
 - RAW message coverage still cannot be verified until `conversation.raw.json.gz` is made accessible; `assemble-rendered-dom.mjs --raw` already supports the comparison without an additional extraction.
 
+## Audited visible-message completeness from archived React Router RAW (2026-10-23)
+
+The previous "RAW not available" boundary has been resolved using evidence
+already collected by the operator. The **saved** `text/html` response for
+`https://chatgpt.com/share/6ad1c0d5-49ec-83eb-a79b-85b04b938835` is
+`analysis-chromium-resources-02/resources/125d7335b12ba7d8ac273ce92acf1aec7435936c3ed48e788d69690814977441.html`.
+It embeds a React Router `streamController.enqueue` serialized hydration
+stream. Its first frame is a flattened reference table (29,751 entries)
+containing the `linear_conversation` array (951 references). This is real
+RAW evidence, **not** a second download or a historical model-memory guess.
+
+The 951 references break down into 1 root with no message; 21 user;
+29 system; 429 assistant; and 471 tool nodes. Applying this observed
+capture's visibility criteria—user messages addressed to `all`, and
+assistant messages addressed to `all` with `end_turn=true`, excluding
+`metadata.is_visually_hidden_from_conversation=true`—yields exactly
+**21 user + 21 final assistant messages**. Four additional completed
+assistant finals explicitly marked visually hidden are excluded.
+
+An independent comparison with the operator-uploaded 42-turn cumulative DOM
+found **zero missing or extra original message IDs and identical order**.
+Both sides' newline-joined ordered IDs have SHA-256
+`6a9aba4e9294c8c5b0e17756b59a6f4cea03e30d40ef744393d20ea3186916b3`
+from the private capture. This establishes **complete visible-message ID and
+order coverage for the archived shared conversation**—not a guarantee about
+another share, hidden technical/tool nodes, visual-pixel identity, script
+execution or live React state. The operator separately accepted the
+localized page's visual fidelity.
+
+A standalone reproducible `audit-rendered-dom-raw.mjs` entrypoint reads the
+existing `cumulative-dom-01/audit.json` and the saved HTML `Document`
+indexed by `analysis-chromium-resources-02/resources.jsonl`, verifies its
+SHA-256 and length, parses the inert hydration data as text, and emits a
+privacy-limited JSON result (counts, SHA-256 fingerprints and mismatch status
+without raw transcript/ID disclosure):
+
+```sh
+node audit-rendered-dom-raw.mjs ./cumulative-dom-01 \
+  ./analysis-chromium-resources-02 --out ./raw-completeness-01.json
+```
+
+The synthetic test `tests/.support/audit-rendered-dom-raw.mjs` covers
+hidden completed finals, intermediate tool/assistant roles, exact ID/order
+matching, missing/extra IDs and tampered HTTP archives. New artifacts stay
+private and are not automatically committed.
