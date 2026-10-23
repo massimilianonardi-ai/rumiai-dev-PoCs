@@ -13,6 +13,9 @@ WORK=$work_root/work
 mkdir -p "$WORK" "$work_root/repositories"
 export WORK
 
+# Do not rely on a caller's initialized m environment.
+unset m_ROOT m_LIB_DIR m_MK_CALLER_PATH m_MK_CALLER_HOME_DEFINED m_MK_CALLER_HOME
+
 for component in m pkg lang
 do
   repository="$work_root/repositories/$component"
@@ -53,4 +56,21 @@ do
   [ "$("$output/m" lang-root)" = "$physical_output/res/sys/lang" ] || { printf '%s\\n' 'wrong lang root' >&2; exit 1; }
 done
 
-printf '%s\n' 'PASS: two pinned Git builds, byte-equivalent trees, independent bootstrap execution'
+# Both builders must reject an unavailable pinned revision and not publish.
+M_SHA=0000000000000000000000000000000000000000
+WORK=$work_root/invalid
+export M_SHA WORK
+mkdir -p "$WORK"
+if sh "$poc_root/build-posix.sh" >/dev/null 2>&1
+then
+  printf '%s\n' 'POSIX accepted an unavailable source SHA' >&2
+  exit 1
+fi
+if node -e 'Promise.resolve(require(process.argv[1]).mkMain(process.argv.slice(2))).then(s => { process.exitCode = s; }, e => { console.error(e); process.exitCode = 1; });' -- "$engine" --project "$poc_root" build >/dev/null 2>&1
+then
+  printf '%s\n' 'mk accepted an unavailable source SHA' >&2
+  exit 1
+fi
+[ ! -e "$WORK/out-posix" ] && [ ! -e "$WORK/out-mk" ] || { printf '%s\n' 'failed build published output' >&2; exit 1; }
+
+printf '%s\n' 'PASS: equal trees, native execution, plan purity, unavailable revisions rejected'
