@@ -7,6 +7,8 @@ on:
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/render-probe.mjs'
       - 'pocs/068-chatgpt-shared-link-export/assemble-rendered-dom.mjs'
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/assemble-rendered-dom.mjs'
+      - 'pocs/068-chatgpt-shared-link-export/audit-rendered-dom-raw.mjs'
+      - 'pocs/068-chatgpt-shared-link-export/tests/.support/audit-rendered-dom-raw.mjs'
       - 'pocs/068-chatgpt-shared-link-export/localize-rendered-resources.mjs'
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/localize-rendered-resources.mjs'
       - '.github/workflows/poc-068-rendering-probe.yml'
@@ -33,6 +35,9 @@ jobs:
           node --check assemble-rendered-dom.mjs
           node --check tests/.support/assemble-rendered-dom.mjs
           node tests/.support/assemble-rendered-dom.mjs
+          node --check audit-rendered-dom-raw.mjs
+          node --check tests/.support/audit-rendered-dom-raw.mjs
+          node tests/.support/audit-rendered-dom-raw.mjs
           node --check localize-rendered-resources.mjs
           node --check tests/.support/localize-rendered-resources.mjs
           node tests/.support/localize-rendered-resources.mjs
