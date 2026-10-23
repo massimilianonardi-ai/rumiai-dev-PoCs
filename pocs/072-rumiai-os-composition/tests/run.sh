@@ -46,9 +46,11 @@ do
   [ -L "$output/res/sys/lang/current" ] || exit 1
   [ "$(readlink "$output/res/sys/lang/current")" = en_US ] || exit 1
   [ "$(cat "$output/res/sys/lang/current/demo/message")" = hello ] || exit 1
-  [ "$("$output/m")" = "$output" ] || exit 1
-  [ "$("$output/m" pkg-root)" = "$output/pkg" ] || exit 1
-  [ "$("$output/m" lang-root)" = "$output/res/sys/lang" ] || exit 1
+  physical_output=$(CDPATH= cd -- "$output" && pwd -P)
+  actual_root=$("$output/m")
+  [ "$actual_root" = "$physical_output" ] || { printf 'wrong canonical root: %s != %s\\n' "$actual_root" "$physical_output" >&2; exit 1; }
+  [ "$("$output/m" pkg-root)" = "$physical_output/pkg" ] || { printf '%s\\n' 'wrong pkg root' >&2; exit 1; }
+  [ "$("$output/m" lang-root)" = "$physical_output/res/sys/lang" ] || { printf '%s\\n' 'wrong lang root' >&2; exit 1; }
 done
 
 printf '%s\n' 'PASS: two pinned Git builds, byte-equivalent trees, independent bootstrap execution'
