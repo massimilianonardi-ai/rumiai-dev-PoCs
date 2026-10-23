@@ -103,6 +103,43 @@ Open `cumulative-dom-localized-01/index.html` locally. The output contains `asse
 
 **This is still a static, non-interactive reconstruction:** JS, network access and React are disabled by CSP; scripts, API responses, Chrome profiles and unrelated binary downloads are intentionally excluded. Original stylesheets improve the chance of visual similarity but require real screenshot comparison before claiming parity. Keep all evidence/output private, as original markup and resource URLs may contain personal data.
 
+## Verify visible-message completeness against the captured RAW
+
+The original `linear_conversation` data is already embedded in the share's
+archived HTML `Document` body collected by `web-analyze`. No additional
+network request or separate RAW export is needed for this capture.
+
+After assembling the cumulative DOM, compare its **ordered original message
+IDs** against that archived React Router hydration stream:
+
+```sh
+node audit-rendered-dom-raw.mjs \
+  ./cumulative-dom-01 \
+  ./analysis-chromium-resources-02 \
+  --out ./raw-completeness-01.json
+```
+
+The source response is found through the existing `resources.jsonl` index;
+its bytes are checked against the original SHA-256 and length. The audit does
+**not execute page scripts**. It counts RAW user messages and assistant final
+messages addressed to `all`, excluding messages explicitly marked
+`is_visually_hidden_from_conversation: true`. It compares expected IDs with
+captured DOM IDs, in order, without printing any message text or raw IDs.
+A mismatch or corrupt evidence produces a nonzero exit status; `--out`
+refuses to overwrite an existing report.
+
+For the archived PoC 068 share the hydration stream has **951 RAW nodes**,
+including **21 user messages** and **21 visible assistant final messages**.
+Four additional assistant final messages are marked visually hidden.
+The 42 captured DOM IDs match the 42 visible RAW IDs **in the same order**;
+the ordered-ID SHA-256 is
+`6a9aba4e9294c8c5b0e17756b59a6f4cea03e30d40ef744393d20ea3186916b3`.
+This establishes visible-message identity/order coverage for **this capture**,
+not a React execution, asset-parity or cross-conversation guarantee.
+
+Keep archived hydration data and audit output private; do not commit unreviewed
+browser profiles, original HTML bodies or transcript data.
+
 ## Security boundaries
 
 The URL must be an HTTPS \`chatgpt.com/share/\` conversation link, not a scheduled-task share. The exporter neither extracts cookies nor bypasses sign-in challenges. Browser profile state remains with web-control. Archive output is private data: do not commit it to public GitHub or share it without review. HTML snapshots and any image URL containing signed query parameters can reveal information, so avoid diagnostic logging of asset URLs.
