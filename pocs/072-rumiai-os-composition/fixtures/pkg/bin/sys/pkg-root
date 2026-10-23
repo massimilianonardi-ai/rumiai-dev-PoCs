@@ -1,0 +1,3 @@
+#!/bin/sh
+[ -n "${m_ROOT-}" ] && [ -n "${m_PKG_DIR-}" ] || exit 1
+printf '%s\n' "$m_PKG_DIR"

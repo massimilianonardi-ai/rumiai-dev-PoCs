@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "goals": {
+    "build": [
+      "publish"
+    ]
+  },
+  "operations": {
+    "prepare": {
+      "action": {
+        "type": "process",
+        "command": "sh",
+        "args": [
+          "-c",
+          "set -eu; mkdir -p \"$WORK/mk/sources\" \"$WORK/mk/stage/bin/sys\" \"$WORK/mk/stage/res/sys/lang\" \"$WORK/mk/stage/pkg\"; [ ! -e \"$WORK/out-mk\" ]"
+        ]
+      }
+    },
+    "clone-m": {
+      "prerequisites": [
+        "prepare"
+      ],
+      "action": {
+        "type": "process",
+        "command": "sh",
+        "args": [
+          "-c",
+          "set -eu; git clone -q -- \"$M_REPO\" \"$WORK/mk/sources/m\"; git -C \"$WORK/mk/sources/m\" checkout -q --detach \"$M_SHA\""
+        ]
+      }
+    },
+    "clone-pkg": {
+      "prerequisites": [
+        "prepare"
+      ],
+      "action": {
+        "type": "process",
+        "command": "sh",
+        "args": [
+          "-c",
+          "set -eu; git clone -q -- \"$PKG_REPO\" \"$WORK/mk/sources/pkg\"; git -C \"$WORK/mk/sources/pkg\" checkout -q --detach \"$PKG_SHA\""
+        ]
+      }
+    },
+    "clone-lang": {
+      "prerequisites": [
+        "prepare"
+      ],
+      "action": {
+        "type": "process",
+        "command": "sh",
+        "args": [
+          "-c",
+          "set -eu; git clone -q -- \"$LANG_REPO\" \"$WORK/mk/sources/lang\"; git -C \"$WORK/mk/sources/lang\" checkout -q --detach \"$LANG_SHA\""
+        ]
+      }
+    },
+    "bootstrap": {
+      "prerequisites": [
+        "clone-m",
+        "clone-pkg",
+        "clone-lang"
+      ],
+      "action": {
+        "type": "process",
+        "command": "sh",
+        "args": [
+          "-c",
+          "set -eu; cat \"$WORK/mk/sources/m/bootstrap.head.sh\" \"$WORK/mk/sources/pkg/bootstrap.env.sh\" \"$WORK/mk/sources/lang/bootstrap.env.sh\" \"$WORK/mk/sources/m/bootstrap.tail.sh\" > \"$WORK/mk/stage/m\"; chmod 755 \"$WORK/mk/stage/m\""
+        ]
+      }
+    },
+    "commands": {
+      "prerequisites": [
+        "clone-pkg",
+        "clone-lang"
+      ],
+      "action": {
+        "type": "process",
+        "command": "sh",
+        "args": [
+          "-c",
+          "set -eu; cp \"$WORK/mk/sources/pkg/bin/sys/pkg-root\" \"$WORK/mk/stage/bin/sys/pkg-root\"; cp \"$WORK/mk/sources/lang/bin/sys/lang-root\" \"$WORK/mk/stage/bin/sys/lang-root\"; chmod 755 \"$WORK/mk/stage/bin/sys/pkg-root\" \"$WORK/mk/stage/bin/sys/lang-root\""
+        ]
+      }
+    },
+    "resources": {
+      "prerequisites": [
+        "clone-lang"
+      ],
+      "action": {
+        "type": "process",
+        "command": "sh",
+        "args": [
+          "-c",
+          "set -eu; cp -R \"$WORK/mk/sources/lang/res/sys/lang/en_US\" \"$WORK/mk/stage/res/sys/lang/\"; cp -R \"$WORK/mk/sources/lang/res/sys/lang/it_IT\" \"$WORK/mk/stage/res/sys/lang/\"; ln -s en_US \"$WORK/mk/stage/res/sys/lang/current\""
+        ]
+      }
+    },
+    "publish": {
+      "prerequisites": [
+        "bootstrap",
+        "commands",
+        "resources"
+      ],
+      "action": {
+        "type": "process",
+        "command": "sh",
+        "args": [
+          "-c",
+          "set -eu; mv \"$WORK/mk/stage\" \"$WORK/out-mk\""
+        ]
+      }
+    }
+  }
+}

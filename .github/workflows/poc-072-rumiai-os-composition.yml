@@ -1,0 +1,30 @@
+name: PoC 072 RumiAI OS composition comparison
+
+on:
+  push:
+    paths:
+      - 'pocs/072-rumiai-os-composition/**'
+      - '.github/workflows/poc-072-rumiai-os-composition.yml'
+  workflow_dispatch:
+
+jobs:
+  compare:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch pinned real mk engine
+        shell: bash
+        run: |
+          git init -q mk-runtime
+          git -C mk-runtime remote add origin https://github.com/massimilianonardi-ai/rumiai-os.git
+          git -C mk-runtime fetch -q --depth=1 origin 5ca07aeb26dbc04c0b38998bb05edacd8587a977
+          git -C mk-runtime checkout -q --detach FETCH_HEAD
+      - name: Compare composition implementations with real mk
+        shell: bash
+        run: |
+          node --version
+          sh pocs/072-rumiai-os-composition/tests/run.sh "$PWD/mk-runtime/lib/sys/js/mk.lib.js"
