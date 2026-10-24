@@ -431,3 +431,27 @@ After physical rich re-rendering of the already private batch, operator:
   typeset a retained TeX source using a real formatter, or add targeted
   math source capture. Mathematical reconstruction remains **open**
   until structural evidence and physical visual acceptance.
+
+## Visual-only KaTeX recovery after physical capture survey (2026-10-24)
+
+Real operator diagnostic `inspect-math-capture.mjs` on existing private
+Internet-image share 1:
+`inspectedTurns=16`, `katexRoots=198`,
+`mathmlInKatex=0`, `texAnnotations=0`, `texAttributes=0`,
+`ariaLabels=0`, `visualOnlyKatex=198`,
+`unrecoverableKatex=198` **in the sense of absent semantic source**,
+`mathElementsOutsideKatex=0`,
+`legacySubstringMathFalsePositives=0`; turns 2:63, 4:50, 6:4,
+12:15, 14:17, 16:49. Zero earlier snapshot had MathML or TeX.
+This specifically supports *reusing KaTeX's visual DOM* and **does not**
+justify fabricating source TeX/MathML. The 198 are genuine root elements,
+not merely auxiliary-class overcounts.
+
+PoC now sanitizes the visual-only KaTeX tree (bounded span class tokens,
+approved geometry styles, simple SVG paths, no URL-dependent content or
+HTML scripts), bundles pinned KaTeX 0.16.25 CSS and local WOFF2 font data
+into the standalone offline HTML, without client-side JS or network.
+Tests cover visual geometry survival and dangerous attribute removal,
+and a complete offline export embeds KaTeX fonts. Physical vmdev inspection
+of the *actual 198 formulas* is still required and is not claimed by a
+fixture PASS. Older reading views and all captures remain untouched.

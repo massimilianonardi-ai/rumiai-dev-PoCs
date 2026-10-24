@@ -50,7 +50,14 @@ try
     '<section data-turn-id-container="private-turn-3"><div data-testid="conversation-turn-3">'+
     '<div data-message-id="private-message-3"><div class="markdown">'+
     '<p>Seconda domanda</p><span class="katex"><math><mfrac><mi>x</mi>'+
-    '<mi>y</mi></mfrac></math></span></div></div></div></section>',
+    '<mi>y</mi></mfrac></math></span>'+
+    '<span class="katex"><span class="katex-html" aria-hidden="true">'+
+    '<span class="base"><span class="mord mathnormal">z</span>'+
+    '<span class="msupsub"><span class="vlist-t"><span class="vlist-r">'+
+    '<span class="vlist" style="height:0.9em">'+
+    '<span style="top:-2.5em"><span class="mord">2</span></span>'+
+    '</span></span></span></span></span></span></span>'+
+    '</div></div></div></section>',
     ['private-message-3']);
   fs.writeFileSync(path.join(images,bodyHash+'.png'),png);
   append({kind:'network.image-response',sessionId:'capture-1',requestId:'private-request',
@@ -72,6 +79,7 @@ try
   assert.equal(result.distinctVerifiedImageBodies,1);
   assert.equal(result.unmatchedImageReferences,0);
   assert.equal(result.preservedMathFormulas,1);
+  assert.equal(result.visualKatexFormulas,1);
   assert.equal(result.linkedSources,1);
   assert.equal(result.suppressedDecorativeImages,1);
   assert.deepEqual(result.missingTurnOrdinals,[]);
@@ -80,6 +88,11 @@ try
   assert(html.includes('Seconda domanda'));
   assert(html.includes('<strong>Risposta forte</strong>'));
   assert(html.includes('<math><mfrac><mi>x</mi><mi>y</mi></mfrac></math>'));
+  assert(html.includes('class="katex-html"'));
+  assert(html.includes('class="vlist-t"'));
+  assert(html.includes('data:font/woff2;base64,'),
+    'KaTeX offline font bytes must be embedded in standalone HTML');
+  assert(!html.includes('url(fonts/'), 'KaTeX output may not fetch local/external fonts');
   assert(html.includes('href="https://source.example.org/document"'));
   assert(html.includes('data:image/png;base64,'+png.toString('base64')));
   assert(html.indexOf('Prima domanda')<html.indexOf('data:image/png;base64,'));

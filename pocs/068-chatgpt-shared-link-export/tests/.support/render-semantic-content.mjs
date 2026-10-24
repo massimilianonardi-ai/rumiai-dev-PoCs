@@ -82,4 +82,33 @@ const unsupportedStats=createSemanticStats();
 const unsupported=renderSemanticTree(unsupportedDoc,()=>null,unsupportedStats);
 assert(unsupported.includes('Formula non ricostruibile'));
 assert.equal(unsupportedStats.mathUnavailable,1);
+// Exact HTML-only KaTeX rendering must not need a lost LaTeX/MathML
+// payload. Geometry, font classes, benign layout styles and SVG survive.
+const visualDoc=parseHTML('<div class="katex-display"><span class="katex">'+
+  '<span class="katex-html" aria-hidden="true"><span class="base">'+
+  '<span class="mord"><span class="mfrac">'+
+  '<span class="vlist-t"><span class="vlist-r">'+
+  '<span class="vlist" style="height:1.5em;position:absolute;top:-1.7em;'+
+  'background-image:url(https://evil.invalid/track)">'+
+  '<span class="mord mathnormal" style="top:-2.2em;left:0.2em">'+
+  'a</span></span></span></span></span></span>'+
+  '<span class="sqrt"><svg width="100%" height="0.8em" '+
+  'viewBox="0 0 100 100" onload="alert(1)"><path d="M0 5 L95 90" '+
+  'stroke="currentColor" onclick="alert(2)"></path>'+
+  '<foreignObject><script>evil()</script></foreignObject></svg></span>'+
+  '</span></span></div>').document.querySelector('.katex-display');
+const visualStats=createSemanticStats();
+const visualHtml=renderSemanticTree(visualDoc,()=>null,visualStats);
+assert.equal(visualStats.mathVisualPreserved,1);
+assert.equal(visualStats.mathUnavailable,0);
+assert(visualHtml.includes('class="katex-display"'));
+assert(visualHtml.includes('class="katex-html"'));
+assert(visualHtml.includes('class="vlist-t"'));
+assert(visualHtml.includes('style="top:-2.2em;left:0.2em"'));
+assert(visualHtml.includes('<svg '));
+assert(visualHtml.includes('<path '));
+for(const forbidden of ['position:absolute','background-image','evil.invalid',
+  '<script','foreignObject','onload','onclick','alert('])
+  assert(!visualHtml.includes(forbidden),'HTML-only KaTeX leaked '+forbidden);
+
 console.log('PASS: semantic HTML, MathML, TeX fallback, source links without giant icons, inert markup');

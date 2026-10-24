@@ -6,6 +6,7 @@ import path from 'node:path';
 import os from 'node:os';
 import crypto from 'node:crypto';
 import {parseHTML} from 'linkedom';
+import {embeddedKatexCss} from './embed-katex-css.mjs';
 import {assemble} from './assemble-rendered-dom.mjs';
 import {escapeHtml} from './render-readable-image-preview.mjs';
 import {renderSemanticMessage,renderSemanticTree,createSemanticStats}
@@ -131,7 +132,8 @@ export function renderSameSessionOffline(captureDir,outputDir)
     embeddedImageOccurrences:0,distinctVerifiedImageBodies:0,
     unmatchedImageReferences:0,ambiguousImageReferences:0,
     srcFallbackAfterAbsentCurrentSrc:0,
-    preservedMathFormulas:0,mathSourceFallbacks:0,unavailableMathFormulas:0,
+    preservedMathFormulas:0,visualKatexFormulas:0,
+    mathSourceFallbacks:0,unavailableMathFormulas:0,
     linkedSources:0,suppressedDecorativeImages:0,
     missingTextOrdinals:[],missingImageOrdinals:[],
     missingTurnOrdinals:audit.missingOrdinals,
@@ -140,7 +142,7 @@ export function renderSameSessionOffline(captureDir,outputDir)
     limitations:[
       'Only observed DOM turn snapshots are represented; original RAW conversation completeness is not established',
       'Image bytes are tied to exact CDP request URLs and session/request identifiers, not merely matching paths',
-      'Semantic HTML is rebuilt from captured nodes; fidelity of MathML and citations needs physical verification',
+      'Semantic HTML is rebuilt from captured nodes; KaTeX visual-only formulas use a pinned offline CSS/font rendition that still requires physical visual verification',
       'Browser pixels, image-role ownership and assistant finality are not proven',
       'currentSrc-unavailable snapshots use src only when the exact same-session request body is saved',
       'This independent, inert reading layout does not reproduce ChatGPT styling'
@@ -217,6 +219,7 @@ export function renderSameSessionOffline(captureDir,outputDir)
     counts.embeddedImageOccurrences+=semantic.contentImageOccurrences;
     counts.srcFallbackAfterAbsentCurrentSrc+=semantic.srcFallbackAfterAbsentCurrentSrc;
     counts.preservedMathFormulas+=semantic.mathPreserved;
+    counts.visualKatexFormulas+=semantic.mathVisualPreserved;
     counts.mathSourceFallbacks+=semantic.mathFallback;
     counts.unavailableMathFormulas+=semantic.mathUnavailable;
     counts.linkedSources+=semantic.linkedSources;
@@ -248,13 +251,16 @@ export function renderSameSessionOffline(captureDir,outputDir)
     '.prewrap{white-space:pre-wrap}figure{margin:16px 0}'+
     'figure img{display:block;max-width:100%;height:auto;border-radius:6px}'+
     'figcaption,small{color:#555;font-size:.85rem}';
+  // The source KaTeX HTML is already typeset and needs CSS/font assets, not
+  // executable JavaScript. Embed pinned CSS/WOFF2 only when used.
+  const katexCss=counts.visualKatexFormulas ? embeddedKatexCss() : '';
   const csp="default-src 'none'; img-src data:; style-src 'unsafe-inline'; "+
-    "script-src 'none'; connect-src 'none'; font-src 'none'; frame-src 'none'; "+
+    "script-src 'none'; connect-src 'none'; font-src data:; frame-src 'none'; "+
     "object-src 'none'; base-uri 'none'; form-action 'none'";
   const html='<!doctype html><html lang="it"><head><meta charset="utf-8">'+
     '<meta http-equiv="Content-Security-Policy" content="'+escapeHtml(csp)+'">'+
     '<meta name="viewport" content="width=device-width,initial-scale=1">'+
-    '<title>PoC 068 — archivio offline</title><style>'+css+'</style></head>'+
+    '<title>PoC 068 — archivio offline</title><style>'+css+'\n'+katexCss+'</style></head>'+
     '<body><h1>Conversazione — lettura offline</h1>'+
     '<small>Acquisizione nella stessa sessione Chromium; risorse immagine verificate con SHA-256.'+
     ' La completezza della conversazione e il ruolo dei turni immagine restano da verificare.</small>'+

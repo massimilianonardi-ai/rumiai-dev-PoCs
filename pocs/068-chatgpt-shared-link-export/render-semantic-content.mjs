@@ -85,6 +85,65 @@ function mathElement(node)
   const children=[...node.childNodes].map(mathElement).join('');
   return '<'+name+attrs(node,[...mathAttrs])+'>'+children+'</'+name+'>';
 }
+// KaTeX's HTML-only representation is already fully typeset. Retain only
+// inert span/SVG geometry and KaTeX-specific styling; never copy arbitrary DOM.
+const visualTags=new Set(['span','svg','path','g','rect','line','br']);
+const svgGeometry=new Set(['d','viewBox','preserveAspectRatio','width','height',
+  'x','y','x1','x2','y1','y2','rx','ry','fill','stroke','stroke-width',
+  'stroke-linecap','stroke-linejoin']);
+const cssProperties=new Set(['height','width','min-width','max-width',
+  'top','left','right','bottom','margin-left','margin-right','margin-top',
+  'margin-bottom','padding-left','padding-right','vertical-align',
+  'border-bottom-width','border-right-width','border-left-width',
+  'border-top-width','border-bottom-style','border-right-style',
+  'border-left-style','border-top-style','background-color','color',
+  'opacity','transform']);
+function safeKatexStyle(source)
+{
+  if(!source || source.length>1600) return '';
+  const pieces=[];
+  for (const field of source.split(';'))
+  {
+    const i=field.indexOf(':');
+    if(i<=0) continue;
+    const key=field.slice(0,i).trim().toLowerCase();
+    const value=field.slice(i+1).trim();
+    if(!cssProperties.has(key) || !value || value.length>150 ||
+        /url\s*\(|expression\s*\(|var\s*\(|@|[<>{};\\]/i.test(value) ||
+        !/^[a-zA-Z0-9()\s,.-%+#*/]+$/.test(value)) continue;
+    pieces.push(key+':'+value);
+  }
+  return pieces.length ? ' style="'+escapeHtml(pieces.join(';'))+'"' : '';
+}
+function visualKatex(node)
+{
+  if(node.nodeType===3) return escapeHtml(node.nodeValue||'');
+  if(node.nodeType!==1) return '';
+  const name=tagOf(node);
+  if(!visualTags.has(name)) return '';
+  if(name==='br') return '<br>';
+  let attributes='';
+  if(name==='span')
+  {
+    const classes=(node.getAttribute('class')||'').split(/\s+/)
+      .filter(x=>/^[a-zA-Z][a-zA-Z0-9_-]{0,70}$/.test(x)).slice(0,24);
+    if(classes.length) attributes+=' class="'+escapeHtml(classes.join(' '))+'"';
+    attributes+=safeKatexStyle(node.getAttribute('style'));
+  }
+  else
+  {
+    for(const key of svgGeometry)
+    {
+      const value=node.getAttribute(key);
+      if(value && value.length<=25000 &&
+          /^[a-zA-Z0-9.,\s+\-%#]*$/.test(value))
+        attributes+=' '+key+'="'+escapeHtml(value)+'"';
+    }
+  }
+  return '<'+name+attributes+'>'+
+    [...node.childNodes].map(visualKatex).join('')+'</'+name+'>';
+}
+
 function mathFrom(node,stats)
 {
   const math=tagOf(node)==='math' ? node :
@@ -93,6 +152,15 @@ function mathFrom(node,stats)
   {
     stats.mathPreserved++;
     return mathElement(math);
+  }
+  // Real ChatGPT shares may contain a visual-only KaTeX subtree with no
+  // MathML, TeX annotation, or data-latex. This rendered geometry is valid
+  // evidence and can be replayed with KaTeX's trusted local CSS and fonts.
+  const visual=node.querySelector?.('.katex-html');
+  if(visual && (visual.textContent?.trim() || visual.querySelector('svg')))
+  {
+    stats.mathVisualPreserved++;
+    return visualKatex(node);
   }
   const tex=node.getAttribute?.('data-latex') ||
     node.querySelector?.('annotation[encoding="application/x-tex"]')?.textContent;
@@ -183,6 +251,8 @@ export function renderSemanticTree(root,imageFor,stats)
       return '<a href="'+escapeHtml(href)+'" target="_blank" rel="noopener noreferrer">'+
         childHtml(node)+'</a>';
     }
+    if (classes.includes('katex-display'))
+      return '<div class="katex-display">'+childHtml(node)+'</div>';
     if (name==='br' || name==='hr') return '<'+name+'>';
     if (visible.has(name))
     {
@@ -210,7 +280,7 @@ export function renderSemanticTree(root,imageFor,stats)
 }
 export function createSemanticStats()
 {
-  return {mathPreserved:0,mathFallback:0,mathUnavailable:0,
+  return {mathPreserved:0,mathVisualPreserved:0,mathFallback:0,mathUnavailable:0,
     linkedSources:0,suppressedDecorativeImages:0,
     contentImageOccurrences:0,unmatchedContentImages:0,
     srcFallbackAfterAbsentCurrentSrc:0,usedBodies:new Set()};

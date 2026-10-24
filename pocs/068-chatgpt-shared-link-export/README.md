@@ -530,3 +530,40 @@ good** apart from optional attachments. Those attachments can be
 misleading transcript duplicates; no attachment export is introduced.
 Do not claim that correcting placeholder counts itself reconstructs
 mathematical formulas.
+
+
+## Replaying captured HTML-only KaTeX formulas without a new browser capture
+
+The first real image/text capture has **198 actual KaTeX roots** on six
+turns, with `katex-html` visual geometry but **zero MathML, TeX annotations,
+TeX attributes or earlier snapshots containing them**. This is not merely a
+bad snapshot selection. Preserve the already-typeset HTML geometry rather
+than attempting to infer original source LaTeX.
+
+The offline semantic reader now keeps a tightly allowlisted subset of
+KaTeX span classes, numeric layout styles, SVG paths and text, and embeds
+the pinned **KaTeX 0.16.25** CSS with bundled WOFF2 fonts from the **installed
+npm package**. The output `index.html` remains self-contained and works
+without network or JavaScript. Untrusted styles, event handlers, remote
+resources, foreignObjects and other executable DOM are removed. The
+source formula has **not** been recovered semantically: the exported
+representation is faithful *visual HTML*, subject to physical inspection.
+
+From the PoC folder after `git pull --ff-only`:
+
+```sh
+npm ci --no-audit --no-fund
+node render-same-session-offline.mjs \
+  /home/admino/chatgpt-batch-vGRePjHh/1-capture \
+  /home/admino/chatgpt-batch-vGRePjHh/1-reading-katex
+xdg-open /home/admino/chatgpt-batch-vGRePjHh/1-reading-katex/index.html
+```
+
+The older `1-reading-rich` and the user-accepted `3-reading-rich` stay
+untouched. The JSON audit now contains `visualKatexFormulas`; a nonzero
+value certifies *preserved and serialized visual markup*, not visual
+correctness as rendered by a specific browser. The operator must inspect
+fractions, exponents, radicals, delimiters and alignment. Attachment export
+is deliberately not added, as the current user judged it optional and
+potentially misleading in these transcript shares. Historical shared
+browser captures remain private and outside public Git.

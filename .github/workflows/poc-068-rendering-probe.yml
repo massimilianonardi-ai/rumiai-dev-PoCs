@@ -14,6 +14,9 @@ on:
       - 'pocs/068-chatgpt-shared-link-export/render-readable-image-preview.mjs'
       - 'pocs/068-chatgpt-shared-link-export/render-same-session-offline.mjs'
       - 'pocs/068-chatgpt-shared-link-export/render-semantic-content.mjs'
+      - 'pocs/068-chatgpt-shared-link-export/embed-katex-css.mjs'
+      - 'pocs/068-chatgpt-shared-link-export/package.json'
+      - 'pocs/068-chatgpt-shared-link-export/package-lock.json'
       - 'pocs/068-chatgpt-shared-link-export/inspect-math-capture.mjs'
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/inspect-math-capture.mjs'
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/render-semantic-content.mjs'
@@ -41,6 +44,8 @@ jobs:
         run: |
           set -eu
           cd pocs/068-chatgpt-shared-link-export
+          npm ci --no-audit --no-fund
+          node --check embed-katex-css.mjs
           node --check render-probe.mjs
           node --check tests/.support/render-probe.mjs
           node --check assemble-rendered-dom.mjs
