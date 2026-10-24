@@ -30,6 +30,7 @@ const app = [
   "for(let i=0;i<16;i++){",
   "  const turn=document.createElement('section');",
   "  turn.dataset.turnIdContainer='turn-'+i;",
+  "  turn.dataset.testid='conversation-turn-'+i;",
   "  root.append(turn);observer.observe(turn);",
   "}",
   "const imageTurn=document.createElement('section');",
