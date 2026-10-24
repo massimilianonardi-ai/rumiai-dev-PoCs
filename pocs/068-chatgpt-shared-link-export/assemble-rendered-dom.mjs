@@ -72,6 +72,9 @@ export function assemble(captureDir, outputDir, rawPath = null, options = {}) {
     const ordinalMatches = [...html.matchAll(/\bdata-testid="conversation-turn-(\d+)"/g)]
       .map(m => Number(m[1]));
     const indices = [...new Set(ordinalMatches)];
+    // A source frame without a conversation ordinal is not placeable in
+    // the cumulative timeline; skip only such unidentified probe evidence.
+    if (unidentified && indices.length === 0) continue;
     if (wrapper?.[1] !== event.turnId || indices.length !== 1 ||
         !Number.isSafeInteger(indices[0]))
       throw Error('Ambiguous turn identity or ordinal at event ' + event.sequence);
