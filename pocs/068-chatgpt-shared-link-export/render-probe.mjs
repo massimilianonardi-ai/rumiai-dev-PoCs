@@ -185,8 +185,11 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const sha = data => crypto.createHash('sha256').update(data).digest('hex');
 
 class Cdp {
-  constructor(url, report, captureImageUrls = false) {
+  constructor(url, report, captureImageUrls = false, storeImage = null) {
     this.url = url; this.report = report; this.pending = new Map();
+    this.storeImage = storeImage;
+    this.imageResponses = new Map();
+    this.imageBodyJobs = new Set();
     // One CDP session for DOM and network; signed URLs remain private.
     this.captureImageUrls = captureImageUrls;
     this.networkRequests = new Map();
@@ -247,11 +250,30 @@ class Cdp {
           requestUrl: url
         });
       }
+    } else if (this.storeImage && method === 'Network.loadingFinished') {
+      const key = JSON.stringify([sessionId, params.requestId]);
+      const response = this.imageResponses.get(key);
+      this.imageResponses.delete(key);
+      if (response) {
+        const job = this.readImageBody(response);
+        this.imageBodyJobs.add(job);
+        void job.finally(() => this.imageBodyJobs.delete(job));
+      }
+    } else if (this.storeImage && method === 'Network.loadingFailed') {
+      const key = JSON.stringify([sessionId, params.requestId]);
+      const response = this.imageResponses.get(key);
+      this.imageResponses.delete(key);
+      if (response) this.report({kind: 'network.image-body',
+        requestId: response.requestId, status: 'loading-failed'}, response.sessionId);
     } else if (this.captureImageUrls && method === 'Network.responseReceived') {
       const mime = String(params.response?.mimeType || '').toLowerCase();
       if (mime.startsWith('image/') || params.type === 'Image') {
         const id = JSON.stringify([sessionId, params.requestId]);
         const request = this.networkRequests.get(id);
+        if (this.storeImage) this.imageResponses.set(id, {
+          sessionId, requestId: params.requestId, mime,
+          status: params.response?.status, url: params.response?.url
+        });
         this.report({kind:'network.image-response',
           requestId:params.requestId, initialUrl:request?.initialUrl || null,
           requestUrl:request?.requestUrl || null,
@@ -266,6 +288,27 @@ class Cdp {
       try {this.report(JSON.parse(params.payload), sessionId);}
       catch {this.report({kind: 'probe.event-decode-failed'}, sessionId);}
     }
+  }
+  async readImageBody(response) {
+    const detail = {kind:'network.image-body',requestId:response.requestId};
+    try {
+      if (!(response.status >= 200 && response.status < 300)) {
+        this.report({...detail,status:'http-status-not-success'},response.sessionId);
+        return;
+      }
+      const body = await this.send('Network.getResponseBody',
+        {requestId:response.requestId},response.sessionId,12000);
+      const bytes = body.base64Encoded ?
+        Buffer.from(body.body || '', 'base64') : Buffer.from(body.body || '', 'utf8');
+      const result = this.storeImage(response,bytes);
+      this.report({...detail,...result},response.sessionId);
+    } catch {
+      // Do not expose signed image URLs or CDP exception strings in CLI diagnostics.
+      this.report({...detail,status:'body-unavailable'},response.sessionId);
+    }
+  }
+  async drainImageBodies() {
+    await Promise.allSettled([...this.imageBodyJobs]);
   }
   async setup(sid, type) {
     try {
@@ -293,6 +336,39 @@ function recording(directory) {
       throw Error('Previous evidence exists: ' + entry);
   fs.mkdirSync(path.join(directory, 'turns'), {mode: 0o700});
   const fd = fs.openSync(path.join(directory, 'events.jsonl'), 'wx', 0o600);
+  let imageBytesTotal = 0;
+  const imageFiles = new Set();
+  const formats = {
+    'image/png': {extension:'png', signature:bytes =>
+      bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))},
+    'image/jpeg': {extension:'jpg', signature:bytes =>
+      bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255},
+    'image/webp': {extension:'webp', signature:bytes =>
+      bytes.toString('ascii',0,4) === 'RIFF' &&
+      bytes.toString('ascii',8,12) === 'WEBP'},
+    'image/gif': {extension:'gif', signature:bytes =>
+      ['GIF87a','GIF89a'].includes(bytes.toString('ascii',0,6))}
+  };
+  function storeImage(response,bytes) {
+    const mime = response.mime.split(';')[0].trim();
+    const format = formats[mime];
+    if (!format) return {status:'mime-unsupported'};
+    if (bytes.length < 12 || bytes.length > 12*1024*1024 || !format.signature(bytes))
+      return {status:'body-invalid-or-too-large'};
+    if (imageBytesTotal + bytes.length > 64*1024*1024 ||
+        imageFiles.size >= 128 && !imageFiles.has(sha(bytes)))
+      return {status:'capture-limit'};
+    const digest = sha(bytes), name = 'images/' + digest + '.' + format.extension;
+    fs.mkdirSync(path.join(directory,'images'),{recursive:true,mode:0o700});
+    if (!imageFiles.has(digest)) {
+      try {fs.writeFileSync(path.join(directory,name),bytes,{flag:'wx',mode:0o600});}
+      catch(error) {if(error.code !== 'EEXIST') throw error;}
+      imageFiles.add(digest);
+      imageBytesTotal += bytes.length;
+    }
+    return {status:'saved',file:name,sha256:digest,bytes:bytes.length,
+      mimeType:mime};
+  }
   let sequence = 0, finished = false;
   const counts = {}, files = new Set();
   function record(event, sessionId) {
@@ -322,7 +398,7 @@ function recording(directory) {
       {flag: 'wx', mode: 0o600});
     return summary;
   }
-  return {record, finish};
+  return {record, finish, storeImage};
 }
 
 async function sweep(cdp, sid, record) {
@@ -365,8 +441,8 @@ async function sweep(cdp, sid, record) {
 
 async function run(args) {
   const [url, outputName, ...flags] = args;
-  if (!url || !outputName || flags.some(x => !['--headless','--sweep','--compare-image-urls'].includes(x))) {
-    process.stderr.write('Usage: node render-probe.mjs <url> <output-dir> [--sweep] [--headless] [--compare-image-urls]\n');
+  if (!url || !outputName || flags.some(x => !['--headless','--sweep','--compare-image-urls','--capture-image-bodies'].includes(x))) {
+    process.stderr.write('Usage: node render-probe.mjs <url> <output-dir> [--sweep] [--headless] [--compare-image-urls] [--capture-image-bodies]\n');
     return 2;
   }
   const parsed = new URL(url);
@@ -386,7 +462,10 @@ async function run(args) {
     if (closing) return closing;
     closing = (async () => {
       log.record({kind:'session.stop',reason});
-      if (cdp && !cdp.closed) {try {await cdp.send('Browser.close', {}, undefined, 1000);} catch {}}
+      if (cdp && !cdp.closed) {
+        await cdp.drainImageBodies();
+        try {await cdp.send('Browser.close', {}, undefined, 1000);} catch {}
+      }
       if (browser.exitCode === null && browser.signalCode === null) {
         browser.kill('SIGTERM'); await Promise.race([browserExited, pause(1500)]);
       }
@@ -404,7 +483,9 @@ async function run(args) {
     while (!fs.existsSync(portFile) && performance.now() < startupLimit) await pause(75);
     if (!fs.existsSync(portFile)) throw Error('Chromium did not publish its CDP port');
     const [port, endpoint] = fs.readFileSync(portFile,'utf8').trim().split(/\r?\n/);
-    cdp = new Cdp('ws://127.0.0.1:' + port + endpoint, log.record, flags.includes('--compare-image-urls'));
+    cdp = new Cdp('ws://127.0.0.1:' + port + endpoint, log.record,
+      flags.includes('--compare-image-urls') || flags.includes('--capture-image-bodies'),
+      flags.includes('--capture-image-bodies') ? log.storeImage : null);
     await cdp.connect();
     await cdp.send('Target.setDiscoverTargets', {discover:true});
     await cdp.send('Target.setAutoAttach', {autoAttach:true,

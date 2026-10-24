@@ -7,7 +7,7 @@ import crypto from 'node:crypto';
 import {parseHTML} from 'linkedom';
 
 const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
-const escapeHtml = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+export const escapeHtml = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;')
   .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 const pngName = /^\.\/assets\/([a-f0-9]{64})\.png$/;
 const pngSignature = Buffer.from([137,80,78,71,13,10,26,10]);
@@ -27,7 +27,7 @@ function readText(node) {
   return blockTags.has(name) ? text + '\n' : text;
 }
 
-function messageText(node) {
+export function messageText(node) {
   const target = node.querySelector('[data-testid="message-content"]') ||
     node.querySelector('.whitespace-pre-wrap') ||
     node.querySelector('.markdown') || node;

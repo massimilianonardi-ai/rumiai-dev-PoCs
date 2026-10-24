@@ -1,0 +1,245 @@
+'use strict';
+// Privacy-preserving report and inert content view from a single CDP capture.
+// Requires --capture-image-bodies; never fetches network content during rendering.
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import crypto from 'node:crypto';
+import {parseHTML} from 'linkedom';
+import {assemble} from './assemble-rendered-dom.mjs';
+import {escapeHtml, messageText} from './render-readable-image-preview.mjs';
+
+const sha256 = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
+const imageFile = /^images\/([a-f0-9]{64})\.(png|jpg|webp|gif)$/;
+const types = {'image/png':'png','image/jpeg':'jpg','image/webp':'webp','image/gif':'gif'};
+const signatures = {
+  png:bytes => bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])),
+  jpg:bytes => bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255,
+  webp:bytes => bytes.toString('ascii',0,4) === 'RIFF' && bytes.toString('ascii',8,12) === 'WEBP',
+  gif:bytes => ['GIF87a','GIF89a'].includes(bytes.toString('ascii',0,6))
+};
+function readJsonl(filename)
+{
+  return fs.readFileSync(filename,'utf8').split(/\r?\n/).filter(Boolean).map((line,index) =>
+  {
+    try {return JSON.parse(line);}
+    catch {throw Error('Invalid capture event at line '+(index+1));}
+  });
+}
+function absoluteUrl(value)
+{
+  if (typeof value !== 'string' || !value) return null;
+  try
+  {
+    const url = new URL(value);
+    if (!['https:','http:'].includes(url.protocol)) return null;
+    url.hash = '';
+    return url.href;
+  }
+  catch {return null;}
+}
+function safeBody(capture,event)
+{
+  const match = imageFile.exec(event.file || '');
+  if (!match || match[1] !== event.sha256 ||
+      types[event.mimeType] !== match[2])
+    throw Error('Unsafe image-body provenance');
+  const bytes = fs.readFileSync(path.join(capture,event.file));
+  if (bytes.length !== event.bytes || bytes.length > 12*1024*1024 ||
+      bytes.length < 12 || sha256(bytes) !== match[1] ||
+      !signatures[match[2]](bytes))
+    throw Error('Captured image integrity or signature failed');
+  return {hash:match[1],mime:event.mimeType,bytes};
+}
+function mediaIndex(capture,events)
+{
+  const requests = new Map();
+  const bodies = new Map();
+  for (const event of events)
+  {
+    if (event.kind !== 'network.image-response' &&
+        event.kind !== 'network.image-body') continue;
+    const key = JSON.stringify([event.sessionId,event.requestId]);
+    if (event.kind === 'network.image-response')
+    {
+      if (!requests.has(key)) requests.set(key, []);
+      requests.get(key).push(event);
+    }
+    else if (event.status === 'saved')
+    {
+      if (bodies.has(key)) throw Error('Duplicate body identity for one CDP request');
+      bodies.set(key,safeBody(capture,event));
+    }
+  }
+  if (!bodies.size) throw Error('No captured image bytes; use --capture-image-bodies');
+  const bySession = new Map();
+  for (const [key,body] of bodies)
+  {
+    const rows = requests.get(key) || [];
+    if (rows.length !== 1) throw Error('Ambiguous image response identity for captured body');
+    const row = rows[0], session = row.sessionId || '';
+    if (!bySession.has(session)) bySession.set(session,new Map());
+    const urls = [row.initialUrl,row.requestUrl,row.responseUrl]
+      .map(absoluteUrl).filter(Boolean);
+    if (!urls.length) throw Error('Image response has no usable request URL');
+    for (const url of urls)
+    {
+      const byUrl = bySession.get(session);
+      if (!byUrl.has(url)) byUrl.set(url,new Map());
+      byUrl.get(url).set(body.hash,body);
+    }
+  }
+  return bySession;
+}
+function chooseImage(index,session,selection)
+{
+  // currentSrc is the browser's selected URL. A missing currentSrc may be
+  // resolved from src only if an exact CDP request has a verified saved body.
+  const current = absoluteUrl(selection?.currentSrc);
+  const source = absoluteUrl(selection?.resolvedSrc || selection?.src);
+  const url = current || source;
+  if (!url) return {status:'not-http-image'};
+  const found = index.get(session || '')?.get(url);
+  if (!found || !found.size) return {status:'not-captured'};
+  if (found.size !== 1) return {status:'ambiguous-url-bodies'};
+  return {status:'verified-request-body',body:[...found.values()][0],
+    usedSourceFallback:!current};
+}
+
+export function renderSameSessionOffline(captureDir,outputDir)
+{
+  const capture = path.resolve(captureDir), output = path.resolve(outputDir);
+  if (capture === output || output.startsWith(capture + path.sep))
+    throw Error('Output must not be inside capture directory');
+  if (fs.existsSync(output)) throw Error('Output already exists: '+output);
+  const events = readJsonl(path.join(capture,'events.jsonl'));
+  const media = mediaIndex(capture,events);
+  const snapshots = new Map(events
+    .filter(e => e.kind === 'turn.snapshot' || e.kind === 'turn.unidentified-snapshot')
+    .map(e => [e.sequence,e]));
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(),'poc068-offline-'));
+  let audit;
+  try
+  {
+    assemble(capture,path.join(temp,'assembled'),null,{includeUnidentifiedImages:true});
+    audit = JSON.parse(fs.readFileSync(path.join(temp,'assembled','audit.json'),'utf8'));
+  }
+  finally {fs.rmSync(temp,{recursive:true,force:true});}
+  const counts = {status:'same-session-offline',turns:0,textTurns:0,
+    textTurnsWithContent:0,imageBearingTurns:0,imageTurnsWithVerifiedBodies:0,
+    embeddedImageOccurrences:0,distinctVerifiedImageBodies:0,
+    unmatchedImageReferences:0,ambiguousImageReferences:0,
+    srcFallbackAfterAbsentCurrentSrc:0,
+    missingTextOrdinals:[],missingImageOrdinals:[],
+    missingTurnOrdinals:audit.missingOrdinals,
+    rawMessageAttribution:'not-verified',
+    limitations:[
+      'Only observed DOM turn snapshots are represented; original RAW conversation completeness is not established',
+      'Image bytes are tied to exact CDP request URLs and session/request identifiers, not merely matching paths',
+      'Browser pixels, image-role ownership and assistant finality are not proven',
+      'currentSrc-unavailable snapshots use src only when the exact same-session request body is saved',
+      'This independent, inert reading layout does not reproduce ChatGPT styling'
+    ]};
+  const fragments = [], usedBodies = new Set();
+  for (const turn of audit.turns)
+  {
+    counts.turns++;
+    const event = snapshots.get(turn.selected.sequence);
+    if (!event || event.file !== turn.selected.file ||
+        event.sha256 !== turn.selected.sha256)
+      throw Error('Selected turn provenance mismatch');
+    const file = /^turns\/([a-f0-9]{64})\.html$/.exec(event.file || '');
+    if (!file || file[1] !== event.sha256) throw Error('Unsafe turn snapshot reference');
+    const bytes = fs.readFileSync(path.join(capture,event.file));
+    if (sha256(bytes) !== event.sha256 || bytes.length !== event.bytes)
+      throw Error('Turn snapshot integrity failed');
+    const {document} = parseHTML(bytes.toString('utf8'));
+    const wrapper = document.querySelector('[data-turn-id-container]');
+    if (!wrapper) throw Error('Missing captured turn wrapper');
+    const qualified = [...wrapper.querySelectorAll('[data-message-id]')]
+      .filter(node => !node.parentElement?.closest('[data-message-id]'));
+    const texts = qualified.map(messageText).filter(Boolean);
+    if (qualified.length) {
+      counts.textTurns++;
+      if (texts.length) counts.textTurnsWithContent++;
+      else counts.missingTextOrdinals.push(turn.ordinal);
+    }
+    const imgs = [...wrapper.querySelectorAll('img')];
+    const selections = event.imageSelections;
+    if (imgs.length && (!Array.isArray(selections) ||
+        imgs.length > selections.length))
+      throw Error('Missing browser-selected image URL evidence in turn '+turn.ordinal);
+    if (imgs.length) counts.imageBearingTurns++;
+    const figures = [], usedInTurn = new Set();
+    for (let i=0;i<imgs.length;i++)
+    {
+      const match = chooseImage(media,event.sessionId,selections[i]);
+      if (match.status !== 'verified-request-body')
+      {
+        counts.unmatchedImageReferences++;
+        if (match.status === 'ambiguous-url-bodies') counts.ambiguousImageReferences++;
+        continue;
+      }
+      const body=match.body;
+      // Multiple matching snapshots or duplicate rendered <img> nodes are not
+      // independent responses; preserve per-turn image ordering once per body.
+      if (usedInTurn.has(body.hash)) continue;
+      usedInTurn.add(body.hash);
+      usedBodies.add(body.hash);
+      counts.embeddedImageOccurrences++;
+      if (match.usedSourceFallback) counts.srcFallbackAfterAbsentCurrentSrc++;
+      const dataUrl='data:'+body.mime+';base64,'+body.bytes.toString('base64');
+      figures.push('<figure><img src="'+dataUrl+'" alt="Immagine del turno '+
+        turn.ordinal+'"><figcaption>Risorsa locale SHA-256 verificata; ruolo non attribuito</figcaption></figure>');
+    }
+    if (imgs.length)
+    {
+      if (figures.length) counts.imageTurnsWithVerifiedBodies++;
+      else counts.missingImageOrdinals.push(turn.ordinal);
+    }
+    const messages = texts.map(text => '<div class="message">'+escapeHtml(text)+'</div>').join('');
+    const contents = messages+figures.join('');
+    fragments.push('<article class="turn"><h2>Turno '+turn.ordinal+'</h2>'+
+      (contents || '<p>Contenuto non recuperato negli snapshot selezionati.</p>')+
+      '</article>');
+  }
+  counts.distinctVerifiedImageBodies=usedBodies.size;
+  if (counts.missingImageOrdinals.length || counts.unmatchedImageReferences)
+    counts.status='same-session-offline-partial';
+  const css='body{font:16px/1.55 system-ui,sans-serif;max-width:900px;'+
+    'margin:0 auto;padding:24px;color:#222;background:#f6f6f6}'+
+    'h1{font-size:1.5rem}h2{font-size:1.08rem}'+
+    '.turn{background:white;border:1px solid #ddd;border-radius:10px;'+
+    'margin:20px 0;padding:20px}.message{white-space:pre-wrap;overflow-wrap:anywhere}'+
+    'figure{margin:16px 0}img{display:block;max-width:100%;height:auto;border-radius:6px}'+
+    'figcaption,small{color:#555;font-size:.85rem}';
+  const csp="default-src 'none'; img-src data:; style-src 'unsafe-inline'; "+
+    "script-src 'none'; connect-src 'none'; font-src 'none'; frame-src 'none'; "+
+    "object-src 'none'; base-uri 'none'; form-action 'none'";
+  const html='<!doctype html><html lang="it"><head><meta charset="utf-8">'+
+    '<meta http-equiv="Content-Security-Policy" content="'+escapeHtml(csp)+'">'+
+    '<meta name="viewport" content="width=device-width,initial-scale=1">'+
+    '<title>PoC 068 — archivio offline</title><style>'+css+'</style></head>'+
+    '<body><h1>Conversazione — lettura offline</h1>'+
+    '<small>Acquisizione nella stessa sessione Chromium; risorse immagine verificate con SHA-256.'+
+    ' La completezza della conversazione e il ruolo dei turni immagine restano da verificare.</small>'+
+    '<main>'+fragments.join('\n')+'</main></body></html>\n';
+  fs.mkdirSync(output,{recursive:true,mode:0o700});
+  fs.writeFileSync(path.join(output,'index.html'),html,{flag:'wx',mode:0o600});
+  fs.writeFileSync(path.join(output,'audit.json'),JSON.stringify(counts,null,2)+'\n',
+    {flag:'wx',mode:0o600});
+  return {output,...counts};
+}
+if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname))
+{
+  if (process.argv.length !== 4)
+  {
+    console.error('Usage: node render-same-session-offline.mjs <capture-dir> <new-output-dir>');
+    process.exitCode=2;
+  }
+  else
+  {
+    try {console.log(JSON.stringify(renderSameSessionOffline(process.argv[2],process.argv[3]),null,2));}
+    catch (error) {console.error(error.message);process.exitCode=1;}
+  }
+}

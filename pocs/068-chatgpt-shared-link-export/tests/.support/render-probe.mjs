@@ -1,5 +1,6 @@
 'use strict';
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -7,6 +8,7 @@ import http from 'node:http';
 import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {inspectSameSessionImageUrls} from '../../inspect-image-capture.mjs';
+import {renderSameSessionOffline} from '../../render-same-session-offline.mjs';
 
 const base = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const script = path.join(base, 'render-probe.mjs');
@@ -55,7 +57,7 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), 'rumiai-render-probe-test-'))
 try {
   const out = path.join(root,'capture');
   const child = spawn(process.execPath, [script,
-    'http://127.0.0.1:'+server.address().port+'/', out, '--sweep', '--headless', '--compare-image-urls'],
+    'http://127.0.0.1:'+server.address().port+'/', out, '--sweep', '--headless', '--capture-image-bodies'],
     {stdio:['ignore','pipe','pipe']});
   let stdout='',stderr='';
   child.stdout.on('data', chunk => {stdout+=String(chunk);});
@@ -107,7 +109,6 @@ try {
     assert(fs.readFileSync(path.join(out,row.file),'utf8').includes('data-message-id'));
   }
   const imageAudit=inspectSameSessionImageUrls(out);
-  console.log('Chrome fixture image URL evidence: '+JSON.stringify(imageAudit));
   assert(imageAudit.network.imageResponseEvents >= 1,
     'Chrome CDP did not observe image response within the same session');
   assert(imageAudit.probe.imageBearingTurns >= 1,
@@ -116,7 +117,25 @@ try {
     'CurrentSrc was not linked to the actual browser image request');
   assert(imageAudit.sourceUrlEvidence['same-origin-path-different-query'] >= 1,
     'Fixture did not exercise srcset/currentSrc query distinction');
-  console.log('PASS real Chrome: observer callbacks, scroll, turn IDs, srcset/currentSrc and CDP network request');
+  const bodyEvents=records.filter(e => e.kind === 'network.image-body' &&
+    e.status === 'saved');
+  assert(bodyEvents.length >= 1,'Image response bytes were not captured by CDP');
+  for(const event of bodyEvents) {
+    const filename=path.join(out,event.file);
+    assert(fs.existsSync(filename),'Missing saved image');
+    const bytes=fs.readFileSync(filename);
+    assert.equal(bytes.length,event.bytes);
+    assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),event.sha256);
+  }
+  const reading=path.join(root,'reading');
+  const offline=renderSameSessionOffline(out,reading);
+  assert(offline.imageTurnsWithVerifiedBodies >= 1,
+    'Offline view failed to use the captured same-session image body');
+  const offlineHtml=fs.readFileSync(path.join(reading,'index.html'),'utf8');
+  assert(offlineHtml.includes('data:image/gif;base64,'));
+  assert(offlineHtml.includes("script-src &#39;none&#39;") ||
+    offlineHtml.includes("script-src 'none'"));
+  console.log('PASS real Chrome: image response body, CDP request linkage, offline image rendering and turn snapshots');
 } finally {
   server.close();
   fs.rmSync(root,{recursive:true,force:true});

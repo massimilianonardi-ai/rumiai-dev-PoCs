@@ -358,3 +358,18 @@ mechanism, not how the operator's new ChatGPT share behaves. Data must
 remain in a user-local private directory outside Git; existing PoC history
 already contains profiles and sensitive-possible raw evidence that require
 independent privacy handling, not further duplication.
+
+## Same-session image response-body archive and inert transcript (2026-10-24)
+
+Extended the existing native-CDP `render-probe.mjs` with optional
+`--capture-image-bodies` (no default behavior change): on image response
+completion it requests the exact CDP response body and stores bounded
+SHA-256-addressed PNG/JPEG/WebP/GIF bytes with `sessionId/requestId`,
+MIME and status evidence under the private capture directory. The offline
+`render-same-session-offline.mjs` reuses cumulative turn ordering/verification,
+the accepted reading view text extractor and an exact request-body image
+resolver. It refuses same-path-only signed query matches and validates
+archived image bytes before generating a standalone network-disabled page.
+No CSS/React replay, RAW-assistant role inference or product change. This
+path needs real operator-side visual acceptance on generated and Internet
+image shares; fixture PASS is not evidence of actual remote completeness.

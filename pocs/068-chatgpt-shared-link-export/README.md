@@ -388,6 +388,57 @@ or completeness beyond actually observed DOM frames. The previous default
 probe, accepted text/Markdown artifacts, and simplified image reading view
 are unchanged.
 
+
+## Offline archive with exact same-session CDP image bodies (experimental)
+
+To avoid relying on provisional same-path matches between captures, opt in to
+image response-body capture **in the same Chromium session as DOM observation**.
+Use two **new** directories outside the repository; never overwrite or commit
+private originals or the previously accepted generated-image reading view.
+
+```sh
+umask 077
+CAPTURE_DIR="$(mktemp -d "$HOME/chatgpt-image-body-XXXXXXXX")"
+node render-probe.mjs 'https://chatgpt.com/share/<share-id>' \
+  "$CAPTURE_DIR" --sweep --capture-image-bodies
+node render-same-session-offline.mjs \
+  "$CAPTURE_DIR" "$CAPTURE_DIR-reading"
+```
+
+Open `$CAPTURE_DIR-reading/index.html` locally. The new `audit.json` reports
+observed text/image turn coverage, captured body counts, unresolved image
+references, absent ordinals and remaining provenance limitations. Both input
+and output contain **private** conversational material; the CLI reports
+only sanitized counts and ordinal positions.
+
+`--capture-image-bodies` records the exact browser image requests, their
+response URLs, and image bodies using native CDP `Network.getResponseBody`
+when `Network.loadingFinished` occurs. Image bytes are saved privately in
+`images/<sha256>.<ext>` with `0600` permissions and a matching
+`network.image-body` event keyed by actual `sessionId/requestId`. Supported
+formats are PNG, JPEG, WebP and GIF; other types (including SVG), failed,
+unavailable, invalid or oversized bodies retain explicit status evidence
+without unverified substitution. Limits: 12 MiB per image, 64 MiB captured
+distinct bytes and at most 128 distinct bodies. Existing metadata-only
+`--compare-image-urls` and the default observer do not download image bytes.
+
+The renderer checks snapshot and body SHA-256, verifies response-to-body
+request identity, and links the page's browser-selected `img.currentSrc` to
+the corresponding **exact URL within the same CDP session**. If a snapshot's
+`currentSrc` is absent, exact observed `img.src` is an eligible fallback;
+an origin+path-only association is **never accepted**. Multiple differing
+verified bodies for the same selected URL are reported as unresolved. The
+resulting HTML uses a stand-alone reading layout with embedded `data:`
+image bytes and CSP blocking JS and network access. Missing resources remain
+visible as gaps in `audit.json`, and a partial output is never labeled as
+complete. Original message RAW ownership/finality, full share completeness
+and actual visual parity beyond the selected source snapshots remain open.
+
+This is still a PoC, not a replacement for the pinned production Markdown
+baseline. Keep all browser profiles, image bytes, signed URLs and message
+snippets **outside public Git**; previously committed browser profiles
+require separate privacy handling.
+
 ## Security boundaries
 
 The URL must be an HTTPS \`chatgpt.com/share/\` conversation link, not a scheduled-task share. The exporter neither extracts cookies nor bypasses sign-in challenges. Browser profile state remains with web-control. Archive output is private data: do not commit it to public GitHub or share it without review. HTML snapshots and any image URL containing signed query parameters can reveal information, so avoid diagnostic logging of asset URLs.
