@@ -11,6 +11,8 @@ on:
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/audit-rendered-dom-raw.mjs'
       - 'pocs/068-chatgpt-shared-link-export/localize-rendered-resources.mjs'
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/localize-rendered-resources.mjs'
+      - 'pocs/068-chatgpt-shared-link-export/inspect-image-capture.mjs'
+      - 'pocs/068-chatgpt-shared-link-export/tests/.support/inspect-image-capture.mjs'
       - '.github/workflows/poc-068-rendering-probe.yml'
   workflow_dispatch:
 
@@ -41,6 +43,9 @@ jobs:
           node --check localize-rendered-resources.mjs
           node --check tests/.support/localize-rendered-resources.mjs
           node tests/.support/localize-rendered-resources.mjs
+          node --check inspect-image-capture.mjs
+          node --check tests/.support/inspect-image-capture.mjs
+          node tests/.support/inspect-image-capture.mjs
           browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           test -n "$browser"
           mkdir -p "$RUNNER_TEMP/poc068-bin"
