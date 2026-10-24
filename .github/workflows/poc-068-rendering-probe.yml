@@ -21,6 +21,8 @@ on:
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/inspect-math-capture.mjs'
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/render-semantic-content.mjs'
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/verify-katex-visual-geometry.mjs'
+      - 'pocs/068-chatgpt-shared-link-export/inspect-katex-difference.mjs'
+      - 'pocs/068-chatgpt-shared-link-export/tests/.support/inspect-katex-difference.mjs'
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/render-same-session-offline.mjs'
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/render-readable-image-preview.mjs'
       - 'pocs/068-chatgpt-shared-link-export/inspect-image-capture.mjs'
@@ -70,6 +72,9 @@ jobs:
           node --check inspect-math-capture.mjs
           node --check tests/.support/inspect-math-capture.mjs
           node tests/.support/inspect-math-capture.mjs
+          node --check inspect-katex-difference.mjs
+          node --check tests/.support/inspect-katex-difference.mjs
+          node tests/.support/inspect-katex-difference.mjs
           node --check inspect-image-capture.mjs
           node --check tests/.support/inspect-image-capture.mjs
           node tests/.support/inspect-image-capture.mjs

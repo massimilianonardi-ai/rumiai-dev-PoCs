@@ -477,3 +477,23 @@ of original generated KaTeX HTML against the exported projection (four
 synthetic representative formula families). Visual assessment of the
 named real formula remains necessary; no physical sample data uploaded.
 Attachments remain explicitly secondary.
+
+## Operator rejects positioned-style fix again; inspect actual private formulas (2026-10-24)
+
+The operator physically tested PoC `5ab6f4c3d7d2cdc9d923992c935b146798f3db23`
+against unchanged private share 1 and reports the displayed equations
+"come o peggio di prima"; audit still says exactly **198 visual KaTeX roots**,
+zero unavailable MathML/TeX, 16 turns, 68 source links. These results
+**invalidate** treating the earlier synthetic real-browser geometry test as
+sufficient evidence of actual-fidelity restoration. Do not ask the operator
+to run another speculative fixed renderer.
+
+Created `inspect-katex-difference.mjs` to compare each selected, SHA-verified
+actual captured KaTeX root with its corresponding existing offline output,
+by DOM tag order, class tokens, inline CSS property names/values (only
+counts and safe property keys returned), and SVG geometry attribute
+presence. It flags the operator-specified OGY context by a boolean, not
+a leaked text/formula. Next evaluate sanitized physical output; then
+fix only the evidence-grounded mismatch, and upgrade real-browser fixture
+to prevent the corresponding regression. If structure matches, investigate
+actual browser computed styles and font assets rather than guessing.

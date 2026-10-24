@@ -612,3 +612,37 @@ displayed relationship after the OGY/delayed-feedback sentence. The new
 output should preserve proper subscript sizes/offsets; record any remaining
 failing formula by ordinal/context without publicly sharing raw formulas,
 signed asset URLs or captures.
+
+## Investigate physical KaTeX geometry divergence before another renderer change (2026-10-24)
+
+The operator physically rejected **both** previous export revisions (despite
+all 198 roots and a synthetic Chromium geometry PASS). No further guess-based
+CSS changes should be promoted until there is evidence from the **original
+saved KaTeX DOM** and the **actual failing rendered HTML**.
+
+The new local-only `inspect-katex-difference.mjs` compares the captured
+and rendered formulas root-by-root, preserving ordinal and formula order.
+It checks count and sequence of elements, CSS class tokens, missing/changed
+approved layout properties and omitted SVG geometry attribute **names**.
+The JSON prints only numeric turn ordinals, formula/node counts and
+**approved property names with counts**: never math text, literal CSS values,
+private URLs, hashes or message identifiers.
+
+Run on vmdev, from PoC 068:
+
+```sh
+git pull --ff-only
+node inspect-katex-difference.mjs \
+  /home/admino/chatgpt-batch-vGRePjHh/1-capture \
+  /home/admino/chatgpt-batch-vGRePjHh/1-reading-katex-layout
+```
+
+It also indicates whether the operator-provided sentence
+"La relazione può essere vista così:" occurs in any formula-bearing turn,
+without printing surrounding text or the formula itself. The report does
+**not** render new output or browse ChatGPT, does not modify old captures,
+and is subject to a privacy regression fixture. A structurally identical
+pair can still differ in computed layout due to KaTeX CSS versions, container
+styles or font fallback: if no structural/layout-style loss is found, the
+next experiment must inspect **actual local browser computed geometry**,
+not change CSS blindly. Accepted share-3 rich output remains untouched.
