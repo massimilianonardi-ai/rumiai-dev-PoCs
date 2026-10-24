@@ -110,7 +110,7 @@ function safeKatexStyle(source)
     const value=field.slice(i+1).trim();
     if(!cssProperties.has(key) || !value || value.length>150 ||
         /url\s*\(|expression\s*\(|var\s*\(|@|[<>{};\\]/i.test(value) ||
-        !/^[a-zA-Z0-9()\s,.-%+#*/]+$/.test(value)) continue;
+        !/^[a-zA-Z0-9()\s,.%+#*\/-]+$/.test(value)) continue;
     pieces.push(key+':'+value);
   }
   return pieces.length ? ' style="'+escapeHtml(pieces.join(';'))+'"' : '';
