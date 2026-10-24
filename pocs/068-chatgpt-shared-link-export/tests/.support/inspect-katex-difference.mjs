@@ -42,8 +42,12 @@ try
 
   // Mutate only the private output fixture to reproduce a layout regression.
   const content=fs.readFileSync(path.join(output,'index.html'),'utf8');
-  const altered=content.replace(/position:absolute/g,'position:fixed')
-    .replace(/font-size:(-?[\d.]+(?:em|px))/g,'');
+  // Alter an actual *captured formula element*, not a declaration inside
+  // the large embedded KaTeX stylesheet.
+  const rootOffset=content.indexOf('class="katex-html"');
+  assert(rootOffset>=0);
+  const head=content.slice(0,rootOffset),tail=content.slice(rootOffset);
+  const altered=head+tail.replace(/ style="[^"]+"/,' style=""');
   assert.notEqual(altered,content);
   fs.writeFileSync(path.join(output,'index.html'),altered);
   const broken=inspectKatexDifference(capture,output);
