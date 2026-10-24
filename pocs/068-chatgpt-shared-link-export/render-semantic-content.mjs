@@ -103,9 +103,9 @@ function mathFrom(node,stats)
 }
 function messageTarget(message)
 {
-  return message.querySelector('[data-testid="message-content"]') ||
-    message.querySelector('.markdown') ||
-    message.querySelector('.whitespace-pre-wrap') || message;
+  // A message can contain both plain-text and rich blocks as siblings.
+  // Selecting the first nested .markdown would silently lose other content.
+  return message.querySelector('[data-testid="message-content"]') || message;
 }
 export function renderSemanticMessage(message,imageFor,stats)
 {
@@ -131,11 +131,11 @@ export function renderSemanticTree(root,imageFor,stats)
       // occasionally appear inside a control and retain their href.
       return [...node.querySelectorAll('a[href]')].map(render).join('');
     }
+    if (name==='annotation' || name==='annotation-xml' ||
+        node.getAttribute('class')?.includes('katex-html')) return '';
     if (name==='math' || /\bkatex\b/.test(node.getAttribute('class')||'') ||
         name==='mjx-container')
       return mathFrom(node,stats);
-    if (name==='annotation' || name==='annotation-xml' ||
-        node.getAttribute('class')?.includes('katex-html')) return '';
     if (name==='img')
     {
       if (isIcon(node))
