@@ -29,9 +29,9 @@ export function embeddedKatexCss()
   const resolved=css.replace(/@font-face\s*\{[^}]*\}/g,block=>
   {
     const match=/url\(["']?fonts\/(KaTeX_[A-Za-z0-9_-]+\.woff2)["']?\)/.exec(block);
-    const source=/src\s*:[^;]+;/i;
+    const source=/src\s*:[^;]+/i;
     if(!match || !source.test(block))
-      throw Error('KaTeX font-face lacks a local WOFF2 source: '+block.slice(0,300));
+      throw Error('KaTeX font-face lacks a local WOFF2 source');
     const file=path.join(root,'dist','fonts',match[1]);
     const bytes=fs.readFileSync(file);
     if(bytes.length<100 || bytes.length>400000)
@@ -40,7 +40,7 @@ export function embeddedKatexCss()
     if(total>8000000) throw Error('KaTeX embedded font total too large');
     fontFaces++;
     return block.replace(source,'src:url("data:font/woff2;base64,'+
-      bytes.toString('base64')+'") format("woff2");');
+      bytes.toString('base64')+'") format("woff2")');
   });
   if(fontFaces<8 || !resolved.includes('.katex') ||
       /url\(\s*["']?fonts\//.test(resolved) ||
