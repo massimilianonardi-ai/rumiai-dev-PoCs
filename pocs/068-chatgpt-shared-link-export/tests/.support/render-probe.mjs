@@ -6,6 +6,7 @@ import path from 'node:path';
 import http from 'node:http';
 import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {inspectSameSessionImageUrls} from '../../inspect-image-capture.mjs';
 
 const base = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const script = path.join(base, 'render-probe.mjs');
@@ -33,11 +34,18 @@ const app = [
   "imageTurn.dataset.turnIdContainer='image-only';",
   "imageTurn.dataset.testid='conversation-turn-16';",
   "const image=document.createElement('img');",
-  "image.src='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';",
+  "image.src='/pixel.gif?sig=dom';",
+  "image.srcset='/pixel.gif?sig=selected 1x';",
   "imageTurn.append(image);root.append(imageTurn);",
   "root.addEventListener('scroll',()=>{});"
 ].join('\n');
+const pixel=Buffer.from('R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=','base64');
 const server = http.createServer((req, res) => {
+  if (req.url.startsWith('/pixel.gif?')) {
+    res.writeHead(200, {'Content-Type':'image/gif','Cache-Control':'no-store'});
+    res.end(pixel);
+    return;
+  }
   res.writeHead(200, {'Content-Type': req.url==='/fixture.js'?
     'application/javascript' : 'text/html'});
   res.end(req.url==='/fixture.js' ? app : page);
@@ -47,7 +55,7 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), 'rumiai-render-probe-test-'))
 try {
   const out = path.join(root,'capture');
   const child = spawn(process.execPath, [script,
-    'http://127.0.0.1:'+server.address().port+'/', out, '--sweep', '--headless'],
+    'http://127.0.0.1:'+server.address().port+'/', out, '--sweep', '--headless', '--compare-image-urls'],
     {stdio:['ignore','pipe','pipe']});
   let stdout='',stderr='';
   child.stdout.on('data', chunk => {stdout+=String(chunk);});
@@ -98,7 +106,16 @@ try {
     assert(fs.existsSync(path.join(out,row.file)),'snapshot missing');
     assert(fs.readFileSync(path.join(out,row.file),'utf8').includes('data-message-id'));
   }
-  console.log('PASS real Chrome: observer callbacks, scroll, turn IDs and snapshots');
+  const imageAudit=inspectSameSessionImageUrls(out);
+  assert(imageAudit.network.imageResponseEvents >= 1,
+    'Chrome CDP did not observe image response within the same session');
+  assert(imageAudit.probe.imageBearingTurns >= 1,
+    'No image-bearing DOM frame with browser-selected URL');
+  assert(imageAudit.browserSelectedUrlEvidence['exact-request'] >= 1,
+    'CurrentSrc was not linked to the actual browser image request');
+  assert(imageAudit.sourceUrlEvidence['same-origin-path-different-query'] >= 1,
+    'Fixture did not exercise srcset/currentSrc query distinction');
+  console.log('PASS real Chrome: observer callbacks, scroll, turn IDs, srcset/currentSrc and CDP network request');
 } finally {
   server.close();
   fs.rmSync(root,{recursive:true,force:true});

@@ -300,6 +300,126 @@ function correlateSnapshotImages(snapshotEvents, probe, archivedImages, redirect
   };
 }
 
+
+function sameOriginPath(a, b) {
+  try {
+    const x = new URL(a), y = new URL(b);
+    return ['https:', 'http:'].includes(x.protocol) &&
+      ['https:', 'http:'].includes(y.protocol) &&
+      x.origin === y.origin && x.pathname === y.pathname;
+  } catch {return false;}
+}
+
+// Same-session URL observation, not a response-byte or message-role claim.
+// Keep all original signed URLs in private JSONL; return counts and ordinals.
+export function inspectSameSessionImageUrls(probeDir) {
+  const dir = path.resolve(probeDir);
+  const events = jsonl(path.join(dir, 'events.jsonl'));
+  const responses = events.filter(e => e.kind === 'network.image-response');
+  if (!responses.length)
+    throw Error('No same-session image network responses: check --compare-image-urls and page hydration');
+  const perSession = new Map();
+  const mimeCounts = {}, originCounts = {};
+  for (const row of responses) {
+    const session = row.sessionId || '';
+    if (!perSession.has(session)) perSession.set(session, []);
+    perSession.get(session).push({
+      initialUrl: row.initialUrl && canonicalImageUrl(row.initialUrl),
+      requestUrl: row.requestUrl && canonicalImageUrl(row.requestUrl),
+      responseUrl: row.responseUrl && canonicalImageUrl(row.responseUrl)
+    });
+    counted(mimeCounts, String(row.mimeType || 'unknown'));
+    counted(originCounts, originClass(row.responseUrl || row.requestUrl || ''));
+  }
+  function match(url, session) {
+    if (!url) return 'missing';
+    const normalized = canonicalImageUrl(url);
+    if (!normalized) return 'invalid';
+    const protocol = new URL(normalized).protocol;
+    if (protocol === 'data:' || protocol === 'blob:') return 'inline-or-blob';
+    const rows = perSession.get(session || '') || [];
+    if (rows.some(r => r.initialUrl === normalized || r.requestUrl === normalized))
+      return 'exact-request';
+    if (rows.some(r => r.responseUrl === normalized)) return 'exact-response';
+    if (rows.some(r => [r.initialUrl, r.requestUrl, r.responseUrl]
+      .some(x => x && sameOriginPath(x, normalized))))
+      return 'same-origin-path-different-query';
+    return 'no-same-session-response';
+  }
+  const turns = new Map();
+  let framesWithImages = 0, framesWithoutSelections = 0;
+  for (const event of events.filter(e =>
+    (e.kind === 'turn.snapshot' || e.kind === 'turn.unidentified-snapshot') && e.file)) {
+    const html = snapshotBytes(dir, event);
+    const fallback = imageReferences(html);
+    if (!fallback.length) continue;
+    framesWithImages++;
+    if (!Array.isArray(event.imageSelections)) {
+      framesWithoutSelections++;
+      continue;
+    }
+    const ordinal = turnOrdinal(html);
+    if (ordinal === null) continue;
+    let turn = turns.get(event.turnId);
+    if (!turn) {
+      turn = {ordinal, session: event.sessionId || '', selections: new Map()};
+      turns.set(event.turnId, turn);
+    }
+    if (turn.ordinal !== ordinal || turn.session !== (event.sessionId || ''))
+      throw Error('Inconsistent image-turn ordinal or CDP session');
+    for (const item of event.imageSelections) {
+      const src = typeof item.src === 'string' ? canonicalImageUrl(item.src) : null;
+      const currentSrc = typeof item.currentSrc === 'string' ?
+        canonicalImageUrl(item.currentSrc) : null;
+      if (!src && !currentSrc) continue;
+      const k = JSON.stringify([src,currentSrc]);
+      turn.selections.set(k,{src,currentSrc});
+    }
+  }
+  if (framesWithoutSelections)
+    throw Error('Image snapshots missing currentSrc metadata; rerun with --compare-image-urls');
+  const srcClasses = {}, currentSrcClasses = {};
+  let selectedUrlDiffersFromSrc = 0, distinctSelections = 0;
+  const perTurn = [];
+  for (const turn of [...turns.values()].sort((a,b)=>a.ordinal-b.ordinal)) {
+    const turnSrc = {}, turnCurrent = {};
+    let changed = 0;
+    for (const {src,currentSrc} of turn.selections.values()) {
+      distinctSelections++;
+      if (currentSrc && src && currentSrc !== src) {
+        selectedUrlDiffersFromSrc++;
+        changed++;
+      }
+      const srcClass = match(src,turn.session);
+      const currentClass = match(currentSrc,turn.session);
+      counted(srcClasses, srcClass);
+      counted(currentSrcClasses, currentClass);
+      counted(turnSrc,srcClass);
+      counted(turnCurrent,currentClass);
+    }
+    perTurn.push({ordinal:turn.ordinal,distinctImageSelections:turn.selections.size,
+      srcCurrentSrcDifferences:changed,srcEvidence:turnSrc,
+      currentSrcEvidence:turnCurrent});
+  }
+  return {
+    status:'same-session-image-url-diagnostic-only',
+    network:{imageResponseEvents:responses.length,mimeTypes:mimeCounts,originClasses:originCounts},
+    probe:{imageBearingFrames:framesWithImages,imageBearingTurns:turns.size,
+      distinctImageSelections:distinctSelections,srcCurrentSrcDifferences:selectedUrlDiffersFromSrc},
+    sourceUrlEvidence:srcClasses,
+    browserSelectedUrlEvidence:currentSrcClasses,
+    turns:perTurn,
+    limitations:[
+      'Network response URLs and browser-selected currentSrc are observed in the same Chromium CDP session',
+      'Exact request/response URL equality does not verify saved body bytes or downloaded resources',
+      'Image requests with no response and images selected outside observed frames are not covered',
+      'A srcset-selected currentSrc may differ from literal DOM src without a CDN anomaly',
+      'Query-similar paths never establish response-byte identity',
+      'All signed URLs and turn/message IDs are retained privately, never included in this summary'
+    ]
+  };
+}
+
 export function inspectImages(cumulativeDir, resourcesDir, probeDir) {
   const cumulative = path.resolve(cumulativeDir);
   const resources = path.resolve(resourcesDir);
@@ -418,12 +538,17 @@ export function inspectImages(cumulativeDir, resourcesDir, probeDir) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname)) {
-  const [cumulative, resources, probe] = process.argv.slice(2);
-  if (!cumulative || !resources || !probe || process.argv.length !== 5) {
-    console.error('Usage: node inspect-image-capture.mjs <cumulative-dir> <web-analyze-dir> <render-probe-dir>');
+  const [first, second, third] = process.argv.slice(2);
+  const singleSession = first === '--same-session';
+  if (singleSession ? (!second || third || process.argv.length !== 4) :
+      (!first || !second || !third || process.argv.length !== 5)) {
+    console.error('Usage: node inspect-image-capture.mjs <cumulative-dir> <web-analyze-dir> <render-probe-dir> | --same-session <render-probe-dir>');
     process.exitCode = 2;
   } else {
-    try {console.log(JSON.stringify(inspectImages(cumulative, resources, probe), null, 2));}
-    catch (e) {console.error(e.message); process.exitCode = 1;}
+    try {
+      const report = singleSession ? inspectSameSessionImageUrls(second) :
+        inspectImages(first,second,third);
+      console.log(JSON.stringify(report, null, 2));
+    } catch (e) {console.error(e.message); process.exitCode = 1;}
   }
 }

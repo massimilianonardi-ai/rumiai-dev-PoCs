@@ -337,3 +337,24 @@ remaining prompts appear, original CSS/runtime layout is implicated.
 If they remain absent, inspect selected snapshot text evidence without
 assuming source acquisition completeness. Original remote-query PNG
 identity and RAW assistant attribution are still unproven.
+
+## Internet-image comparison: CDP-request versus browser-selected URL (2026-10-24)
+
+User supplied a new public share with Internet-sourced images,
+`https://chatgpt.com/share/6ad1c0b3-f42c-83eb-bfbc-4e44c80863dc`.
+An assistant-side request to the share is blocked; the target remains
+uninspected here. Added an optional same-session `render-probe.mjs
+--compare-image-urls` image URL metadata observer and
+`inspect-image-capture.mjs --same-session <capture-dir>` sanitized diagnostic.
+One Chromium run records literal HTML `img src`, browser-resolved
+`img.currentSrc`, CDP request URLs, response URLs and redirect-origin
+request URL when observable; no response bodies are fetched. Comparison
+groups by real CDP session, distinguishes exact and same-path-query-only
+relationships, and never emits full URLs or original ID values.
+
+Testing includes isolated synthetic observations and real Chromium with
+an HTTP image and responsive `srcset` selection. These fixtures verify the
+mechanism, not how the operator's new ChatGPT share behaves. Data must
+remain in a user-local private directory outside Git; existing PoC history
+already contains profiles and sensitive-possible raw evidence that require
+independent privacy handling, not further duplication.

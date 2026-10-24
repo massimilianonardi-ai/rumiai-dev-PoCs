@@ -120,7 +120,14 @@ function pageProbe() {
       if (html.length > 2097152)
         log('turn.too-large', {turnId, messageIds, length: html.length});
       else log(rendered ? 'turn.snapshot' : 'turn.unidentified-snapshot',
-        {turnId, messageIds, html});
+        {turnId, messageIds, html,
+          // currentSrc is the browser-chosen image URL; it can differ from
+          // the literal src because of responsive srcset or React updates.
+          ...(globalThis.__rumiaiCompareImageUrls ? {imageSelections:
+            [...turn.querySelectorAll('img')].slice(0, 40).map(img => ({
+              src: img.getAttribute('src') || null,
+              currentSrc: img.currentSrc || null
+            }))} : {})});
     }
     // Some implementations remove the entire wrapper rather than merely
     // emptying its children. Do not mistake a wrapper removal for a React
@@ -177,8 +184,11 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const sha = data => crypto.createHash('sha256').update(data).digest('hex');
 
 class Cdp {
-  constructor(url, report) {
+  constructor(url, report, captureImageUrls = false) {
     this.url = url; this.report = report; this.pending = new Map();
+    // One CDP session for DOM and network; signed URLs remain private.
+    this.captureImageUrls = captureImageUrls;
+    this.networkRequests = new Map();
     this.sessions = new Map(); this.targetSessions = new Map();
     this.nextId = 0; this.closed = false;
   }
@@ -226,6 +236,31 @@ class Cdp {
       void this.setup(sid, info.type);
     } else if (method === 'Target.detachedFromTarget') {
       this.sessions.delete(params.sessionId);
+    } else if (this.captureImageUrls && method === 'Network.requestWillBeSent') {
+      const id = JSON.stringify([sessionId, params.requestId]);
+      const url = params.request?.url;
+      if (typeof url === 'string') {
+        const prior = this.networkRequests.get(id);
+        this.networkRequests.set(id, {
+          initialUrl: prior?.initialUrl || params.redirectResponse?.url || url,
+          requestUrl: url
+        });
+      }
+    } else if (this.captureImageUrls && method === 'Network.responseReceived') {
+      const mime = String(params.response?.mimeType || '').toLowerCase();
+      if (mime.startsWith('image/') || params.type === 'Image') {
+        const id = JSON.stringify([sessionId, params.requestId]);
+        const request = this.networkRequests.get(id);
+        this.report({kind:'network.image-response',
+          requestId:params.requestId, initialUrl:request?.initialUrl || null,
+          requestUrl:request?.requestUrl || null,
+          responseUrl:params.response?.url || null,
+          mimeType:mime, resourceType:params.type,
+          status:params.response?.status || null,
+          fromDiskCache:!!params.response?.fromDiskCache,
+          fromServiceWorker:!!params.response?.fromServiceWorker}, sessionId);
+      }
+      this.networkRequests.delete(JSON.stringify([sessionId, params.requestId]));
     } else if (method === 'Runtime.bindingCalled' && params.name === '__rumiaiTrace') {
       try {this.report(JSON.parse(params.payload), sessionId);}
       catch {this.report({kind: 'probe.event-decode-failed'}, sessionId);}
@@ -236,9 +271,12 @@ class Cdp {
       await this.send('Runtime.enable', {}, sid);
       if (type === 'page' || type === 'iframe') {
         await this.send('Page.enable', {}, sid);
+        if (this.captureImageUrls) await this.send('Network.enable', {}, sid);
         await this.send('Runtime.addBinding', {name: '__rumiaiTrace'}, sid);
-        await this.send('Page.addScriptToEvaluateOnNewDocument', {source: injected}, sid);
-        await this.send('Runtime.evaluate', {expression: injected}, sid);
+        const source = (this.captureImageUrls ?
+          'globalThis.__rumiaiCompareImageUrls=true;\n' : '') + injected;
+        await this.send('Page.addScriptToEvaluateOnNewDocument', {source}, sid);
+        await this.send('Runtime.evaluate', {expression: source}, sid);
       }
       const info = this.sessions.get(sid);
       if (info) info.ready = true;
@@ -326,8 +364,8 @@ async function sweep(cdp, sid, record) {
 
 async function run(args) {
   const [url, outputName, ...flags] = args;
-  if (!url || !outputName || flags.some(x => !['--headless','--sweep'].includes(x))) {
-    process.stderr.write('Usage: node render-probe.mjs <url> <output-dir> [--sweep] [--headless]\n');
+  if (!url || !outputName || flags.some(x => !['--headless','--sweep','--compare-image-urls'].includes(x))) {
+    process.stderr.write('Usage: node render-probe.mjs <url> <output-dir> [--sweep] [--headless] [--compare-image-urls]\n');
     return 2;
   }
   const parsed = new URL(url);
@@ -365,7 +403,7 @@ async function run(args) {
     while (!fs.existsSync(portFile) && performance.now() < startupLimit) await pause(75);
     if (!fs.existsSync(portFile)) throw Error('Chromium did not publish its CDP port');
     const [port, endpoint] = fs.readFileSync(portFile,'utf8').trim().split(/\r?\n/);
-    cdp = new Cdp('ws://127.0.0.1:' + port + endpoint, log.record);
+    cdp = new Cdp('ws://127.0.0.1:' + port + endpoint, log.record, flags.includes('--compare-image-urls'));
     await cdp.connect();
     await cdp.send('Target.setDiscoverTargets', {discover:true});
     await cdp.send('Target.setAutoAttach', {autoAttach:true,

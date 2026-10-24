@@ -15,6 +15,7 @@ on:
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/render-readable-image-preview.mjs'
       - 'pocs/068-chatgpt-shared-link-export/inspect-image-capture.mjs'
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/inspect-image-capture.mjs'
+      - 'pocs/068-chatgpt-shared-link-export/tests/.support/inspect-same-session-images.mjs'
       - '.github/workflows/poc-068-rendering-probe.yml'
   workflow_dispatch:
 
@@ -51,6 +52,8 @@ jobs:
           node --check inspect-image-capture.mjs
           node --check tests/.support/inspect-image-capture.mjs
           node tests/.support/inspect-image-capture.mjs
+          node --check tests/.support/inspect-same-session-images.mjs
+          node tests/.support/inspect-same-session-images.mjs
           browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           test -n "$browser"
           mkdir -p "$RUNNER_TEMP/poc068-bin"

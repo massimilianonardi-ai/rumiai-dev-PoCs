@@ -348,6 +348,46 @@ values differ. This is a reading/coverage diagnostic, **not** proof of
 original visual fidelity or assistant-message ownership. All output remains
 private and existing output directories are never overwritten.
 
+
+## Same-session URLs for ordinary Internet images (2026-10-24)
+
+The visually accepted generated-image reading view is **not** evidence that
+different signed query strings identify identical image bytes. For the new
+operator-provided Internet-image share
+`https://chatgpt.com/share/6ad1c0b3-f42c-83eb-bfbc-4e44c80863dc`,
+the PoC has an **opt-in, metadata-only** same-browser-session experiment.
+Unlike comparing two separate captures, it cannot accidentally attribute
+different session signatures to an image-delivery mechanism.
+
+From the PoC 068 working directory, using a fresh private directory **outside
+the Git repository** (do not commit generated files):
+
+```sh
+umask 077
+CAPTURE_DIR="$(mktemp -d "$HOME/chatgpt-internet-images-XXXXXXXX")"
+node render-probe.mjs \
+  'https://chatgpt.com/share/6ad1c0b3-f42c-83eb-bfbc-4e44c80863dc' \
+  "$CAPTURE_DIR" --sweep --compare-image-urls
+node inspect-image-capture.mjs --same-session "$CAPTURE_DIR"
+```
+
+`--compare-image-urls` enables CDP Network observation in the same browser
+session that records each turn's HTML and browser-selected `img.currentSrc`.
+It records only image **request and response URL metadata**, not the response
+body bytes. Network redirects and `srcset` may cause `currentSrc` to differ
+from literal `img src`. Both are checked separately against image requests
+and responses and reported as sanitized exact-request, exact-response,
+same-origin-path-different-query, inline/blob or unmatched counts. Results
+include anonymous conversation ordinals, not original message/turn identities.
+
+`events.jsonl`, `turns/` and `profile/` are **sensitive private evidence**:
+they can contain original text, signed URLs and browser-session state. Never
+commit, paste or publish them; share only the aggregate CLI JSON. HTTP URL
+matches do **not** establish response byte identity, image-role provenance
+or completeness beyond actually observed DOM frames. The previous default
+probe, accepted text/Markdown artifacts, and simplified image reading view
+are unchanged.
+
 ## Security boundaries
 
 The URL must be an HTTPS \`chatgpt.com/share/\` conversation link, not a scheduled-task share. The exporter neither extracts cookies nor bypasses sign-in challenges. Browser profile state remains with web-control. Archive output is private data: do not commit it to public GitHub or share it without review. HTML snapshots and any image URL containing signed query parameters can reveal information, so avoid diagnostic logging of asset URLs.
