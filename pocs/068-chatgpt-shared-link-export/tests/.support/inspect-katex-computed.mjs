@@ -42,11 +42,12 @@ try
   const index=path.join(reading,'index.html');
   const prior=fs.readFileSync(index,'utf8');
   const altered=prior.replace('class="katex-html"',
-    'class="katex-html" style="font-size:0.5em"');
+    'class="katex-html" style="position:relative;left:30px;font-size:0.5em"');
   assert.notEqual(altered,prior);
   fs.writeFileSync(index,altered);
   const failure=inspectActualKatexComputed(capture,reading);
-  assert(failure.totals.nodeGeometryChanges>0);
+  assert(failure.totals.nodeGeometryChanges>0,
+    'Browser failed to detect deliberately shifted KaTeX source: '+JSON.stringify(failure.totals));
   assert((failure.totals.computedStyleChanges.fontSize||0)>0);
   const json=JSON.stringify(failure);
   for(const secret of ['secret-message','secret-session','secret-turn',
