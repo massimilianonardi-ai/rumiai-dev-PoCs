@@ -125,8 +125,14 @@ its bytes are checked against the original SHA-256 and length. The audit does
 messages addressed to `all`, excluding messages explicitly marked
 `is_visually_hidden_from_conversation: true`. It compares expected IDs with
 captured DOM IDs, in order, without printing any message text or raw IDs.
-A mismatch or corrupt evidence produces a nonzero exit status; `--out`
-refuses to overwrite an existing report.
+A mismatch, ambiguous visual-message coverage or corrupt evidence produces a nonzero exit
+status; `--out` refuses to overwrite an existing report. The audit
+also reports missing intermediate `conversation-turn-N` ordinals and
+assistant nodes that lack `end_turn=true`. Even matching ID sets are
+**inconclusive**, not complete, if there are missing turn ordinals or
+assistant nodes but zero assistant replies accepted by the text-finality
+filter. This matters for generated-image shares: `end_turn` may not
+accurately classify assistant image output.
 
 For the archived PoC 068 share the hydration stream has **951 RAW nodes**,
 including **21 user messages** and **21 visible assistant final messages**.
