@@ -309,3 +309,31 @@ candidate-to-local-file manifest with source-URL SHA and `identityVerified:
 false` (not signed query parameters), and never contacts the web. A
 visual test on the real private capture is still required; original
 42-turn text visual acceptance and Markdown remain protected.
+
+## Failed physical HTML/CSS image preview, safer reading-view diagnostic (2026-10-24)
+
+Real vmdev operator result after assembly/localization:
+`turns=6`, `messages=3`, `missingOrdinals=0`,
+`stylesheets=17`, `staticFiles=25`, `mediaReferencesMatched=4`,
+`unresolved=73`, `ignored=457`, `provisionalImageCandidates=3`.
+Despite this structural success, the operator sees **only the first prompt**,
+large empty areas with replacement text where PNGs belong, and neither
+remaining user prompt. The static reconstruction is rejected for visual
+quality; counts did not prove readable DOM content or decoded images.
+Do not make a fidelity claim from successful resource localization alone.
+
+Added a separate no-network `render-readable-image-preview.mjs` against
+the already-localized output. It extracts identified-turn text using a
+detached parsed DOM, ignoring controls and display/virtualization rules,
+renders image-only turn ordinals as image cards, and embeds verified local
+PNG bodies via `data:` URI to avoid file-scheme/self-origin problems.
+The reading view deliberately **does not claim original styling**; it
+audits recovered text/PNG counts and missing turn ordinals without logging
+prompts, raw message IDs, signed URLs or bytes. A missing prompt is recorded
+as missing evidence, not silently filled from another source.
+
+Run this first on vmdev's existing private localized preview. If both
+remaining prompts appear, original CSS/runtime layout is implicated.
+If they remain absent, inspect selected snapshot text evidence without
+assuming source acquisition completeness. Original remote-query PNG
+identity and RAW assistant attribution are still unproven.

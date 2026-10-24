@@ -309,6 +309,45 @@ private. Output directories must not exist in advance and are never
 overwritten. The already validated text reconstruction and Markdown
 baseline stay unchanged.
 
+
+## Readable offline view after the failed original-layout preview
+
+The real private image-share preview assembled **six turn ordinals**, **three
+message IDs**, 17 copied stylesheets and three same-path candidate PNGs, but the
+operator observed only the first user prompt, large empty spaces, image
+placeholder text and missing later prompts. A successful structural count is
+**not** a visual/reading success. Original React layout CSS can rely on
+missing runtime state; the original replay path remains experimental and is
+not considered accepted.
+
+A separate, deliberately **non-facsimile reading view** is now available
+from the **existing** already-localized private output. It does not recapture
+the site, alter that output, or use the original ChatGPT stylesheets:
+
+```sh
+node render-readable-image-preview.mjs \
+  ./cumulative-images-preview-localized-01 \
+  ./cumulative-images-reading-01
+```
+
+Open `cumulative-images-reading-01/index.html` locally. This builds six
+simple, sequential semantic cards from the already captured turn snapshots,
+extracts only text nodes from identified messages (not buttons/controls),
+and embeds individually SHA-256-verified localized PNG bodies as
+`data:image/png;base64` URLs. It has no external fonts, stylesheets,
+scripts, remote images, React classes, or virtualized heights; the CSP
+restricts image sources to `data:`.
+
+Its sanitized CLI result distinguishes `identifiedTextTurns`,
+`identifiedTextTurnsWithContent`, `imageOnlyTurns`,
+`imageTurnsWithPng`, `distinctVerifiedPngBodies`, and ordinal lists
+`missingTextOrdinals` / `missingImageOrdinals`. Text absent from an
+archived snapshot is **not invented**. The image-body assignments are still
+only provisional because original `img src` and downloaded PNG query
+values differ. This is a reading/coverage diagnostic, **not** proof of
+original visual fidelity or assistant-message ownership. All output remains
+private and existing output directories are never overwritten.
+
 ## Security boundaries
 
 The URL must be an HTTPS \`chatgpt.com/share/\` conversation link, not a scheduled-task share. The exporter neither extracts cookies nor bypasses sign-in challenges. Browser profile state remains with web-control. Archive output is private data: do not commit it to public GitHub or share it without review. HTML snapshots and any image URL containing signed query parameters can reveal information, so avoid diagnostic logging of asset URLs.
