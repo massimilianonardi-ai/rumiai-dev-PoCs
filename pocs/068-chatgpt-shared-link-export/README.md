@@ -152,4 +152,4 @@ The URL must be an HTTPS \`chatgpt.com/share/\` conversation link, not a schedul
 
 ## RumiAI context
 
-Current governing sources: \`rumiai-dev/RULES.md\`, \`CONSISTENCY-GATE.md\`, \`specifications/rumiai-os/WEB-CONTROL.md\`. Active task state: \`rumiai-dev/handoff/chatgpt-shared-link-export.md\`.
+Current governing sources: \`rumiai-dev/RULES.md\`, \`CONSISTENCY-GATE.md\`, \`specifications/rumiai-os/WEB-CONTROL.md\`. Active task state: \`rumiai-dev/handoff/chatgpt-export.md\`.
