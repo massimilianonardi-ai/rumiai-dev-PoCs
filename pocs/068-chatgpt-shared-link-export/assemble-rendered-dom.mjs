@@ -142,7 +142,8 @@ export function assemble(captureDir, outputDir, rawPath = null, options = {}) {
         'No captured image body was matched or downloaded during assembly'] : [])],
     turns: ordered.map(({turnId, ordinal, versions, selected}) => ({turnId, ordinal,
       messageIds: selected.messageIds, selected: {sequence: selected.sequence,
-        sha256: selected.sha256, file: selected.file, bytes: selected.bytes}, versions}))
+        sha256: selected.sha256, file: selected.file, bytes: selected.bytes,
+        ...(imagePreview ? {kind: selected.kind} : {})}, versions}))
   };
   const sourceAssets = [...sourceReferences.values()];
   const style = 'body{margin:0 auto;max-width:960px;padding:24px;font:16px/1.55 system-ui,sans-serif;color:#202124;background:#fafafa}' +
