@@ -88,15 +88,15 @@ function canonicalImageUrl(value) {
 // proof of the actually selected browser image request.
 function imageReferences(html) {
   const references = [];
-  for (const tag of html.matchAll(/<img\\b[^>]*>/gi)) {
-    const src = /\\ssrc\\s*=\\s*(["'])([\\s\\S]*?)\\1/i.exec(tag[0])?.[2];
+  for (const tag of html.matchAll(/<img\b[^>]*>/gi)) {
+    const src = /\ssrc\s*=\s*(["'])([\s\S]*?)\1/i.exec(tag[0])?.[2];
     references.push(src ? canonicalImageUrl(src) : null);
   }
   return references;
 }
 
 function turnOrdinal(html) {
-  const ordinals = new Set([...html.matchAll(/\\bdata-testid=["']conversation-turn-(\\d+)["']/g)]
+  const ordinals = new Set([...html.matchAll(/\bdata-testid=["']conversation-turn-(\d+)["']/g)]
     .map(match => Number(match[1])));
   return ordinals.size === 1 && Number.isSafeInteger([...ordinals][0]) ?
     [...ordinals][0] : null;
