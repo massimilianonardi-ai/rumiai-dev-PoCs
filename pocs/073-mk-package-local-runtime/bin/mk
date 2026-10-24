@@ -1,0 +1,21 @@
+#!/usr/bin/env node
+'use strict';
+
+if (typeof process.env.m_ROOT !== 'string' || process.env.m_ROOT.length === 0)
+{
+  process.stderr.write('mk: m environment not initialized\n');
+  process.exit(1);
+}
+
+const path = require('node:path');
+const engine = require(path.join(__dirname, '..', 'lib', 'mk.lib.js'));
+
+Promise.resolve(engine.mkMain(process.argv.slice(2))).then
+(
+  status => { process.exitCode = status; },
+  error =>
+  {
+    process.stderr.write('mk: ' + (error && error.message ? error.message : 'unexpected failure') + '\n');
+    process.exitCode = 1;
+  }
+);

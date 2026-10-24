@@ -1,0 +1,36 @@
+name: PoC 073 — mk package-local runtime
+
+on:
+  push:
+    branches:
+      - mk-package-local-runtime
+    paths:
+      - pocs/073-mk-package-local-runtime/**
+      - .github/workflows/poc-073-mk-package-local-runtime.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pkg-local-mk:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: poc
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/rumiai-os
+          ref: 673df1a2d5476ad57d54c7bc7e1fc2deeaf16195
+          path: product
+          persist-credentials: false
+      - name: Build real mk artifact and install through genuine pkg integration
+        shell: sh
+        run: sh poc/pocs/073-mk-package-local-runtime/tests/run.sh product
