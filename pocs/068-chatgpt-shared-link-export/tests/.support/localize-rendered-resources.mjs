@@ -82,7 +82,7 @@ try{
   assert.throws(()=>localize(cumulative,archive,path.join(temp,'rejected-preview'),
     {provisionalImagePath:true}),/explicitly assembled image preview/);
   const previewHtml=html.replace('</main>',
-    '<div data-turn-id-container="image-only"><img src="https://images.example.test/private/img.png?token=dom&amp;v=1"></div></main>');
+    '<div data-turn-id-container="image-only"><img src="https://images.example.test/private/img.png?token=dom&amp;v=1" srcset="https://images.example.test/private/img.png?token=remote&amp;v=1 2x"></div></main>');
   fs.writeFileSync(path.join(cumulative,'index.html'),previewHtml);
   fs.writeFileSync(path.join(cumulative,'audit.json'),JSON.stringify({
     status:'provisional-image-preview-assembly',provisionalImagePreview:true,
@@ -93,6 +93,8 @@ try{
   const viewPreview=fs.readFileSync(path.join(previewOut,'index.html'),'utf8');
   assert(viewPreview.includes('assets/'+externalPng.sha+'.png'));
   assert(!viewPreview.includes('token=dom'));
+  assert(!viewPreview.includes('token=remote'));
+  assert(!viewPreview.includes('srcset='));
   assert(viewPreview.includes("script-src 'none'"));
   const previewAudit=JSON.parse(fs.readFileSync(path.join(previewOut,'localization-audit.json'),'utf8'));
   assert.equal(previewAudit.status,'offline-image-preview-provisional');

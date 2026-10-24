@@ -57,12 +57,18 @@ function rewriteCss(text, sourceUrl, choices, unresolved) {
     return 'url("./' + path.posix.basename(match.filename) + fragment + '")';
   });
 }
-function rewriteMarkup(html, choices, unresolved, matched) {
+function rewriteMarkup(html, choices, unresolved, matched, provisionalHashes = new Set()) {
   // Restrict replacement to static-media element attributes; never rewrite user links.
-  return html.replace(/<(img|image|use|source|video|audio)\b[^>]*>/gi, tag =>
-    tag.replace(/\b(src|href|xlink:href|poster|srcset)\s*=\s*(["'])([\s\S]*?)\2/gi,
+  return html.replace(/<(img|image|use|source|video|audio)\b[^>]*>/gi, tag => {
+    const originalImgSrc = /^<img\b/i.test(tag) ?
+      /\ssrc\s*=\s*(["'])([\s\S]*?)\1/i.exec(tag)?.[2] : null;
+    const normalized = originalImgSrc && key(originalImgSrc.replace(/&amp;/g, '&'));
+    const provisionalImg = normalized && provisionalHashes.has(sha(Buffer.from(normalized)));
+    return tag.replace(/\b(src|href|xlink:href|poster|srcset)\s*=\s*(["'])([\s\S]*?)\2/gi,
       (all, attr, quote, raw) => {
         const name = attr.toLowerCase();
+        // Do not let a remote responsive candidate supersede the local PNG.
+        if (provisionalImg && name === 'srcset') return '';
         if (name === 'srcset') {
           return name + '=' + quote + raw.split(',').map(candidate => {
             const m = /^(\s*)(\S+)([\s\S]*)$/.exec(candidate);
@@ -73,7 +79,8 @@ function rewriteMarkup(html, choices, unresolved, matched) {
         }
         const mapped = mapReference(raw);
         return name + '=' + quote + (mapped || raw) + quote;
-      }));
+      });
+  });
   function mapReference(raw) {
     if (raw.startsWith('data:') || raw.startsWith('#')) return null;
     // URL ampersands can be HTML entity encoded inside attributes.
@@ -234,7 +241,8 @@ export function localize(cumulativeDir, resourceDir, targetDir, options = {}) {
       modifiedCss: entry.ext === '.css'});
   }
   for (const entry of styles) stylesheetFiles.push(entry.filename);
-  let html = rewriteMarkup(sourceHtml, choices, unresolved, matched);
+  let html = rewriteMarkup(sourceHtml, choices, unresolved, matched,
+    new Set(provisionalCandidates.map(x => x.sourceUrlHash)));
   if (provisionalCandidates.some(candidate =>
       ![...matched].some(url => sha(Buffer.from(url)) === candidate.sourceUrlHash)))
     throw Error('Image-preview candidate was not localized');

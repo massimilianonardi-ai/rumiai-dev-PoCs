@@ -294,6 +294,9 @@ PNG responses from the existing CDP archive, and only when the exact
 origin+path has one distinct verified PNG body and one archived URL.
 No candidate is accepted by host alone, no ambiguous path is accepted, and
 the selected bodies are SHA-256/size-checked before output creation.
+For a provisionally substituted image, the localizer removes its original
+remote `srcset` so the browser cannot choose a blocked responsive image
+instead of the archived local PNG.
 An opt-in provenance manifest in `localization-audit.json` records URL
 fingerprints, saved SHA-256 and `identityVerified: false`. The actual image
 bodies **may differ** because query parameters changed; this is a visual
