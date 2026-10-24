@@ -202,3 +202,19 @@ The initial RAW audit identified 14 linear-conversation nodes: 3 system, 3 user,
 The RAW audit now explicitly reports missing turn ordinals and assistant-without-final counts, and returns `inconclusive-visible-message-coverage` (nonzero CLI status) when identifiers match only under an ambiguous filter or the DOM ordinal range has gaps. This preserves the previously validated 42-turn text-share criterion without declaring image-share completion. The regression adds both incomplete-ordinal and assistant-without-final cases. Tests validate the classification, not end-to-end image fidelity.
 
 Next: inspect private image-share `resources.jsonl` status/MIME distribution, observer logs for `turn.initial` wrappers with no message IDs, source hydration assistant content/recipient/finality metadata, and the DOM structure for image-bearing turns; selectively adjust observer/assembler and image-body localization based on concrete evidence. Avoid committing raw signed URLs, profiles or generated image contents. Original accepted text DOM and Markdown baseline remain unchanged.
+
+## Generated-image binary evidence and diagnostic helper (2026-10-24)
+
+The operator reran the corrected RAW audit for the second image-bearing share. It reported `inconclusive-visible-message-coverage`, 14 RAW nodes (3 user, 4 assistant, 3 system, 3 tool, one root), 3 captured user messages, **2 missing intermediate turn ordinals**, and one assistant addressed to `all` without `end_turn=true`. The warning is expected; the source does **not** prove that assistant image replies are absent from the underlying RAW.
+
+A local privacy-safe aggregate over the existing `analysis-images-01/resources.jsonl` reported **five saved PNG response rows totalling 6,762,034 bytes**, two image/SVG rows totalling 1,867 bytes, one WebP at 33,578 bytes, plus three `Other` SVG at 553,197 bytes and one `Other` ICO at 32,038 bytes. Seven initial turn wrappers were observed, but only two initially had descendants with `data-message-id`; five had none at that instant. These counts alone do **not** identify which PNGs are generated content or associate them with assistant replies, and do not establish a failure of network fetching.
+
+Added `inspect-image-capture.mjs` as an experimental **read-only** three-input analyzer (cumulative DOM, web-analyze archive, render-probe archive). It verifies image and turn HTML file integrity, reports saved image MIME/byte/dimension summaries and sanitized origin classes, and summarizes image elements and source kinds in captured turn snapshots. It imports the existing RAW-vs-DOM audit but does not leak the raw URL, original conversation text, original turn/message IDs, or image bytes. Usage:
+
+```sh
+node inspect-image-capture.mjs \
+  ./cumulative-images-01 ./analysis-images-01 ./render-probe-images-01
+```
+
+A synthetic Node 22 test covers image format/dimensions, missing initial turn-message IDs, source class counts, private-value non-disclosure and tampered evidence; GitHub Actions run `40075908722` **PASS** (including existing real Chromium fixture). **No operator execution on the second real share yet**. The diagnostic cannot infer image ownership from PNG size or resolve absent assistant DOM automatically. Further image-localizer modifications must follow evidence from this diagnostic, not speculation.
+
