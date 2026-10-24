@@ -126,6 +126,7 @@ function pageProbe() {
           ...(globalThis.__rumiaiCompareImageUrls ? {imageSelections:
             [...turn.querySelectorAll('img')].slice(0, 40).map(img => ({
               src: img.getAttribute('src') || null,
+              resolvedSrc: img.src || null,
               currentSrc: img.currentSrc || null
             }))} : {})});
     }

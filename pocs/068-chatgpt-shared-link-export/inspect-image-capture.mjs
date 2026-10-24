@@ -368,7 +368,11 @@ export function inspectSameSessionImageUrls(probeDir) {
     if (turn.ordinal !== ordinal || turn.session !== (event.sessionId || ''))
       throw Error('Inconsistent image-turn ordinal or CDP session');
     for (const item of event.imageSelections) {
-      const src = typeof item.src === 'string' ? canonicalImageUrl(item.src) : null;
+      // Resolve relative HTML src using the actual page DOM property instead
+      // of assuming ChatGPT's origin (important for local browser fixtures).
+      const selectedSrc = typeof item.resolvedSrc === 'string' ?
+        item.resolvedSrc : item.src;
+      const src = typeof selectedSrc === 'string' ? canonicalImageUrl(selectedSrc) : null;
       const currentSrc = typeof item.currentSrc === 'string' ?
         canonicalImageUrl(item.currentSrc) : null;
       if (!src && !currentSrc) continue;
