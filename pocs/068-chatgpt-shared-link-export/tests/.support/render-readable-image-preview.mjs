@@ -69,7 +69,8 @@ try {
       'PNG originale','<script'])
     assert(!result.includes(forbidden),'Unexpected source/private markup '+forbidden);
   assert(result.includes("img-src data:"));
-  assert(result.includes("script-src 'none'"));
+  const cspValue=resultDom.querySelector('meta[http-equiv="Content-Security-Policy"]')?.getAttribute('content');
+  assert(cspValue?.includes("script-src 'none'"));
   assert.equal(JSON.parse(fs.readFileSync(path.join(out,'audit.json'),'utf8')).status,
     'readable-provisional-offline');
   assert(!fs.existsSync(path.join(out,'assets')));
