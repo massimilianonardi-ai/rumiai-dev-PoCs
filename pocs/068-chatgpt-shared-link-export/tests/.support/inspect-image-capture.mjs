@@ -52,15 +52,15 @@ try {
     {status:'saved',resourceType:'Document',mimeType:'text/html',
       url:'https://chatgpt.com/share/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',...doc},
     {status:'saved',resourceType:'Image',mimeType:'image/png',
-      url:'https://chatgpt.com/private?token=secret-should-not-leak',...image}
+      url:'https://chatgpt.com/private?token=secret-should-not-leak&size=1',...image}
   ];
   fs.writeFileSync(path.join(resources,'resources.jsonl'),index.map(JSON.stringify).join('\n')+'\n');
-  const snapshotHtml='<div data-turn-id-container="secret-turn"><img src="https://chatgpt.com/private?token=secret-should-not-leak"><svg></svg></div>';
+  const snapshotHtml='<div data-turn-id-container="secret-turn"><section data-testid="conversation-turn-1"><img src="https://chatgpt.com/private?token=secret-should-not-leak&amp;size=1"><svg></svg></section></div>';
   const snapshotBuffer = Buffer.from(snapshotHtml);
   const snapshotHash=hash(snapshotBuffer);
   const snapshotFile='turns/'+snapshotHash+'.html';
   fs.writeFileSync(path.join(probe,snapshotFile),snapshotBuffer);
-  const unidentifiedHtml = '<div data-turn-id-container="secret-image-turn"><img src="blob:https://chatgpt.com/private-object"></div>';
+  const unidentifiedHtml = '<div data-turn-id-container="secret-image-turn"><section data-testid="conversation-turn-2"><img src="https://chatgpt.com/private?token=secret-should-not-leak&amp;size=1"><img src="blob:https://chatgpt.com/private-object"></section></div>';
   const unidentifiedBytes = Buffer.from(unidentifiedHtml);
   const unidentifiedHash = hash(unidentifiedBytes);
   const unidentifiedFile = 'turns/' + unidentifiedHash + '.html';
@@ -71,6 +71,9 @@ try {
     {kind:'turn.snapshot',sequence:3,turnId:'secret-turn',messageIds:['user-id'],
       file:snapshotFile,sha256:snapshotHash,bytes:snapshotBuffer.length},
     {kind:'turn.unidentified-snapshot',sequence:4,turnId:'secret-image-turn',
+      messageIds:[],file:unidentifiedFile,sha256:unidentifiedHash,
+      bytes:unidentifiedBytes.length},
+    {kind:'turn.unidentified-snapshot',sequence:5,turnId:'secret-image-turn',
       messageIds:[],file:unidentifiedFile,sha256:unidentifiedHash,
       bytes:unidentifiedBytes.length}
   ];
@@ -91,18 +94,36 @@ try {
   assert.equal(report.probe.snapshotsWithImg,1);
   assert.equal(report.probe.elementCounts.svg,1);
   assert.equal(report.probe.imgSrcClasses.chatgpt,1);
-  assert.equal(report.probe.unidentifiedSnapshotEvents,1);
+  assert.equal(report.probe.unidentifiedSnapshotEvents,2);
   assert.equal(report.probe.unidentifiedDistinctTurnIds,1);
-  assert.equal(report.probe.unidentifiedSnapshotsWithImg,1);
-  assert.equal(report.probe.unidentifiedElementCounts.img,1);
-  assert.equal(report.probe.unidentifiedImgSrcClasses['browser-blob'],1);
+  assert.equal(report.probe.unidentifiedSnapshotsWithImg,2);
+  assert.equal(report.probe.unidentifiedElementCounts.img,4);
+  assert.equal(report.probe.unidentifiedImgSrcClasses['browser-blob'],2);
+  assert.equal(report.probe.unidentifiedImgSrcClasses.chatgpt,2);
+  assert.equal(report.linkage.unidentified.imageTagOccurrences,4);
+  assert.equal(report.linkage.unidentified.distinctImageReferences,2);
+  assert.equal(report.linkage.unidentified.matchedSavedReferences,1);
+  assert.equal(report.linkage.unidentified.unmatchedReferences,1);
+  assert.equal(report.linkage.unidentified.distinctMatchedPngBodies,1);
+  assert.equal(report.linkage.unidentified.turns[0].ordinal,2);
+  assert.equal(report.linkage.unidentified.turns[0].imageBearingSnapshotEvents,2);
+  assert.equal(report.linkage.identified.matchedSavedReferences,1);
+  assert.deepEqual(report.linkage.imageOrdinalsAbsentFromCumulative,[]);
   assert.equal(report.cumulative.rawAuditStatus,'complete-visible-message-identity-and-order');
   const json=JSON.stringify(report);
   for(const sensitive of ['secret-should-not-leak','secret-turn','secret-image-turn','private-object','user-id','assistant-id'])
     assert(!json.includes(sensitive), 'private field leaked');
+  // Missing DOM turn 2 is recovered only as identifiable image-bearing
+  // ordinal evidence, not as an automatically accepted message.
+  fs.writeFileSync(path.join(cumulative,'audit.json'),JSON.stringify({turns:[
+    {ordinal:1,messageIds:['user-id']},{ordinal:3,messageIds:['assistant-id']}
+  ]}));
+  const withGap = inspectImages(cumulative,resources,probe);
+  assert.deepEqual(withGap.linkage.imageOrdinalsAbsentFromCumulative,[2]);
+  assert.equal(withGap.cumulative.rawAuditStatus,'inconclusive-visible-message-coverage');
   fs.appendFileSync(path.join(resources,image.file),'tamper');
   assert.throws(()=>inspectImages(cumulative,resources,probe),/integrity verification failed/);
-  console.log('PASS: image MIME/dimensions, original DOM references, blank wrappers, no URL leakage, integrity');
+  console.log('PASS: image MIME/dimensions, exact URL/body linkage, snapshot deduplication, ordinal gaps, privacy, integrity');
 } finally {
   fs.rmSync(root,{recursive:true,force:true});
 }

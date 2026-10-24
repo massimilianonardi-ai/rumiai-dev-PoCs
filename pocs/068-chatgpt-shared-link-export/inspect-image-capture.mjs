@@ -71,6 +71,98 @@ function snapshotBytes(directory, event) {
     throw Error('Turn snapshot integrity verification failed');
   return bytes.toString('utf8');
 }
+
+function canonicalImageUrl(value) {
+  try {
+    const url = new URL(value.replace(/&amp;/gi, '&'), 'https://chatgpt.com/');
+    if (!['https:', 'http:', 'data:', 'blob:'].includes(url.protocol))
+      return null;
+    url.hash = '';
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+
+// Extract only literal img src attributes; data-src, srcset and CSS are not
+// proof of the actually selected browser image request.
+function imageReferences(html) {
+  const references = [];
+  for (const tag of html.matchAll(/<img\\b[^>]*>/gi)) {
+    const src = /\\ssrc\\s*=\\s*(["'])([\\s\\S]*?)\\1/i.exec(tag[0])?.[2];
+    references.push(src ? canonicalImageUrl(src) : null);
+  }
+  return references;
+}
+
+function turnOrdinal(html) {
+  const ordinals = new Set([...html.matchAll(/\\bdata-testid=["']conversation-turn-(\\d+)["']/g)]
+    .map(match => Number(match[1])));
+  return ordinals.size === 1 && Number.isSafeInteger([...ordinals][0]) ?
+    [...ordinals][0] : null;
+}
+
+// A match is an exact original-URL match to a SHA-256-verified saved response;
+// it does not prove the DOM used that body, that an assistant authored it,
+// or that a potentially signed/redirected URL remains valid later.
+function correlateSnapshotImages(snapshotEvents, probe, archivedImages) {
+  const turns = new Map(), urls = new Set(), matchedBodies = new Set();
+  const unmatched = new Set();
+  let imageBearingSnapshotEvents = 0;
+  let imageTagOccurrences = 0;
+  let missingSrcOccurrences = 0;
+  for (const event of snapshotEvents) {
+    const html = snapshotBytes(probe, event);
+    const references = imageReferences(html);
+    if (!references.length) continue;
+    imageBearingSnapshotEvents++;
+    imageTagOccurrences += references.length;
+    let turn = turns.get(event.turnId);
+    if (!turn) {
+      turn = {ordinals: new Set(), snapshotEvents: 0, imageTags: 0,
+        urls: new Set(), matched: new Set(), unmatched: new Set()};
+      turns.set(event.turnId, turn);
+    }
+    turn.ordinals.add(turnOrdinal(html));
+    turn.snapshotEvents++;
+    turn.imageTags += references.length;
+    for (const url of references) {
+      if (!url) {missingSrcOccurrences++;continue;}
+      urls.add(url);
+      turn.urls.add(url);
+      const body = archivedImages.get(url);
+      if (body) {
+        matchedBodies.add(body.sha256);
+        turn.matched.add(url);
+      } else {
+        unmatched.add(url);
+        turn.unmatched.add(url);
+      }
+    }
+  }
+  const matches = [...urls].filter(url => archivedImages.has(url));
+  const matchedPngBodies = new Set(matches.filter(url =>
+    archivedImages.get(url).mime === 'image/png').map(url => archivedImages.get(url).sha256));
+  const byTurn = [...turns.values()].map(turn => ({
+    ordinal: turn.ordinals.size === 1 ? [...turn.ordinals][0] : null,
+    imageBearingSnapshotEvents: turn.snapshotEvents,
+    imageTagOccurrences: turn.imageTags,
+    distinctImageReferences: turn.urls.size,
+    matchedSavedReferences: turn.matched.size,
+    unmatchedReferences: turn.unmatched.size
+  }));
+  byTurn.sort((a, b) => (a.ordinal ?? Infinity) - (b.ordinal ?? Infinity));
+  return {
+    imageBearingSnapshotEvents, imageBearingDistinctTurns: turns.size,
+    imageTagOccurrences, distinctImageReferences: urls.size,
+    matchedSavedReferences: matches.length, unmatchedReferences: unmatched.size,
+    missingOrInvalidSrcOccurrences: missingSrcOccurrences,
+    distinctMatchedImageBodies: matchedBodies.size,
+    distinctMatchedPngBodies: matchedPngBodies.size,
+    turns: byTurn
+  };
+}
+
 export function inspectImages(cumulativeDir, resourcesDir, probeDir) {
   const cumulative = path.resolve(cumulativeDir);
   const resources = path.resolve(resourcesDir);
@@ -78,7 +170,7 @@ export function inspectImages(cumulativeDir, resourcesDir, probeDir) {
   const rawAudit = audit(cumulative, resources);
   const rows = jsonl(path.join(resources, 'resources.jsonl'));
   const events = jsonl(path.join(probe, 'events.jsonl'));
-  const imageRecords = [];
+  const imageRecords = [], archivedImages = new Map();
   const byType = {}, byOrigin = {};
   let totalImageBytes = 0;
   for (const row of rows) {
@@ -89,6 +181,8 @@ export function inspectImages(cumulativeDir, resourcesDir, probeDir) {
     counted(byType, mime);
     counted(byOrigin, host);
     totalImageBytes += bytes.length;
+    const resourceUrl = canonicalImageUrl(row.url || '');
+    if (resourceUrl) archivedImages.set(resourceUrl, {sha256:row.sha256, mime});
     imageRecords.push({
       ordinal: imageRecords.length + 1,
       mime, bytes: bytes.length, originClass: host,
@@ -129,6 +223,13 @@ export function inspectImages(cumulativeDir, resourcesDir, probeDir) {
     if (ref.attribute !== 'src' && ref.attribute !== 'srcset') continue;
     counted(linkKinds, originClass(ref.reference));
   }
+  const identifiedLinkage = correlateSnapshotImages(snapshots, probe, archivedImages);
+  const unidentifiedLinkage = correlateSnapshotImages(unidentified, probe, archivedImages);
+  const capturedOrdinals = new Set(JSON.parse(fs.readFileSync(
+    path.join(cumulative, 'audit.json'), 'utf8')).turns.map(turn => turn.ordinal));
+  const imageOrdinalsAbsentFromCumulative = [...new Set(unidentifiedLinkage.turns
+    .filter(turn => turn.ordinal !== null && !capturedOrdinals.has(turn.ordinal))
+    .map(turn => turn.ordinal))].sort((a, b) => a - b);
   return {
     status: 'image-capture-diagnostic-only',
     archive: {
@@ -147,6 +248,13 @@ export function inspectImages(cumulativeDir, resourcesDir, probeDir) {
       unidentifiedSnapshotsWithImg, unidentifiedElementCounts,
       unidentifiedImgSrcClasses: unidentifiedSourceKinds
     },
+    linkage: {
+      method: 'exact-URL-to-verified-saved-image; no redirect inference',
+      identified: identifiedLinkage,
+      unidentified: unidentifiedLinkage,
+      imageOrdinalsAbsentFromCumulative,
+      note: 'Repeated snapshot img tags are not distinct image assets or proof of assistant ownership'
+    },
     cumulative: {
       turns: rawAudit.capturedTurns, messageIds: rawAudit.capturedDomMessages,
       referenceSrcClasses: linkKinds,
@@ -159,7 +267,8 @@ export function inspectImages(cumulativeDir, resourcesDir, probeDir) {
       'PNG bytes cannot be attributed to generated messages without image/DOM or RAW linkage',
       'Missing turn wrappers and image widgets cannot be reconstructed from absent snapshots',
       'Image dimensions do not prove visual fidelity, role or source conversation association',
-      'Snapshots represent observed frames only; source content and URLs are not emitted'
+      'Snapshots represent observed frames only; source content and URLs are not emitted',
+      'Exact source URL matches do not prove RAW assistant-message ownership or displayed image decoding'
     ]
   };
 }

@@ -218,3 +218,33 @@ node inspect-image-capture.mjs \
 
 A synthetic Node 22 test covers image format/dimensions, missing initial turn-message IDs, source class counts, private-value non-disclosure and tampered evidence; GitHub Actions run `40075908722` **PASS** (including existing real Chromium fixture). **No operator execution on the second real share yet**. The diagnostic cannot infer image ownership from PNG size or resolve absent assistant DOM automatically. Further image-localizer modifications must follow evidence from this diagnostic, not speculation.
 
+
+## Repeated image-only DOM evidence and source URL correlation (2026-10-24)
+
+The operator executed the second, message-ID-independent probe against the
+generated-image share. It produced 293 events, including 57
+`turn.unidentified-snapshot` events from three distinct outer turn IDs.
+Six of those snapshot events contained `<img>` elements (18 cumulative tag
+occurrences), all classified as `other-host`. Three normal `turn.snapshot`
+events from three identified turns contained no images. These image-tag
+occurrences may be repeated states of the same image and do not prove 18
+independent assets. The archive still holds three 1536×1024 external-host
+PNG response bodies. The prior cumulative message-qualified DOM still
+omits two intermediate ordinal positions and its RAW finality assessment
+remains inconclusive.
+
+Extended `inspect-image-capture.mjs` in place to correlate literal image
+source attributes against exact archived image response URLs while
+verifying all referenced saved response bodies and snapshot hashes.
+The new `linkage` report separates identified from unidentified
+snapshots, deduplicates references and response bodies, reports ordinal-only
+counts and whether image-bearing ordinal positions are absent from the
+old cumulative DOM. No original URLs, message IDs, turn IDs, payloads or
+signed parameters are emitted. This does not infer redirects, create
+missing message IDs or assign RAW assistant authorship.
+
+Next: run the updated existing command once against the **existing**
+`analysis-images-01`, `cumulative-images-01` and
+`render-probe-images-02`. Compare `linkage.unidentified`,
+`linkage.identified` and `imageOrdinalsAbsentFromCumulative`
+before changing the actual offline assembler/localizer.

@@ -206,6 +206,27 @@ HTML files may contain conversation content and signed URLs; keep them private
 and do not commit or paste them into public logs. Normal text-turn assembly
 remains unchanged.
 
+
+### Correlate archived PNG responses with the newly observed image turns
+
+Run the **same** read-only diagnostic with `render-probe-images-02`.
+Its `linkage` section now correlates literal `<img src>` attributes against
+exact original image response URLs in the already-saved `resources.jsonl`,
+after SHA-256/size verification. It counts **distinct URLs and saved content
+bodies**, so repeated snapshots do not inflate distinct-image counts. The
+`unidentified.turns` table contains only `conversation-turn-N` ordinal and
+aggregate counts; it does not expose original turn/message IDs or signed URLs.
+`imageOrdinalsAbsentFromCumulative` identifies image-bearing turn ordinals
+missing from the previously assembled *message-qualified* DOM. An ordinal
+without an unambiguous `data-testid` is reported as `null`.
+
+Exact URL matching is intentionally strict. URLs changed by redirects, expiring
+signatures or source transformations count as unmatched until individually
+verified. A match does **not** independently establish RAW assistant ownership,
+the displayed pixels, or conversation-wide completeness. No HTML/image bytes
+are modified, no browser or network is used and no implicit localization or
+assembly is performed.
+
 ## Security boundaries
 
 The URL must be an HTTPS \`chatgpt.com/share/\` conversation link, not a scheduled-task share. The exporter neither extracts cookies nor bypasses sign-in challenges. Browser profile state remains with web-control. Archive output is private data: do not commit it to public GitHub or share it without review. HTML snapshots and any image URL containing signed query parameters can reveal information, so avoid diagnostic logging of asset URLs.
