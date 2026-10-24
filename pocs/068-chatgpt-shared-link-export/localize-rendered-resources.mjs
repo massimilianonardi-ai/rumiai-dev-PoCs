@@ -120,6 +120,9 @@ function provisionalImageChoices(html, rows, choices) {
   const provisional = [];
   for (const url of sources.keys()) {
     const candidates = byPath.get(urlPath(url)) || [];
+    // Unrelated unarchived external images remain unresolved and CSP-blocked.
+    // A candidate path with multiple different bodies is an explicit error.
+    if (!candidates.length) continue;
     const bodies = new Set(candidates.map(x => x.row.sha256));
     if (bodies.size !== 1) throw Error('No unique verified PNG body for one image-preview reference');
     const candidate = candidates[0];
@@ -131,6 +134,7 @@ function provisionalImageChoices(html, rows, choices) {
     provisional.push({sourceUrlHash:sha(Buffer.from(url)), candidateBodySha256:candidate.row.sha256,
       asset:entry.filename, evidence:'same-origin-path-only', identityVerified:false});
   }
+  if (!provisional.length) throw Error('No unique archived PNG candidates for image preview');
   if (new Set(provisional.map(x => x.candidateBodySha256)).size !== provisional.length)
     throw Error('Distinct image-preview references reuse the same PNG body');
   return provisional;
