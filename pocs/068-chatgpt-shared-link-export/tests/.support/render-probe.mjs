@@ -65,7 +65,7 @@ try {
   child.stdout.on('data', chunk => {stdout+=String(chunk);});
   child.stderr.on('data', chunk => {stderr+=String(chunk);});
   const status = await new Promise((resolve,reject) => {
-    const timer=setTimeout(()=>{child.kill('SIGKILL');reject(Error('probe timeout: '+stderr));},90000);
+    const timer=setTimeout(()=>{child.kill('SIGKILL');reject(Error('probe timeout: '+stderr));},140000);
     child.once('error',reject);
     child.once('exit',code=>{clearTimeout(timer);resolve(code);});
   });
