@@ -503,3 +503,30 @@ turn markers and main elements, without page text/URLs) and fail with an
 explicit nonzero readiness status rather than implying an exported result.
 A future diagnosis still requires real host evidence; do not invent missing
 turns or silently use a different source.
+
+## Captured formula structure survey (2026-10-24)
+
+On the first physical rich-reading run, the operator reported
+`unavailableMathFormulas=198` and no rendered formulas. Before assuming
+that the *original formula sources* are absent, inspect the **existing
+private** capture's parsed DOM structure and all snapshots with:
+
+```sh
+node inspect-math-capture.mjs "$HOME/chatgpt-batch-vGRePjHh/1-capture"
+```
+
+The command prints **only counts and turn ordinals**, distinguishing
+actual `katex` roots, MathML, TeX annotations, source attributes,
+visible KaTeX HTML without MathML, and cases where an older saved
+snapshot contains a formula missing in the selected latest snapshot.
+No formula source text, URL, message ID, or HTML is printed.
+The output will determine whether existing archived evidence can be
+typeset directly or whether recovering real formulas needs a targeted
+capture change. In parallel, the semantic renderer no longer mistakes
+auxiliary `katex-*` class names for separate complete equations.
+
+The user's third transcript reading view was visually judged **very
+good** apart from optional attachments. Those attachments can be
+misleading transcript duplicates; no attachment export is introduced.
+Do not claim that correcting placeholder counts itself reconstructs
+mathematical formulas.

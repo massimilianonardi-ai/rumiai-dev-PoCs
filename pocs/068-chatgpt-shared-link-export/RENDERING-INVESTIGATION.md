@@ -399,3 +399,35 @@ browser/network acquisitions. Share 2 remains a distinct pre-capture
 readiness/hydration failure; report DOM shape and fail explicitly on next
 real run rather than inventing DOM turns. Fixture test coverage is not
 physical acceptance until user visually checks new outputs.
+
+## Formula-availability investigation (2026-10-24)
+
+After physical rich re-rendering of the already private batch, operator:
+- Share 3: reading view visually very good; attachments absent but
+  optional and might duplicate a conversation transcript misleadingly.
+- Share 1: links now acceptable, but formulas are replaced with
+  `[Formula non ricostruibile dallo snapshot]`.
+- Sanitized share 1 audit: `turns=16`, `preservedMathFormulas=0`,
+  `mathSourceFallbacks=0`, `unavailableMathFormulas=198`,
+  `linkedSources=68`, `suppressedDecorativeImages=85`,
+  `embeddedImageOccurrences=0`, `imageBearingTurns=0`,
+  `status=same-session-offline-partial`. Share 3 audit:
+  `turns=40`, `preservedMathFormulas=0`,
+  `unavailableMathFormulas=0`, `linkedSources=16`,
+  `imageBearingTurns=3`, 3 verified distinct bodies, and
+  `status=same-session-offline`.
+  Absence of capture-attached source algebra is not proven by these audits.
+- Identified potential false positives in the renderer's
+  `/\\bkatex\\b/` expression: it also matches auxiliary CSS class
+  names `katex-mathml`, `katex-html`, `katex-display`, and
+  `katex-error`. Restrict actual math root recognition to the exact
+  `katex` CSS token; keep explicit `math` and `mjx-container`.
+- Added `inspect-math-capture.mjs` to classify *all existing local
+  snapshots* while reporting only counts and numeric ordinals (no private
+  formula text or URLs), including older versions that may have
+  MathML/TeX even when the selected newest does not. The user can run it
+  on the existing private share 1 capture without re-navigating ChatGPT.
+  The result determines whether to choose an existing MathML source,
+  typeset a retained TeX source using a real formatter, or add targeted
+  math source capture. Mathematical reconstruction remains **open**
+  until structural evidence and physical visual acceptance.

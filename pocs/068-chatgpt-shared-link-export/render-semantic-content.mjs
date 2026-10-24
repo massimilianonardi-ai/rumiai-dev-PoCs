@@ -136,8 +136,10 @@ export function renderSemanticTree(root,imageFor,stats)
     }
     if (name==='annotation' || name==='annotation-xml' ||
         node.getAttribute('class')?.includes('katex-html')) return '';
-    if (name==='math' || /\bkatex\b/.test(node.getAttribute('class')||'') ||
-        name==='mjx-container')
+    // Match the actual KaTeX root class, not auxiliary classes such as
+    // katex-mathml, katex-html, katex-display or katex-error.
+    const classes=(node.getAttribute('class')||'').split(/\s+/);
+    if (name==='math' || classes.includes('katex') || name==='mjx-container')
       return mathFrom(node,stats);
     if (name==='img')
     {

@@ -69,6 +69,13 @@ const fallbackStats=createSemanticStats();
 const fallback=renderSemanticTree(fallbackDoc,()=>null,fallbackStats);
 assert(fallback.includes('x^2'));
 assert.equal(fallbackStats.mathFallback,1);
+const helperDoc=parseHTML('<div><span class="katex-mathml">auxiliary</span>'+
+  '<span class="katex-error">Raw source</span></div>').document.querySelector('div');
+const helperStats=createSemanticStats();
+const helperHtml=renderSemanticTree(helperDoc,()=>null,helperStats);
+assert(helperHtml.includes('auxiliary'));
+assert(helperHtml.includes('Raw source'));
+assert.equal(helperStats.mathUnavailable,0);
 const unsupportedDoc=parseHTML('<span class="katex">no mathml</span>').document
   .querySelector('span');
 const unsupportedStats=createSemanticStats();
