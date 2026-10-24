@@ -646,3 +646,39 @@ pair can still differ in computed layout due to KaTeX CSS versions, container
 styles or font fallback: if no structural/layout-style loss is found, the
 next experiment must inspect **actual local browser computed geometry**,
 not change CSS blindly. Accepted share-3 rich output remains untouched.
+
+## Actual-capture geometry in Chromium, no new web navigation (2026-10-24)
+
+The operator confirmed that **both Firefox and Chromium** render the
+previous 198-formula export incorrectly. This rules out a simple
+Firefox-only problem; incidental VMware GPU log messages do not prove
+a KaTeX rendering fault. The private DOM diff for all 198 real formulas
+found exactly **4,919 descendant elements on both sides**, identical
+tag sequences/class tokens and all checked inline style values, with
+only 27 `border-width` declarations dropped. That does not explain
+the broad subscript/superscript failure by itself.
+
+The read-only `inspect-katex-computed.mjs` now takes the *actual selected
+private source math nodes* and the corresponding *already exported* math
+nodes, places each pair under the **same exported KaTeX CSS and fonts**
+in a throwaway local Chromium page, and reports only per-turn aggregate
+computed property and geometry discrepancy counts; no formula contents,
+HTML, signed URLs or actual CSS values leave the host. Temporary HTML
+and browser profile are private and deleted immediately. This measures
+whether the same offline stylesheet produces differences between
+captured source nodes and exported nodes; it is **not a comparison to
+the original live ChatGPT stylesheet**.
+
+```sh
+git pull --ff-only
+node inspect-katex-computed.mjs \
+  /home/admino/chatgpt-batch-vGRePjHh/1-capture \
+  /home/admino/chatgpt-batch-vGRePjHh/1-reading-katex-layout
+```
+
+If the source and export geometries coincide under one stylesheet while
+both physical browsers disagree with ChatGPT, the next hypothesis to
+test is **original live ChatGPT CSS/fonts and parent context** rather
+than another speculative DOM serializer change. If they differ, inspect
+computed property names and numeric geometry from this report first.
+No new export, navigation, or stylesheet modification is undertaken.

@@ -497,3 +497,23 @@ a leaked text/formula. Next evaluate sanitized physical output; then
 fix only the evidence-grounded mismatch, and upgrade real-browser fixture
 to prevent the corresponding regression. If structure matches, investigate
 actual browser computed styles and font assets rather than guessing.
+
+## Cross-browser physical rejection; real capture-side Chromium geometry test (2026-10-24)
+
+The user opened the same rejected local HTML explicitly with Chromium,
+in addition to default `firefox_firefox.desktop`; **both show incorrect
+math**. VMware 3D/GPU, VA-API and GCM logs were observed, but no evidence
+links those warnings to the formula CSS. Previous test coverage only
+compared synthetic formulas using the pinned package CSS.
+
+Real private DOM comparison finds all 198 KaTeX roots and 4,919 descendant
+elements identical by tag/classes/order across original and export, and
+only 27 source `border-width` style omissions. Exact inline CSS property
+values otherwise match. A local Chromium diagnostic was added to compare
+**actual captured formula HTML and the failed export HTML** rendered
+side-by-side under the *same pinned offline stylesheet*, measuring
+computed font/position/border properties and per-descendant rectangles
+and returning sanitized aggregate counts. This is **not** live page
+style evidence and is not math visual acceptance. If the paired
+geometry is equal, future work must obtain source-page computed
+style/font evidence rather than guess at border-width as the sole cause.

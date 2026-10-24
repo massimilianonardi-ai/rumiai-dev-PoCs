@@ -92,7 +92,7 @@ function compareFormula(source,output,report)
           increment(report.svgGeometryAttributeLosses,key);
   }
 }
-function selectedSnapshots(capture)
+export function selectedSnapshots(capture)
 {
   const scratch=fs.mkdtempSync(path.join(os.tmpdir(),'poc068-katex-diff-'));
   let turns;
@@ -122,7 +122,7 @@ function selectedSnapshots(capture)
     return {ordinal:t.ordinal,wrapper};
   });
 }
-function orderedVisualOutput(output)
+export function orderedVisualOutput(output)
 {
   const file=path.join(output,'index.html');
   const html=fs.readFileSync(file,'utf8');
