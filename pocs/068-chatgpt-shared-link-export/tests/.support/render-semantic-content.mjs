@@ -21,6 +21,8 @@ const html='<section data-message-id="secret-id"><div data-testid="message-conte
   'src="https://site.example.test/icon.png">Nome della fonte</a></p>'+
   '<img src="https://image.example.test/full.png" alt="Figura principale">'+
   '<img width="20" height="20" src="https://site.example.test/other.png">'+
+  '<img class="h-4 w-4" src="https://site.example.test/compact-logo.png">'+
+  '<img src="https://site.example.test/favicon.ico">'+
   '<script>window.evil=1</script><button onclick="evil()">Copia</button>'+
   '<a href="javascript:alert(1)">non eseguibile</a>'+
   '<a href="data:text/html,<script>bad</script>">data unsafe</a>'+
@@ -54,13 +56,13 @@ assert.equal(dom.querySelectorAll('figure img').length,1);
 assert.equal(dom.querySelectorAll('img').length,1);
 assert(output.includes('data:image/png;base64,'));
 for(const bad of ['javascript:','data:text/html','window.evil','onclick=',
-  '<script','<iframe','favicon.png','other.png','secret-id','<style'])
+  '<script','<iframe','favicon.png','other.png','compact-logo.png','favicon.ico','secret-id','<style'])
   assert(!output.includes(bad),'Unsafe or decorative captured markup leaked: '+bad);
 assert.equal(stats.mathPreserved,1);
 assert.equal(stats.linkedSources,3);
 assert.equal(stats.contentImageOccurrences,1);
 assert.equal(stats.unmatchedContentImages,0);
-assert(stats.suppressedDecorativeImages>=3);
+assert(stats.suppressedDecorativeImages>=5);
 const fallbackDoc=parseHTML('<div><span class="katex" data-latex="x^2">x</span></div>')
   .document.querySelector('div');
 const fallbackStats=createSemanticStats();
