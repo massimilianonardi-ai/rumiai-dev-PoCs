@@ -22,7 +22,7 @@ export function browserKatexMetrics()
 {
   const source=[...document.querySelectorAll('[data-testid^="conversation-turn-"]')]
     .filter(node=>/^conversation-turn-\d+$/.test(node.getAttribute('data-testid')||''))
-    .map(node=>({node,ordinal:Number(node.getAttribute('data-testid').slice(18))+1}));
+    .map(node=>({node,ordinal:Number(node.getAttribute('data-testid').slice(18))}));
   const offline=[...document.querySelectorAll('article.turn')]
     .map(node=>({node,ordinal:Number(node.querySelector('h2')?.textContent?.match(/\d+/)?.[0])}));
   const turns=offline.length?offline:source;
