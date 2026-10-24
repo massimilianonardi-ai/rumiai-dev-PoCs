@@ -34,8 +34,8 @@ const app = [
   "imageTurn.dataset.turnIdContainer='image-only';",
   "imageTurn.dataset.testid='conversation-turn-16';",
   "const image=document.createElement('img');",
-  "image.src='/pixel.gif?sig=dom';",
   "image.srcset='/pixel.gif?sig=selected 1x';",
+  "image.src='/pixel.gif?sig=dom';",
   "imageTurn.append(image);root.append(imageTurn);",
   "root.addEventListener('scroll',()=>{});"
 ].join('\n');
@@ -107,6 +107,7 @@ try {
     assert(fs.readFileSync(path.join(out,row.file),'utf8').includes('data-message-id'));
   }
   const imageAudit=inspectSameSessionImageUrls(out);
+  console.log('Chrome fixture image URL evidence: '+JSON.stringify(imageAudit));
   assert(imageAudit.network.imageResponseEvents >= 1,
     'Chrome CDP did not observe image response within the same session');
   assert(imageAudit.probe.imageBearingTurns >= 1,
