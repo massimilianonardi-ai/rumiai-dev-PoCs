@@ -97,7 +97,9 @@ export function inspectImages(cumulativeDir, resourcesDir, probeDir) {
   }
   const initial = events.filter(e => e.kind === 'turn.initial');
   const snapshots = events.filter(e => e.kind === 'turn.snapshot' && e.file);
+  const unidentified = events.filter(e => e.kind === 'turn.unidentified-snapshot' && e.file);
   const uniqueTurns = new Set(snapshots.map(e => e.turnId));
+  const unidentifiedTurns = new Set(unidentified.map(e => e.turnId));
   const elementCounts = {img:0,picture:0,canvas:0,svg:0};
   const imageSourceKinds = {};
   let snapshotsWithImg = 0;
@@ -107,6 +109,18 @@ export function inspectImages(cumulativeDir, resourcesDir, probeDir) {
     for (const key of Object.keys(elementCounts)) elementCounts[key] += stats[key];
     for (const [kind, count] of Object.entries(stats.sources))
       imageSourceKinds[kind] = (imageSourceKinds[kind] || 0) + count;
+  }
+  // These HTML files were never eligible for the cumulative assembler.
+  const unidentifiedElementCounts = {img:0,picture:0,canvas:0,svg:0};
+  const unidentifiedSourceKinds = {};
+  let unidentifiedSnapshotsWithImg = 0;
+  for (const event of unidentified) {
+    const stats = snapshotTags(snapshotBytes(probe, event));
+    if (stats.img > 0) unidentifiedSnapshotsWithImg++;
+    for (const key of Object.keys(unidentifiedElementCounts))
+      unidentifiedElementCounts[key] += stats[key];
+    for (const [kind, count] of Object.entries(stats.sources))
+      unidentifiedSourceKinds[kind] = (unidentifiedSourceKinds[kind] || 0) + count;
   }
   const sourceManifest = JSON.parse(fs.readFileSync(path.join(cumulative, 'resource-references.json'), 'utf8'));
   if (!Array.isArray(sourceManifest)) throw Error('Invalid cumulative resource reference list');
@@ -127,7 +141,11 @@ export function inspectImages(cumulativeDir, resourcesDir, probeDir) {
       initiallyWithMessageIds: initial.filter(e => e.messageIds?.length).length,
       initiallyWithoutMessageIds: initial.filter(e => !e.messageIds?.length).length,
       snapshotEvents: snapshots.length, distinctSnapshotTurnIds: uniqueTurns.size,
-      snapshotsWithImg, elementCounts, imgSrcClasses: imageSourceKinds
+      snapshotsWithImg, elementCounts, imgSrcClasses: imageSourceKinds,
+      unidentifiedSnapshotEvents: unidentified.length,
+      unidentifiedDistinctTurnIds: unidentifiedTurns.size,
+      unidentifiedSnapshotsWithImg, unidentifiedElementCounts,
+      unidentifiedImgSrcClasses: unidentifiedSourceKinds
     },
     cumulative: {
       turns: rawAudit.capturedTurns, messageIds: rawAudit.capturedDomMessages,

@@ -177,6 +177,35 @@ runs completely offline, does not modify its inputs and does not launch a
 browser. The first successfully localized 42-turn text-share baseline remains
 unchanged.
 
+## Unidentified turn evidence for image-bearing shares
+
+The renderer probe now also writes `turn.unidentified-snapshot` records for
+nonempty turn wrappers that lack descendant `data-message-id` elements. Their
+full outer HTML is saved content-addressed in the existing private `turns/`
+directory, but **not** embedded in the JSONL stream. These records are separate
+from `turn.snapshot` and are deliberately **ignored by the cumulative DOM
+assembler**: they are evidence for inspection, not proof that a rendered
+message or original image has been identified. Blank placeholders and image
+widgets may both produce unidentified snapshots.
+
+The read-only `inspect-image-capture.mjs` reports their counts, HTML image-tag
+counts and sanitized source classes separately from normal snapshots. This
+requires a **new render-probe capture**; the old archive cannot recover
+snapshots that were never recorded. The `web-analyze` network archive does not
+need to be repeated. From the PoC directory, use a fresh private directory:
+
+```sh
+node render-probe.mjs \
+  'https://chatgpt.com/share/6ad13a5b-e9f0-83eb-8519-9e2d8c8097f3' \
+  ./render-probe-images-02 --sweep
+node inspect-image-capture.mjs \
+  ./cumulative-images-01 ./analysis-images-01 ./render-probe-images-02
+```
+
+HTML files may contain conversation content and signed URLs; keep them private
+and do not commit or paste them into public logs. Normal text-turn assembly
+remains unchanged.
+
 ## Security boundaries
 
 The URL must be an HTTPS \`chatgpt.com/share/\` conversation link, not a scheduled-task share. The exporter neither extracts cookies nor bypasses sign-in challenges. Browser profile state remains with web-control. Archive output is private data: do not commit it to public GitHub or share it without review. HTML snapshots and any image URL containing signed query parameters can reveal information, so avoid diagnostic logging of asset URLs.

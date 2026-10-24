@@ -60,11 +60,19 @@ try {
   const snapshotHash=hash(snapshotBuffer);
   const snapshotFile='turns/'+snapshotHash+'.html';
   fs.writeFileSync(path.join(probe,snapshotFile),snapshotBuffer);
+  const unidentifiedHtml = '<div data-turn-id-container="secret-image-turn"><img src="blob:https://chatgpt.com/private-object"></div>';
+  const unidentifiedBytes = Buffer.from(unidentifiedHtml);
+  const unidentifiedHash = hash(unidentifiedBytes);
+  const unidentifiedFile = 'turns/' + unidentifiedHash + '.html';
+  fs.writeFileSync(path.join(probe,unidentifiedFile),unidentifiedBytes);
   const events=[
     {kind:'turn.initial',turnId:'secret-turn',rendered:true,messageIds:['user-id']},
     {kind:'turn.initial',turnId:'another-turn',rendered:false,messageIds:[]},
     {kind:'turn.snapshot',sequence:3,turnId:'secret-turn',messageIds:['user-id'],
-      file:snapshotFile,sha256:snapshotHash,bytes:snapshotBuffer.length}
+      file:snapshotFile,sha256:snapshotHash,bytes:snapshotBuffer.length},
+    {kind:'turn.unidentified-snapshot',sequence:4,turnId:'secret-image-turn',
+      messageIds:[],file:unidentifiedFile,sha256:unidentifiedHash,
+      bytes:unidentifiedBytes.length}
   ];
   fs.writeFileSync(path.join(probe,'events.jsonl'),events.map(JSON.stringify).join('\n')+'\n');
   fs.writeFileSync(path.join(cumulative,'audit.json'),JSON.stringify({turns:[
@@ -83,9 +91,14 @@ try {
   assert.equal(report.probe.snapshotsWithImg,1);
   assert.equal(report.probe.elementCounts.svg,1);
   assert.equal(report.probe.imgSrcClasses.chatgpt,1);
+  assert.equal(report.probe.unidentifiedSnapshotEvents,1);
+  assert.equal(report.probe.unidentifiedDistinctTurnIds,1);
+  assert.equal(report.probe.unidentifiedSnapshotsWithImg,1);
+  assert.equal(report.probe.unidentifiedElementCounts.img,1);
+  assert.equal(report.probe.unidentifiedImgSrcClasses['browser-blob'],1);
   assert.equal(report.cumulative.rawAuditStatus,'complete-visible-message-identity-and-order');
   const json=JSON.stringify(report);
-  for(const sensitive of ['secret-should-not-leak','secret-turn','user-id','assistant-id'])
+  for(const sensitive of ['secret-should-not-leak','secret-turn','secret-image-turn','private-object','user-id','assistant-id'])
     assert(!json.includes(sensitive), 'private field leaked');
   fs.appendFileSync(path.join(resources,image.file),'tamper');
   assert.throws(()=>inspectImages(cumulative,resources,probe),/integrity verification failed/);

@@ -29,6 +29,12 @@ const app = [
   "  turn.dataset.turnIdContainer='turn-'+i;",
   "  root.append(turn);observer.observe(turn);",
   "}",
+  "const imageTurn=document.createElement('section');",
+  "imageTurn.dataset.turnIdContainer='image-only';",
+  "imageTurn.dataset.testid='conversation-turn-16';",
+  "const image=document.createElement('img');",
+  "image.src='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';",
+  "imageTurn.append(image);root.append(imageTurn);",
   "root.addEventListener('scroll',()=>{});"
 ].join('\n');
 const server = http.createServer((req, res) => {
@@ -76,6 +82,16 @@ try {
   assert(transitions.every(e => e.turnId && e.messageIds.length),
     'mount/unmount transitions must keep stable original turn/message identity');
   assert(summary.uniqueTurnSnapshots>=8,'not enough reconstructed turn snapshots');
+  const unidentified = records.filter(e => e.kind === 'turn.unidentified-snapshot');
+  assert(unidentified.some(e => e.turnId === 'image-only' && e.messageIds.length === 0),
+    'image-only turn with no data-message-id was not captured');
+  for (const entry of unidentified) {
+    assert(fs.existsSync(path.join(out, entry.file)), 'unidentified turn HTML missing');
+    assert(!('html' in entry), 'unidentified turn HTML leaked into JSONL');
+  }
+  assert(unidentified.some(e => e.turnId === 'image-only' &&
+    fs.readFileSync(path.join(out, e.file), 'utf8').includes('<img')),
+    'image-only turn snapshot missing image markup');
   const turns=new Set(records.filter(e=>e.kind==='turn.snapshot').map(e=>e.turnId));
   assert(turns.has('turn-0')&&turns.has('turn-15'),'sweep did not capture both ends');
   for(const row of records.filter(e=>e.kind==='turn.snapshot')){

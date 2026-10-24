@@ -26,6 +26,13 @@ record(3, 'turn-c', 'msg-c', 2, 'last');
 record(1, 'turn-a', 'msg-a', 1, 'old');
 record(1, 'turn-a', 'msg-a', 4, 'new <a href="https://example.org/x">link</a>');
 record(2, 'turn-b', 'msg-b', 3, 'middle');
+const imageOnlyHtml = '<div data-turn-id-container="image-only"><img src="data:image/gif;base64,abc"></div>';
+const imageOnlyHash = crypto.createHash('sha256').update(imageOnlyHtml).digest('hex');
+const imageOnlyFile = 'turns/' + imageOnlyHash + '.html';
+fs.writeFileSync(path.join(capture, imageOnlyFile), imageOnlyHtml);
+events.push({sequence: 5, kind: 'turn.unidentified-snapshot', turnId: 'image-only',
+  messageIds: [], file: imageOnlyFile, sha256: imageOnlyHash,
+  bytes: Buffer.byteLength(imageOnlyHtml)});
 fs.writeFileSync(path.join(capture, 'events.jsonl'),
   events.map(row => JSON.stringify(row)).join('\n') + '\n');
 const raw = path.join(temp, 'raw.json.gz');
@@ -50,6 +57,8 @@ try {
   assert(html.indexOf('conversation-turn-1') < html.indexOf('conversation-turn-2'));
   assert(html.indexOf('conversation-turn-2') < html.indexOf('conversation-turn-3'));
   assert(html.includes('>new <a href="https://example.org/x">link</a>'));
+  assert(!html.includes('data-turn-id-container="image-only"'),
+    'unidentified probe evidence must not silently enter the cumulative DOM');
   assert(!html.includes('>old</article>'));
   assert(html.includes("script-src 'none'"));
   assert.throws(() => assemble(capture, output), /already exists/);

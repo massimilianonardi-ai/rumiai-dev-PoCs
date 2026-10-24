@@ -107,17 +107,20 @@ function pageProbe() {
           {turnId, messageIds: rendered ? messageIds : previous.messageIds});
       }
       states.set(turnId, {rendered, messageIds});
-      if (!rendered) continue;
+      // Keep non-message DOM evidence separate from the cumulative assembler.
+      if (!rendered && !turn.children.length) continue;
       const html = turn.outerHTML;
       let hash = 2166136261;
       for (let i = 0; i < html.length; ++i)
         hash = Math.imul(hash ^ html.charCodeAt(i), 16777619);
-      const signature = (hash >>> 0) + ':' + html.length;
+      const signature = (rendered ? 'message:' : 'unidentified:') +
+        (hash >>> 0) + ':' + html.length;
       if (last.get(turnId) === signature) continue;
       last.set(turnId, signature);
       if (html.length > 2097152)
         log('turn.too-large', {turnId, messageIds, length: html.length});
-      else log('turn.snapshot', {turnId, messageIds, html});
+      else log(rendered ? 'turn.snapshot' : 'turn.unidentified-snapshot',
+        {turnId, messageIds, html});
     }
     // Some implementations remove the entire wrapper rather than merely
     // emptying its children. Do not mistake a wrapper removal for a React
@@ -257,7 +260,8 @@ function recording(directory) {
     if (finished) return;
     const {kind = 'unknown', html, ...info} = event;
     counts[kind] = (counts[kind] || 0) + 1;
-    if (kind === 'turn.snapshot' && typeof html === 'string') {
+    if ((kind === 'turn.snapshot' || kind === 'turn.unidentified-snapshot') &&
+        typeof html === 'string') {
       const bytes = Buffer.from(html, 'utf8');
       if (bytes.length <= 2097152) {
         const hash = sha(bytes), filename = 'turns/' + hash + '.html';
