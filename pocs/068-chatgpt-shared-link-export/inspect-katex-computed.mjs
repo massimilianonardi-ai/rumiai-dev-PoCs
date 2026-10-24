@@ -120,7 +120,7 @@ export function inspectActualKatexComputed(captureDir,readingDir)
   const nonce=crypto.randomBytes(24).toString('base64');
   const html='<!doctype html><html><head><meta charset="utf-8">'+
     '<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;;'+
-    ' script-src &#39;nonce-'+nonce+'&#39;; style-src &#39;nonce-'+nonce+
+    ' script-src &#39;nonce-'+nonce+'&#39;; style-src &#39;unsafe-inline&#39;;'+
     '&#39;; font-src data:; img-src data:; connect-src &#39;none&#39;;'+
     ' base-uri &#39;none&#39;; form-action &#39;none&#39;">'+
     '<style nonce="'+nonce+'">'+css+
