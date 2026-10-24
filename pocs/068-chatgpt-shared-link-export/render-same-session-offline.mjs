@@ -136,6 +136,7 @@ export function renderSameSessionOffline(captureDir,outputDir)
     missingTextOrdinals:[],missingImageOrdinals:[],
     missingTurnOrdinals:audit.missingOrdinals,
     rawMessageAttribution:'not-verified',
+    visualAndSemanticFidelity:'requires-operator-verification',
     limitations:[
       'Only observed DOM turn snapshots are represented; original RAW conversation completeness is not established',
       'Image bytes are tied to exact CDP request URLs and session/request identifiers, not merely matching paths',
