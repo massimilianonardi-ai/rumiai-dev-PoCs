@@ -67,7 +67,23 @@ try {
   assert.equal(ok.extraInDomCount,0);
   assert.equal(ok.orderMatches,true);
   assert.equal(ok.orderedVisibleIdSha256,ok.orderedDomIdSha256);
+  assert.equal(ok.missingTurnOrdinalCount, 0);
+  assert.equal(ok.assistantNodesWithoutFinalMarker, 1);
+  assert.deepEqual(ok.visibilityWarnings, []);
   assert(!JSON.stringify(ok).includes('m-user'),'raw IDs should not leak in audit');
+
+  // Matching message IDs cannot prove completeness when intermediate
+  // conversation-turn ordinals have no captured HTML.
+  fs.writeFileSync(auditFile, JSON.stringify({turns: [
+    {ordinal: 1, messageIds: ['m-user']},
+    {ordinal: 3, messageIds: ['m-final']}
+  ]}) + '\n');
+  const gap = audit(cumulative, archive);
+  assert.equal(gap.status, 'inconclusive-visible-message-coverage');
+  assert.equal(gap.missingTurnOrdinalCount, 1);
+  assert.equal(gap.missingFromDomCount, 0);
+  assert.equal(gap.extraInDomCount, 0);
+  assert(gap.visibilityWarnings.some(reason => reason.includes('ordinals')));
   writeTurns(['m-final','m-user']);
   const wrongOrder=audit(cumulative,archive);
   assert.equal(wrongOrder.status,'raw-dom-mismatch');
@@ -83,7 +99,36 @@ try {
   writeTurns(['m-user','m-final']);
   fs.appendFileSync(path.join(archive,file),'modified');
   assert.throws(()=>audit(cumulative,archive),/SHA-256\/length verification/);
-  console.log('PASS: archived hydration RAW vs DOM ID/order, hidden finals, role counts, mismatches, integrity');
+
+  // A generated-image-style conversation may have assistant nodes but no
+  // end_turn=true assistant message. Matching only user IDs is inconclusive.
+  const messageIdKey = '_' + names.get('id');
+  const finalKey = '_' + names.get('end_turn');
+  const finalIdIndex = flattened.indexOf('m-final');
+  const finalMessage = flattened.find(item => item && !Array.isArray(item) &&
+    typeof item === 'object' && item[messageIdKey] === finalIdIndex &&
+    Object.hasOwn(item, finalKey));
+  assert(finalMessage, 'fixture assistant final message not found');
+  flattened[finalMessage[finalKey]] = false;
+  const incompleteHtml = '<!doctype html><html><script>' +
+    'window.__reactRouterContext.streamController.enqueue(' +
+    JSON.stringify(JSON.stringify(flattened) + '\n') + ');</script></html>';
+  const incompleteBytes = Buffer.from(incompleteHtml);
+  const incompleteSha = crypto.createHash('sha256').update(incompleteBytes).digest('hex');
+  const incompleteFile = 'resources/' + incompleteSha + '.html';
+  fs.writeFileSync(path.join(archive, incompleteFile), incompleteBytes);
+  fs.writeFileSync(path.join(archive, 'resources.jsonl'), JSON.stringify({
+    status:'saved', resourceType:'Document', mimeType:'text/html',
+    url:'https://chatgpt.com/share/6ad1c0d5-49ec-83eb-8519-9e2d8c8097f3',
+    file:incompleteFile, sha256:incompleteSha, bytes:incompleteBytes.length})+'\n');
+  writeTurns(['m-user']);
+  const noFinal = audit(cumulative, archive);
+  assert.equal(noFinal.missingFromDomCount, 0);
+  assert.equal(noFinal.extraInDomCount, 0);
+  assert.equal(noFinal.expectedAssistantMessages, 0);
+  assert.equal(noFinal.status, 'inconclusive-visible-message-coverage');
+  assert(noFinal.visibilityWarnings.some(reason => reason.includes('no assistant reply')));
+  console.log('PASS: RAW/DOM identity, missing ordinals, non-final assistant ambiguity, mismatches, integrity');
 } finally {
   fs.rmSync(temp,{recursive:true,force:true});
 }
