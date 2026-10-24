@@ -28,10 +28,10 @@ export function embeddedKatexCss()
   let total=0,fontFaces=0;
   const resolved=css.replace(/@font-face\s*\{[^}]*\}/g,block=>
   {
-    const match=/url\(["']?fonts\/(KaTeX_[A-Za-z0-9-]+\.woff2)["']?\)/.exec(block);
+    const match=/url\(["']?fonts\/(KaTeX_[A-Za-z0-9_-]+\.woff2)["']?\)/.exec(block);
     const source=/src\s*:[^;]+;/i;
     if(!match || !source.test(block))
-      throw Error('KaTeX font-face lacks a local WOFF2 source: '+block.slice(0,200));
+      throw Error('KaTeX font-face lacks a local WOFF2 source');
     const file=path.join(root,'dist','fonts',match[1]);
     const bytes=fs.readFileSync(file);
     if(bytes.length<100 || bytes.length>400000)
