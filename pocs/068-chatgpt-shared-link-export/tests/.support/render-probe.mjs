@@ -40,6 +40,14 @@ const app = [
   "image.srcset='/pixel.gif?sig=selected 1x';",
   "image.src='/pixel.gif?sig=dom';",
   "imageTurn.append(image);root.append(imageTurn);",
+  "const mathTurn=document.createElement('section');",
+  "mathTurn.dataset.turnIdContainer='visual-math';",
+  "mathTurn.dataset.testid='conversation-turn-17';",
+  "mathTurn.innerHTML='<article data-message-id=\\\"equation-message\\\">'+",
+  "  '<span class=\\\"katex\\\"><span class=\\\"katex-html\\\" aria-hidden=\\\"true\\\">'+",
+  "  '<span class=\\\"base\\\"><span class=\\\"mord mathnormal\\\">x</span></span>'+",
+  "  '</span></span></article>';",
+  "root.append(mathTurn);",
   "root.addEventListener('scroll',()=>{});"
 ].join('\n');
 const pixel=Buffer.from('R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=','base64');
@@ -135,9 +143,13 @@ try {
   const offline=JSON.parse(fs.readFileSync(path.join(reading,'audit.json'),'utf8'));
   assert(offline.imageTurnsWithVerifiedBodies >= 1,
     'Offline view failed to use the captured same-session image body');
+  assert(offline.visualKatexFormulas >= 1,
+    'Real browser DOM visual-only math was not reconstructed offline');
   assert.throws(()=>renderSameSessionOffline(out,reading),/already exists/);
   const offlineHtml=fs.readFileSync(path.join(reading,'index.html'),'utf8');
   assert(offlineHtml.includes('data:image/gif;base64,'));
+  assert(offlineHtml.includes('class="katex-html"'));
+  assert(offlineHtml.includes('data:font/woff2;base64,'));
   assert(offlineHtml.includes("script-src &#39;none&#39;") ||
     offlineHtml.includes("script-src 'none'"));
   console.log('PASS real Chrome: image response body, CDP request linkage, offline image rendering and turn snapshots');
