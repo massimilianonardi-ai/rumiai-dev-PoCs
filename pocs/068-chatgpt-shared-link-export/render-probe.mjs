@@ -419,7 +419,19 @@ async function sweep(cdp, sid, record) {
     } catch {}
     await pause(500);
   }
-  if (!ready) {record({kind: 'sweep.not-ready'});return;}
+  if (!ready) {
+    let shape={};
+    try {
+      const r=await cdp.send('Runtime.evaluate',{expression:
+        "({readyState:document.readyState,hasScrollRoot:!!document.querySelector('[data-scroll-root]'),"+
+        "turnWrappers:document.querySelectorAll('[data-turn-id-container]').length,"+
+        "conversationMarkers:document.querySelectorAll('[data-testid^=conversation-turn-]').length,"+
+        "mainElements:document.querySelectorAll('main').length})",returnByValue:true},sid);
+      shape=r.result?.value||{};
+    } catch {}
+    record({kind:'sweep.not-ready',pageShape:shape});
+    return {ready:false,pageShape:shape};
+  }
   record({kind: 'sweep.started'});
   for (const direction of [1, -1]) {
     let stable = 0;
@@ -442,6 +454,7 @@ async function sweep(cdp, sid, record) {
   }
   await pause(1200);
   record({kind: 'sweep.finished'});
+  return {ready:true};
 }
 
 async function run(args) {
@@ -520,8 +533,14 @@ async function run(args) {
     log.record({kind:'session.ready'});
     process.stdout.write('DOM rendering observation active: ' + output + '\n');
     if (flags.includes('--sweep')) {
-      await sweep(cdp,sid,log.record);
-      process.stdout.write(JSON.stringify(await stop('sweep-finished')) + '\n');
+      const observation=await sweep(cdp,sid,log.record);
+      process.stdout.write(JSON.stringify(await stop(observation.ready ?
+        'sweep-finished' : 'sweep-not-ready')) + '\n');
+      if (!observation.ready) {
+        process.stderr.write('Page not ready for turn extraction: missing expected DOM hooks; '+
+          'check sanitized sweep.not-ready pageShape in private events.jsonl.\n');
+        return 3;
+      }
       if (offlineDir) {
         const {renderSameSessionOffline} = await import('./render-same-session-offline.mjs');
         process.stdout.write(JSON.stringify(renderSameSessionOffline(output,offlineDir),null,2)+'\n');

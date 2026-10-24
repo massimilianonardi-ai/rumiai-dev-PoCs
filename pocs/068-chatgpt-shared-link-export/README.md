@@ -460,3 +460,46 @@ The URL must be an HTTPS \`chatgpt.com/share/\` conversation link, not a schedul
 ## RumiAI context
 
 Current governing sources: \`rumiai-dev/RULES.md\`, \`CONSISTENCY-GATE.md\`, \`specifications/rumiai-os/WEB-CONTROL.md\`. Active task state: \`rumiai-dev/handoff/chatgpt-export.md\`.
+
+
+## Rich content and recovery from earlier private captures (2026-10-24)
+
+The first operator batch exposed a major readability gap: the prior
+single-command view flattened all HTML formatting into plain text, placed
+site favicons as full-size figures and could not display formulas. The richer
+renderer now projects **safe semantic markup** from captured DOM: headings,
+bold/italic/underline, paragraphs, lists, quotes, preformatted code, tables,
+valid absolute HTTP(S) hyperlinks, and captured **MathML** formulas (with
+explicit LaTeX-source or unsupported audit outcomes when needed). The
+untrusted page's CSS/JS/React runtime is **not** replayed. Source-site icons
+are suppressed rather than upscaled; their enclosing source hyperlinks
+remain clickable when the captured DOM contains real `href` values.
+Full-sized content images are still embedded only from exact-session
+hash-verified CDP response bodies. Missing decorative icons are not
+misreported as missing primary image content.
+
+**Reuse your existing capture; no new browser visit is needed** for rendering
+fixes. From the PoC 068 folder after pulling the update:
+
+```sh
+node render-same-session-offline.mjs \
+  "$HOME/chatgpt-batch-vGRePjHh/1-capture" \
+  "$HOME/chatgpt-batch-vGRePjHh/1-reading-rich"
+node render-same-session-offline.mjs \
+  "$HOME/chatgpt-batch-vGRePjHh/3-capture" \
+  "$HOME/chatgpt-batch-vGRePjHh/3-reading-rich"
+```
+
+The exact home paths above are examples from this one operator experiment.
+Do **not** overwrite the previous reading directories or publish the input
+capture. The audit now distinguishes preserved MathML, fallback/missing
+math, links, decorative image suppression and still-unmatched content images.
+
+The second share had `sweep.not-ready` after the full readiness window
+and **zero** turn snapshots, so its existing capture cannot produce a reading
+view. This is not an image-body problem. A subsequent Chromium acquisition
+will now record a sanitized `pageShape` (presence/counts of scroll root,
+turn markers and main elements, without page text/URLs) and fail with an
+explicit nonzero readiness status rather than implying an exported result.
+A future diagnosis still requires real host evidence; do not invent missing
+turns or silently use a different source.

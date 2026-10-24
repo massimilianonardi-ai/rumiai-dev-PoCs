@@ -13,6 +13,8 @@ on:
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/localize-rendered-resources.mjs'
       - 'pocs/068-chatgpt-shared-link-export/render-readable-image-preview.mjs'
       - 'pocs/068-chatgpt-shared-link-export/render-same-session-offline.mjs'
+      - 'pocs/068-chatgpt-shared-link-export/render-semantic-content.mjs'
+      - 'pocs/068-chatgpt-shared-link-export/tests/.support/render-semantic-content.mjs'
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/render-same-session-offline.mjs'
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/render-readable-image-preview.mjs'
       - 'pocs/068-chatgpt-shared-link-export/inspect-image-capture.mjs'
@@ -54,6 +56,9 @@ jobs:
           node --check render-same-session-offline.mjs
           node --check tests/.support/render-same-session-offline.mjs
           node tests/.support/render-same-session-offline.mjs
+          node --check render-semantic-content.mjs
+          node --check tests/.support/render-semantic-content.mjs
+          node tests/.support/render-semantic-content.mjs
           node --check inspect-image-capture.mjs
           node --check tests/.support/inspect-image-capture.mjs
           node tests/.support/inspect-image-capture.mjs

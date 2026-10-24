@@ -373,3 +373,29 @@ archived image bytes before generating a standalone network-disabled page.
 No CSS/React replay, RAW-assistant role inference or product change. This
 path needs real operator-side visual acceptance on generated and Internet
 image shares; fixture PASS is not evidence of actual remote completeness.
+
+## Operator batch failure and semantic offline reconstruction (2026-10-24)
+
+On vmdev the operator exercised three real public shares at
+`rumiai-dev-PoCs@27e6efd9f439e6eec5cb5cb0cd69681f715d618f`:
+(1) Internet images, 16 text turns, 6 image-bearing turns, 5 with verified
+bodies and 10 unresolved image references (partial); (2) 0 turn snapshots,
+`sweep.not-ready`, no HTML output; (3) 40 captured turns, 38 text-bearing
+turns, 5 verified distinct image bodies in 4 image-bearing turns, no missing
+ordinal among those observed. Operator visually **rejected** both rendered
+pages for lost bold/underline/rich formatting, giant standalone citation
+favicons with missing source links, and missing formulas, despite positive
+byte-integrity results. Earlier "same-session-offline" status proved only
+structural/image integrity, **not rich-message fidelity**.
+
+Root cause in `render-same-session-offline.mjs`: `messageText()` flattened
+all markup to text and separate global `img` traversal appended *all*
+images as full-size figures after each message. Refactor to a bounded
+semantic HTML/MathML renderer with safe source links, suppress favicon
+icons instead of generating standalone figures, preserve actual content
+image positions, and audit unsupported/absent math separately. Re-render
+**existing** private captures into new output directories; avoid redundant
+browser/network acquisitions. Share 2 remains a distinct pre-capture
+readiness/hydration failure; report DOM shape and fail explicitly on next
+real run rather than inventing DOM turns. Fixture test coverage is not
+physical acceptance until user visually checks new outputs.

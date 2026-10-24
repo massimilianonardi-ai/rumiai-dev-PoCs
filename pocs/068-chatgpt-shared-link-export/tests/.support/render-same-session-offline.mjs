@@ -33,8 +33,14 @@ try
   snapshot(1,'turn.snapshot',
     '<section data-turn-id-container="private-turn-1"><div data-testid="conversation-turn-1">'+
     '<div data-message-id="private-message-1" style="display:none">'+
-    '<div class="whitespace-pre-wrap">Prima domanda</div><button>Copy</button></div></div></section>',
-    ['private-message-1']);
+    '<div class="whitespace-pre-wrap">Prima domanda</div>'+
+    '<div class="markdown"><p><strong>Risposta forte</strong> con '+
+    '<a href="https://source.example.org/document"><img width="16" height="16" '+
+    'src="https://source.example.org/favicon.ico">Fonte ufficiale</a></p></div>'+
+    '<button>Copy</button></div></div></section>',
+    ['private-message-1'],
+    [{src:'https://source.example.org/favicon.ico',
+      resolvedSrc:'https://source.example.org/favicon.ico',currentSrc:null}]);
   snapshot(2,'turn.unidentified-snapshot',
     '<section data-turn-id-container="private-turn-2" class="shadow">'+
     '<div data-testid="conversation-turn-2"><img src="'+imageUrl+
@@ -42,8 +48,10 @@ try
     [],[{src:imageUrl,resolvedSrc:imageUrl,currentSrc:imageUrl}]);
   snapshot(3,'turn.snapshot',
     '<section data-turn-id-container="private-turn-3"><div data-testid="conversation-turn-3">'+
-    '<div data-message-id="private-message-3"><div class="whitespace-pre-wrap">'+
-    'Seconda domanda</div></div></div></section>',['private-message-3']);
+    '<div data-message-id="private-message-3"><div class="markdown">'+
+    '<p>Seconda domanda</p><span class="katex"><math><mfrac><mi>x</mi>'+
+    '<mi>y</mi></mfrac></math></span></div></div></div></section>',
+    ['private-message-3']);
   fs.writeFileSync(path.join(images,bodyHash+'.png'),png);
   append({kind:'network.image-response',sessionId:'capture-1',requestId:'private-request',
     initialUrl:imageUrl,requestUrl:imageUrl,responseUrl:imageUrl,
@@ -63,10 +71,16 @@ try
   assert.equal(result.imageTurnsWithVerifiedBodies,1);
   assert.equal(result.distinctVerifiedImageBodies,1);
   assert.equal(result.unmatchedImageReferences,0);
+  assert.equal(result.preservedMathFormulas,1);
+  assert.equal(result.linkedSources,1);
+  assert.equal(result.suppressedDecorativeImages,1);
   assert.deepEqual(result.missingTurnOrdinals,[]);
   const html=fs.readFileSync(path.join(out,'index.html'),'utf8');
   assert(html.includes('Prima domanda'));
   assert(html.includes('Seconda domanda'));
+  assert(html.includes('<strong>Risposta forte</strong>'));
+  assert(html.includes('<math><mfrac><mi>x</mi><mi>y</mi></mfrac></math>'));
+  assert(html.includes('href="https://source.example.org/document"'));
   assert(html.includes('data:image/png;base64,'+png.toString('base64')));
   assert(html.indexOf('Prima domanda')<html.indexOf('data:image/png;base64,'));
   assert(html.indexOf('data:image/png;base64,')<html.indexOf('Seconda domanda'));
@@ -93,6 +107,24 @@ try
   assert.equal(partial.status,'same-session-offline-partial');
   assert.deepEqual(partial.missingImageOrdinals,[4]);
   assert.equal(partial.unmatchedImageReferences,1);
+
+  // A text-only capture must render without requiring any image response.
+  const plain=path.join(tmp,'text-capture');
+  fs.mkdirSync(path.join(plain,'turns'),{recursive:true});
+  const simple=Buffer.from('<section data-turn-id-container="private-turn-t">'+
+    '<div data-testid="conversation-turn-0"><div data-message-id="message-t">'+
+    '<p>Solo testo</p></div></div></section>');
+  const sh=sha(simple);
+  fs.writeFileSync(path.join(plain,'turns',sh+'.html'),simple);
+  fs.writeFileSync(path.join(plain,'events.jsonl'),JSON.stringify({
+    kind:'turn.snapshot',sequence:1,turnId:'private-turn-t',sessionId:'s',
+    file:'turns/'+sh+'.html',sha256:sh,bytes:simple.length,
+    messageIds:['message-t'],imageSelections:[]
+  })+'\n');
+  const plainResult=renderSameSessionOffline(plain,path.join(tmp,'plain-reading'));
+  assert.equal(plainResult.status,'same-session-offline');
+  assert.equal(plainResult.textTurnsWithContent,1);
+  assert.equal(plainResult.imageBearingTurns,0);
 
   // Byte corruption must be detected before writing any artifact.
   fs.appendFileSync(path.join(images,bodyHash+'.png'),Buffer.from('tamper'));

@@ -7,7 +7,9 @@ import os from 'node:os';
 import crypto from 'node:crypto';
 import {parseHTML} from 'linkedom';
 import {assemble} from './assemble-rendered-dom.mjs';
-import {escapeHtml, messageText} from './render-readable-image-preview.mjs';
+import {escapeHtml} from './render-readable-image-preview.mjs';
+import {renderSemanticMessage,renderSemanticTree,createSemanticStats}
+  from './render-semantic-content.mjs';
 
 const sha256 = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const imageFile = /^images\/([a-f0-9]{64})\.(png|jpg|webp|gif)$/;
@@ -71,7 +73,6 @@ function mediaIndex(capture,events)
       bodies.set(key,safeBody(capture,event));
     }
   }
-  if (!bodies.size) throw Error('No captured image bytes; use --capture-image-bodies');
   const bySession = new Map();
   for (const [key,body] of bodies)
   {
@@ -130,12 +131,15 @@ export function renderSameSessionOffline(captureDir,outputDir)
     embeddedImageOccurrences:0,distinctVerifiedImageBodies:0,
     unmatchedImageReferences:0,ambiguousImageReferences:0,
     srcFallbackAfterAbsentCurrentSrc:0,
+    preservedMathFormulas:0,mathSourceFallbacks:0,unavailableMathFormulas:0,
+    linkedSources:0,suppressedDecorativeImages:0,
     missingTextOrdinals:[],missingImageOrdinals:[],
     missingTurnOrdinals:audit.missingOrdinals,
     rawMessageAttribution:'not-verified',
     limitations:[
       'Only observed DOM turn snapshots are represented; original RAW conversation completeness is not established',
       'Image bytes are tied to exact CDP request URLs and session/request identifiers, not merely matching paths',
+      'Semantic HTML is rebuilt from captured nodes; fidelity of MathML and citations needs physical verification',
       'Browser pixels, image-role ownership and assistant finality are not proven',
       'currentSrc-unavailable snapshots use src only when the exact same-session request body is saved',
       'This independent, inert reading layout does not reproduce ChatGPT styling'
@@ -158,60 +162,90 @@ export function renderSameSessionOffline(captureDir,outputDir)
     if (!wrapper) throw Error('Missing captured turn wrapper');
     const qualified = [...wrapper.querySelectorAll('[data-message-id]')]
       .filter(node => !node.parentElement?.closest('[data-message-id]'));
-    const texts = qualified.map(messageText).filter(Boolean);
-    if (qualified.length) {
-      counts.textTurns++;
-      if (texts.length) counts.textTurnsWithContent++;
-      else counts.missingTextOrdinals.push(turn.ordinal);
-    }
     const imgs = [...wrapper.querySelectorAll('img')];
     const selections = event.imageSelections;
     if (imgs.length && (!Array.isArray(selections) ||
         imgs.length > selections.length))
       throw Error('Missing browser-selected image URL evidence in turn '+turn.ordinal);
-    if (imgs.length) counts.imageBearingTurns++;
-    const figures = [], usedInTurn = new Set();
-    for (let i=0;i<imgs.length;i++)
+    const lookup = new Map(imgs.map((img,i) =>
+      [img,chooseImage(media,event.sessionId,selections[i])]));
+    const semantic = createSemanticStats();
+    const resolver = img => lookup.get(img) || {status:'not-captured'};
+    let contents = '';
+    if (qualified.length)
     {
-      const match = chooseImage(media,event.sessionId,selections[i]);
-      if (match.status !== 'verified-request-body')
+      counts.textTurns++;
+      const parts=qualified.map(node => renderSemanticMessage(node,resolver,semantic))
+        .filter(x => x.trim());
+      if (parts.length)
       {
-        counts.unmatchedImageReferences++;
-        if (match.status === 'ambiguous-url-bodies') counts.ambiguousImageReferences++;
-        continue;
+        counts.textTurnsWithContent++;
+        contents+=parts.map(x=>'<div class="message">'+x+'</div>').join('');
       }
-      const body=match.body;
-      // Multiple matching snapshots or duplicate rendered <img> nodes are not
-      // independent responses; preserve per-turn image ordering once per body.
-      if (usedInTurn.has(body.hash)) continue;
-      usedInTurn.add(body.hash);
-      usedBodies.add(body.hash);
-      counts.embeddedImageOccurrences++;
-      if (match.usedSourceFallback) counts.srcFallbackAfterAbsentCurrentSrc++;
-      const dataUrl='data:'+body.mime+';base64,'+body.bytes.toString('base64');
-      figures.push('<figure><img src="'+dataUrl+'" alt="Immagine del turno '+
-        turn.ordinal+'"><figcaption>Risorsa locale SHA-256 verificata; ruolo non attribuito</figcaption></figure>');
+      else counts.missingTextOrdinals.push(turn.ordinal);
     }
-    if (imgs.length)
+    else
     {
-      if (figures.length) counts.imageTurnsWithVerifiedBodies++;
+      contents=renderSemanticTree(wrapper,resolver,semantic);
+    }
+    // Images/citation links outside message nodes are legitimate in some
+    // assistant layouts. Do not discard them or append arbitrary icons.
+    if (qualified.length)
+    {
+      const outside = imgs.filter(img => !qualified.some(m => m.contains(img)));
+      const handledAnchors=new Set();
+      for (const img of outside)
+      {
+        const anchor=img.closest('a[href]');
+        if (anchor && !qualified.some(m => m.contains(anchor)))
+        {
+          if (handledAnchors.has(anchor)) continue;
+          handledAnchors.add(anchor);
+          contents+=renderSemanticTree(anchor,resolver,semantic);
+        }
+        else contents+=renderSemanticTree(img,resolver,semantic);
+      }
+    }
+    if (semantic.contentImageOccurrences+semantic.unmatchedContentImages)
+    {
+      counts.imageBearingTurns++;
+      if (semantic.contentImageOccurrences) counts.imageTurnsWithVerifiedBodies++;
       else counts.missingImageOrdinals.push(turn.ordinal);
     }
-    const messages = texts.map(text => '<div class="message">'+escapeHtml(text)+'</div>').join('');
-    const contents = messages+figures.join('');
+    counts.unmatchedImageReferences+=semantic.unmatchedContentImages;
+    counts.embeddedImageOccurrences+=semantic.contentImageOccurrences;
+    counts.srcFallbackAfterAbsentCurrentSrc+=semantic.srcFallbackAfterAbsentCurrentSrc;
+    counts.preservedMathFormulas+=semantic.mathPreserved;
+    counts.mathSourceFallbacks+=semantic.mathFallback;
+    counts.unavailableMathFormulas+=semantic.mathUnavailable;
+    counts.linkedSources+=semantic.linkedSources;
+    counts.suppressedDecorativeImages+=semantic.suppressedDecorativeImages;
+    for (const hash of semantic.usedBodies) usedBodies.add(hash);
     fragments.push('<article class="turn"><h2>Turno '+turn.ordinal+'</h2>'+
       (contents || '<p>Contenuto non recuperato negli snapshot selezionati.</p>')+
       '</article>');
   }
   counts.distinctVerifiedImageBodies=usedBodies.size;
-  if (counts.missingImageOrdinals.length || counts.unmatchedImageReferences)
+  if (counts.missingImageOrdinals.length || counts.unmatchedImageReferences ||
+      counts.unavailableMathFormulas || counts.missingTextOrdinals.length)
     counts.status='same-session-offline-partial';
-  const css='body{font:16px/1.55 system-ui,sans-serif;max-width:900px;'+
+  const css='body{font:16px/1.6 system-ui,sans-serif;max-width:950px;'+
     'margin:0 auto;padding:24px;color:#222;background:#f6f6f6}'+
-    'h1{font-size:1.5rem}h2{font-size:1.08rem}'+
-    '.turn{background:white;border:1px solid #ddd;border-radius:10px;'+
-    'margin:20px 0;padding:20px}.message{white-space:pre-wrap;overflow-wrap:anywhere}'+
-    'figure{margin:16px 0}img{display:block;max-width:100%;height:auto;border-radius:6px}'+
+    'h1{font-size:1.5rem}h2{font-size:1.08rem}.turn{background:white;'+
+    'border:1px solid #ddd;border-radius:10px;margin:20px 0;padding:20px}'+
+    '.message{overflow-wrap:anywhere}.message+.message{margin-top:1rem}'+
+    '.message p{margin:.6em 0}.message h1,.message h2,.message h3{margin:1em 0 .35em}'+
+    '.message ul,.message ol{padding-left:1.6em;margin:.5em 0}'+
+    '.message blockquote{border-left:3px solid #bbb;padding-left:1em;color:#555}'+
+    '.message pre{overflow-x:auto;background:#f4f4f4;padding:12px;border-radius:6px}'+
+    '.message code{font:0.92em ui-monospace,monospace}'+
+    '.message :not(pre)>code{background:#f4f4f4;padding:1px 4px;border-radius:4px}'+
+    '.message table{border-collapse:collapse;display:block;overflow-x:auto}'+
+    '.message td,.message th{border:1px solid #ccc;padding:6px 9px}'+
+    '.message a{color:#0759aa;text-decoration:underline;overflow-wrap:anywhere}'+
+    '.message math{font-size:1.13em}.message .math-missing{color:#8a5400}'+
+    '.prewrap{white-space:pre-wrap}figure{margin:16px 0}'+
+    'figure img{display:block;max-width:100%;height:auto;border-radius:6px}'+
     'figcaption,small{color:#555;font-size:.85rem}';
   const csp="default-src 'none'; img-src data:; style-src 'unsafe-inline'; "+
     "script-src 'none'; connect-src 'none'; font-src 'none'; frame-src 'none'; "+
