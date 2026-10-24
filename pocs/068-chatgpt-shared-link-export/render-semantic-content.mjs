@@ -59,8 +59,11 @@ function isIcon(img)
   const hint=(img.getAttribute('alt')||'').toLowerCase();
   const w=Number(img.getAttribute('width'));
   const h=Number(img.getAttribute('height'));
-  if (/\bfavicon\b|\bicon\b|\bavatar\b|\bsize-[234568]\b/.test(cls) ||
-      /favicon|logo del sito|site icon/.test(hint)) return true;
+  const src=(img.getAttribute('src')||'').toLowerCase();
+  if (/\bfavicon\b|\bicon\b|\bavatar\b/.test(cls) ||
+      /(?:^|\s)(?:size|h|w)-(?:2|3|4|5|6|7|8|9|10|12)(?=\s|$)/.test(cls) ||
+      /favicon|logo del sito|site icon/.test(hint) ||
+      /(?:favicon|\/s2\/favicons|\.ico(?:$|\?))/.test(src)) return true;
   if (w>0 && w<=48 && (!h || h<=48)) return true;
   if (h>0 && h<=48 && (!w || w<=48)) return true;
   const style=(img.getAttribute('style')||'').toLowerCase();
