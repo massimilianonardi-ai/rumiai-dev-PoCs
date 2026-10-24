@@ -517,3 +517,29 @@ and returning sanitized aggregate counts. This is **not** live page
 style evidence and is not math visual acceptance. If the paired
 geometry is equal, future work must obtain source-page computed
 style/font evidence rather than guess at border-width as the sole cause.
+
+## Real font-related clue and original-page CSS measurement (2026-10-24)
+
+Operator physically ran the real snapshot versus failed offline view
+`inspect-katex-computed.mjs`: `examinedTurns=16`, 198 paired
+formulas, 5,117 nodes on each side (4,919 descendants + 198 roots),
+`nodeGeometryChanges=362`, largest delta **4 CSS px**, and all
+computed property mismatches confined to **borderTopWidth,
+borderBottomWidth, borderLeftWidth, borderRightWidth, 27 nodes each**.
+No measured font family, font size, vertical alignment, position,
+line height or transform difference with both DOMs under the **same
+offline CSS**. The user independently confirms the actual displayed
+font differs from ChatGPT, and subscripts are baseline-sized.
+
+Next measurement is *original live site CSS vs offline CSS*, not another
+sanitizer tweak. The new opt-in `render-probe.mjs --sweep
+--compare-live-katex <existing index.html>` samples rendered formula
+geometry and computed text/font/layout rules from the live page as its
+virtualized turns mount, then reads the already-generated standalone
+HTML in the same Chromium CDP session and compares per ordinal/formula
+and element index. Sanitized summary exposes only numerical coverage and
+style-property mismatch counts. Existing captures, 3-reading-rich
+approval, pinned production Markdown and older output remain intact;
+the private new Chromium profile and snapshots must never be committed.
+This still requires operator-side physical execution: fixtures are not
+evidence that live site CSS has been measured yet.

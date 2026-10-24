@@ -6,6 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {spawn} from 'node:child_process';
 import {performance} from 'node:perf_hooks';
+import {pathToFileURL} from 'node:url';
 
 function pageProbe() {
   if (globalThis.__rumiaiRenderingProbe) return;
@@ -406,7 +407,7 @@ function recording(directory) {
   return {record, finish, storeImage};
 }
 
-async function sweep(cdp, sid, record) {
+async function sweep(cdp, sid, record, onSample = null) {
   // Only actual scrollTop changes can cause native intersection recalculation.
   let ready = false;
   const limit = performance.now() + 120000;
@@ -433,6 +434,7 @@ async function sweep(cdp, sid, record) {
     return {ready:false,pageShape:shape};
   }
   record({kind: 'sweep.started'});
+  if (onSample) await onSample();
   for (const direction of [1, -1]) {
     let stable = 0;
     for (let step = 0; step < 2000 && !cdp.closed; step++) {
@@ -449,25 +451,32 @@ async function sweep(cdp, sid, record) {
       if (value.missing) break;
       stable = value.before === value.after ? stable + 1 : 0;
       await pause(350);
+      if (onSample && step % 3 === 0) await onSample();
       if (stable >= 5) break;
     }
   }
   await pause(1200);
+  if (onSample) await onSample();
   record({kind: 'sweep.finished'});
   return {ready:true};
 }
 
 async function run(args) {
   const [url, outputName, ...rawFlags] = args;
-  const offlineIndex = rawFlags.indexOf('--offline-output');
-  const offlineDir = offlineIndex < 0 ? null : rawFlags[offlineIndex + 1];
-  const flags = offlineIndex < 0 ? rawFlags : rawFlags.filter((_,i) =>
+  const mathIndex = rawFlags.indexOf('--compare-live-katex');
+  const mathFile = mathIndex < 0 ? null : rawFlags[mathIndex + 1];
+  const sansMath = mathIndex < 0 ? rawFlags : rawFlags.filter((_,i) =>
+    i !== mathIndex && i !== mathIndex + 1);
+  const offlineIndex = sansMath.indexOf('--offline-output');
+  const offlineDir = offlineIndex < 0 ? null : sansMath[offlineIndex + 1];
+  const flags = offlineIndex < 0 ? sansMath : sansMath.filter((_,i) =>
     i !== offlineIndex && i !== offlineIndex + 1);
   if (!url || !outputName ||
-      (offlineIndex >= 0 && (offlineIndex !== rawFlags.length - 2 || !offlineDir ||
+      (mathIndex >= 0 && (!mathFile || !flags.includes('--sweep'))) ||
+      (offlineIndex >= 0 && (offlineIndex !== sansMath.length - 2 || !offlineDir ||
         !flags.includes('--sweep') || !flags.includes('--capture-image-bodies'))) ||
       flags.some(x => !['--headless','--sweep','--compare-image-urls','--capture-image-bodies'].includes(x))) {
-    process.stderr.write('Usage: node render-probe.mjs <url> <output-dir> [--sweep] [--headless] [--compare-image-urls] [--capture-image-bodies] [--offline-output <new-dir>]\n');
+    process.stderr.write('Usage: node render-probe.mjs <url> <output-dir> [--sweep] [--headless] [--compare-image-urls] [--capture-image-bodies] [--offline-output <new-dir>] [--compare-live-katex <reading-index.html>]\n');
     return 2;
   }
   const parsed = new URL(url);
@@ -540,10 +549,30 @@ async function run(args) {
     log.record({kind:'session.ready'});
     process.stdout.write('DOM rendering observation active: ' + output + '\n');
     if (flags.includes('--sweep')) {
-      const observation=await sweep(cdp,sid,log.record);
-      process.stdout.write(JSON.stringify(await stop(observation.ready ?
-        'sweep-finished' : 'sweep-not-ready')) + '\n');
+      let sourceMath = new Map(),sourceFaces={known:0,loaded:0,loading:0};
+      let mathActions = null;
+      if (mathFile) mathActions=await import('./inspect-katex-live-style.mjs');
+      const sampleMath = mathFile ? async () => {
+        try {
+          const r=await cdp.send('Runtime.evaluate',{
+            expression:mathActions.browserKatexExpression(),
+            returnByValue:true
+          },sid,25000);
+          const data=r.result?.value;
+          if (!data || !Array.isArray(data.turns))return;
+          for(const turn of data.turns) {
+            const before=sourceMath.get(turn.ordinal);
+            if(!before || turn.math.length>before.math.length)
+              sourceMath.set(turn.ordinal,turn);
+          }
+          if(data.fontFaces?.loaded>=sourceFaces.loaded)
+            sourceFaces=data.fontFaces;
+        }
+        catch {log.record({kind:'katex.source-sample-unavailable'});}
+      } : null;
+      const observation=await sweep(cdp,sid,log.record,sampleMath);
       if (!observation.ready) {
+        process.stdout.write(JSON.stringify(await stop('sweep-not-ready'))+'\n');
         process.stderr.write('Page not ready for turn extraction: missing expected DOM hooks; '+
           'check sanitized sweep.not-ready pageShape in private events.jsonl.\n');
         return 3;
@@ -552,6 +581,31 @@ async function run(args) {
         const {renderSameSessionOffline} = await import('./render-same-session-offline.mjs');
         process.stdout.write(JSON.stringify(renderSameSessionOffline(output,offlineDir),null,2)+'\n');
       }
+      if (mathFile) {
+        const target=path.resolve(mathFile);
+        if (!fs.existsSync(target)||!fs.statSync(target).isFile())
+          throw Error('KaTeX reference offline HTML not found');
+        const nav=await cdp.send('Page.navigate',
+          {url:pathToFileURL(target).href},sid,30000);
+        if (nav.errorText) throw Error('Cannot open local KaTeX reference HTML');
+        let metrics=null;
+        for(let i=0;i<40;i++) {
+          await pause(300);
+          const r=await cdp.send('Runtime.evaluate',{
+            expression:mathActions.browserKatexExpression(),returnByValue:true
+          },sid,25000);
+          const candidate=r.result?.value;
+          if (candidate?.turns?.length) {
+            metrics=candidate;
+            if(candidate.fontFaces?.loading===0)break;
+          }
+        }
+        if(!metrics)throw Error('Offline KaTeX reference did not render');
+        const verdict=mathActions.compareLiveAndOfflineMath({
+          turns:[...sourceMath.values()],fontFaces:sourceFaces},metrics);
+        process.stdout.write(JSON.stringify(verdict,null,2)+'\n');
+      }
+      process.stdout.write(JSON.stringify(await stop('sweep-finished'))+'\n');
     } else {
       process.stdout.write('Use the browser; press Ctrl+C to finish.\n');
       await Promise.race([browserExited, new Promise(resolve => {

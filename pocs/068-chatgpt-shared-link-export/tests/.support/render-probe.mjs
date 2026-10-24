@@ -67,7 +67,8 @@ try {
   const out = path.join(root,'capture');
   const child = spawn(process.execPath, [script,
     'http://127.0.0.1:'+server.address().port+'/', out, '--sweep', '--headless', '--capture-image-bodies',
-    '--offline-output',path.join(root,'reading')],
+    '--offline-output',path.join(root,'reading'),
+    '--compare-live-katex',path.join(root,'reading','index.html')],
     {stdio:['ignore','pipe','pipe']});
   let stdout='',stderr='';
   child.stdout.on('data', chunk => {stdout+=String(chunk);});
@@ -137,6 +138,8 @@ try {
     assert.equal(bytes.length,event.bytes);
     assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),event.sha256);
   }
+  assert(stdout.includes('"status": "real-live-vs-offline-katex-computed-css"'),
+    'Live-vs-offline Chromium math comparison missing from the real-browser path');
   const reading=path.join(root,'reading');
   assert(fs.existsSync(path.join(reading,'audit.json')),
     'One-command offline export was not produced');

@@ -682,3 +682,48 @@ test is **original live ChatGPT CSS/fonts and parent context** rather
 than another speculative DOM serializer change. If they differ, inspect
 computed property names and numeric geometry from this report first.
 No new export, navigation, or stylesheet modification is undertaken.
+
+
+## Actual live ChatGPT versus offline computed KaTeX CSS (2026-10-24)
+
+The operator-confirmed failure is the same in Firefox and Chromium: 198
+actual KaTeX roots are retained but their *displayed font* is different,
+with baseline-sized subscripts. Chromium real-capture, same-offline-CSS
+diagnostic confirmed 198 paired formula roots and 5,117 source/export
+nodes, 362 altered geometric nodes with a maximum 4-pixel delta, and
+**only 27 differing border widths** (top/bottom/left/right on each).
+There are **no computed fontSize, fontFamily, position, verticalAlign
+or transform changes under that same stylesheet**. This localizes the
+primary still-unverified difference to the live page's **actual CSS,
+fonts or parent context**, which prior tests did not reproduce.
+
+To measure that boundary *rather than modifying the renderer*, use the
+opt-in `--compare-live-katex` mode. It opens the public share once,
+scrolls it using the established observer, samples formula computed styles
+as turn content mounts, then loads the **existing** offline HTML in the
+**same Chromium CDP session** for comparison. It compares per-descendant
+computed font families/sizes, line-height, alignment, positioning, borders,
+transforms and bounding boxes while retaining only **numeric discrepancy
+counts, CSS property names, and turn ordinals** in the report. No formula
+text, signed URL, style literal values or chat content appear in the
+terminal report. The browser profile and DOM snapshots in the new
+capture directory still contain **private data**, so keep them outside Git.
+
+```sh
+umask 077
+COMPARE_DIR="$(mktemp -d "$HOME/chatgpt-katex-live-XXXXXXXX")"
+node render-probe.mjs \
+  'https://chatgpt.com/share/6ad1c0b3-f42c-83eb-bfbc-4e44c80863dc' \
+  "$COMPARE_DIR" --sweep --headless \
+  --compare-live-katex \
+  /home/admino/chatgpt-batch-vGRePjHh/1-reading-katex-layout/index.html
+```
+
+The returned JSON distinguishes source vs offline formula coverage.
+When coverage is incomplete because a virtualized turn was missed, do
+not interpret missing pairs as agreement. When both are covered and
+font-related computed properties differ, investigate the live KaTeX
+stylesheet/font loading rules or inherited CSS. If computed properties
+match but the physical display still differs, inspect loaded font-face
+resources and original page context. No new offline view is produced,
+and none of the already accepted private outputs is changed.
