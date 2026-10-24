@@ -37,7 +37,8 @@ function refs(html) {
   return found;
 }
 
-export function assemble(captureDir, outputDir, rawPath = null) {
+export function assemble(captureDir, outputDir, rawPath = null, options = {}) {
+  const imagePreview = options.includeUnidentifiedImages === true;
   const capture = path.resolve(captureDir);
   const output = path.resolve(outputDir);
   if (output === capture || output.startsWith(capture + path.sep))
@@ -46,7 +47,8 @@ export function assemble(captureDir, outputDir, rawPath = null) {
   const data = fs.readFileSync(path.join(capture, 'events.jsonl'), 'utf8');
   const observations = data.split(/\r?\n/).filter(Boolean).map((line, index) => {
     try {return JSON.parse(line);} catch {throw Error('Invalid JSONL event at line ' + (index + 1));}
-  }).filter(e => e.kind === 'turn.snapshot');
+  }).filter(e => e.kind === 'turn.snapshot' ||
+    (imagePreview && e.kind === 'turn.unidentified-snapshot'));
   if (!observations.length) throw Error('No turn.snapshot events');
   const turns = new Map();
   const sourceReferences = new Map();
@@ -60,6 +62,12 @@ export function assemble(captureDir, outputDir, rawPath = null) {
     if (hash !== filenameHash || hash !== event.sha256)
       throw Error('Snapshot SHA-256 mismatch at event ' + event.sequence);
     const html = bytes.toString('utf8');
+    const unidentified = event.kind === 'turn.unidentified-snapshot';
+    if (unidentified) {
+      if (event.messageIds.length) throw Error('Unidentified snapshot has message IDs');
+      // Placeholders/early frames are not evidence of a rendered image turn.
+      if (!/<img\b[^>]*\bsrc\s*=/i.test(html)) continue;
+    }
     const wrapper = /\bdata-turn-id-container="([^"]+)"/.exec(html);
     const ordinalMatches = [...html.matchAll(/\bdata-testid="conversation-turn-(\d+)"/g)]
       .map(m => Number(m[1]));
@@ -78,12 +86,16 @@ export function assemble(captureDir, outputDir, rawPath = null) {
     }
     if (turn.ordinal !== indices[0]) throw Error('Changing ordinal for ' + event.turnId);
     const version = {sequence: event.sequence, file: event.file,
-      sha256: hash, bytes: bytes.length, messageIds: event.messageIds};
+      sha256: hash, bytes: bytes.length, messageIds: event.messageIds,
+      ...(imagePreview ? {kind: event.kind} : {})};
     turn.versions.push(version);
-    if (!turn.selected || event.sequence > turn.selected.sequence)
+    const previousUnidentified = turn.selected?.kind === 'turn.unidentified-snapshot';
+    if (!turn.selected || (previousUnidentified && !unidentified) ||
+        (previousUnidentified === unidentified && event.sequence > turn.selected.sequence))
       turn.selected = {...version, html};
   }
   const ordered = [...turns.values()].sort((a, b) => a.ordinal - b.ordinal);
+  if (!ordered.length) throw Error('No image-bearing or message-qualified turn snapshots');
   const ordinalSeen = new Set(), seenMessages = new Map();
   for (const turn of ordered) {
     if (ordinalSeen.has(turn.ordinal)) throw Error('Duplicate ordinal ' + turn.ordinal);
@@ -110,15 +122,21 @@ export function assemble(captureDir, outputDir, rawPath = null) {
     notInRaw: capturedIds.filter(id => !rawSet.has(id))
   } : {status: 'not-compared', reason: 'Original RAW transcript not supplied'};
   const report = {
-    evidence: 'render-probe.mjs DOM snapshots', status: 'partial-offline-reconstruction',
-    selection: 'latest snapshot by event sequence for each turn',
+    evidence: 'render-probe.mjs DOM snapshots',
+    status: imagePreview ? 'provisional-image-preview-assembly' : 'partial-offline-reconstruction',
+    provisionalImagePreview: imagePreview,
+    unidentifiedImageTurns: ordered.filter(t => t.selected.kind === 'turn.unidentified-snapshot').length,
+    selection: imagePreview ? 'latest image-bearing unidentified turn snapshot; message-qualified versions preferred' :
+      'latest snapshot by event sequence for each turn',
     recordedSnapshots: observations.length, capturedTurnCount: ordered.length,
     capturedMessageCount: capturedIds.length, ordinalRange: [ordinals[0], ordinals.at(-1)],
     missingOrdinals, rawComparison,
     limitations: ['No live React component state or interactive behavior',
       'Original CSS and external resource bytes not included in the capture',
       'Missing resources and events between snapshots cannot be reconstructed',
-      'A contiguous observed ordinal range does not prove whole-conversation coverage'],
+      'A contiguous observed ordinal range does not prove whole-conversation coverage',
+      ...(imagePreview ? ['Unidentified image turns have no verified original message-ID/assistant role',
+        'No captured image body was matched or downloaded during assembly'] : [])],
     turns: ordered.map(({turnId, ordinal, versions, selected}) => ({turnId, ordinal,
       messageIds: selected.messageIds, selected: {sequence: selected.sequence,
         sha256: selected.sha256, file: selected.file, bytes: selected.bytes}, versions}))
@@ -142,7 +160,8 @@ export function assemble(captureDir, outputDir, rawPath = null) {
     '<meta name="viewport" content="width=device-width,initial-scale=1">' +
     '<title>' + escapeHtml(title) + '</title><style>' + style + '</style></head>' +
     '<body><header><h1>' + escapeHtml(title) + '</h1><p>Offline static evidence; ' +
-    ordered.length + ' turns, ' + capturedIds.length + ' message IDs. External assets and scripts disabled.</p></header>' +
+    ordered.length + ' turns, ' + capturedIds.length + ' message IDs. External assets and scripts disabled.</p>' +
+    (imagePreview ? '<p><strong>PROVISIONAL IMAGE PREVIEW</strong>: missing message IDs and image ownership remain unverified.</p>' : '') + '</header>' +
     '<main id="cumulative-turns">' + body + '</main></body></html>\n';
   fs.mkdirSync(output, {recursive: true, mode: 0o700});
   fs.writeFileSync(path.join(output, 'index.html'), document, {flag: 'wx', mode: 0o600});
@@ -156,12 +175,17 @@ export function assemble(captureDir, outputDir, rawPath = null) {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname)) {
   const [capture, output, flag, raw] = process.argv.slice(2);
-  if (!capture || !output || (flag !== undefined && (flag !== '--raw' || !raw)) ||
-      process.argv.length > (flag === '--raw' ? 6 : 4)) {
-    console.error('Usage: node assemble-rendered-dom.mjs <capture-dir> <new-output-dir> [--raw <raw.json[.gz]>]');
+  const imagePreview = flag === '--include-unidentified-images';
+  const isRaw = flag === '--raw';
+  if (!capture || !output || (flag !== undefined && !isRaw && !imagePreview) ||
+      (isRaw && (!raw || process.argv.length !== 6)) ||
+      (imagePreview && process.argv.length !== 5) ||
+      (!flag && process.argv.length !== 4)) {
+    console.error('Usage: node assemble-rendered-dom.mjs <capture-dir> <new-output-dir> [--raw <raw.json[.gz]> | --include-unidentified-images]');
     process.exitCode = 2;
   } else {
-    try {console.log(JSON.stringify(assemble(capture, output, raw || null), null, 2));}
+    try {console.log(JSON.stringify(assemble(capture, output, isRaw ? raw : null,
+      {includeUnidentifiedImages: imagePreview}), null, 2));}
     catch (error) {console.error(error.message); process.exitCode = 1;}
   }
 }

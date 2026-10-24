@@ -46,6 +46,9 @@ records.push({status:'redirect-no-body',
   resourceType:'Image',httpStatus:301,session:'test-session',requestId:'favicon-1'});
 const favicon=resource('https://t2.gstatic.com/faviconV2?client=TEST','Image','image/png',
   '.png','favicon-binary-example',{session:'test-session',requestId:'favicon-1'});
+const pngBytes = Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]), Buffer.alloc(24)]);
+const externalPng = resource('https://images.example.test/private/img.png?token=archive&v=1',
+  'Image','image/png','.png',pngBytes);
 resource('https://chatgpt.com/private-api/token','Fetch','application/json','.json','{"secret":"fake"}');
 fs.writeFileSync(path.join(archive,'resources.jsonl'),records.map(x=>JSON.stringify(x)).join('\n')+'\n');
 try{
@@ -74,12 +77,46 @@ try{
   assert(!audit.unresolvedReferences.some(x=>x.includes('www.google.com/s2/favicons')));
   assert(audit.unresolvedReferences.some(x=>x.includes('external.invalid')));
   assert.throws(()=>localize(cumulative,archive,out),/already exists/);
+  // The ordinary mode never copies external PNGs and keeps existing behavior.
+  assert(!fs.existsSync(path.join(out,externalPng.file)));
+  assert.throws(()=>localize(cumulative,archive,path.join(temp,'rejected-preview'),
+    {provisionalImagePath:true}),/explicitly assembled image preview/);
+  const previewHtml=html.replace('</main>',
+    '<div data-turn-id-container="image-only"><img src="https://images.example.test/private/img.png?token=dom&amp;v=1"></div></main>');
+  fs.writeFileSync(path.join(cumulative,'index.html'),previewHtml);
+  fs.writeFileSync(path.join(cumulative,'audit.json'),JSON.stringify({
+    status:'provisional-image-preview-assembly',provisionalImagePreview:true,
+    unidentifiedImageTurns:1,turns:[]})+'\n');
+  const previewOut=path.join(temp,'image-preview');
+  const preview=localize(cumulative,archive,previewOut,{provisionalImagePath:true});
+  assert.equal(preview.provisionalImageCandidates,1);
+  const viewPreview=fs.readFileSync(path.join(previewOut,'index.html'),'utf8');
+  assert(viewPreview.includes('assets/'+externalPng.sha+'.png'));
+  assert(!viewPreview.includes('token=dom'));
+  assert(viewPreview.includes("script-src 'none'"));
+  const previewAudit=JSON.parse(fs.readFileSync(path.join(previewOut,'localization-audit.json'),'utf8'));
+  assert.equal(previewAudit.status,'offline-image-preview-provisional');
+  assert.equal(previewAudit.provisionalImageCandidates.length,1);
+  assert.equal(previewAudit.provisionalImageCandidates[0].identityVerified,false);
+  assert(!JSON.stringify(previewAudit.provisionalImageCandidates).includes('token='));
+  assert(fs.existsSync(path.join(previewOut,'assets',externalPng.sha+'.png')));
+  const conflict=resource('https://images.example.test/private/img.png?token=conflict&v=1',
+    'Image','image/png','.png',Buffer.concat([pngBytes,Buffer.from([1,2,3])]));
+  fs.writeFileSync(path.join(archive,'resources.jsonl'),records.map(JSON.stringify).join('\n')+'\n');
+  const ambiguousOutput=path.join(temp,'ambiguous');
+  assert.throws(()=>localize(cumulative,archive,ambiguousOutput,
+    {provisionalImagePath:true}),/No unique verified PNG/);
+  assert(!fs.existsSync(ambiguousOutput));
+  assert(conflict.sha !== externalPng.sha);
+  // Subsequent normal integrity tests use the original resource index.
+  records.pop();
+  fs.writeFileSync(path.join(archive,'resources.jsonl'),records.map(JSON.stringify).join('\n')+'\n');
   const fontPath=path.join(archive,font.file);
   fs.appendFileSync(fontPath,'tampered');
   const failed=path.join(temp,'invalid-output');
   assert.throws(()=>localize(cumulative,archive,failed),/integrity failure/);
   assert(!fs.existsSync(failed));
-  console.log('PASS: first-party CSS/fonts/media; sprite fragments, no remote scripts, CSP, unresolved audit, SHA-256');
+  console.log('PASS: first-party localization, opt-in provisional third-party PNG, ambiguous rejection, CSP and integrity');
 }finally{
   fs.rmSync(temp,{recursive:true,force:true});
 }

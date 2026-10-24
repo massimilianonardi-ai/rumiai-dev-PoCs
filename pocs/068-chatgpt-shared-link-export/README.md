@@ -262,6 +262,50 @@ does not copy/match/rewrite images or modify the earlier cumulative output.
 This check runs against the same already archived three directories; no
 new browser/network capture is necessary.
 
+## Offline generated-image preview (explicitly provisional)
+
+The generated-image share has three additional observed image-bearing turns
+without `data-message-id`: ordinals 2, 4 and 6. A dedicated opt-in path
+reuses the **existing** cumulative DOM assembler and resource localizer.
+It never changes the default behavior for the previously accepted text share.
+
+From the PoC directory on vmdev, with the existing private captures:
+
+```sh
+node assemble-rendered-dom.mjs \
+  ./render-probe-images-02 ./cumulative-images-preview-01 \
+  --include-unidentified-images
+
+node localize-rendered-resources.mjs \
+  ./cumulative-images-preview-01 ./analysis-images-01 \
+  ./cumulative-images-preview-localized-01 \
+  --provisional-image-path
+```
+
+Open the resulting `cumulative-images-preview-localized-01/index.html`
+**locally**. The first command includes only image-bearing
+`turn.unidentified-snapshot` events, selecting the latest observed
+image-bearing frame per unqualified turn; message-qualified frames retain
+priority. These frames remain explicitly non-message-identified in the
+`audit.json`. Their original DOM is not invented or assigned assistant IDs.
+
+The second command permits *only* original `<img src>` references to external
+PNG responses from the existing CDP archive, and only when the exact
+origin+path has one distinct verified PNG body and one archived URL.
+No candidate is accepted by host alone, no ambiguous path is accepted, and
+the selected bodies are SHA-256/size-checked before output creation.
+An opt-in provenance manifest in `localization-audit.json` records URL
+fingerprints, saved SHA-256 and `identityVerified: false`. The actual image
+bodies **may differ** because query parameters changed; this is a visual
+trial, not verified byte-to-DOM identity, assistant-role completeness or
+pixel parity. Review the output visually before drawing conclusions.
+
+The preview stays inert with CSP blocking scripts and network. All files,
+including audits, may contain private conversation evidence and remain
+private. Output directories must not exist in advance and are never
+overwritten. The already validated text reconstruction and Markdown
+baseline stay unchanged.
+
 ## Security boundaries
 
 The URL must be an HTTPS \`chatgpt.com/share/\` conversation link, not a scheduled-task share. The exporter neither extracts cookies nor bypasses sign-in challenges. Browser profile state remains with web-control. Archive output is private data: do not commit it to public GitHub or share it without review. HTML snapshots and any image URL containing signed query parameters can reveal information, so avoid diagnostic logging of asset URLs.

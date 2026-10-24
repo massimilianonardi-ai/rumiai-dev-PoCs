@@ -87,12 +87,62 @@ function rewriteMarkup(html, choices, unresolved, matched) {
     return './' + choice.filename + fragment;
   }
 }
+
+function urlPath(url) {
+  const parsed = new URL(url);
+  return parsed.origin + parsed.pathname;
+}
+
+// Only a source-HTML <img src> is eligible, never a CSS URL, user hyperlink,
+// srcset candidate or other third-party binary. A single archived path/body
+// is still provisional because altered query values may change image content.
+function provisionalImageChoices(html, rows, choices) {
+  const sources = new Map();
+  for (const tag of html.matchAll(/<img\b[^>]*>/gi)) {
+    const attr = /(?:^|\s)src\s*=\s*(["'])([\s\S]*?)\1/i.exec(tag[0]);
+    if (!attr) continue;
+    const url = key(attr[2].replace(/&amp;/g, '&'));
+    if (!url || choices.has(url) || allowedHost(new URL(url).hostname)) continue;
+    sources.set(url, null);
+  }
+  if (!sources.size) throw Error('Image preview contains no unmatched third-party img src');
+  if (sources.size > 25) throw Error('Image preview exceeds bounded external PNG candidate limit');
+  const byPath = new Map();
+  for (const row of rows) {
+    if (row.status !== 'saved' || row.mimeType !== 'image/png' ||
+        row.resourceType !== 'Image' && row.resourceType !== 'Other') continue;
+    const url = key(row.url || '');
+    if (!url || allowedHost(new URL(url).hostname)) continue;
+    const id = urlPath(url);
+    if (!byPath.has(id)) byPath.set(id, []);
+    byPath.get(id).push({row,url});
+  }
+  const provisional = [];
+  for (const url of sources.keys()) {
+    const candidates = byPath.get(urlPath(url)) || [];
+    const bodies = new Set(candidates.map(x => x.row.sha256));
+    if (bodies.size !== 1) throw Error('No unique verified PNG body for one image-preview reference');
+    const candidate = candidates[0];
+    if (new Set(candidates.map(x => x.url)).size !== 1)
+      throw Error('Image-preview candidate has multiple archived URLs for one body');
+    const entry = {row:candidate.row,filename:'assets/'+candidate.row.sha256+'.png',
+      ext:'.png',url:candidate.url};
+    choices.set(url,entry);
+    provisional.push({sourceUrlHash:sha(Buffer.from(url)), candidateBodySha256:candidate.row.sha256,
+      asset:entry.filename, evidence:'same-origin-path-only', identityVerified:false});
+  }
+  if (new Set(provisional.map(x => x.candidateBodySha256)).size !== provisional.length)
+    throw Error('Distinct image-preview references reuse the same PNG body');
+  return provisional;
+}
+
 function parseIndex(filename) {
   return fs.readFileSync(filename, 'utf8').split(/\r?\n/).filter(Boolean).map((row, i) => {
     try {return JSON.parse(row);} catch {throw Error('Invalid resources JSONL row ' + (i + 1));}
   });
 }
-export function localize(cumulativeDir, resourceDir, targetDir) {
+export function localize(cumulativeDir, resourceDir, targetDir, options = {}) {
+  const provisionalImagePath = options.provisionalImagePath === true;
   const cumulative = path.resolve(cumulativeDir), archive = path.resolve(resourceDir);
   const output = path.resolve(targetDir);
   for (const root of [cumulative, archive])
@@ -101,6 +151,12 @@ export function localize(cumulativeDir, resourceDir, targetDir) {
   if (fs.existsSync(output)) throw Error('Output already exists: ' + output);
   const sourceHtml = fs.readFileSync(path.join(cumulative, 'index.html'), 'utf8');
   const sourceAudit = fs.readFileSync(path.join(cumulative, 'audit.json'));
+  const sourceEvidence = JSON.parse(sourceAudit.toString('utf8'));
+  if (provisionalImagePath &&
+      (sourceEvidence.status !== 'provisional-image-preview-assembly' ||
+       sourceEvidence.provisionalImagePreview !== true ||
+       !(sourceEvidence.unidentifiedImageTurns > 0)))
+    throw Error('Provisional image localization requires an explicitly assembled image preview');
   const sourceRefs = fs.readFileSync(path.join(cumulative, 'resource-references.json'));
   if (!sourceHtml.includes("script-src 'none'") || !sourceHtml.includes('id="cumulative-turns"'))
     throw Error('Input is not the inert cumulative DOM');
@@ -144,11 +200,16 @@ export function localize(cumulativeDir, resourceDir, targetDir) {
     }
     if (ext === '.css') styles.push(entry);
   }
+  const provisionalCandidates = provisionalImagePath ?
+    provisionalImageChoices(sourceHtml, index, choices) : [];
   const unresolved = new Set(), matched = new Set();
   const prepared = new Map(), stylesheetFiles = [], copied = [];
   // Verify all candidates before creating output: corrupt input cannot create partial output.
   for (const entry of new Set(choices.values())) {
     let content = safeResourceFile(archive, entry.row);
+    if (provisionalCandidates.some(x => x.candidateBodySha256 === entry.row.sha256) &&
+        !content.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10])))
+      throw Error('Image-preview candidate is not a PNG');
     if (entry.ext === '.woff2' && content.toString('ascii', 0, 4) !== 'wOF2')
       throw Error('Invalid WOFF2 signature in indexed font');
     if (entry.ext === '.css') {
@@ -170,6 +231,9 @@ export function localize(cumulativeDir, resourceDir, targetDir) {
   }
   for (const entry of styles) stylesheetFiles.push(entry.filename);
   let html = rewriteMarkup(sourceHtml, choices, unresolved, matched);
+  if (provisionalCandidates.some(candidate =>
+      ![...matched].some(url => sha(Buffer.from(url)) === candidate.sourceUrlHash)))
+    throw Error('Image-preview candidate was not localized');
   html = html.replace("img-src data: blob:", "img-src 'self' data: blob:")
     .replace("style-src 'unsafe-inline'", "style-src 'self' 'unsafe-inline'")
     .replace("font-src data:", "font-src 'self' data:");
@@ -185,25 +249,34 @@ export function localize(cumulativeDir, resourceDir, targetDir) {
   fs.writeFileSync(path.join(output, 'index.html'), html, {flag:'wx', mode:0o600});
   fs.writeFileSync(path.join(output, 'audit.json'), sourceAudit, {flag:'wx', mode:0o600});
   fs.writeFileSync(path.join(output, 'resource-references.json'), sourceRefs, {flag:'wx', mode:0o600});
-  const report = {status:'offline-localized-static-assets', stylesheets:styles.length,
+  const report = {status:provisionalImagePath ? 'offline-image-preview-provisional' :
+      'offline-localized-static-assets', stylesheets:styles.length,
+    provisionalImageCandidates:provisionalCandidates,
     staticFiles:prepared.size, mediaReferencesMatched:matched.size,
     resolvedRedirectAliases:redirectAliases, unresolvedReferences:[...unresolved].sort(), ignoredNonStaticOrNonFirstParty:ignored,
     limitations:['Original React/JavaScript deliberately disabled',
       'Referenced assets not in CDP archive remain unavailable',
       'Original document/body context and theme may affect CSS',
-      'No inference about complete RAW message coverage']};
+      'No inference about complete RAW message coverage',
+      ...(provisionalImagePath ? ['Third-party PNG substitutions were chosen by unique URL origin/path only',
+        'Changed query parameters may imply different images; preview associations are not proven'] : [])]};
   fs.writeFileSync(path.join(output, 'localization-audit.json'),
     JSON.stringify(report, null, 2) + '\n', {flag:'wx', mode:0o600});
   return {output, stylesheets:styles.length, staticFiles:prepared.size,
     mediaReferencesMatched:matched.size, resolvedRedirectAliases:redirectAliases,
-    unresolved:unresolved.size, ignored};
+    unresolved:unresolved.size, ignored,
+    provisionalImageCandidates:provisionalCandidates.length};
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname)) {
-  if (process.argv.length !== 5) {
-    console.error('Usage: node localize-rendered-resources.mjs <cumulative-dir> <web-analyze-dir> <new-output-dir>');
+  const [cumulative, resources, output, flag] = process.argv.slice(2);
+  if (!cumulative || !resources || !output ||
+      (flag !== undefined && flag !== '--provisional-image-path') ||
+      process.argv.length !== (flag ? 6 : 5)) {
+    console.error('Usage: node localize-rendered-resources.mjs <cumulative-dir> <web-analyze-dir> <new-output-dir> [--provisional-image-path]');
     process.exitCode = 2;
   } else {
-    try {console.log(JSON.stringify(localize(...process.argv.slice(2)), null, 2));}
-    catch(error) {console.error(error.message);process.exitCode=1;}
+    try {console.log(JSON.stringify(localize(cumulative,resources,output,
+      {provisionalImagePath:flag === '--provisional-image-path'}), null, 2));}
+    catch(error) {console.error(error.message); process.exitCode=1;}
   }
 }

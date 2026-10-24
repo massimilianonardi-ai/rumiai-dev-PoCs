@@ -283,3 +283,29 @@ with identical or different values and source/archive-only keys, **never the
 keys, their values or the original URL**. This supports a bounded decision
 about whether a candidate-only offline preview could be useful, without
 misstating asset identity. No automatic mapping or new capture.
+
+## First opt-in offline image-share preview (2026-10-24)
+
+Latest real physical inspect-image-capture result: each original image DOM
+turn (ordinal 2/4/6) has exactly **one** candidate archived PNG body at
+identical origin+path; there are three **distinct** candidate PNG hashes.
+For each pair six query keys have identical values and six have different
+values; none is unique to only one URL. No exact URL or same-CDP-request
+redirect match exists. This supports constructing an explicitly provisional
+preview, not claiming source image identity or assistant message completion.
+
+Added opt-in `assemble-rendered-dom.mjs --include-unidentified-images`.
+Only image-bearing unidentified snapshots can enter a preview; the latest
+image-bearing frame wins over later placeholders, original message-qualified
+frames remain preferred, ordinal and blob-integrity validation remain.
+The source audit labels unidentified image turns and provisional status.
+
+Added opt-in `localize-rendered-resources.mjs --provisional-image-path` only
+for outputs from that preview mode. It resolves unmatched **external**
+`<img src>` by exact origin+path to one unique verified archived PNG
+hash and one archived candidate URL. It refuses ambiguous paths, limits
+candidate count, checks PNG signatures, preserves inert CSP, emits the
+candidate-to-local-file manifest with source-URL SHA and `identityVerified:
+false` (not signed query parameters), and never contacts the web. A
+visual test on the real private capture is still required; original
+42-turn text visual acceptance and Markdown remain protected.
