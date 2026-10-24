@@ -59,6 +59,7 @@ function decodeHydration(html) {
   };
   const roleCounts = {}, visible = [];
   let hiddenFinal = 0, ignored = 0;
+  let assistantWithoutFinal = 0, assistantToAllWithoutFinal = 0;
   for (const ref of entries) {
     if (!Number.isInteger(ref) || ref < 0 || ref >= values.length)
       throw Error('Invalid RAW node reference');
@@ -74,6 +75,10 @@ function decodeHydration(html) {
     const final = field(message, 'end_turn') === true;
     const recipient = field(message, 'recipient');
     if (hidden && role === 'assistant' && final) hiddenFinal++;
+    if (role === 'assistant' && !hidden && !final) {
+      assistantWithoutFinal++;
+      if (recipient === 'all') assistantToAllWithoutFinal++;
+    }
     if (hidden || recipient !== 'all' ||
         !(role === 'user' || (role === 'assistant' && final))) continue;
     if (typeof messageId !== 'string' || !messageId)
@@ -83,7 +88,8 @@ function decodeHydration(html) {
   if (!visible.length) throw Error('No visible messages were found in the RAW stream');
   if (new Set(visible.map(x => x.id)).size !== visible.length)
     throw Error('Duplicate visible message IDs in RAW');
-  return {rawNodes:entries.length, ignoredNodes:ignored, roleCounts, hiddenFinal, visible};
+  return {rawNodes:entries.length, ignoredNodes:ignored, roleCounts, hiddenFinal,
+    assistantWithoutFinal, assistantToAllWithoutFinal, visible};
 }
 
 export function audit(cumulativeDir, resourceDir) {
@@ -96,19 +102,42 @@ export function audit(cumulativeDir, resourceDir) {
   const ids = turns.flatMap(turn => turn.messageIds);
   if (ids.some(id => typeof id !== 'string') || new Set(ids).size !== ids.length)
     throw Error('Invalid or duplicate DOM message IDs');
+  const ordinalSet = new Set();
+  for (const turn of turns) {
+    if (!Number.isSafeInteger(turn.ordinal) || turn.ordinal < 0 ||
+        ordinalSet.has(turn.ordinal)) throw Error('Invalid or duplicate DOM turn ordinal');
+    ordinalSet.add(turn.ordinal);
+  }
+  const missingOrdinals = [];
+  if (turns.length) {
+    for (let ordinal = turns[0].ordinal; ordinal <= turns.at(-1).ordinal; ordinal++)
+      if (!ordinalSet.has(ordinal)) missingOrdinals.push(ordinal);
+  }
   const expected = parsed.visible.map(row => row.id);
   const rawSet = new Set(expected), capturedSet = new Set(ids);
   const missingFromDom = expected.filter(id => !capturedSet.has(id));
   const extraInDom = ids.filter(id => !rawSet.has(id));
   const orderMatches = ids.length === expected.length &&
     ids.every((id, i) => id === expected[i]);
+  const visibilityWarnings = [];
+  if (missingOrdinals.length)
+    visibilityWarnings.push('DOM snapshots omit intermediate turn ordinals');
+  if (!parsed.visible.some(row => row.role === 'assistant') &&
+      (parsed.roleCounts.assistant || 0) > 0)
+    visibilityWarnings.push('RAW includes assistant nodes, but no assistant reply passes the final-message visibility filter');
+  const exactMatch = !missingFromDom.length && !extraInDom.length && orderMatches;
   return {
-    status: !missingFromDom.length && !extraInDom.length && orderMatches ?
-      'complete-visible-message-identity-and-order' : 'raw-dom-mismatch',
+    status: !exactMatch ? 'raw-dom-mismatch' :
+      visibilityWarnings.length ? 'inconclusive-visible-message-coverage' :
+      'complete-visible-message-identity-and-order',
     source: 'archived shared HTML React Router hydration',
     sourceSha256:raw.sha256, rawNodes:parsed.rawNodes,
     roles:parsed.roleCounts, ignoredNodesWithoutMessage:parsed.ignoredNodes,
     hiddenFinalAssistantMessages:parsed.hiddenFinal,
+    assistantNodesWithoutFinalMarker:parsed.assistantWithoutFinal,
+    assistantAddressedToAllWithoutFinalMarker:parsed.assistantToAllWithoutFinal,
+    missingTurnOrdinalCount:missingOrdinals.length,
+    visibilityWarnings,
     expectedVisibleMessages:expected.length, expectedUserMessages:parsed.visible.filter(x=>x.role==='user').length,
     expectedAssistantMessages:parsed.visible.filter(x=>x.role==='assistant').length,
     capturedDomMessages:ids.length, capturedTurns:turns.length,
