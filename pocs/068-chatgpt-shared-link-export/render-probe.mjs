@@ -296,6 +296,11 @@ class Cdp {
         this.report({...detail,status:'http-status-not-success'},response.sessionId);
         return;
       }
+      if (!['image/png','image/jpeg','image/webp','image/gif'].includes(
+          response.mime.split(';')[0].trim())) {
+        this.report({...detail,status:'mime-unsupported'},response.sessionId);
+        return;
+      }
       const body = await this.send('Network.getResponseBody',
         {requestId:response.requestId},response.sessionId,12000);
       const bytes = body.base64Encoded ?
@@ -440,14 +445,26 @@ async function sweep(cdp, sid, record) {
 }
 
 async function run(args) {
-  const [url, outputName, ...flags] = args;
-  if (!url || !outputName || flags.some(x => !['--headless','--sweep','--compare-image-urls','--capture-image-bodies'].includes(x))) {
-    process.stderr.write('Usage: node render-probe.mjs <url> <output-dir> [--sweep] [--headless] [--compare-image-urls] [--capture-image-bodies]\n');
+  const [url, outputName, ...rawFlags] = args;
+  const offlineIndex = rawFlags.indexOf('--offline-output');
+  const offlineDir = offlineIndex < 0 ? null : rawFlags[offlineIndex + 1];
+  const flags = offlineIndex < 0 ? rawFlags : rawFlags.filter((_,i) =>
+    i !== offlineIndex && i !== offlineIndex + 1);
+  if (!url || !outputName ||
+      (offlineIndex >= 0 && (offlineIndex !== rawFlags.length - 2 || !offlineDir ||
+        !flags.includes('--sweep') || !flags.includes('--capture-image-bodies'))) ||
+      flags.some(x => !['--headless','--sweep','--compare-image-urls','--capture-image-bodies'].includes(x))) {
+    process.stderr.write('Usage: node render-probe.mjs <url> <output-dir> [--sweep] [--headless] [--compare-image-urls] [--capture-image-bodies] [--offline-output <new-dir>]\n');
     return 2;
   }
   const parsed = new URL(url);
   if (!['http:','https:'].includes(parsed.protocol)) throw Error('HTTP(S) URL required');
-  const output = path.resolve(outputName), log = recording(output);
+  const output = path.resolve(outputName);
+  if (offlineDir && (fs.existsSync(path.resolve(offlineDir)) ||
+      path.resolve(offlineDir) === output ||
+      path.resolve(offlineDir).startsWith(output + path.sep)))
+    throw Error('Offline output must be a new directory outside the capture');
+  const log = recording(output);
   const profile = path.join(output, 'profile');
   fs.mkdirSync(profile, {mode: 0o700});
   const browser = spawn('chromium', ['--user-data-dir=' + profile,
@@ -505,6 +522,10 @@ async function run(args) {
     if (flags.includes('--sweep')) {
       await sweep(cdp,sid,log.record);
       process.stdout.write(JSON.stringify(await stop('sweep-finished')) + '\n');
+      if (offlineDir) {
+        const {renderSameSessionOffline} = await import('./render-same-session-offline.mjs');
+        process.stdout.write(JSON.stringify(renderSameSessionOffline(output,offlineDir),null,2)+'\n');
+      }
     } else {
       process.stdout.write('Use the browser; press Ctrl+C to finish.\n');
       await Promise.race([browserExited, new Promise(resolve => {

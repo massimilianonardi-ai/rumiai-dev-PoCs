@@ -58,7 +58,8 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), 'rumiai-render-probe-test-'))
 try {
   const out = path.join(root,'capture');
   const child = spawn(process.execPath, [script,
-    'http://127.0.0.1:'+server.address().port+'/', out, '--sweep', '--headless', '--capture-image-bodies'],
+    'http://127.0.0.1:'+server.address().port+'/', out, '--sweep', '--headless', '--capture-image-bodies',
+    '--offline-output',path.join(root,'reading')],
     {stdio:['ignore','pipe','pipe']});
   let stdout='',stderr='';
   child.stdout.on('data', chunk => {stdout+=String(chunk);});
@@ -129,9 +130,12 @@ try {
     assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),event.sha256);
   }
   const reading=path.join(root,'reading');
-  const offline=renderSameSessionOffline(out,reading);
+  assert(fs.existsSync(path.join(reading,'audit.json')),
+    'One-command offline export was not produced');
+  const offline=JSON.parse(fs.readFileSync(path.join(reading,'audit.json'),'utf8'));
   assert(offline.imageTurnsWithVerifiedBodies >= 1,
     'Offline view failed to use the captured same-session image body');
+  assert.throws(()=>renderSameSessionOffline(out,reading),/already exists/);
   const offlineHtml=fs.readFileSync(path.join(reading,'index.html'),'utf8');
   assert(offlineHtml.includes('data:image/gif;base64,'));
   assert(offlineHtml.includes("script-src &#39;none&#39;") ||

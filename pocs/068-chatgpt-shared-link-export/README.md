@@ -405,6 +405,20 @@ node render-same-session-offline.mjs \
   "$CAPTURE_DIR" "$CAPTURE_DIR-reading"
 ```
 
+For a **single command** that captures and renders automatically, pass the
+new destination after `--offline-output`:
+
+```sh
+umask 077
+CAPTURE_DIR="$(mktemp -d "$HOME/chatgpt-image-body-XXXXXXXX")"
+node render-probe.mjs 'https://chatgpt.com/share/<share-id>' \
+  "$CAPTURE_DIR" --sweep --capture-image-bodies \
+  --offline-output "$CAPTURE_DIR-reading"
+```
+
+The separate offline renderer remains available for re-rendering the same
+unchanged capture into another new directory, with no network access.
+
 Open `$CAPTURE_DIR-reading/index.html` locally. The new `audit.json` reports
 observed text/image turn coverage, captured body counts, unresolved image
 references, absent ordinals and remaining provenance limitations. Both input
