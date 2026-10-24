@@ -1,5 +1,5 @@
 #!/bin/sh
-# Packaging only: use the original checked-out mk engine; do not compile it.
+# Packaging only: copy package-owned mk source files; do not compile them.
 set -eu
 
 [ "$#" -eq 1 ] || { printf '%s\n' 'usage: sh build.sh <output-dir>' >&2; exit 2; }
