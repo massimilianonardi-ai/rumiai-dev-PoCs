@@ -140,6 +140,10 @@ try {
   }
   assert(stdout.includes('"status": "real-live-vs-offline-katex-computed-css"'),
     'Live-vs-offline Chromium math comparison missing from the real-browser path');
+  assert(/"pairedRoots":\s*[1-9]\d*/.test(stdout),
+    'Live-vs-offline comparison did not actually match a source math formula');
+  assert(stdout.includes('"sourceObserved": true'),
+    'Real-browser test never observed formula markup on the live source side');
   const reading=path.join(root,'reading');
   assert(fs.existsSync(path.join(reading,'audit.json')),
     'One-command offline export was not produced');

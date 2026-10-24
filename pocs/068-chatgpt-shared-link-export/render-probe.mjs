@@ -562,7 +562,12 @@ async function run(args) {
           if (!data || !Array.isArray(data.turns))return;
           for(const turn of data.turns) {
             const before=sourceMath.get(turn.ordinal);
-            if(!before || turn.math.length>before.math.length)
+            // Prefer the fullest mounted turn, but re-sample it once
+            // the browser has completed loading fonts to avoid comparing
+            // an early fallback-font frame with a settled offline page.
+            if(!before || turn.math.length>before.math.length ||
+                (turn.math.length===before.math.length &&
+                 data.fontFaces?.loading===0))
               sourceMath.set(turn.ordinal,turn);
           }
           if(data.fontFaces?.loaded>=sourceFaces.loaded)
