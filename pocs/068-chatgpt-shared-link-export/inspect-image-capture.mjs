@@ -166,10 +166,79 @@ function unmatchedEvidence(urls, archived, redirects) {
   return summary;
 }
 
+
+// Candidate inventory: a common origin/path is only a hint. Query differences
+// may select a different body; never silently promote candidates to matches.
+function queryProfile(source, candidate) {
+  const groups = url => {
+    const byKey = new Map();
+    for (const [name, value] of url.searchParams) {
+      if (!byKey.has(name)) byKey.set(name, []);
+      byKey.get(name).push(value);
+    }
+    for (const values of byKey.values()) values.sort();
+    return byKey;
+  };
+  const a = groups(source), b = groups(candidate);
+  const comparison = {identicalValueKeys:0, changedValueKeys:0,
+    snapshotOnlyKeys:0, archiveOnlyKeys:0};
+  for (const [name, values] of a) {
+    if (!b.has(name)) comparison.snapshotOnlyKeys++;
+    else if (JSON.stringify(values) === JSON.stringify(b.get(name)))
+      comparison.identicalValueKeys++;
+    else comparison.changedValueKeys++;
+  }
+  for (const name of b.keys()) if (!a.has(name)) comparison.archiveOnlyKeys++;
+  return comparison;
+}
+
+function samePathCandidateEvidence(urls, savedImages) {
+  const evidence = {
+    unmatchedReferencesWithNoCandidate:0,
+    unmatchedReferencesWithSingleBodyCandidate:0,
+    unmatchedReferencesWithMultipleBodyCandidates:0,
+    distinctSingleCandidatePngBodies:0,
+    queryComparison: {references:0, identicalValueKeys:0,
+      changedValueKeys:0, snapshotOnlyKeys:0, archiveOnlyKeys:0}
+  };
+  const singlePngBodies = new Set();
+  for (const value of urls) {
+    const requested = new URL(value);
+    if (!['https:', 'http:'].includes(requested.protocol)) {
+      evidence.unmatchedReferencesWithNoCandidate++;
+      continue;
+    }
+    const candidates = savedImages.filter(({url}) => {
+      const found = new URL(url);
+      return found.origin === requested.origin && found.pathname === requested.pathname;
+    });
+    const hashes = new Set(candidates.map(row => row.sha256));
+    if (!hashes.size) {
+      evidence.unmatchedReferencesWithNoCandidate++;
+      continue;
+    }
+    if (hashes.size > 1) {
+      evidence.unmatchedReferencesWithMultipleBodyCandidates++;
+      continue;
+    }
+    evidence.unmatchedReferencesWithSingleBodyCandidate++;
+    if (candidates.some(row => row.mime === 'image/png'))
+      singlePngBodies.add(candidates[0].sha256);
+    const urlsSeen = new Set(candidates.map(row => row.url));
+    if (urlsSeen.size !== 1) continue; // Query comparison is ambiguous.
+    const delta = queryProfile(requested, new URL(candidates[0].url));
+    evidence.queryComparison.references++;
+    for (const key of ['identicalValueKeys','changedValueKeys',
+        'snapshotOnlyKeys','archiveOnlyKeys']) evidence.queryComparison[key] += delta[key];
+  }
+  evidence.distinctSingleCandidatePngBodies = singlePngBodies.size;
+  return evidence;
+}
+
 // A match is an exact original-URL match to a SHA-256-verified saved response;
 // it does not prove the DOM used that body, that an assistant authored it,
 // or that a potentially signed/redirected URL remains valid later.
-function correlateSnapshotImages(snapshotEvents, probe, archivedImages, redirects) {
+function correlateSnapshotImages(snapshotEvents, probe, archivedImages, redirects, savedImages) {
   const turns = new Map(), urls = new Set(), matchedBodies = new Set();
   const unmatched = new Set();
   let imageBearingSnapshotEvents = 0;
@@ -214,7 +283,8 @@ function correlateSnapshotImages(snapshotEvents, probe, archivedImages, redirect
     distinctImageReferences: turn.urls.size,
     matchedSavedReferences: turn.matched.size,
     unmatchedReferences: turn.unmatched.size,
-    unmatchedEvidence: unmatchedEvidence(turn.unmatched, archivedImages, redirects)
+    unmatchedEvidence: unmatchedEvidence(turn.unmatched, archivedImages, redirects),
+    samePathCandidateEvidence: samePathCandidateEvidence(turn.unmatched, savedImages)
   }));
   byTurn.sort((a, b) => (a.ordinal ?? Infinity) - (b.ordinal ?? Infinity));
   return {
@@ -222,6 +292,7 @@ function correlateSnapshotImages(snapshotEvents, probe, archivedImages, redirect
     imageTagOccurrences, distinctImageReferences: urls.size,
     matchedSavedReferences: matches.length, unmatchedReferences: unmatched.size,
     unmatchedEvidence: unmatchedEvidence(unmatched, archivedImages, redirects),
+    samePathCandidateEvidence: samePathCandidateEvidence(unmatched, savedImages),
     missingOrInvalidSrcOccurrences: missingSrcOccurrences,
     distinctMatchedImageBodies: matchedBodies.size,
     distinctMatchedPngBodies: matchedPngBodies.size,
@@ -236,7 +307,7 @@ export function inspectImages(cumulativeDir, resourcesDir, probeDir) {
   const rawAudit = audit(cumulative, resources);
   const rows = jsonl(path.join(resources, 'resources.jsonl'));
   const events = jsonl(path.join(probe, 'events.jsonl'));
-  const imageRecords = [], archivedImages = new Map();
+  const imageRecords = [], archivedImages = new Map(), savedImages = [];
   const byType = {}, byOrigin = {};
   let totalImageBytes = 0;
   for (const row of rows) {
@@ -248,7 +319,11 @@ export function inspectImages(cumulativeDir, resourcesDir, probeDir) {
     counted(byOrigin, host);
     totalImageBytes += bytes.length;
     const resourceUrl = canonicalImageUrl(row.url || '');
-    if (resourceUrl) archivedImages.set(resourceUrl, {sha256:row.sha256, mime});
+    if (resourceUrl) {
+      archivedImages.set(resourceUrl, {sha256:row.sha256, mime});
+      if (['https:', 'http:'].includes(new URL(resourceUrl).protocol))
+        savedImages.push({url:resourceUrl,sha256:row.sha256,mime});
+    }
     imageRecords.push({
       ordinal: imageRecords.length + 1,
       mime, bytes: bytes.length, originClass: host,
@@ -290,8 +365,8 @@ export function inspectImages(cumulativeDir, resourcesDir, probeDir) {
     counted(linkKinds, originClass(ref.reference));
   }
   const redirects = redirectBodies(rows);
-  const identifiedLinkage = correlateSnapshotImages(snapshots, probe, archivedImages, redirects);
-  const unidentifiedLinkage = correlateSnapshotImages(unidentified, probe, archivedImages, redirects);
+  const identifiedLinkage = correlateSnapshotImages(snapshots, probe, archivedImages, redirects, savedImages);
+  const unidentifiedLinkage = correlateSnapshotImages(unidentified, probe, archivedImages, redirects, savedImages);
   const capturedOrdinals = new Set(JSON.parse(fs.readFileSync(
     path.join(cumulative, 'audit.json'), 'utf8')).turns.map(turn => turn.ordinal));
   const imageOrdinalsAbsentFromCumulative = [...new Set(unidentifiedLinkage.turns
@@ -336,7 +411,8 @@ export function inspectImages(cumulativeDir, resourcesDir, probeDir) {
       'Image dimensions do not prove visual fidelity, role or source conversation association',
       'Snapshots represent observed frames only; source content and URLs are not emitted',
       'Exact and same-request redirect links do not establish RAW assistant-message ownership or displayed decoding',
-      'Matching hosts/paths without an identical URL or proven CDP redirect do not identify saved image bytes'
+      'Matching hosts/paths without an identical URL or proven CDP redirect do not identify saved image bytes',
+      'One same-path saved image-body candidate is provisional only: changed query parameters may transform or authorize different content'
     ]
   };
 }

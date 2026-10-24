@@ -244,6 +244,24 @@ Use the same read-only invocation against existing private directories.
 The three ordinal image turns are evidence of DOM rendering, not of
 complete RAW assistant-message capture or pixel fidelity.
 
+
+### Assess whether a same-path image candidate is unique
+
+When a recorded `<img src>` and a saved image response have the same origin
+and path but different query strings, the `samePathCandidateEvidence`
+section now reports whether that reference has zero, one or multiple
+**distinct saved body hashes**. It separately counts distinct provisional
+PNG-body candidates. Only when one archived URL and one body are involved
+does `queryComparison` count identical-value, changed-value and
+one-sided parameter *keys*. The names and values are never printed.
+Multiple different bodies for one path are explicitly marked ambiguous.
+
+One candidate is **not** automatic identity: a query parameter could change
+the selected image, dimensions or authorization. The tool intentionally
+does not copy/match/rewrite images or modify the earlier cumulative output.
+This check runs against the same already archived three directories; no
+new browser/network capture is necessary.
+
 ## Security boundaries
 
 The URL must be an HTTPS \`chatgpt.com/share/\` conversation link, not a scheduled-task share. The exporter neither extracts cookies nor bypasses sign-in challenges. Browser profile state remains with web-control. Archive output is private data: do not commit it to public GitHub or share it without review. HTML snapshots and any image URL containing signed query parameters can reveal information, so avoid diagnostic logging of asset URLs.

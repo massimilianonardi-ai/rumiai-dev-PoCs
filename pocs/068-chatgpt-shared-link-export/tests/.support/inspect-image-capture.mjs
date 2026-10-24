@@ -114,6 +114,12 @@ try {
   assert.equal(report.linkage.unidentified.unmatchedReferences,3);
   assert.equal(report.linkage.unidentified.unmatchedEvidence.sameRequestRedirect,1);
   assert.equal(report.linkage.unidentified.unmatchedEvidence.sameOriginPathDifferentQuery,1);
+  assert.equal(report.linkage.unidentified.samePathCandidateEvidence.unmatchedReferencesWithSingleBodyCandidate,1);
+  assert.equal(report.linkage.unidentified.samePathCandidateEvidence.unmatchedReferencesWithNoCandidate,2);
+  assert.equal(report.linkage.unidentified.samePathCandidateEvidence.distinctSingleCandidatePngBodies,1);
+  assert.equal(report.linkage.unidentified.samePathCandidateEvidence.queryComparison.references,1);
+  assert.equal(report.linkage.unidentified.samePathCandidateEvidence.queryComparison.identicalValueKeys,1);
+  assert.equal(report.linkage.unidentified.samePathCandidateEvidence.queryComparison.changedValueKeys,1);
   assert.equal(report.linkage.unidentified.unmatchedEvidence.nonHttp,1);
   assert.equal(report.linkage.unidentified.unmatchedEvidence.redirectPngBodies,1);
   assert.equal(report.linkage.unidentified.turns[0].unmatchedEvidence.sameRequestRedirect,1);
@@ -134,9 +140,20 @@ try {
   const withGap = inspectImages(cumulative,resources,probe);
   assert.deepEqual(withGap.linkage.imageOrdinalsAbsentFromCumulative,[2]);
   assert.equal(withGap.cumulative.rawAuditStatus,'inconclusive-visible-message-coverage');
+  // A second *different body* at the same host/path disqualifies uniqueness.
+  const collision = archived(Buffer.concat([png, Buffer.from('collision')]), '.png');
+  const ambiguousIndex = [...index, {status:'saved',resourceType:'Image',mimeType:'image/png',
+    url:'https://chatgpt.com/private?token=second-private&size=1',...collision}];
+  fs.writeFileSync(path.join(resources,'resources.jsonl'),
+    ambiguousIndex.map(JSON.stringify).join('\n')+'\n');
+  const uncertain = inspectImages(cumulative,resources,probe);
+  assert.equal(uncertain.linkage.unidentified.samePathCandidateEvidence.unmatchedReferencesWithMultipleBodyCandidates,1);
+  assert.equal(uncertain.linkage.unidentified.samePathCandidateEvidence.unmatchedReferencesWithSingleBodyCandidate,0);
+  assert(!JSON.stringify(uncertain).includes('second-private'));
+  fs.writeFileSync(path.join(resources,'resources.jsonl'),index.map(JSON.stringify).join('\n')+'\n');
   fs.appendFileSync(path.join(resources,image.file),'tamper');
   assert.throws(()=>inspectImages(cumulative,resources,probe),/integrity verification failed/);
-  console.log('PASS: image hashes, exact URLs, same-request redirects, query mismatch, turn ordinals, privacy, integrity');
+  console.log('PASS: image hashes, redirects, unique/ambiguous same-path candidates, query deltas, privacy, integrity');
 } finally {
   fs.rmSync(root,{recursive:true,force:true});
 }

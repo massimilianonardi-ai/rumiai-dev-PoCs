@@ -265,3 +265,21 @@ similarities and non-HTTP references. It does not turn similarities into
 automatic image mappings. Run only this diagnostic on already captured private
 data; inspect `linkage.unidentified.unmatchedEvidence` and each ordinal's
 counts before changing assembler/localizer or acquiring anything again.
+
+## Single-path provisional image candidates (2026-10-24)
+
+The latest operator-run `linkage.unidentified.unmatchedEvidence` shows
+**three** distinct unlinked image URLs, one each in turns 2/4/6; all three
+share an exact origin and URL path with one or more archived images but have
+different query strings. There are no recognized same-CDP-request redirects,
+and the original 1536×1024 archived PNGs cannot yet be mapped to turns
+without guessing.
+
+The inspector now reports `samePathCandidateEvidence`: per reference,
+how many distinct verified archived body hashes are available for its exact
+origin/path, distinguishing none, a single *provisional* body, and ambiguous
+multiple bodies. For one archived URL/body it also counts shared query keys
+with identical or different values and source/archive-only keys, **never the
+keys, their values or the original URL**. This supports a bounded decision
+about whether a candidate-only offline preview could be useful, without
+misstating asset identity. No automatic mapping or new capture.
