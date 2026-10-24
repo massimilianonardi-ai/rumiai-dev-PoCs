@@ -14,8 +14,10 @@ Node.js is a **package runtime dependency** (`nodejs =26`) and is not required
 to bootstrap the m root or to produce the archive. The existing `pkg`
 integration and command-launch code handles that dependency on execution.
 
-The PoC uses an exact, current-revision-pinned `rumiai-os` engine and an
-isolated copy of the real product root. It does **not** change
+The PoC stages a copy of the engine from the exact
+`rumiai-os` revision `673df1a2d5476ad57d54c7bc7e1fc2deeaf16195`, with only
+its two watch-child re-entry paths adjusted to the sibling package `cmd/mk`
+launcher. It uses an isolated copy of the real product root. It does **not** change
 `rumiai-os/main` and does not publish a fake `mk` entry in
 `pkg-catalog/main` before a dedicated source repository and downloadable
 versioned release exist.
@@ -45,19 +47,20 @@ sh pocs/073-mk-package-local-runtime/tests/run.sh /path/to/rumiai-os-checkout
 
 The test copies a provided product checkout to a disposable runtime root,
 removes its old `bin/sys/mk` and `lib/sys/js/mk.lib.js`, builds an archive
-containing the original engine, installs real managed Node.js through `pkg`,
+containing the staged engine, installs real managed Node.js through `pkg`,
 integrates the archive using the actual `pkg_integrate` and
 `pkg_default_apply`, and calls `m mk` through the real package launcher.
-It exercises `--goals`, `--plan` and execution with managed Node identity.
+It exercises `--goals`, `--plan`, execution with managed Node identity and
+`--watch` re-entry through the package-local launcher, including an input change.
 
 The GitHub Actions workflow uses pinned product source revision
 `673df1a2d5476ad57d54c7bc7e1fc2deeaf16195`.
 
 ## Known remaining work
 
-1. `mk.lib.js` currently reinvokes watch through
-   `$m_ROOT/bin/sys/mk`; that must be redirected to the package-owned command
-   before claiming full `--watch` parity. This PoC does not test watch.
+1. The two watch re-entry sites were redirected experimentally to the
+   package-local `cmd/mk`; the full permanent watch regression suite and
+   all existing callers must be realigned before production publication.
 2. Establish the dedicated mk source repository and publish a verifiable
    package release artifact there. The current connector cannot create a
    repository or publish GitHub release assets.

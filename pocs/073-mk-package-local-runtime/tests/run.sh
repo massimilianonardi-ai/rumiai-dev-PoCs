@@ -37,7 +37,7 @@ command -p -- mkdir -p -- "$root/pkg"
 [ -s "$work/bootstrap.out" ] || exit 9
 printf '%s\n' 'bootstrap without mk PASS'
 
-sh "$poc_dir/build.sh" "$product" "$work/distribution"
+sh "$poc_dir/build.sh" "$work/distribution"
 [ -s "$work/distribution/mk-v0.1.0.tar.gz" ] || exit 10
 [ -f "$work/distribution/root/lib/mk.lib.js" ] || exit 11
 [ ! -e "$work/distribution/root/lib/sys" ] || exit 12
@@ -107,3 +107,60 @@ export EXPECTED_NODE_ROOT
 [ -s "$work/plan" ] || exit 24
 "$root/m" mk --project "$work/project" check || exit 25
 printf '%s\n' 'mk package launcher, plan, action and managed Node PASS'
+
+# Watch must re-enter through the package cmd/mk launcher, not bin/sys/mk.
+command -p -- mkdir -- "$work/watch"
+printf '%s\n' initial > "$work/watch/source.txt"
+cat > "$work/watch/mk.json" <<'EOF_WATCH'
+{
+  "version": 2,
+  "goals": {"build": ["run"]},
+  "operations": {
+    "run": {
+      "inputs": {"source": {"path": "source.txt"}},
+      "action": {
+        "type": "process",
+        "command": "sh",
+        "args": ["-c", "printf 'tick\\n' >> trace.log"]
+      }
+    }
+  }
+}
+EOF_WATCH
+"$root/m" mk --watch --project "$work/watch" build > "$work/watch.out" 2> "$work/watch.err" &
+watch_pid=$!
+watch_count=0
+while [ "$watch_count" -lt 30 ]
+do
+  [ -f "$work/watch/trace.log" ] && break
+  if ! kill -0 "$watch_pid" 2>/dev/null; then break; fi
+  command -p -- sleep 1
+  watch_count=$((watch_count+1))
+done
+if [ ! -f "$work/watch/trace.log" ]
+then
+  command -p -- cat -- "$work/watch.err" >&2
+  kill -TERM "$watch_pid" 2>/dev/null || :
+  wait "$watch_pid" 2>/dev/null || :
+  printf '%s\n' 'watch did not run initial package-local lifecycle' >&2
+  exit 26
+fi
+printf '%s\n' changed > "$work/watch/source.txt"
+watch_count=0
+while [ "$watch_count" -lt 30 ]
+do
+  n=$(command -p -- wc -l < "$work/watch/trace.log")
+  [ "$n" -ge 2 ] && break
+  if ! kill -0 "$watch_pid" 2>/dev/null; then break; fi
+  command -p -- sleep 1
+  watch_count=$((watch_count+1))
+done
+kill -TERM "$watch_pid" 2>/dev/null || :
+wait "$watch_pid" 2>/dev/null || :
+[ "$(command -p -- wc -l < "$work/watch/trace.log")" -ge 2 ] ||
+{
+  command -p -- cat -- "$work/watch.err" >&2
+  printf '%s\n' 'watch did not rerun through package launcher' >&2
+  exit 27
+}
+printf '%s\n' 'package-local watch re-entry PASS'
