@@ -48,11 +48,17 @@ try {
   png.writeUInt32BE(1024,16);
   png.writeUInt32BE(768,20);
   const image = archived(png,'.png');
+  const second = archived(Buffer.concat([png, Buffer.from('different')]), '.png');
   const index = [
     {status:'saved',resourceType:'Document',mimeType:'text/html',
       url:'https://chatgpt.com/share/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',...doc},
     {status:'saved',resourceType:'Image',mimeType:'image/png',
-      url:'https://chatgpt.com/private?token=secret-should-not-leak&size=1',...image}
+      url:'https://chatgpt.com/private?token=secret-should-not-leak&size=1',...image},
+    {status:'redirect-no-body',session:'test-session',requestId:'request-7',
+      url:'https://images.example.test/original?private=secret-redirect-token'},
+    {status:'saved',session:'test-session',requestId:'request-7',
+      resourceType:'Image',mimeType:'image/png',
+      url:'https://cdn.example.test/final?private=secret-redirect-token',...second}
   ];
   fs.writeFileSync(path.join(resources,'resources.jsonl'),index.map(JSON.stringify).join('\n')+'\n');
   const snapshotHtml='<div data-turn-id-container="secret-turn"><section data-testid="conversation-turn-1"><img src="https://chatgpt.com/private?token=secret-should-not-leak&amp;size=1"><svg></svg></section></div>';
@@ -60,7 +66,7 @@ try {
   const snapshotHash=hash(snapshotBuffer);
   const snapshotFile='turns/'+snapshotHash+'.html';
   fs.writeFileSync(path.join(probe,snapshotFile),snapshotBuffer);
-  const unidentifiedHtml = '<div data-turn-id-container="secret-image-turn"><section data-testid="conversation-turn-2"><img src="https://chatgpt.com/private?token=secret-should-not-leak&amp;size=1"><img src="blob:https://chatgpt.com/private-object"></section></div>';
+  const unidentifiedHtml = '<div data-turn-id-container="secret-image-turn"><section data-testid="conversation-turn-2"><img src="https://chatgpt.com/private?token=secret-should-not-leak&amp;size=1"><img src="blob:https://chatgpt.com/private-object"><img src="https://chatgpt.com/private?token=different&amp;size=1"><img src="https://images.example.test/original?private=secret-redirect-token"></section></div>';
   const unidentifiedBytes = Buffer.from(unidentifiedHtml);
   const unidentifiedHash = hash(unidentifiedBytes);
   const unidentifiedFile = 'turns/' + unidentifiedHash + '.html';
@@ -84,11 +90,12 @@ try {
   fs.writeFileSync(path.join(cumulative,'resource-references.json'),
     JSON.stringify([{attribute:'src',reference:'https://chatgpt.com/private?token=secret-should-not-leak'}]));
   const report=inspectImages(cumulative,resources,probe);
-  assert.equal(report.archive.savedImageResponses,1);
-  assert.equal(report.archive.savedImageBytes,24);
+  assert.equal(report.archive.savedImageResponses,2);
+  assert.equal(report.archive.savedImageBytes,24+second.bytes);
   assert.deepEqual(report.archive.images[0].dimensions,[1024,768]);
-  assert.deepEqual(report.archive.byMime,{'image/png':1});
+  assert.deepEqual(report.archive.byMime,{'image/png':2});
   assert.equal(report.archive.byOriginClass.chatgpt,1);
+  assert.equal(report.archive.byOriginClass['other-host'],1);
   assert.equal(report.probe.initiallyObservedTurnWrappers,2);
   assert.equal(report.probe.initiallyWithoutMessageIds,1);
   assert.equal(report.probe.snapshotsWithImg,1);
@@ -97,13 +104,19 @@ try {
   assert.equal(report.probe.unidentifiedSnapshotEvents,2);
   assert.equal(report.probe.unidentifiedDistinctTurnIds,1);
   assert.equal(report.probe.unidentifiedSnapshotsWithImg,2);
-  assert.equal(report.probe.unidentifiedElementCounts.img,4);
+  assert.equal(report.probe.unidentifiedElementCounts.img,8);
   assert.equal(report.probe.unidentifiedImgSrcClasses['browser-blob'],2);
-  assert.equal(report.probe.unidentifiedImgSrcClasses.chatgpt,2);
-  assert.equal(report.linkage.unidentified.imageTagOccurrences,4);
-  assert.equal(report.linkage.unidentified.distinctImageReferences,2);
+  assert.equal(report.probe.unidentifiedImgSrcClasses.chatgpt,4);
+  assert.equal(report.probe.unidentifiedImgSrcClasses['other-host'],2);
+  assert.equal(report.linkage.unidentified.imageTagOccurrences,8);
+  assert.equal(report.linkage.unidentified.distinctImageReferences,4);
   assert.equal(report.linkage.unidentified.matchedSavedReferences,1);
-  assert.equal(report.linkage.unidentified.unmatchedReferences,1);
+  assert.equal(report.linkage.unidentified.unmatchedReferences,3);
+  assert.equal(report.linkage.unidentified.unmatchedEvidence.sameRequestRedirect,1);
+  assert.equal(report.linkage.unidentified.unmatchedEvidence.sameOriginPathDifferentQuery,1);
+  assert.equal(report.linkage.unidentified.unmatchedEvidence.nonHttp,1);
+  assert.equal(report.linkage.unidentified.unmatchedEvidence.redirectPngBodies,1);
+  assert.equal(report.linkage.unidentified.turns[0].unmatchedEvidence.sameRequestRedirect,1);
   assert.equal(report.linkage.unidentified.distinctMatchedPngBodies,1);
   assert.equal(report.linkage.unidentified.turns[0].ordinal,2);
   assert.equal(report.linkage.unidentified.turns[0].imageBearingSnapshotEvents,2);
@@ -111,7 +124,7 @@ try {
   assert.deepEqual(report.linkage.imageOrdinalsAbsentFromCumulative,[]);
   assert.equal(report.cumulative.rawAuditStatus,'complete-visible-message-identity-and-order');
   const json=JSON.stringify(report);
-  for(const sensitive of ['secret-should-not-leak','secret-turn','secret-image-turn','private-object','user-id','assistant-id'])
+  for(const sensitive of ['secret-should-not-leak','secret-turn','secret-image-turn','private-object','secret-redirect-token','different&size=1','user-id','assistant-id'])
     assert(!json.includes(sensitive), 'private field leaked');
   // Missing DOM turn 2 is recovered only as identifiable image-bearing
   // ordinal evidence, not as an automatically accepted message.
@@ -123,7 +136,7 @@ try {
   assert.equal(withGap.cumulative.rawAuditStatus,'inconclusive-visible-message-coverage');
   fs.appendFileSync(path.join(resources,image.file),'tamper');
   assert.throws(()=>inspectImages(cumulative,resources,probe),/integrity verification failed/);
-  console.log('PASS: image MIME/dimensions, exact URL/body linkage, snapshot deduplication, ordinal gaps, privacy, integrity');
+  console.log('PASS: image hashes, exact URLs, same-request redirects, query mismatch, turn ordinals, privacy, integrity');
 } finally {
   fs.rmSync(root,{recursive:true,force:true});
 }

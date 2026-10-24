@@ -248,3 +248,20 @@ Next: run the updated existing command once against the **existing**
 `render-probe-images-02`. Compare `linkage.unidentified`,
 `linkage.identified` and `imageOrdinalsAbsentFromCumulative`
 before changing the actual offline assembler/localizer.
+
+## Generated-image URL mismatch classification (2026-10-24)
+
+Operator rerun of the exact-URL linkage report found one unique image source
+per unqualified conversation turn ordinal 2, 4, and 6; all three are absent
+from the previous message-qualified cumulative DOM. None of the three
+source URLs is identical to a saved image URL, despite three externally hosted
+1536×1024 PNG response bodies. This supports missing **image-bearing DOM
+capture** as one cause, but does not identify saved bytes or RAW assistant IDs.
+
+The read-only image diagnostic now separately classifies unmatched references
+by (1) exact original redirect URL sharing a CDP session/request ID with
+exactly one verified archived image body, or (2) non-binding host/path/query
+similarities and non-HTTP references. It does not turn similarities into
+automatic image mappings. Run only this diagnostic on already captured private
+data; inspect `linkage.unidentified.unmatchedEvidence` and each ordinal's
+counts before changing assembler/localizer or acquiring anything again.

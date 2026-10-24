@@ -227,6 +227,23 @@ the displayed pixels, or conversation-wide completeness. No HTML/image bytes
 are modified, no browser or network is used and no implicit localization or
 assembly is performed.
 
+
+### Diagnose unresolved image URLs
+
+The existing `linkage.unidentified.unmatchedEvidence` counters, including
+the equivalent per-turn counters, now classify unmatched image references.
+A `sameRequestRedirect` requires the **same archived CDP session and
+request ID**, with exactly one image-body hash for that request; the count
+`redirectPngBodies` refers to distinct hashes, not appearances across
+snapshots. `sameOriginPathDifferentQuery`, `sameOriginDifferentPath`
+and `samePathDifferentOrigin` are *diagnostic similarities only*, never
+accepted body identities. `nonHttp` and `noSharedOriginOrPath` remain
+unlinked. Query strings, signed URLs, hostnames and paths are not printed.
+
+Use the same read-only invocation against existing private directories.
+The three ordinal image turns are evidence of DOM rendering, not of
+complete RAW assistant-message capture or pixel fidelity.
+
 ## Security boundaries
 
 The URL must be an HTTPS \`chatgpt.com/share/\` conversation link, not a scheduled-task share. The exporter neither extracts cookies nor bypasses sign-in challenges. Browser profile state remains with web-control. Archive output is private data: do not commit it to public GitHub or share it without review. HTML snapshots and any image URL containing signed query parameters can reveal information, so avoid diagnostic logging of asset URLs.

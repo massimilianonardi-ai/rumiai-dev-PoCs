@@ -102,10 +102,74 @@ function turnOrdinal(html) {
     [...ordinals][0] : null;
 }
 
+
+// Redirect identity is evidence only with the same nonempty CDP request key
+// and exactly one saved image-body hash for that request.
+function redirectBodies(rows) {
+  const key = row => typeof row.session === 'string' && row.session &&
+    typeof row.requestId === 'string' && row.requestId ?
+    JSON.stringify([row.session, row.requestId]) : null;
+  const bodies = new Map();
+  for (const row of rows) {
+    const id = key(row);
+    if (!id || row.status !== 'saved' || mimeClass(row) === 'not-image') continue;
+    if (!bodies.has(id)) bodies.set(id, new Map());
+    bodies.get(id).set(row.sha256, mimeClass(row));
+  }
+  const aliases = new Map(), ambiguous = new Set();
+  for (const row of rows) {
+    if (row.status !== 'redirect-no-body') continue;
+    const id = key(row), url = canonicalImageUrl(row.url || '');
+    if (!id || !url || !bodies.has(id)) continue;
+    const targets = bodies.get(id);
+    if (targets.size !== 1) {ambiguous.add(url);continue;}
+    const [hash, mime] = targets.entries().next().value;
+    if (aliases.has(url) && aliases.get(url).hash !== hash)
+      ambiguous.add(url);
+    else aliases.set(url, {hash, mime});
+  }
+  for (const url of ambiguous) aliases.delete(url);
+  return aliases;
+}
+
+function unmatchedEvidence(urls, archived, redirects) {
+  const summary = {
+    sameRequestRedirect:0, sameOriginPathDifferentQuery:0,
+    sameOriginDifferentPath:0, samePathDifferentOrigin:0,
+    noSharedOriginOrPath:0, nonHttp:0, redirectPngBodies:0
+  };
+  const pngBodies = new Set();
+  for (const value of urls) {
+    if (archived.has(value)) continue;
+    const redirect = redirects.get(value);
+    if (redirect) {
+      summary.sameRequestRedirect++;
+      if (redirect.mime === 'image/png') pngBodies.add(redirect.hash);
+      continue;
+    }
+    const url = new URL(value);
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      summary.nonHttp++;
+      continue;
+    }
+    const possibilities = [...archived.keys()].map(x => new URL(x))
+      .filter(x => ['http:', 'https:'].includes(x.protocol));
+    if (possibilities.some(x => x.origin === url.origin && x.pathname === url.pathname))
+      summary.sameOriginPathDifferentQuery++;
+    else if (possibilities.some(x => x.origin === url.origin))
+      summary.sameOriginDifferentPath++;
+    else if (possibilities.some(x => x.pathname === url.pathname))
+      summary.samePathDifferentOrigin++;
+    else summary.noSharedOriginOrPath++;
+  }
+  summary.redirectPngBodies = pngBodies.size;
+  return summary;
+}
+
 // A match is an exact original-URL match to a SHA-256-verified saved response;
 // it does not prove the DOM used that body, that an assistant authored it,
 // or that a potentially signed/redirected URL remains valid later.
-function correlateSnapshotImages(snapshotEvents, probe, archivedImages) {
+function correlateSnapshotImages(snapshotEvents, probe, archivedImages, redirects) {
   const turns = new Map(), urls = new Set(), matchedBodies = new Set();
   const unmatched = new Set();
   let imageBearingSnapshotEvents = 0;
@@ -149,13 +213,15 @@ function correlateSnapshotImages(snapshotEvents, probe, archivedImages) {
     imageTagOccurrences: turn.imageTags,
     distinctImageReferences: turn.urls.size,
     matchedSavedReferences: turn.matched.size,
-    unmatchedReferences: turn.unmatched.size
+    unmatchedReferences: turn.unmatched.size,
+    unmatchedEvidence: unmatchedEvidence(turn.unmatched, archivedImages, redirects)
   }));
   byTurn.sort((a, b) => (a.ordinal ?? Infinity) - (b.ordinal ?? Infinity));
   return {
     imageBearingSnapshotEvents, imageBearingDistinctTurns: turns.size,
     imageTagOccurrences, distinctImageReferences: urls.size,
     matchedSavedReferences: matches.length, unmatchedReferences: unmatched.size,
+    unmatchedEvidence: unmatchedEvidence(unmatched, archivedImages, redirects),
     missingOrInvalidSrcOccurrences: missingSrcOccurrences,
     distinctMatchedImageBodies: matchedBodies.size,
     distinctMatchedPngBodies: matchedPngBodies.size,
@@ -223,8 +289,9 @@ export function inspectImages(cumulativeDir, resourcesDir, probeDir) {
     if (ref.attribute !== 'src' && ref.attribute !== 'srcset') continue;
     counted(linkKinds, originClass(ref.reference));
   }
-  const identifiedLinkage = correlateSnapshotImages(snapshots, probe, archivedImages);
-  const unidentifiedLinkage = correlateSnapshotImages(unidentified, probe, archivedImages);
+  const redirects = redirectBodies(rows);
+  const identifiedLinkage = correlateSnapshotImages(snapshots, probe, archivedImages, redirects);
+  const unidentifiedLinkage = correlateSnapshotImages(unidentified, probe, archivedImages, redirects);
   const capturedOrdinals = new Set(JSON.parse(fs.readFileSync(
     path.join(cumulative, 'audit.json'), 'utf8')).turns.map(turn => turn.ordinal));
   const imageOrdinalsAbsentFromCumulative = [...new Set(unidentifiedLinkage.turns
@@ -249,7 +316,7 @@ export function inspectImages(cumulativeDir, resourcesDir, probeDir) {
       unidentifiedImgSrcClasses: unidentifiedSourceKinds
     },
     linkage: {
-      method: 'exact-URL-to-verified-saved-image; no redirect inference',
+      method: 'exact URL matches plus separate CDP-request redirect and URL-shape evidence',
       identified: identifiedLinkage,
       unidentified: unidentifiedLinkage,
       imageOrdinalsAbsentFromCumulative,
@@ -268,7 +335,8 @@ export function inspectImages(cumulativeDir, resourcesDir, probeDir) {
       'Missing turn wrappers and image widgets cannot be reconstructed from absent snapshots',
       'Image dimensions do not prove visual fidelity, role or source conversation association',
       'Snapshots represent observed frames only; source content and URLs are not emitted',
-      'Exact source URL matches do not prove RAW assistant-message ownership or displayed image decoding'
+      'Exact and same-request redirect links do not establish RAW assistant-message ownership or displayed decoding',
+      'Matching hosts/paths without an identical URL or proven CDP redirect do not identify saved image bytes'
     ]
   };
 }
