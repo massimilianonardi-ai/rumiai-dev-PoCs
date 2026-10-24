@@ -31,7 +31,7 @@ export function embeddedKatexCss()
     const match=/url\(["']?fonts\/(KaTeX_[A-Za-z0-9_-]+\.woff2)["']?\)/.exec(block);
     const source=/src\s*:[^;]+;/i;
     if(!match || !source.test(block))
-      throw Error('KaTeX font-face lacks a local WOFF2 source');
+      throw Error('KaTeX font-face lacks a local WOFF2 source: '+block.slice(0,300));
     const file=path.join(root,'dist','fonts',match[1]);
     const bytes=fs.readFileSync(file);
     if(bytes.length<100 || bytes.length>400000)
