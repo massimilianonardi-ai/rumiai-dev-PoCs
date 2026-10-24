@@ -567,3 +567,48 @@ fractions, exponents, radicals, delimiters and alignment. Attachment export
 is deliberately not added, as the current user judged it optional and
 potentially misleading in these transcript shares. Historical shared
 browser captures remain private and outside public Git.
+
+
+## KaTeX positioned layout fidelity (2026-10-24)
+
+The operator's physical output showed all 198 visual KaTeX formula roots but
+**incorrect** script sizes and offsets (sub/superscripts), plus a badly
+distorted displayed relationship after the sentence
+"allora OGY o delayed-feedback sono concettualmente più naturali.
+La relazione può essere vista così:". The formula text/markup itself remains
+private; no exact mathematical content is inferred from that description.
+
+Root cause in our **own sanitizer**: it discarded trusted KaTeX numeric
+`font-size` and positioned-layout `position` declarations from the
+already captured visual HTML, although such styles are required to retain
+KaTeX's original layout. The renderer now permits **only tightly constrained**
+position keywords, bounded numeric font sizes/layout measurements and safe
+transform/colour values in KaTeX's *own* visual span/SVG descendants. It
+still removes `fixed` positioning, source URLs, event attributes, arbitrary
+CSS, executable HTML and network resources.
+
+The new `tests/.support/verify-katex-visual-geometry.mjs` compares the
+**original generated KaTeX HTML and its exported sanitized projection in
+a real headless Chromium browser**, using the same installed version-pinned
+KaTeX CSS and WOFF2 fonts. It requires matching node counts, computed
+positioning/font sizes and subpixel-aware bounding boxes across real
+sub/superscripts, fractions, matrices, radicals and multi-line relations.
+The fixture is a regression test of a *complete executable browser layout
+path*, but is not a visual certification of the user's 198 private formulas.
+
+To inspect the actual physical sample **without another browser capture**,
+after `git pull --ff-only` and `npm ci --no-audit --no-fund` in PoC 068:
+
+```sh
+node render-same-session-offline.mjs \
+  /home/admino/chatgpt-batch-vGRePjHh/1-capture \
+  /home/admino/chatgpt-batch-vGRePjHh/1-reading-katex-layout
+xdg-open /home/admino/chatgpt-batch-vGRePjHh/1-reading-katex-layout/index.html
+```
+
+The original private capture, `1-reading-katex`, and visually accepted
+`3-reading-rich` remain untouched. Verify especially the complete
+displayed relationship after the OGY/delayed-feedback sentence. The new
+output should preserve proper subscript sizes/offsets; record any remaining
+failing formula by ordinal/context without publicly sharing raw formulas,
+signed asset URLs or captures.

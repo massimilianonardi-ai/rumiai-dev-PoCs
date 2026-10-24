@@ -90,7 +90,7 @@ const visualDoc=parseHTML('<div class="katex-display"><span class="katex">'+
   '<span class="vlist-t"><span class="vlist-r">'+
   '<span class="vlist" style="height:1.5em;position:absolute;top:-1.7em;'+
   'background-image:url(https://evil.invalid/track)">'+
-  '<span class="mord mathnormal" style="top:-2.2em;left:0.2em">'+
+  '<span class="mord mathnormal" style="top:-2.2em;left:0.2em;font-size:0.7em">'+
   'a</span></span></span></span></span></span>'+
   '<span class="sqrt"><svg width="100%" height="0.8em" '+
   'viewBox="0 0 100 100" onload="alert(1)"><path d="M0 5 L95 90" '+
@@ -104,10 +104,24 @@ assert.equal(visualStats.mathUnavailable,0);
 assert(visualHtml.includes('class="katex-display"'));
 assert(visualHtml.includes('class="katex-html"'));
 assert(visualHtml.includes('class="vlist-t"'));
-assert(visualHtml.includes('style="top:-2.2em;left:0.2em"'));
+assert(visualHtml.includes('style="top:-2.2em;left:0.2em;font-size:0.7em"'));
+assert(visualHtml.includes('position:absolute'),
+  'A safe KaTeX absolute-positioned child must retain its layout');
 assert(visualHtml.includes('<svg '));
 assert(visualHtml.includes('<path '));
-for(const forbidden of ['position:absolute','background-image','evil.invalid',
+const maliciousVisual=parseHTML('<span class="katex"><span class="katex-html">'+
+  '<span class="vlist" style="position:fixed;font-size:10000em;'+
+  'background-image:url(https://evil.test/tracker);z-index:9999">'+
+  'safe</span></span></span>').document.querySelector('.katex');
+const maliciousStats=createSemanticStats();
+const maliciousHtml=renderSemanticTree(maliciousVisual,()=>null,maliciousStats);
+assert(!maliciousHtml.includes('position:fixed'));
+assert(!maliciousHtml.includes('font-size:10000em'));
+assert(!maliciousHtml.includes('background-image'));
+assert(!maliciousHtml.includes('z-index'));
+assert.equal(maliciousStats.mathVisualPreserved,1);
+
+for(const forbidden of ['background-image','evil.invalid',
   '<script','foreignObject','onload','onclick','alert('])
   assert(!visualHtml.includes(forbidden),'HTML-only KaTeX leaked '+forbidden);
 

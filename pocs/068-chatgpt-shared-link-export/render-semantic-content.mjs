@@ -91,30 +91,68 @@ const visualTags=new Set(['span','svg','path','g','rect','line','br']);
 const svgGeometry=new Set(['d','viewBox','preserveAspectRatio','width','height',
   'x','y','x1','x2','y1','y2','rx','ry','fill','stroke','stroke-width',
   'stroke-linecap','stroke-linejoin']);
-const cssProperties=new Set(['height','width','min-width','max-width',
+// KaTeX uses inline layout offsets and scaled font sizes in addition to its
+// stylesheet. Removing position/font-size destroys superscripts, subscripts
+// and matrix alignment even when the HTML tree is intact.
+const katexLengthProperties=new Set([
+  'height','width','min-height','min-width','max-height','max-width',
   'top','left','right','bottom','margin-left','margin-right','margin-top',
-  'margin-bottom','padding-left','padding-right','vertical-align',
-  'border-bottom-width','border-right-width','border-left-width',
-  'border-top-width','border-bottom-style','border-right-style',
-  'border-left-style','border-top-style','background-color','color',
-  'opacity','transform']);
+  'margin-bottom','padding-left','padding-right','padding-top','padding-bottom',
+  'vertical-align','font-size','border-bottom-width','border-right-width',
+  'border-left-width','border-top-width'
+]);
+const katexKeywordProperties=new Map([
+  ['position',new Set(['absolute','relative','static'])],
+  ['text-align',new Set(['left','right','center'])],
+  ['border-bottom-style',new Set(['solid','dashed','none'])],
+  ['border-right-style',new Set(['solid','dashed','none'])],
+  ['border-left-style',new Set(['solid','dashed','none'])],
+  ['border-top-style',new Set(['solid','dashed','none'])]
+]);
+function safeKatexCssValue(key,value)
+{
+  if(!value || value.length>160 ||
+      /url\s*\(|expression\s*\(|var\s*\(|@|[<>{};"'\\]/i.test(value) ||
+      value.includes(String.fromCharCode(96)))
+    return false;
+  if(katexKeywordProperties.has(key))
+    return katexKeywordProperties.get(key).has(value.toLowerCase());
+  if(katexLengthProperties.has(key))
+  {
+    const match=/^(-?(?:\d+(?:\.\d+)?|\.\d+))(em|ex|rem|px|%)?$/.exec(value);
+    if(!match) return false;
+    const number=Number(match[1]);
+    return Number.isFinite(number) && Math.abs(number)<=3000;
+  }
+  if(key==='opacity')
+  {
+    const number=Number(value);
+    return /^(?:0(?:\.\d+)?|1(?:\.0+)?)$/.test(value) &&
+      Number.isFinite(number);
+  }
+  if(key==='color' || key==='background-color')
+    return /^(?:#[a-fA-F0-9]{3,8}|[a-zA-Z]{1,24}|rgba?\(\s*[\d.,%\s]+\))$/.test(value);
+  if(key==='transform')
+    return /^(?:(?:translate[XY]|scale[XY])\(\s*-?[\d.]+(?:em|ex|rem|px|%)?\s*\)\s*){1,3}$/.test(value);
+  return false;
+}
 function safeKatexStyle(source)
 {
-  if(!source || source.length>1600) return '';
-  const pieces=[];
-  for (const field of source.split(';'))
+  if(!source || source.length>2400) return '';
+  const declarations=[];
+  for(const field of source.split(';'))
   {
     const i=field.indexOf(':');
     if(i<=0) continue;
     const key=field.slice(0,i).trim().toLowerCase();
     const value=field.slice(i+1).trim();
-    if(!cssProperties.has(key) || !value || value.length>150 ||
-        /url\s*\(|expression\s*\(|var\s*\(|@|[<>{};\\]/i.test(value) ||
-        !/^[a-zA-Z0-9()\s,.%+#*\/-]+$/.test(value)) continue;
-    pieces.push(key+':'+value);
+    if(safeKatexCssValue(key,value))
+      declarations.push(key+':'+value);
   }
-  return pieces.length ? ' style="'+escapeHtml(pieces.join(';'))+'"' : '';
+  return declarations.length ?
+    ' style="'+escapeHtml(declarations.join(';'))+'"' : '';
 }
+
 function visualKatex(node)
 {
   if(node.nodeType===3) return escapeHtml(node.nodeValue||'');
@@ -132,6 +170,9 @@ function visualKatex(node)
   }
   else
   {
+    // Some complex delimiters and extensible symbols carry layout geometry
+    // on their SVG container, not on a surrounding span.
+    attributes+=safeKatexStyle(node.getAttribute('style'));
     for(const key of svgGeometry)
     {
       const value=node.getAttribute(key);

@@ -455,3 +455,25 @@ Tests cover visual geometry survival and dangerous attribute removal,
 and a complete offline export embeds KaTeX fonts. Physical vmdev inspection
 of the *actual 198 formulas* is still required and is not claimed by a
 fixture PASS. Older reading views and all captures remain untouched.
+
+## Physical KaTeX replay failure: positioning and font size (2026-10-24)
+
+The operator physically tested `rumiai-dev-PoCs@2f0c18cd9c35704b20196d8831e1d5166f97d8ce`
+against the pre-existing private share-1 capture: `visualKatexFormulas=198`,
+`unavailableMathFormulas=0`, all 16 turns counted, links preserved.
+**Visually rejected**, despite a complete structural/math count:
+superscripts/subscripts misplaced; subscripts are normal-sized and
+baseline-aligned; complex formula following "allora OGY o delayed-feedback
+sono concettualmente più naturali. La relazione può essere vista così:"
+is wholly incorrect. Operator console GTK/Glean warnings are incidental
+and did not prevent opening the output.
+
+Actual root cause detected in `safeKatexStyle()`: KaTeX inline styles
+`font-size` and `position` were **not allowlisted**, breaking even
+semantically present visual HTML. Add strict per-property safe CSS
+validation rather than general CSS passthrough, preserve necessary
+span/SVG geometry, and use a real Chromium *computed layout comparison*
+of original generated KaTeX HTML against the exported projection (four
+synthetic representative formula families). Visual assessment of the
+named real formula remains necessary; no physical sample data uploaded.
+Attachments remain explicitly secondary.

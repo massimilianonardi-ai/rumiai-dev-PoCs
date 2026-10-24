@@ -20,6 +20,7 @@ on:
       - 'pocs/068-chatgpt-shared-link-export/inspect-math-capture.mjs'
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/inspect-math-capture.mjs'
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/render-semantic-content.mjs'
+      - 'pocs/068-chatgpt-shared-link-export/tests/.support/verify-katex-visual-geometry.mjs'
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/render-same-session-offline.mjs'
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/render-readable-image-preview.mjs'
       - 'pocs/068-chatgpt-shared-link-export/inspect-image-capture.mjs'
@@ -82,4 +83,6 @@ jobs:
           exec "$browser" "\$@"
           EOF
           chmod +x "$RUNNER_TEMP/poc068-bin/chromium"
+          PATH="$RUNNER_TEMP/poc068-bin:$PATH" node --check tests/.support/verify-katex-visual-geometry.mjs
+          PATH="$RUNNER_TEMP/poc068-bin:$PATH" node tests/.support/verify-katex-visual-geometry.mjs
           PATH="$RUNNER_TEMP/poc068-bin:$PATH" node tests/.support/render-probe.mjs
