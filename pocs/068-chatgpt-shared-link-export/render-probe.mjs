@@ -509,9 +509,16 @@ async function run(args) {
   process.once('SIGTERM', signal);
   try {
     const portFile = path.join(profile,'DevToolsActivePort');
-    const startupLimit = performance.now() + 20000;
-    while (!fs.existsSync(portFile) && performance.now() < startupLimit) await pause(75);
-    if (!fs.existsSync(portFile)) throw Error('Chromium did not publish its CDP port');
+    const startupLimit = performance.now() + 45000;
+    while (!fs.existsSync(portFile) && performance.now() < startupLimit &&
+        browser.exitCode === null && browser.signalCode === null)
+      await pause(75);
+    if (!fs.existsSync(portFile)) {
+      const state = browser.exitCode !== null ? 'exit-code-' + browser.exitCode :
+        browser.signalCode ? 'signal-' + browser.signalCode : 'startup-timeout';
+      log.record({kind:'browser.startup-failed',state});
+      throw Error('Chromium did not publish its CDP port (' + state + ')');
+    }
     const [port, endpoint] = fs.readFileSync(portFile,'utf8').trim().split(/\r?\n/);
     cdp = new Cdp('ws://127.0.0.1:' + port + endpoint, log.record,
       flags.includes('--compare-image-urls') || flags.includes('--capture-image-bodies'),
