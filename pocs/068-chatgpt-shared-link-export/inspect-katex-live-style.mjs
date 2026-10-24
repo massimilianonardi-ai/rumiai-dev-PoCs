@@ -26,15 +26,13 @@ export function browserKatexMetrics()
   const offline=[...document.querySelectorAll('article.turn')]
     .map(node=>({node,ordinal:Number(node.querySelector('h2')?.textContent?.match(/\d+/)?.[0])}));
   const turns=offline.length?offline:source;
+  // Native CDP probes may revisit the same mounted turn dozens of times.
+  // Measuring thousands of descendants' computed CSS on every scroll step
+  // can stall Chromium for minutes. Each document has its own cache; repeat
+  // only if more formulas mount or a previously loading font settles.
+  const previous=globalThis.__rumiaiMathObserved || new Map();
+  globalThis.__rumiaiMathObserved=previous;
   const observed=[];
-  for (const {node,ordinal} of turns)
-  {
-    if(!Number.isSafeInteger(ordinal)||ordinal<1||ordinal>10000)continue;
-    const roots=[...node.querySelectorAll('.katex')]
-      .filter(el=>el.classList.contains('katex') && !el.parentElement?.closest('.katex'));
-    if(!roots.length)continue;
-    observed.push({ordinal,math:roots.map(takeFormula)});
-  }
   let loaded=0,loading=0,faceCount=0;
   if(document.fonts)
     for(const face of document.fonts)
@@ -44,6 +42,19 @@ export function browserKatexMetrics()
       if(face.status==='loaded')loaded++;
       if(face.status==='loading')loading++;
     }
+  const fontsReady=document.fonts?.status==='loaded' && loading===0;
+  for (const {node,ordinal} of turns)
+  {
+    if(!Number.isSafeInteger(ordinal)||ordinal<1||ordinal>10000)continue;
+    const roots=[...node.querySelectorAll('.katex')]
+      .filter(el=>el.classList.contains('katex') && !el.parentElement?.closest('.katex'));
+    if(!roots.length)continue;
+    const old=previous.get(ordinal);
+    if(old && old.formulas>=roots.length &&
+        old.loaded>=loaded && old.fontsReady && fontsReady)continue;
+    observed.push({ordinal,math:roots.map(takeFormula)});
+    previous.set(ordinal,{formulas:roots.length,loaded,fontsReady});
+  }
   return {turns:observed,fontFaces:{known:faceCount,loaded,loading}};
 }
 export function browserKatexExpression()

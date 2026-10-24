@@ -543,3 +543,26 @@ approval, pinned production Markdown and older output remain intact;
 the private new Chromium profile and snapshots must never be committed.
 This still requires operator-side physical execution: fixtures are not
 evidence that live site CSS has been measured yet.
+
+## Opt-in live KaTeX probe appeared stuck and was interrupted (2026-10-24)
+
+User invoked the opt-in live-source style comparison on the public share
+with a fresh private `/home/admino/chatgpt-katex-live-TO4EZ08S`,
+`--sweep --headless --compare-live-katex` and prior private
+`1-reading-katex-layout/index.html`. Their terminal displayed only
+`DOM rendering observation active: ...` and eventually `^C CDP
+connection closed`, with no comparison JSON. **No physical live-CSS
+measurement was completed**; the duration or precise phase of interruption
+was not recorded. Code inspection shows the original implementation
+recomputed all mounted computed-style metrics every third sweep step, even
+for unchanged formulas, and emitted no phase/status updates. This is a
+plausible performance and observability defect, not proof of a precise
+stall mechanism.
+
+Correct the repeated-work pathology using page-local cached, font-settled
+per-turn samples; add explicit bounded CLI phase/step progress and
+SIGINT status 130 cleanup only in opt-in diagnostic mode, preserving the
+normal capture exporter and private-data contract. Test via real
+Chromium fixture with a matched source/export math root, progress assertion
+and an actual SIGINT while running. Do not infer any math CSS root cause
+from the user's aborted run. Physical source CSS comparison still pending.

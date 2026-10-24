@@ -138,6 +138,9 @@ try {
     assert.equal(bytes.length,event.bytes);
     assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),event.sha256);
   }
+  assert(stderr.includes('[KaTeX] struttura pronta; avvio scorrimento'),
+    'Long-running live math probe did not report observable phases');
+  assert(!stderr.includes('CDP connection closed'),'Unexpected transport failure');
   assert(stdout.includes('"status": "real-live-vs-offline-katex-computed-css"'),
     'Live-vs-offline Chromium math comparison missing from the real-browser path');
   assert(/"pairedRoots":\s*[1-9]\d*/.test(stdout),
@@ -159,6 +162,38 @@ try {
   assert(offlineHtml.includes('data:font/woff2;base64,'));
   assert(offlineHtml.includes("script-src &#39;none&#39;") ||
     offlineHtml.includes("script-src 'none'"));
+  // Interrupt the diagnostic deliberately while its CDP session is alive:
+  // SIGINT must end with status 130 and a proper summary, not a transport
+  // stack trace or a indefinitely stuck headless Chromium process.
+  const stopDir=path.join(root,'interrupted');
+  const interruptedChild=spawn(process.execPath,[script,
+    'http://127.0.0.1:'+server.address().port+'/',stopDir,
+    '--sweep','--headless','--compare-live-katex',
+    path.join(reading,'index.html')],{stdio:['ignore','pipe','pipe']});
+  let interruptStdout='',interruptStderr='',issued=false;
+  interruptedChild.stdout.on('data',chunk=>{
+    interruptStdout+=String(chunk);
+    if(!issued && interruptStdout.includes('DOM rendering observation active:')) {
+      issued=true;
+      interruptedChild.kill('SIGINT');
+    }
+  });
+  interruptedChild.stderr.on('data',chunk=>{interruptStderr+=String(chunk);});
+  const interruptExit=await new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>{
+      interruptedChild.kill('SIGKILL');
+      reject(Error('Interrupt-path cleanup exceeded bounded test window'));
+    },40000);
+    interruptedChild.once('error',reject);
+    interruptedChild.once('exit',code=>{clearTimeout(timer);resolve(code);});
+  });
+  assert(issued,'Test never sent SIGINT to an active CDP diagnostic');
+  assert.equal(interruptExit,130,interruptStderr+' '+interruptStdout);
+  assert(fs.existsSync(path.join(stopDir,'summary.json')),
+    'Interrupt did not finish private capture summary');
+  assert(!interruptStderr.includes('CDP connection closed'),
+    'SIGINT leaked CDP transport exception instead of clean exit');
+
   console.log('PASS real Chrome: image response body, CDP request linkage, offline image rendering and turn snapshots');
 } finally {
   server.close();

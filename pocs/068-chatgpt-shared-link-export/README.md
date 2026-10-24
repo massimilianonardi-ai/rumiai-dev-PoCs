@@ -727,3 +727,42 @@ stylesheet/font loading rules or inherited CSS. If computed properties
 match but the physical display still differs, inspect loaded font-face
 resources and original page context. No new offline view is produced,
 and none of the already accepted private outputs is changed.
+
+
+## Live KaTeX comparison observability and bounded sampling (2026-10-24)
+
+The first operator's live-CSS probe on vmdev at `24adeb0e` displayed only
+`DOM rendering observation active`, with no subsequent progress or result
+before Ctrl+C; the resulting `CDP connection closed` message was a
+transport symptom of interrupted execution, **not a completed diagnostic**.
+Neither successful comparison nor a specific hang cause was established.
+
+Investigation found the opt-in probe repeatedly computed layout for *all*
+currently visible KaTeX descendants at every third scroll step, without
+caching, and silently waited for navigation/scroll/comparison. One share
+has 198 formulas/5,117 DOM descendants, so redundant costly measurements
+are a plausible source of slow execution. The opt-in live metric probe now
+**caches per-turn font-settled results inside each document**, computing a
+turn again only when additional formulas mount or previously loading fonts
+finish. The shared normal sweep still scrolls in both directions, sampling
+on steps with a cheap cache lookup.
+
+The CLI now prints numbered-phase-agnostic `[KaTeX]` diagnostics to stderr:
+browser start, waiting for the expected DOM, scrolling direction and
+periodic step counts, observed math-turn and sample/error counts, opening
+the existing offline HTML and comparison completion; a heartbeat reports
+the current phase every 10 seconds. This output includes **no formula,
+URL, message or signed data**. A bounded 6-minute scroll deadline
+classifies incomplete runs as such. In this opt-in mode a SIGINT requests
+cancellation and closes the CDP socket, then finishes private recording
+gracefully with exit status 130 rather than printing an unhandled
+`CDP connection closed` error. Existing captured formula markup, original
+source and offline views are unchanged.
+
+Reuse the same command as in the preceding live-CSS section, but allocate
+a **new** private `$HOME/chatgpt-katex-live-XXXXXXXX` capture directory.
+Do **not** reuse the interrupted directory or publish its browser profile.
+Only a report with nonzero `comparison.pairedRoots` provides meaningful
+live-vs-offline evidence; zero or an interrupted run is not success.
+No physical operator validation has yet been obtained for the new
+instrumented behavior.

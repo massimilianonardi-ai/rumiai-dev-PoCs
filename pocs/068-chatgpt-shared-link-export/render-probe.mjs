@@ -407,11 +407,17 @@ function recording(directory) {
   return {record, finish, storeImage};
 }
 
-async function sweep(cdp, sid, record, onSample = null) {
+async function sweep(cdp, sid, record, onSample = null, onProgress = null,
+    shouldStop = () => false) {
   // Only actual scrollTop changes can cause native intersection recalculation.
   let ready = false;
   const limit = performance.now() + 120000;
-  while (!cdp.closed && performance.now() < limit) {
+  let lastReadyUpdate=0;
+  while (!cdp.closed && !shouldStop() && performance.now() < limit) {
+    if(onProgress && performance.now()-lastReadyUpdate>10000) {
+      lastReadyUpdate=performance.now();
+      onProgress('attesa struttura conversazione');
+    }
     try {
       const r = await cdp.send('Runtime.evaluate', {expression:
         "!!(document.querySelector('[data-scroll-root]') && " +
@@ -420,6 +426,7 @@ async function sweep(cdp, sid, record, onSample = null) {
     } catch {}
     await pause(500);
   }
+  if(shouldStop())return {ready:false,interrupted:true};
   if (!ready) {
     let shape={};
     try {
@@ -434,10 +441,18 @@ async function sweep(cdp, sid, record, onSample = null) {
     return {ready:false,pageShape:shape};
   }
   record({kind: 'sweep.started'});
+  if(onProgress)onProgress('struttura pronta; avvio scorrimento');
   if (onSample) await onSample();
+  if(shouldStop())return {ready:false,interrupted:true};
+  const deadline=performance.now()+360000;
   for (const direction of [1, -1]) {
     let stable = 0;
-    for (let step = 0; step < 2000 && !cdp.closed; step++) {
+    if(onProgress)onProgress('scorrimento '+(direction===1?'avanti':'indietro'));
+    for (let step = 0; step < 2000 && !cdp.closed &&
+        !shouldStop() && performance.now()<deadline; step++) {
+      if(onProgress && step>0 && step%15===0)
+        onProgress('scorrimento '+(direction===1?'avanti':'indietro')+
+          ': '+step+' passi');
       let value;
       try {
         const expr = "(() => {const e=document.querySelector('[data-scroll-root]');" +
@@ -451,12 +466,18 @@ async function sweep(cdp, sid, record, onSample = null) {
       if (value.missing) break;
       stable = value.before === value.after ? stable + 1 : 0;
       await pause(350);
-      if (onSample && step % 3 === 0) await onSample();
+      if (onSample) await onSample();
       if (stable >= 5) break;
     }
   }
+  if(shouldStop())return {ready:false,interrupted:true};
+  if(cdp.closed || performance.now()>=deadline) {
+    record({kind:'sweep.timeout',reason:'browser-disconnected-or-deadline'});
+    return {ready:false,timedOut:true};
+  }
   await pause(1200);
   if (onSample) await onSample();
+  if(shouldStop())return {ready:false,interrupted:true};
   record({kind: 'sweep.finished'});
   return {ready:true};
 }
@@ -487,6 +508,20 @@ async function run(args) {
       path.resolve(offlineDir).startsWith(output + path.sep)))
     throw Error('Offline output must be a new directory outside the capture');
   const log = recording(output);
+  let phase='avvio Chromium',heartbeat=null,interrupted=false;
+  const progress=message=>{
+    if (!mathFile)return;
+    phase=message;
+    process.stderr.write('[KaTeX] '+message+'\n');
+  };
+  if(mathFile) {
+    progress('avvio Chromium');
+    heartbeat=setInterval(()=>{
+      if(!interrupted && !closing)
+        process.stderr.write('[KaTeX] ancora in corso: '+phase+'\n');
+    },10000);
+    heartbeat.unref();
+  }
   const profile = path.join(output, 'profile');
   fs.mkdirSync(profile, {mode: 0o700});
   const browser = spawn('chromium', ['--user-data-dir=' + profile,
@@ -513,7 +548,14 @@ async function run(args) {
     })();
     return closing;
   }
-  const signal = () => {void stop('signal');};
+  const signal = () => {
+    interrupted=true;
+    if(mathFile) {
+      progress('interruzione richiesta; chiusura sessione');
+      if(cdp?.ws?.readyState===WebSocket.OPEN)cdp.ws.close();
+    }
+    else void stop('signal');
+  };
   process.once('SIGINT', signal);
   process.once('SIGTERM', signal);
   try {
@@ -550,9 +592,12 @@ async function run(args) {
     process.stdout.write('DOM rendering observation active: ' + output + '\n');
     if (flags.includes('--sweep')) {
       let sourceMath = new Map(),sourceFaces={known:0,loaded:0,loading:0};
+      let sampleCalls=0,sampleFailures=0;
       let mathActions = null;
       if (mathFile) mathActions=await import('./inspect-katex-live-style.mjs');
       const sampleMath = mathFile ? async () => {
+        if(interrupted)return;
+        sampleCalls++;
         try {
           const r=await cdp.send('Runtime.evaluate',{
             expression:mathActions.browserKatexExpression(),
@@ -573,9 +618,18 @@ async function run(args) {
           if(data.fontFaces?.loaded>=sourceFaces.loaded)
             sourceFaces=data.fontFaces;
         }
-        catch {log.record({kind:'katex.source-sample-unavailable'});}
+        catch {
+          sampleFailures++;
+          if(!interrupted) log.record({kind:'katex.source-sample-unavailable'});
+        }
       } : null;
-      const observation=await sweep(cdp,sid,log.record,sampleMath);
+      const observation=await sweep(cdp,sid,log.record,sampleMath,
+        mathFile ? progress : null,()=>interrupted);
+      if(observation.interrupted || interrupted) {
+        progress('interrotto; le misure non sono state completate');
+        process.stdout.write(JSON.stringify(await stop('signal'))+'\n');
+        return 130;
+      }
       if (!observation.ready) {
         process.stdout.write(JSON.stringify(await stop('sweep-not-ready'))+'\n');
         process.stderr.write('Page not ready for turn extraction: missing expected DOM hooks; '+
@@ -587,6 +641,13 @@ async function run(args) {
         process.stdout.write(JSON.stringify(renderSameSessionOffline(output,offlineDir),null,2)+'\n');
       }
       if (mathFile) {
+        progress('sorgente rilevata: '+sourceMath.size+
+          ' turni con formule; campionamenti '+sampleCalls+
+          ', errori '+sampleFailures);
+        if(!sourceMath.size) {
+          process.stderr.write('[KaTeX] nessuna formula osservata nella sorgente\n');
+        }
+        progress('apertura HTML offline e confronto font/layout');
         const target=path.resolve(mathFile);
         if (!fs.existsSync(target)||!fs.statSync(target).isFile())
           throw Error('KaTeX reference offline HTML not found');
@@ -594,7 +655,7 @@ async function run(args) {
           {url:pathToFileURL(target).href},sid,30000);
         if (nav.errorText) throw Error('Cannot open local KaTeX reference HTML');
         let metrics=null;
-        for(let i=0;i<40;i++) {
+        for(let i=0;i<40 && !interrupted;i++) {
           await pause(300);
           const r=await cdp.send('Runtime.evaluate',{
             expression:mathActions.browserKatexExpression(),returnByValue:true
@@ -605,9 +666,14 @@ async function run(args) {
             if(candidate.fontFaces?.loading===0)break;
           }
         }
+        if(interrupted) {
+          process.stdout.write(JSON.stringify(await stop('signal'))+'\n');
+          return 130;
+        }
         if(!metrics)throw Error('Offline KaTeX reference did not render');
         const verdict=mathActions.compareLiveAndOfflineMath({
           turns:[...sourceMath.values()],fontFaces:sourceFaces},metrics);
+        progress('confronto terminato');
         process.stdout.write(JSON.stringify(verdict,null,2)+'\n');
       }
       process.stdout.write(JSON.stringify(await stop('sweep-finished'))+'\n');
@@ -620,9 +686,16 @@ async function run(args) {
     }
     return 0;
   } catch (error) {
+    if(interrupted){
+      progress('interrotto');
+      await stop('signal');
+      return 130;
+    }
     log.record({kind:'session.error',reason:error.message});
     await stop('failure');
     throw error;
+  } finally {
+    if(heartbeat)clearInterval(heartbeat);
   }
 }
 
