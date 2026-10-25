@@ -29,7 +29,10 @@ export function embeddedKatexCss()
   const resolved=css.replace(/@font-face\s*\{[^}]*\}/g,block=>
   {
     const match=/url\(["']?fonts\/(KaTeX_[A-Za-z0-9_-]+\.woff2)["']?\)/.exec(block);
-    const source=/src\s*:[^;]+/i;
+    // The final src declaration in minified @font-face rules may have no
+    // trailing semicolon. Do not consume its closing brace, or Chromium will
+    // parse the rest of the stylesheet as part of the first font face.
+    const source=/src\s*:[^;}]+/i;
     if(!match || !source.test(block))
       throw Error('KaTeX font-face lacks a local WOFF2 source');
     const file=path.join(root,'dist','fonts',match[1]);
