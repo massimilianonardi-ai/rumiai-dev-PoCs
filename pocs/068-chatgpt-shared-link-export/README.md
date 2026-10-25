@@ -766,3 +766,58 @@ Only a report with nonzero `comparison.pairedRoots` provides meaningful
 live-vs-offline evidence; zero or an interrupted run is not success.
 No physical operator validation has yet been obtained for the new
 instrumented behavior.
+
+
+## Standalone KaTeX CSS font-face parse failure: root cause and correction (2026-10-25)
+
+Real physical vmdev live-versus-offline Chromium comparison had complete
+formula coverage: **198 of 198 roots, 5,117 matched nodes**, but
+`fontFamily`, `fontSize` and `lineHeight` differed in all 5,117;
+`display` differed in 3,241, `position` in 1,257 and geometry differed
+in 5,101 (maximum reported displacement 887.25 CSS px). The live page
+registered 20 KaTeX font faces, whereas the offline archive registered
+**zero**. The problem was not a lost formula subtree.
+
+A new real-Chromium regression,
+`tests/.support/verify-standalone-katex-css.mjs`, opens the **exact
+standalone HTML produced by `renderSameSessionOffline` under its
+unaltered CSP** and asserts that `@font-face` rules are parsed, KaTeX
+fonts register/load in `document.fonts`, and computed `.katex`
+styles use KaTeX fonts. This test failed on the original revision with
+`styleSheets=1, ruleCount=23, katexRuleCount=0, fontRuleCount=1,
+fontFaces=0, loadedFonts=0, rootFontFamily="system-ui, sans-serif"`.
+
+**Confirmed implementation defect:** `embed-katex-css.mjs` used
+`/src\\s*:[^;]+/i` to replace minified final `@font-face` source
+declarations. Because the final `src` may have **no trailing
+semicolon**, the regex consumed the closing `}` and merged the
+remaining CSS into the first `@font-face` rule. The replacement is now
+bounded by either `;` or `}` using `/src\\s*:[^;}]+/i`.
+The exact revised standalone HTML passes the real Chromium CSS
+registration, WOFF2 loading and computed root-font test (GitHub Actions
+[40217034013](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/40217034013)
+**PASS**); all other PoC tests including real CDP image capture passed.
+
+The operator's real 198-formula archive still needs **physical
+visual acceptance** after regeneration; regression PASS proves the
+browser interprets the corrected embedded CSS/font assets, not that
+every private equation exactly matches the live ChatGPT layout.
+
+Rebuild **without revisiting ChatGPT or overwriting prior work**:
+
+```sh
+git pull --ff-only
+node render-same-session-offline.mjs \
+  /home/admino/chatgpt-batch-vGRePjHh/1-capture \
+  /home/admino/chatgpt-batch-vGRePjHh/1-reading-katex-css-fixed
+xdg-open /home/admino/chatgpt-batch-vGRePjHh/1-reading-katex-css-fixed/index.html
+```
+
+Check the subscript/superscript size and position and the complex display
+relation following “La relazione può essere vista così:” in turn 2.
+If any residual discrepancy persists, distinguish it from the previously
+dominant invalid-CSS bug. The 27 inline `border-width` losses
+identified by the separate private-DOM diagnostic remain a possible
+minor difference and have **not** been silently changed in this work
+unit. Preserve private captures, accepted share-3 view, pinned Markdown
+baseline and all older offline outputs.

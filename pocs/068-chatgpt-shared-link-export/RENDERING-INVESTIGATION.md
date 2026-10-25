@@ -566,3 +566,36 @@ normal capture exporter and private-data contract. Test via real
 Chromium fixture with a matched source/export math root, progress assertion
 and an actual SIGINT while running. Do not infer any math CSS root cause
 from the user's aborted run. Physical source CSS comparison still pending.
+
+
+## Root cause proven: broken @font-face CSS embedding (2026-10-25)
+
+Operator's latest real live-vs-export comparison conclusively matched
+198 formula roots/5,117 child+root nodes, with **every node** reporting
+computed `fontFamily`, `fontSize`, `lineHeight` differences; most
+also had computed positioning/display changes. Source
+`document.fonts` knew 20 KaTeX faces, offline knew **0**. Therefore
+the earlier same-CSS original-vs-export test could not diagnose
+the missing original stylesheet: it imposed the **broken offline
+stylesheet on both**.
+
+Added an independent real-Chromium test against the precise standalone
+HTML output and its actual CSP. Baseline failed with a single parsed
+font-face and **zero `.katex` CSS rules**, and root font falling back
+to `system-ui` at 16px. Detailed code review isolated the
+`embed-katex-css.mjs` URL source regex `/src\\s*:[^;]+/i`.
+Minified KaTeX `@font-face` `src` often terminates directly with
+`}`, not a semicolon. The greedy match consumed that brace, making
+the remainder of the stylesheet syntactically unparseable. The exact
+minimal fix changes regex to `/src\\s*:[^;}]+/i`, preserving the
+closing brace and the following CSS rules.
+
+After this change, [exact-revision GitHub Actions 40217034013
+PASS](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/40217034013):
+real Chromium registered and loaded KaTeX WOFF2 fonts with the
+original standalone HTML CSP and applied KaTeX computed font. Prior
+tests also passed. These facts explain the user's normal-sized
+subscripts and collapsed complex formula, but **physical validation
+of the 198 user formulas is still pending**. Previous selected snapshot
+and 3-reading-rich accepted archive untouched. The remaining 27
+`border-width` attribute losses were not modified.
