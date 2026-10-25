@@ -599,3 +599,9 @@ subscripts and collapsed complex formula, but **physical validation
 of the 198 user formulas is still pending**. Previous selected snapshot
 and 3-reading-rich accepted archive untouched. The remaining 27
 `border-width` attribute losses were not modified.
+
+## Physical mathematical rendering acceptance — 2026-10-25
+
+The operator ran the corrected PoC at `rumiai-dev-PoCs@58d31e1ffc2d4dbdd8bc0b7b96ccd2cffd3cc25d` on vmdev with the **existing** private `/home/admino/chatgpt-batch-vGRePjHh/1-capture` and created `1-reading-katex-css-fixed/index.html` (without new ChatGPT navigation or overwriting earlier views). Sanitized audit: 16 turns, **198 visual KaTeX formulas**, 0 unavailable formulas, 68 links, `same-session-offline` status. The operator explicitly **accepted the visual mathematical rendering**, including superscripts, subscripts, special symbols, and the complex relation following “La relazione può essere vista così:” in turn 2. This is user-observed visual fidelity for the captured share-1 mathematics, **not pixel-level equality, RAW conversation completeness or acceptance of all assets and conversations**. Earlier paragraphs that described this exact physical check as pending are historical checkpoints, now superseded by this confirmed result.
+
+No new renderer modification is required for this result. The 27 known `border-width` omissions, share-2 loading failure, missing/optional attachments and other artifact provenance remain separate; the user-accepted share-3 view, earlier private captures and reading files remain untouched.
