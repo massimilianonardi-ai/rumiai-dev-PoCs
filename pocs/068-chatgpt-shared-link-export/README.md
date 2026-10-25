@@ -788,11 +788,11 @@ styles use KaTeX fonts. This test failed on the original revision with
 fontFaces=0, loadedFonts=0, rootFontFamily="system-ui, sans-serif"`.
 
 **Confirmed implementation defect:** `embed-katex-css.mjs` used
-`/src\\s*:[^;]+/i` to replace minified final `@font-face` source
+`/src\s*:[^;]+/i` to replace minified final `@font-face` source
 declarations. Because the final `src` may have **no trailing
 semicolon**, the regex consumed the closing `}` and merged the
 remaining CSS into the first `@font-face` rule. The replacement is now
-bounded by either `;` or `}` using `/src\\s*:[^;}]+/i`.
+bounded by either `;` or `}` using `/src\s*:[^;}]+/i`.
 The exact revised standalone HTML passes the real Chromium CSS
 registration, WOFF2 loading and computed root-font test (GitHub Actions
 [40217034013](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/40217034013)

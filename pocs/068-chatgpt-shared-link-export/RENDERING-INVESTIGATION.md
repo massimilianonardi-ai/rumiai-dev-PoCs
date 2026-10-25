@@ -583,11 +583,11 @@ Added an independent real-Chromium test against the precise standalone
 HTML output and its actual CSP. Baseline failed with a single parsed
 font-face and **zero `.katex` CSS rules**, and root font falling back
 to `system-ui` at 16px. Detailed code review isolated the
-`embed-katex-css.mjs` URL source regex `/src\\s*:[^;]+/i`.
+`embed-katex-css.mjs` URL source regex `/src\s*:[^;]+/i`.
 Minified KaTeX `@font-face` `src` often terminates directly with
 `}`, not a semicolon. The greedy match consumed that brace, making
 the remainder of the stylesheet syntactically unparseable. The exact
-minimal fix changes regex to `/src\\s*:[^;}]+/i`, preserving the
+minimal fix changes regex to `/src\s*:[^;}]+/i`, preserving the
 closing brace and the following CSS rules.
 
 After this change, [exact-revision GitHub Actions 40217034013
