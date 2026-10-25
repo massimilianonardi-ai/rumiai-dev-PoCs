@@ -147,7 +147,7 @@ try {
     'Live-vs-offline comparison did not actually match a source math formula: '+stdout.slice(-8000));
   assert(stdout.includes('"sourceObserved": true'),
     'Real-browser test never observed formula markup on the live source side');
-  const offlineFontEvidence=/"offline":\\s*\\{[^}]*"known":\\s*(\\d+),\\s*"loaded":\\s*(\\d+)/.exec(stdout);
+  const offlineFontEvidence=/"offline":\s*\{[^}]*"known":\s*(\d+),\s*"loaded":\s*(\d+)/.exec(stdout);
   assert(offlineFontEvidence,'Missing browser FontFaceSet evidence in offline reading');
   assert(Number(offlineFontEvidence[1])>=8,
     'Standalone HTML did not register KaTeX fonts in Chromium: '+
