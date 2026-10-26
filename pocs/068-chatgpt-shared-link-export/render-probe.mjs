@@ -484,6 +484,7 @@ async function sweep(cdp, sid, record, onSample = null, onProgress = null,
 
 async function run(args) {
   const [url, outputName, ...rawFlags] = args;
+  const readinessOnly=rawFlags.includes('--readiness-only');
   const mathIndex = rawFlags.indexOf('--compare-live-katex');
   const mathFile = mathIndex < 0 ? null : rawFlags[mathIndex + 1];
   const sansMath = mathIndex < 0 ? rawFlags : rawFlags.filter((_,i) =>
@@ -494,10 +495,12 @@ async function run(args) {
     i !== offlineIndex && i !== offlineIndex + 1);
   if (!url || !outputName ||
       (mathIndex >= 0 && (!mathFile || !flags.includes('--sweep'))) ||
+      (readinessOnly && (flags.some(x=>x!=='--headless' &&
+        x!=='--readiness-only') || mathIndex>=0 || offlineIndex>=0)) ||
       (offlineIndex >= 0 && (offlineIndex !== sansMath.length - 2 || !offlineDir ||
         !flags.includes('--sweep') || !flags.includes('--capture-image-bodies'))) ||
-      flags.some(x => !['--headless','--sweep','--compare-image-urls','--capture-image-bodies'].includes(x))) {
-    process.stderr.write('Usage: node render-probe.mjs <url> <output-dir> [--sweep] [--headless] [--compare-image-urls] [--capture-image-bodies] [--offline-output <new-dir>] [--compare-live-katex <reading-index.html>]\n');
+      flags.some(x => !['--headless','--sweep','--compare-image-urls','--capture-image-bodies','--readiness-only'].includes(x))) {
+    process.stderr.write('Usage: node render-probe.mjs <url> <output-dir> [--sweep] [--headless] [--compare-image-urls] [--capture-image-bodies] [--offline-output <new-dir>] [--compare-live-katex <reading-index.html>] [--readiness-only]\n');
     return 2;
   }
   const parsed = new URL(url);
@@ -585,11 +588,56 @@ async function run(args) {
     if (!sid) throw Error('Target attach timeout');
     while (!cdp.sessions.get(sid)?.ready && performance.now() < attachLimit) await pause(30);
     if (!cdp.sessions.get(sid)?.ready) throw Error('Page instrumentation failed');
-    void cdp.send('Page.navigate', {url: parsed.href}, sid, 120000)
-      .then(result => log.record({kind:'navigation.result',error:result.errorText || null}))
-      .catch(error => log.record({kind:'navigation.command-failed',reason:error.message}));
+    const navigation = cdp.send('Page.navigate', {url: parsed.href}, sid,
+      readinessOnly ? 30000 : 120000)
+      .then(result => {
+        const failed=!!result.errorText;
+        log.record({kind:'navigation.result',error:result.errorText || null});
+        return failed ? 'error' : 'no-error';
+      })
+      .catch(error => {
+        log.record({kind:'navigation.command-failed',reason:error.message});
+        return 'failed';
+      });
     log.record({kind:'session.ready'});
     process.stdout.write('DOM rendering observation active: ' + output + '\n');
+    if (readinessOnly) {
+      const {liveReadinessExpression,summarizeLiveReadiness}=
+        await import('./inspect-live-readiness.mjs');
+      const navigationState=await navigation;
+      const start=performance.now(),deadline=start+30000;
+      const samples=[];
+      let consecutiveReady=0;
+      process.stderr.write('[Readiness] osservazione DOM in corso (max 30 s)\n');
+      while(!interrupted && !cdp.closed && performance.now()<deadline) {
+        try {
+          const row=await cdp.send('Runtime.evaluate',{
+            expression:liveReadinessExpression,returnByValue:true
+          },sid,5000);
+          const value=row.result?.value;
+          if(value && typeof value==='object'){
+            samples.push(value);
+            if(value.hasScrollRoot && value.turnWrappers>0)consecutiveReady++;
+            else consecutiveReady=0;
+            if(consecutiveReady>=2)break;
+          }
+        }catch{
+          log.record({kind:'readiness.dom-evaluation-unavailable'});
+        }
+        await pause(1000);
+      }
+      if(interrupted){
+        await stop('signal');
+        return 130;
+      }
+      const report=summarizeLiveReadiness(samples,navigationState);
+      log.record({kind:'readiness.observed',classification:report.classification,
+        validSamples:report.validSamples,initialShape:report.initialShape,
+        finalShape:report.finalShape});
+      process.stdout.write(JSON.stringify(report,null,2)+'\n');
+      process.stdout.write(JSON.stringify(await stop('readiness-observed'))+'\n');
+      return report.validSamples>0?0:4;
+    }
     if (flags.includes('--sweep')) {
       let sourceMath = new Map(),sourceFaces={known:0,loaded:0,loading:0};
       let sampleCalls=0,sampleFailures=0;

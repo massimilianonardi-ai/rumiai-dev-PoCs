@@ -857,3 +857,47 @@ It also handles old recordings where `sweep.not-ready.pageShape` did
 not yet exist, labelling them **inconclusive** rather than inventing a
 cause. It never modifies the existing private capture or accepted share-1
 and share-3 offline readers. The next step depends on the real findings.
+
+
+## Bounded live DOM readiness check for the nonhydrated second share (2026-10-26)
+
+The original share-2 private capture contains 329 events and a single
+`sweep.not-ready`, but it predates the structured `pageShape`
+diagnostic. Existing-capture inspection reported
+`readiness-failure-without-page-shape`: navigation command reported
+no error, nine image bodies were attempted, and there were zero
+conversation-turn snapshots. This does **not** establish expiry,
+accessibility, full hydration or selector breakage.
+
+A scoped `render-probe.mjs --readiness-only --headless` mode now performs
+one new, bounded Chromium/CDP observation of the page and stops without
+scrolling the whole conversation or exporting HTML. The new report
+`private-safe-live-share-readiness` exposes only normalized DOM
+structural counts and booleans, the limited browser navigation command
+outcome and initial/final page shapes, never conversation text or URLs.
+It distinguishes both expected hooks, missing turn wrappers, missing
+scroll root, both absent and an incomplete DOM evaluation; none of these
+alone proves the reason or validity of a shared link. It observes
+up to 30 seconds, exits earlier after two consecutive valid hook checks,
+and keeps private DOM/profile data only in its newly allocated capture
+directory. An HTTP status may be unavailable; no status is fabricated.
+
+From the PoC folder on vmdev:
+
+```sh
+git pull --ff-only
+umask 077
+READINESS_DIR="$(mktemp -d "$HOME/chatgpt-share2-readiness-XXXXXXXX")"
+node render-probe.mjs \
+  'https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259' \
+  "$READINESS_DIR" --headless --readiness-only
+```
+
+Share **only** the sanitized JSON whose `status` is
+`private-safe-live-share-readiness`. Do not publish or commit the
+private capture folder. The output is diagnostic rather than an
+archive. It does not change the previously accepted 1/3-reading
+exports, share-1 math CSS, original captures, or optional attachments.
+A real Chromium test covers the two core situations: rendered turns
+present and page loaded but expected hooks absent. A result with no
+turn wrappers does **not** justify inventing missing conversation text.

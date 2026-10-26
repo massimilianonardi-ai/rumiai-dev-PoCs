@@ -19,6 +19,9 @@ on:
       - 'pocs/068-chatgpt-shared-link-export/package-lock.json'
       - 'pocs/068-chatgpt-shared-link-export/inspect-math-capture.mjs'
       - 'pocs/068-chatgpt-shared-link-export/inspect-share-readiness.mjs'
+      - 'pocs/068-chatgpt-shared-link-export/inspect-live-readiness.mjs'
+      - 'pocs/068-chatgpt-shared-link-export/tests/.support/inspect-live-readiness.mjs'
+      - 'pocs/068-chatgpt-shared-link-export/tests/.support/inspect-live-readiness-browser.mjs'
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/inspect-share-readiness.mjs'
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/inspect-math-capture.mjs'
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/render-semantic-content.mjs'
@@ -82,6 +85,9 @@ jobs:
           node --check inspect-share-readiness.mjs
           node --check tests/.support/inspect-share-readiness.mjs
           node tests/.support/inspect-share-readiness.mjs
+          node --check inspect-live-readiness.mjs
+          node --check tests/.support/inspect-live-readiness.mjs
+          node tests/.support/inspect-live-readiness.mjs
           node --check inspect-katex-difference.mjs
           node --check tests/.support/inspect-katex-difference.mjs
           node tests/.support/inspect-katex-difference.mjs
@@ -108,4 +114,5 @@ jobs:
           node --check inspect-katex-live-style.mjs
           node --check tests/.support/inspect-katex-live-style.mjs
           node tests/.support/inspect-katex-live-style.mjs
+          PATH="$RUNNER_TEMP/poc068-bin:$PATH" node tests/.support/inspect-live-readiness-browser.mjs
           PATH="$RUNNER_TEMP/poc068-bin:$PATH" node tests/.support/render-probe.mjs

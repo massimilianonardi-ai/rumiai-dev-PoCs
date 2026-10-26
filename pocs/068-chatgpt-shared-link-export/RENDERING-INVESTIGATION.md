@@ -626,3 +626,27 @@ legacy page-shape cases. **Physical cause is pending the operator's
 sanitized audit**; no speculative change to the CDP observer, original
 formula renderer, or accepted private files is authorized by this
 finding alone.
+
+## Existing-capture audit confirms shape missing; scoped fresh readiness probe (2026-10-26)
+
+Operator ran `inspect-share-readiness.mjs` on existing private
+`/home/admino/chatgpt-batch-vGRePjHh/2-capture`.
+Actual JSON: `examinedEvents=329`, `navigation.result=1`,
+`sweep.not-ready=1`, `scroll.actual=6`,
+`network.image-response=9`, `network.image-body=9`,
+`finalNotReadyPageShape=null`, and
+`observedReadiness=readiness-failure-without-page-shape`.
+The command-level navigation observation had no error, but this old
+capture **cannot** discriminate a missing expected scroll root vs
+absent turn containers, and does not show link validity or page text.
+
+Added narrowly scoped opt-in mode to the current CDP observer:
+`--readiness-only --headless`, bounded by 30s, with normalized
+structural selector counts, page ready state, limited navigation
+response status when available and booleans for expected DOM hooks.
+It never performs the usual full scroll or attempts reconstruction.
+New Chrome fixtures assert real DOM readiness/hook presence and a
+loaded-but-hookless page; sanitized output strips private text and
+signed URLs. The resulting physical site observation is the next
+evidence boundary. Preserve approved math and rich output, and do not
+silently change DOM hooks or fabricate unavailable turn content.
