@@ -19,6 +19,9 @@ command -p -- rm -rf -- "$root/.git"
 [ -x "$root/bin/sys/pkg" ] || exit 5
 [ ! -e "$root/bin/sys/jsc" ] || exit 6
 [ ! -e "$root/lib/sys/js/jsc.lib.js" ] || exit 7
+# Direct pkg integration requires the managed package store to exist;
+# normally the public pkg install command creates it first.
+command -p -- mkdir -p -- "$root/pkg"
 "$root/m" osarch update
 
 # Node and jsc are not bootstrap requirements.
