@@ -965,3 +965,49 @@ fabricate missing source links or execute the original React runtime.
 If expanded message content or citation targets were never in the
 captured DOM, another *targeted* live interaction observation may be
 necessary. The accepted diagram needs no new capture.
+
+
+## Opt-in capture of expanded messages and hoverable source evidence (2026-10-26)
+
+The original-CSS preview still does not replay React. A physical vmdev review
+confirmed 12 rendered turns and four passing PoC fixture tests, but grouped
+OpenAI +1 sources and long-user-message “Mostra di più” controls remained
+inert. The private-safe inspector showed expansion controls with
+\`aria-expanded=false\` / \`data-can-expand\` on turns 1, 5, 9 and +N
+reference components on 2, 4, 6. Source URL values were not exposed in that
+report. The cost-table fix has a passing fixture, not yet visual acceptance.
+
+To observe the **original page's own interaction state** without copying
+or executing its scripts offline, run one **new opt-in live capture**:
+
+    umask 077
+    INTERACTIVE_CAPTURE="$(mktemp -d "$HOME/chatgpt-share2-interactive-XXXXXXXX")"
+    node render-probe.mjs \
+      'https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259' \
+      "$INTERACTIVE_CAPTURE" \
+      --headless --sweep --capture-image-bodies --capture-static-bodies \
+      --observe-interactions
+    node inspect-live-share-interactions.mjs "$INTERACTIVE_CAPTURE"
+
+Only \`--observe-interactions\` changes the normal sweep: at each mounted
+page step it clicks visible collapsed message-preview buttons using their
+original React handlers, and issues a bounded synthetic pointer/mouse hover
+to each previously unseen +N source-count control. The normal DOM mutation
+observer then records expanded message snapshots. After source hovers, newly
+appeared HTTPS anchor hrefs (if any) are recorded in the **private**
+\`events.jsonl\`, with the current ordinal/index as weak correlation evidence.
+No source URLs, message texts or IDs appear in sanitized CLI reports.
+This experiment neither navigates to third-party links nor fetches source
+pages explicitly. A hover can fail to activate a provider control; a newly
+appeared anchor is not proven to belong to a specific source until inspected.
+Repeated remounts and the assembler's latest-snapshot selection can still
+select a collapsed snapshot; compare the new capture's evidence before
+claiming full message coverage.
+
+The standalone \`inspect-live-share-interactions.mjs\` command reports only
+attempt counts, successful anchor discoveries, source ordinals and failures.
+It does not validate the exact links or text completeness. The new capture,
+including URLs, browser profile, HTML and resource bodies, is private and
+must not be uploaded or committed. Preserve earlier accepted files and use
+a fresh output path for any later rendering. Do not treat the new capture
+as visual acceptance until the archived text and source popovers are checked.

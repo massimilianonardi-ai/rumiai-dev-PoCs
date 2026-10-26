@@ -541,6 +541,7 @@ async function run(args) {
   const [url, outputName, ...rawFlags] = args;
   const readinessOnly=rawFlags.includes('--readiness-only');
   const captureStatic=rawFlags.includes('--capture-static-bodies');
+  const observeInteractions=rawFlags.includes('--observe-interactions');
   const mathIndex = rawFlags.indexOf('--compare-live-katex');
   const mathFile = mathIndex < 0 ? null : rawFlags[mathIndex + 1];
   const sansMath = mathIndex < 0 ? rawFlags : rawFlags.filter((_,i) =>
@@ -551,12 +552,13 @@ async function run(args) {
     i !== offlineIndex && i !== offlineIndex + 1);
   if (!url || !outputName ||
       (mathIndex >= 0 && (!mathFile || !flags.includes('--sweep'))) ||
+      (observeInteractions && !flags.includes('--sweep')) ||
       (readinessOnly && (flags.some(x=>x!=='--headless' &&
         x!=='--readiness-only') || mathIndex>=0 || offlineIndex>=0)) ||
       (offlineIndex >= 0 && (offlineIndex !== sansMath.length - 2 || !offlineDir ||
         !flags.includes('--sweep') || !flags.includes('--capture-image-bodies'))) ||
-      flags.some(x => !['--headless','--sweep','--compare-image-urls','--capture-image-bodies','--capture-static-bodies','--readiness-only'].includes(x))) {
-    process.stderr.write('Usage: node render-probe.mjs <url> <output-dir> [--sweep] [--headless] [--compare-image-urls] [--capture-image-bodies] [--capture-static-bodies] [--offline-output <new-dir>] [--compare-live-katex <reading-index.html>] [--readiness-only]\n');
+      flags.some(x => !['--headless','--sweep','--compare-image-urls','--capture-image-bodies','--capture-static-bodies','--observe-interactions','--readiness-only'].includes(x))) {
+    process.stderr.write('Usage: node render-probe.mjs <url> <output-dir> [--sweep] [--headless] [--compare-image-urls] [--capture-image-bodies] [--capture-static-bodies] [--observe-interactions] [--offline-output <new-dir>] [--compare-live-katex <reading-index.html>] [--readiness-only]\n');
     return 2;
   }
   const parsed = new URL(url);
@@ -728,7 +730,14 @@ async function run(args) {
           if(!interrupted) log.record({kind:'katex.source-sample-unavailable'});
         }
       } : null;
-      const observation=await sweep(cdp,sid,log.record,sampleMath,
+      const interactionModule=observeInteractions ?
+        await import('./inspect-live-share-interactions.mjs') : null;
+      const sampleLive=(interactionModule || sampleMath) ? async () => {
+        if (interactionModule)
+          await interactionModule.sampleLiveShareInteractions(cdp,sid,log.record);
+        if (sampleMath) await sampleMath();
+      } : null;
+      const observation=await sweep(cdp,sid,log.record,sampleLive,
         mathFile ? progress : null,()=>interrupted);
       if(observation.interrupted || interrupted) {
         progress('interrotto; le misure non sono state completate');
