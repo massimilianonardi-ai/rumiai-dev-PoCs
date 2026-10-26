@@ -901,3 +901,41 @@ exports, share-1 math CSS, original captures, or optional attachments.
 A real Chromium test covers the two core situations: rendered turns
 present and page loaded but expected hooks absent. A result with no
 turn wrappers does **not** justify inventing missing conversation text.
+
+
+## Same-session original CSS offline preview (2026-10-26)
+
+Use the already-acquired private Chromium capture made with
+render-probe.mjs --sweep --capture-image-bodies --capture-static-bodies.
+The new **opt-in experimental** renderer assembles the verified original
+turn DOM and reuses the existing CSS/font/image resource localizer. It
+verifies SHA-256 for every selected archived static body and correlates
+image response bodies by exact CDP session/request identity. Outputs
+are private and immutable; no previous reading view is changed.
+
+On vmdev, after pulling the updated PoC:
+
+    umask 077
+    STYLED_DIR="$(mktemp -d "$HOME/chatgpt-share2-styled-XXXXXXXX")"
+    rmdir "$STYLED_DIR"
+    node render-same-session-styled.mjs \
+      /home/admino/chatgpt-share2-full-2MGSvdpK "$STYLED_DIR"
+    xdg-open "$STYLED_DIR/index.html"
+
+The preview retains original captured DOM classes, SVG, styles and static
+resource bodies. It preserves ordinary HTML link pointer interaction, but
+**does not replay React, page scripts, tooltip state or the expandable
+OpenAI +1 control**. CSP still blocks script execution and external
+network-backed assets. An original CSS snapshot without its original
+document ancestors, themes, stylesheet order and runtime may render
+differently. The stylesheet files were captured as network responses:
+this capture **did not record original stylesheet insertion/cascade order**,
+so loaded CSS order is provisional. Unresolved assets are counted; absence
+of an acquisition error is not proof of complete CSS/font coverage.
+
+The generated HTML and audit files may contain conversation text and
+signed URLs. Keep them outside Git, do not paste them into public reports.
+The accepted semantic views remain the stable reference. Run
+node --test tests/same-session-styled.test.mjs for the local integration
+fixture and visually check the real share's diagram and grouped links
+before accepting this mode.
