@@ -152,15 +152,18 @@ then
   printf '%s\n' 'watch did not run initial package-local lifecycle' >&2
   exit 26
 fi
-printf '%s\n' changed > "$work/watch/source.txt"
+# The first action writes trace.log before the watch supervisor has finished
+# re-snapshotting its baseline. Keep changing the real watched input until
+# the next cycle occurs; a single immediate write is a startup race.
 watch_count=0
 while [ "$watch_count" -lt 30 ]
 do
+  if ! kill -0 "$watch_pid" 2>/dev/null; then break; fi
+  watch_count=$((watch_count+1))
+  printf 'changed-%s\n' "$watch_count" > "$work/watch/source.txt"
+  command -p -- sleep 1
   n=$(command -p -- wc -l < "$work/watch/trace.log")
   [ "$n" -ge 2 ] && break
-  if ! kill -0 "$watch_pid" 2>/dev/null; then break; fi
-  command -p -- sleep 1
-  watch_count=$((watch_count+1))
 done
 kill -TERM "$watch_pid" 2>/dev/null || :
 wait "$watch_pid" 2>/dev/null || :
