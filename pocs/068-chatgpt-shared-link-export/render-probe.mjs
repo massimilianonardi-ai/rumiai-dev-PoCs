@@ -186,9 +186,11 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const sha = data => crypto.createHash('sha256').update(data).digest('hex');
 
 class Cdp {
-  constructor(url, report, captureImageUrls = false, storeImage = null) {
+  constructor(url, report, captureImageUrls = false, storeImage = null, storeStatic = null) {
     this.url = url; this.report = report; this.pending = new Map();
     this.storeImage = storeImage;
+    this.storeStatic = storeStatic;
+    this.staticResponses = new Map();
     this.imageResponses = new Map();
     this.imageBodyJobs = new Set();
     // One CDP session for DOM and network; signed URLs remain private.
@@ -251,23 +253,37 @@ class Cdp {
           requestUrl: url
         });
       }
-    } else if (this.storeImage && method === 'Network.loadingFinished') {
+    } else if ((this.storeImage || this.storeStatic) && method === 'Network.loadingFinished') {
       const key = JSON.stringify([sessionId, params.requestId]);
       const response = this.imageResponses.get(key);
       this.imageResponses.delete(key);
+      const staticResponse = this.staticResponses.get(key);
+      this.staticResponses.delete(key);
+      if (staticResponse) {
+        const job = this.readStaticBody(staticResponse);
+        this.imageBodyJobs.add(job);
+        void job.finally(() => this.imageBodyJobs.delete(job));
+      }
       if (response) {
         const job = this.readImageBody(response);
         this.imageBodyJobs.add(job);
         void job.finally(() => this.imageBodyJobs.delete(job));
       }
-    } else if (this.storeImage && method === 'Network.loadingFailed') {
+    } else if ((this.storeImage || this.storeStatic) && method === 'Network.loadingFailed') {
       const key = JSON.stringify([sessionId, params.requestId]);
       const response = this.imageResponses.get(key);
       this.imageResponses.delete(key);
+      this.staticResponses.delete(key);
       if (response) this.report({kind: 'network.image-body',
         requestId: response.requestId, status: 'loading-failed'}, response.sessionId);
     } else if (this.captureImageUrls && method === 'Network.responseReceived') {
       const mime = String(params.response?.mimeType || '').toLowerCase();
+      if (this.storeStatic && (params.type === 'Stylesheet' || params.type === 'Font')) {
+        this.staticResponses.set(JSON.stringify([sessionId,params.requestId]),{
+          sessionId,requestId:params.requestId,mime,status:params.response?.status,
+          resourceType:params.type,url:params.response?.url
+        });
+      }
       if (mime.startsWith('image/') || params.type === 'Image') {
         const id = JSON.stringify([sessionId, params.requestId]);
         const request = this.networkRequests.get(id);
@@ -288,6 +304,23 @@ class Cdp {
     } else if (method === 'Runtime.bindingCalled' && params.name === '__rumiaiTrace') {
       try {this.report(JSON.parse(params.payload), sessionId);}
       catch {this.report({kind: 'probe.event-decode-failed'}, sessionId);}
+    }
+  }
+  async readStaticBody(response) {
+    const detail={kind:'network.static-body',resourceType:response.resourceType};
+    try {
+      if (!(response.status>=200 && response.status<300)) {
+        this.report({...detail,status:'http-status-not-success'},response.sessionId);
+        return;
+      }
+      const body=await this.send('Network.getResponseBody',
+        {requestId:response.requestId},response.sessionId,12000);
+      const bytes=body.base64Encoded ? Buffer.from(body.body||'','base64') :
+        Buffer.from(body.body||'','utf8');
+      const result=this.storeStatic(response,bytes);
+      this.report({...detail,...result},response.sessionId);
+    } catch {
+      this.report({...detail,status:'body-unavailable'},response.sessionId);
     }
   }
   async readImageBody(response) {
@@ -375,6 +408,28 @@ function recording(directory) {
     return {status:'saved',file:name,sha256:digest,bytes:bytes.length,
       mimeType:mime};
   }
+  let staticBytesTotal=0;
+  const staticFiles=new Set();
+  function storeStatic(response,bytes) {
+    const mime=response.mime.split(';')[0].trim();
+    const ext=response.resourceType==='Stylesheet' && mime==='text/css' ? 'css' :
+      response.resourceType==='Font' && (mime==='font/woff2' ||
+      mime==='application/octet-stream') && bytes.toString('ascii',0,4)==='wOF2' ? 'woff2' : null;
+    if (!ext) return {status:'mime-unsupported'};
+    if (!bytes.length || bytes.length>8*1024*1024) return {status:'body-invalid-or-too-large'};
+    const digest=sha(bytes),name='static/'+digest+'.'+ext;
+    if ((!staticFiles.has(name) && staticFiles.size>=128) ||
+      (!staticFiles.has(name) && staticBytesTotal+bytes.length>48*1024*1024))
+      return {status:'capture-limit'};
+    fs.mkdirSync(path.join(directory,'static'),{recursive:true,mode:0o700});
+    if (!staticFiles.has(name)) {
+      fs.writeFileSync(path.join(directory,name),bytes,{flag:'wx',mode:0o600});
+      staticFiles.add(name);
+      staticBytesTotal+=bytes.length;
+    }
+    return {status:'saved',file:name,sha256:digest,bytes:bytes.length,
+      mimeType:mime,originalUrl:response.url};
+  }
   let sequence = 0, finished = false;
   const counts = {}, files = new Set();
   function record(event, sessionId) {
@@ -404,7 +459,7 @@ function recording(directory) {
       {flag: 'wx', mode: 0o600});
     return summary;
   }
-  return {record, finish, storeImage};
+  return {record, finish, storeImage, storeStatic};
 }
 
 async function sweep(cdp, sid, record, onSample = null, onProgress = null,
@@ -485,6 +540,7 @@ async function sweep(cdp, sid, record, onSample = null, onProgress = null,
 async function run(args) {
   const [url, outputName, ...rawFlags] = args;
   const readinessOnly=rawFlags.includes('--readiness-only');
+  const captureStatic=rawFlags.includes('--capture-static-bodies');
   const mathIndex = rawFlags.indexOf('--compare-live-katex');
   const mathFile = mathIndex < 0 ? null : rawFlags[mathIndex + 1];
   const sansMath = mathIndex < 0 ? rawFlags : rawFlags.filter((_,i) =>
@@ -499,8 +555,8 @@ async function run(args) {
         x!=='--readiness-only') || mathIndex>=0 || offlineIndex>=0)) ||
       (offlineIndex >= 0 && (offlineIndex !== sansMath.length - 2 || !offlineDir ||
         !flags.includes('--sweep') || !flags.includes('--capture-image-bodies'))) ||
-      flags.some(x => !['--headless','--sweep','--compare-image-urls','--capture-image-bodies','--readiness-only'].includes(x))) {
-    process.stderr.write('Usage: node render-probe.mjs <url> <output-dir> [--sweep] [--headless] [--compare-image-urls] [--capture-image-bodies] [--offline-output <new-dir>] [--compare-live-katex <reading-index.html>] [--readiness-only]\n');
+      flags.some(x => !['--headless','--sweep','--compare-image-urls','--capture-image-bodies','--capture-static-bodies','--readiness-only'].includes(x))) {
+    process.stderr.write('Usage: node render-probe.mjs <url> <output-dir> [--sweep] [--headless] [--compare-image-urls] [--capture-image-bodies] [--capture-static-bodies] [--offline-output <new-dir>] [--compare-live-katex <reading-index.html>] [--readiness-only]\n');
     return 2;
   }
   const parsed = new URL(url);
@@ -575,8 +631,9 @@ async function run(args) {
     }
     const [port, endpoint] = fs.readFileSync(portFile,'utf8').trim().split(/\r?\n/);
     cdp = new Cdp('ws://127.0.0.1:' + port + endpoint, log.record,
-      flags.includes('--compare-image-urls') || flags.includes('--capture-image-bodies'),
-      flags.includes('--capture-image-bodies') ? log.storeImage : null);
+      flags.includes('--compare-image-urls') || flags.includes('--capture-image-bodies') || captureStatic,
+      flags.includes('--capture-image-bodies') ? log.storeImage : null,
+      captureStatic ? log.storeStatic : null);
     await cdp.connect();
     await cdp.send('Target.setDiscoverTargets', {discover:true});
     await cdp.send('Target.setAutoAttach', {autoAttach:true,
