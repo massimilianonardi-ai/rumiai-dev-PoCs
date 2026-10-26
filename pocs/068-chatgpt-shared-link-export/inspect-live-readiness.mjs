@@ -11,9 +11,9 @@ export const liveReadinessExpression = `(() => {
   const root=document.querySelector('[data-scroll-root]');
   const body=document.body;
   const navigation=performance.getEntriesByType('navigation')[0];
-  let candidates=0;
+  let candidates=0,visited=0;
   for(const el of document.querySelectorAll('main, [role="main"], section, div')) {
-    if(candidates>=200)break;
+    if(++visited>200)break;
     const style=getComputedStyle(el);
     if(el.scrollHeight>el.clientHeight+32 &&
        el.clientHeight>100 && /^(auto|scroll)$/.test(style.overflowY))
