@@ -21,7 +21,8 @@ function fixture(corrupt = false)
     corrupt ? Buffer.from('invalid') : css);
   const html = Buffer.from('<div data-turn-id-container="turn-test">' +
     '<div data-testid="conversation-turn-0"><div data-message-id="message-test">' +
-    '<a href="https://openai.com/">OpenAI</a></div></div></div>');
+    '<a href="https://openai.com/">OpenAI</a>' +
+    '<table><tr><td>Cost</td></tr></table></div></div></div>');
   const htmlHash = hash(html);
   fs.writeFileSync(path.join(capture, 'turns', htmlHash + '.html'), html);
   const events = [
@@ -50,6 +51,8 @@ test('localizes verified original CSS and keeps source links operable', () =>
     assert.ok(!html.includes('button,input,a{pointer-events:none}'));
     assert.ok(!html.includes('button,input{pointer-events:none}'));
     assert.match(html, /input\{pointer-events:none\}/);
+    assert.ok(!html.includes('td,th{border:1px solid #bbb;padding:6px}'));
+    assert.match(html, /<table><tr><td>Cost<\/td><\/tr><\/table>/);
     assert.match(html, /href="https:\/\/openai\.com\/"/);
     assert.match(html, /script-src 'none'/);
   }

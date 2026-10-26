@@ -939,3 +939,29 @@ The accepted semantic views remain the stable reference. Run
 node --test tests/same-session-styled.test.mjs for the local integration
 fixture and visually check the real share's diagram and grouped links
 before accepting this mode.
+
+## Physical validation: diagram accepted, remaining table and control issues (2026-10-26)
+
+The operator physically inspected the original-CSS offline view of share 2 and
+**accepted the diagram** following “2. La soluzione che adotterei”. Preserve
+this working SVG/layout behavior. Three differences remain:
+the cost-per-token table acquires full cell borders absent in the original,
+the compact OpenAI +1 references neither open nor expand and their icon is
+too small, and long user messages show an inert “Mostra di più” control.
+
+The first issue has a concrete local cause: the generic evidence assembler
+injects default table and cell borders. In the styled preview only, strip
+that fallback rule before including captured original CSS. The semantic
+reading view and source snapshots are untouched. A fixture checks that the
+generic table rule is absent; visual acceptance on the real table is pending.
+
+For React-dependent controls, merely enabling pointer events was insufficient.
+`inspect-styled-interactions.mjs <capture-dir>` inspects the **existing**
+private source snapshots, selects the newest message-qualified frame per
+ordinal, and emits a whitelisted JSON describing show-more and OpenAI/+N
+control ancestry, clipping hints, available anchors and attributes.
+It never emits conversation text, URL values or identifiers. Do not
+fabricate missing source links or execute the original React runtime.
+If expanded message content or citation targets were never in the
+captured DOM, another *targeted* live interaction observation may be
+necessary. The accepted diagram needs no new capture.

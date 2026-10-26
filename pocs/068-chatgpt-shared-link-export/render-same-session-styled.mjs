@@ -139,9 +139,12 @@ export function renderSameSessionStyled(captureDir, outputDir)
     // CSS hover on buttons in this alternative output; scripts remain CSP-blocked.
     const documentFile = path.join(assembled, 'index.html');
     const original = fs.readFileSync(documentFile, 'utf8');
-    const edited = original.replace('button,input,a{pointer-events:none}',
+    const neutral = original.replace(
+      'table{border-collapse:collapse}td,th{border:1px solid #bbb;padding:6px}', '');
+    if (neutral === original) throw Error('Unexpected assembly table fallback CSS');
+    const edited = neutral.replace('button,input,a{pointer-events:none}',
       'input{pointer-events:none}');
-    if (original === edited) throw Error('Unexpected assembly HTML template');
+    if (neutral === edited) throw Error('Unexpected assembly pointer CSS');
     fs.writeFileSync(documentFile, edited, {mode:0o600});
     const stage = path.join(workspace, 'output');
     const localization = localize(assembled, path.join(workspace, 'archive'), stage);
