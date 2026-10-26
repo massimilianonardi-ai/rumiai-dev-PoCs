@@ -43,18 +43,26 @@ The artifact itself contains all mk implementation files.
 
 ```sh
 sh pocs/073-mk-package-local-runtime/tests/run.sh /path/to/rumiai-os-checkout
+sh pocs/073-mk-package-local-runtime/tests/run.sh /path/to/m-checkout
 ```
 
-The test copies a provided product checkout to a disposable runtime root,
-removes its old `bin/sys/mk` and `lib/sys/js/mk.lib.js`, builds an archive
+The test copies either a provided legacy product checkout or the independent
+`m` checkout to a disposable runtime root. For legacy source it removes
+the old `bin/sys/mk` and `lib/sys/js/mk.lib.js`; for standalone `m` it
+asserts these files are already absent. It then builds an archive
 containing the staged engine, installs real managed Node.js through `pkg`,
 integrates the archive using the actual `pkg_integrate` and
 `pkg_default_apply`, and calls `m mk` through the real package launcher.
 It exercises `--goals`, `--plan`, execution with managed Node identity and
 `--watch` re-entry through the package-local launcher, including an input change.
 
-The GitHub Actions workflow uses pinned product source revision
-`673df1a2d5476ad57d54c7bc7e1fc2deeaf16195`.
+The GitHub Actions workflow tests pinned legacy product revision
+`673df1a2d5476ad57d54c7bc7e1fc2deeaf16195` and independent
+`m@5c1e02a10e5300ab953d86aa677583f63e6a068d` on Ubuntu and macOS.
+A successful Ubuntu job also uploads a temporary, checksum-bearing
+`mk-v0.1.0` release-candidate archive as a CI artifact. That workflow
+artifact is **not** a published GitHub release and must not be registered as
+a production catalog package source.
 
 ## Known remaining work
 

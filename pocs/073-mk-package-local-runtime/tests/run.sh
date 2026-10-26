@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-[ "$#" -eq 1 ] || { printf '%s\n' 'usage: sh tests/run.sh <rumiai-os-checkout>' >&2; exit 2; }
+[ "$#" -eq 1 ] || { printf '%s\n' 'usage: sh tests/run.sh <m-or-rumiai-os-checkout>' >&2; exit 2; }
 product=$1
 self_dir=${0%/*}
 [ "$self_dir" != "$0" ] || self_dir=.
@@ -24,10 +24,14 @@ command -p -- rm -rf -- "$root/.git"
 
 [ -x "$root/m" ] || { printf '%s\n' 'runtime bootstrap not executable' >&2; exit 4; }
 [ -x "$root/bin/sys/pkg" ] || exit 5
-[ -f "$root/lib/sys/js/mk.lib.js" ] || exit 6
-
-# Model m-core: no system mk binary and no system mk library.
-command -p -- rm -- "$root/bin/sys/mk" "$root/lib/sys/js/mk.lib.js"
+# The legacy monolith must be stripped of its system mk. The independent
+# m checkout already has no system mk and must stay untouched.
+if [ -e "$root/bin/sys/mk" ] || [ -e "$root/lib/sys/js/mk.lib.js" ]
+then
+  [ -f "$root/lib/sys/js/mk.lib.js" ] || exit 6
+  [ -f "$root/bin/sys/mk" ] || exit 6
+  command -p -- rm -- "$root/bin/sys/mk" "$root/lib/sys/js/mk.lib.js"
+fi
 [ ! -e "$root/bin/sys/mk" ] || exit 7
 [ ! -e "$root/lib/sys/js/mk.lib.js" ] || exit 8
 command -p -- mkdir -p -- "$root/pkg"
