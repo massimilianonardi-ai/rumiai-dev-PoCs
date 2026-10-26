@@ -48,6 +48,8 @@ test('localizes verified original CSS and keeps source links operable', () =>
     const html = fs.readFileSync(path.join(out, 'index.html'), 'utf8');
     assert.match(html, /assets\/[a-f0-9]{64}\.css/);
     assert.ok(!html.includes('button,input,a{pointer-events:none}'));
+    assert.ok(!html.includes('button,input{pointer-events:none}'));
+    assert.match(html, /input\{pointer-events:none\}/);
     assert.match(html, /href="https:\/\/openai\.com\/"/);
     assert.match(html, /script-src 'none'/);
   }

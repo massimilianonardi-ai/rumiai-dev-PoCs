@@ -135,12 +135,12 @@ export function renderSameSessionStyled(captureDir, outputDir)
     const resources = materializeSameSessionResources(capture, path.join(workspace, 'archive'));
     const assembled = path.join(workspace, 'assembled');
     const assembly = assemble(capture, assembled);
-    // The generic evidence viewer disables links. Permit ordinary links in
-    // this alternative output; original scripts remain disabled by CSP.
+    // The generic evidence viewer disables pointer interactions. Permit links and
+    // CSS hover on buttons in this alternative output; scripts remain CSP-blocked.
     const documentFile = path.join(assembled, 'index.html');
     const original = fs.readFileSync(documentFile, 'utf8');
     const edited = original.replace('button,input,a{pointer-events:none}',
-      'button,input{pointer-events:none}');
+      'input{pointer-events:none}');
     if (original === edited) throw Error('Unexpected assembly HTML template');
     fs.writeFileSync(documentFile, edited, {mode:0o600});
     const stage = path.join(workspace, 'output');
