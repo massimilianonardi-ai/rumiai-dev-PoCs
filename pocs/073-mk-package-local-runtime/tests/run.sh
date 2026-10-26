@@ -34,6 +34,9 @@ then
 fi
 [ ! -e "$root/bin/sys/mk" ] || exit 7
 [ ! -e "$root/lib/sys/js/mk.lib.js" ] || exit 8
+# The source tree may carry selectors for a different host. Select the actual
+# platform in the disposable clone, never in the caller-owned checkout.
+"$root/m" osarch update
 command -p -- mkdir -p -- "$root/pkg"
 
 # m and pkg are usable without any Node.js installation in the copied root.
