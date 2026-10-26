@@ -15,8 +15,8 @@ self_dir=${0%/*}
 command -p -- mkdir -p -- "$output_root/root/bin" "$output_root/root/lib"
 command -p -- cp -- "$self_dir/bin/mk" "$output_root/root/bin/mk"
 command -p -- cp -- "$self_dir/lib/mk.lib.js" "$output_root/root/lib/mk.lib.js"
-command -p -- chmod 755 -- "$output_root/root/bin/mk"
-command -p -- chmod 644 -- "$output_root/root/lib/mk.lib.js"
+command -p chmod 755 "$output_root/root/bin/mk"
+command -p chmod 644 "$output_root/root/lib/mk.lib.js"
 (
   CDPATH= cd -- "$output_root/root"
   command -p -- tar -czf ../mk-v0.1.0.tar.gz bin lib
