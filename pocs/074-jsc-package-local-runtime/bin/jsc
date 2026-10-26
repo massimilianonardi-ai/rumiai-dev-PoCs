@@ -62,7 +62,7 @@ else
 
       artifact=$minified
     else
-      log warning jsc minifier-unavailable command "$minifier"
+      log warn jsc minifier-unavailable command "$minifier"
     fi
   fi
   gzip -c < "$artifact" > "${artifact}.gz" || fatal 5 jsc compression-failed

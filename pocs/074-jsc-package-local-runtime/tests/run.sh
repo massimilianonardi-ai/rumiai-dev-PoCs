@@ -70,7 +70,7 @@ EOF_JS
 "$root/m" jsc "$work/project/modules-js.json" "$work/project/output.js" || exit 20
 [ -s "$work/project/output.js" ] || exit 21
 [ -s "$work/project/output.js.gz" ] || [ -s "$work/project/output.min.js.gz" ] || exit 22
-"$root/m" node -e 'const x=require(process.argv[1]);if(x.demo.answer!==42)process.exit(43)' "$work/project/output.js" || exit 23
+"$root/m" node -e 'const x=require(process.argv[1]);if(x.answer!==42)process.exit(43)' "$work/project/output.js" || exit 23
 
 printf '.demo { color: red; }\n' > "$work/project/style.css"
 cat > "$work/project/modules-css.json" <<'EOF_CSS'
