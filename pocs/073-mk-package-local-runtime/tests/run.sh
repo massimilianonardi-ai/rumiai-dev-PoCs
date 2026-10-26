@@ -68,7 +68,7 @@ loadsyslib "pkg/pkg-integration" || exit 4
 pkg_integrate mk v0.1.0 "$1" "$2" || exit 5
 pkg_default_apply mk v0.1.0 || exit 6
 EOF_DRIVER
-command -p -- chmod 700 -- "$driver"
+command -p chmod 700 "$driver"
 "$root/m" "$driver" "$poc_dir/catalog/pkg/mk/all/n0001=v0.1.0" "$work/staging" || exit 15
 
 [ -f "$root/pkg/mk@v0.1.0/root/lib/mk.lib.js" ] || exit 16
