@@ -1,0 +1,69 @@
+#!/bin/sh
+
+[ -n "${m_ROOT:-}" ] || { printf '%s\n' 'jsc: m environment not initialized' >&2; exit 1; }
+
+. "$m_LIB_DIR/sys/sh/core.lib.sh" || { printf '%s\n' 'jsc: m shell runtime unavailable' >&2; exit 2; }
+
+readpathce jsc_command "$0" || fatal 3 jsc command-path-invalid
+jsc_bin_dir=${jsc_command%/*}
+jsc_root=${jsc_bin_dir%/*}
+[ -f "$jsc_root/lib/jsc.lib.js" ] || fatal 6 jsc engine-missing
+
+[ "$#" -le 2 ] && [ -n "$1" ] || fatal 1 jsc invalid-arguments
+
+if [ "$#" -eq 2 ]
+then
+  [ -n "$2" ] || fatal 1 jsc invalid-output
+fi
+
+source_dir=${1%/*}
+modules_file=${1##*/}
+
+[ "$source_dir" != "$1" ] || source_dir=.
+
+if [ "$#" -eq 1 ]; then
+  node "$jsc_root/lib/jsc.lib.js" "$1" || fatal 2 jsc compilation-failed
+else
+  output="$2"
+
+  node "$jsc_root/lib/jsc.lib.js" "$1" > "$output" || fatal 2 jsc compilation-failed
+
+  case $output in
+    *.js)
+      minified=${output%.js}.min.js
+      minifier=google-closure-compiler
+    ;;
+    *.css)
+      minified=${output%.css}.min.css
+      minifier=uglifycss
+    ;;
+    *)
+      minified=
+      minifier=
+    ;;
+  esac
+
+  artifact=$output
+
+  if [ -n "$minifier" ]
+  then
+    if command -v "$minifier" >/dev/null 2>&1
+    then
+      case $minifier in
+        google-closure-compiler)
+          "$minifier" --js="$output" --js_output_file="$minified" ||
+            fatal 4 jsc minification-failed
+        ;;
+        uglifycss)
+          "$minifier" "$output" > "$minified" ||
+            fatal 4 jsc minification-failed
+        ;;
+      esac
+
+      artifact=$minified
+    else
+      log warning jsc minifier-unavailable command "$minifier"
+    fi
+  fi
+  gzip -c < "$artifact" > "${artifact}.gz" || fatal 5 jsc compression-failed
+fi

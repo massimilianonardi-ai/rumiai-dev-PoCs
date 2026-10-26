@@ -1,0 +1,35 @@
+name: PoC 074 — jsc package-local runtime
+
+on:
+  push:
+    branches: [jsc-package-local-runtime]
+    paths:
+      - pocs/074-jsc-package-local-runtime/**
+      - .github/workflows/poc-074-jsc-package-local-runtime.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  jsc-pkg-local:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: poc
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/m
+          ref: 47e6055f8ccdccee6906ec1de387b17124e56527
+          path: standalone-m
+          persist-credentials: false
+      - name: Build isolated package, integrate through real pkg and compile JS/CSS
+        shell: sh
+        run: sh poc/pocs/074-jsc-package-local-runtime/tests/run.sh standalone-m

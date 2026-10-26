@@ -1,0 +1,211 @@
+NAME
+    jsc - assemble strict JavaScript namespace bundles or ordered CSS sources
+
+SYNOPSIS
+    jsc <modules.json> [output]
+
+DESCRIPTION
+    jsc compiles an ordered JSON tree containing namespace nodes (name/modules)
+    and source nodes (file/exports with optional imports). No runtime module
+    registry or automatic external-file loading is introduced.
+
+    Earlier declarations are available to later source files in the same
+    lexical namespace. Symbols exported in a nested namespace become
+    accessible through the corresponding namespace object in parent scopes.
+
+    jsc invokes Node.js from the existing m-integrated launcher. It does not
+    install Node.js automatically.
+
+COMPLETE EXAMPLE
+    Given these files:
+
+        project/
+          modules-js.json
+          m/srv/data/MyClass.js
+          m/srv/data/Other.js
+          m/srv/Facade.js
+
+    Contents of m/srv/data/MyClass.js:
+
+        function MyClass() {
+          return 42;
+        }
+
+    Contents of m/srv/data/Other.js:
+
+        function Other() {
+          return MyClass();
+        }
+
+    Contents of m/srv/Facade.js:
+
+        function Facade() {
+          return data.MyClass() + data.Other() - 42;
+        }
+
+    Contents of modules-js.json (order matters):
+
+        {
+          "modules": [
+            {
+              "name": "m",
+              "modules": [
+                {
+                  "name": "srv",
+                  "modules": [
+                    {
+                      "name": "data",
+                      "modules": [
+                        {"file": "m/srv/data/MyClass.js", "exports": "MyClass"},
+                        {"file": "m/srv/data/Other.js", "exports": "Other"}
+                      ]
+                    },
+                    {"file": "m/srv/Facade.js", "exports": "Facade"}
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+
+    Compile to standard output:
+
+        jsc modules-js.json > bundle.js
+
+    Or compile directly to a file:
+
+        jsc modules-js.json bundle.js
+
+    In a browser, load bundle.js:
+
+        <!doctype html>
+        <meta charset="utf-8">
+        <script src="bundle.js"></script>
+        <body>
+          <div id="result"></div>
+          <script>
+            console.log(m.srv.data.MyClass()); // 42
+            console.log(m.srv.data.Other());   // 42
+            document.getElementById('result').textContent =
+              String(m.srv.Facade());
+          </script>
+
+    The result is 42. The standalone classic script creates namespace m,
+    m.srv and m.srv.data as it executes. In the data namespace, MyClass is
+    directly usable by later source files; in m.srv, data.MyClass is usable;
+    qualified access through m.srv.data.MyClass is also available.
+
+MODULES.JSON FORMAT
+    The root object contains an ordered "modules" array. Optional Boolean
+    "nodeGlobal" defaults to false and controls global publication in Node.
+
+    A namespace node:
+        name       namespace name: one valid JavaScript identifier
+        modules    nested ordered array of namespace and source nodes
+
+    A source node:
+        file       relative source pathname
+        exports    optional comma-separated exported identifiers
+        imports    optional object mapping local names to namespace paths
+
+    Example of multiple exports:
+
+        {"file": "m/util/clock.js", "exports": "clock,clockUTC"}
+
+    Example of a side-effect-only source:
+
+        {"file": "m/init.js", "exports": ""}
+
+    The files are included in JSON order. jsc does not automatically sort
+    them, discover references or build a dependency graph. The project
+    author chooses order. Source paths are relative to the descriptor
+    directory and may not escape it. Invalid identifiers and JavaScript
+    syntax are rejected.
+
+    Namespace objects can be reopened by a subsequently loaded bundle.
+    Previous exports remain accessible through qualified namespace paths.
+    If an unqualified alias is needed, imports generates a lexical reference:
+
+        {"file": "m/srv/Extension.js",
+         "imports": {"A": "m.data.A"}, "exports": "Extension"}
+
+    Equivalent source code may declare: var A = m.data.A;
+    Imports never load or embed provider source files. Captured references
+    retain their value if a namespace property is later replaced.
+
+NODE.JS AND BROWSER
+    Generated JavaScript uses an outer strict closure with nested namespace
+    closures. Browser classic scripts publish namespace roots on globalThis.
+
+    Node CommonJS normally publishes the root namespace through
+    module.exports only, without reading or writing globalThis.m. Set
+    "nodeGlobal": true at the descriptor root to reuse or create the shared
+    global namespace in Node; module.exports returns the same object.
+    Multiple independently compiled bundles must be loaded in dependency
+    order before acquiring references; no import loads a bundle.
+
+CSS
+    A CSS manifest is another ordered source list, without namespaces:
+
+        {
+          "modules": [
+            {"file": "css/reset.css"},
+            {"file": "css/layout.css"}
+          ]
+        }
+
+    Example:
+
+        jsc modules-css.json styles.css
+
+    Concatenation respects input order. JavaScript and CSS belong in
+    different manifests and are not mixed inside one assembly.
+
+OUTPUT AND RELEASE ARTIFACTS
+    With one operand, source bytes are emitted only to stdout. Redirect
+    this stream to produce your file; no additional files are created.
+
+    With an explicit output filename, jsc writes the assembled file.
+    It additionally produces gzip output. When an already-installed
+    compatible minifier is available, it produces <name>.min.js or
+    <name>.min.css and the corresponding .gz of that minified file.
+
+    JavaScript minification uses an installed google-closure-compiler.
+    CSS minification uses an installed uglifycss. If the minifier is
+    absent, the raw assembly remains usable and its .gz is produced
+    with a warning. jsc does not install tools or access the network.
+
+    JavaScript syntax is validated by Node before emission. If Closure
+    Compiler is available, jsc also runs its non-mutating --checks_only
+    validation before emitting source. The launcher retains its existing
+    redirection behavior; output replacement on failure is not guaranteed
+    to be atomic.
+
+ERRORS
+    The launcher reports fatal jsc.<branch> diagnostics. The Node engine
+    reports branch-specific errors to stderr and exits nonzero.
+
+    Engine statuses:
+         1   Invalid arguments
+         2   Descriptor, source or generated syntax invalid
+         3   Installed Closure Compiler check failed
+         4   Output write failed
+
+    Launcher statuses:
+         1   Missing/invalid operands
+         2   Compiler execution failed
+         4   Installed minifier failed
+         5   Gzip generation failed
+
+FILES
+    <jsc-package-root>/bin/jsc
+    <jsc-package-root>/lib/jsc.lib.js
+    <jsc-package-root>/res/manual/jsc
+
+ENVIRONMENT
+    Requires a nonempty m_ROOT inherited from an initialized m environment.
+    From an uninitialized host shell, invoke m jsc [arguments].
+
+
+SEE ALSO
+    package-local jsc.lib.js manual
