@@ -605,3 +605,24 @@ and 3-reading-rich accepted archive untouched. The remaining 27
 The operator ran the corrected PoC at `rumiai-dev-PoCs@58d31e1ffc2d4dbdd8bc0b7b96ccd2cffd3cc25d` on vmdev with the **existing** private `/home/admino/chatgpt-batch-vGRePjHh/1-capture` and created `1-reading-katex-css-fixed/index.html` (without new ChatGPT navigation or overwriting earlier views). Sanitized audit: 16 turns, **198 visual KaTeX formulas**, 0 unavailable formulas, 68 links, `same-session-offline` status. The operator explicitly **accepted the visual mathematical rendering**, including superscripts, subscripts, special symbols, and the complex relation following “La relazione può essere vista così:” in turn 2. This is user-observed visual fidelity for the captured share-1 mathematics, **not pixel-level equality, RAW conversation completeness or acceptance of all assets and conversations**. Earlier paragraphs that described this exact physical check as pending are historical checkpoints, now superseded by this confirmed result.
 
 No new renderer modification is required for this result. The 27 known `border-width` omissions, share-2 loading failure, missing/optional attachments and other artifact provenance remain separate; the user-accepted share-3 view, earlier private captures and reading files remain untouched.
+
+## Share 2 remains unacquired: existing private event classification (2026-10-26)
+
+After the operator physically accepted share-1 mathematical rendering,
+share 2 (`6ad1c0f5-7110-83eb-bc19-356d48fc1259`) is the next open
+export issue. Earlier vmdev evidence: 329 events, 9 image-response
+observations, 9 image-body attempts, `sweep.not-ready`, **zero captured
+turn snapshots** and no generated `2-reading/index.html`.
+The old capture may predate the current sanitized `pageShape` field.
+
+`inspect-share-readiness.mjs` now performs a local read-only audit of
+that existing capture, whitelisting only expected DOM-hook presence and
+numeric counts from `sweep.not-ready` and navigation outcomes. It does
+**not** claim that a missing `data-scroll-root` or a missing turn wrapper
+proves share expiration, authorization failure or a site redesign.
+Its fixture exercises actual JSONL files with private signed URL and
+conversation content in input and asserts no leak, plus both current and
+legacy page-shape cases. **Physical cause is pending the operator's
+sanitized audit**; no speculative change to the CDP observer, original
+formula renderer, or accepted private files is authorized by this
+finding alone.

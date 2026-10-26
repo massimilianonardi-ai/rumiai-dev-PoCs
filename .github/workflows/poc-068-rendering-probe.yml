@@ -18,6 +18,8 @@ on:
       - 'pocs/068-chatgpt-shared-link-export/package.json'
       - 'pocs/068-chatgpt-shared-link-export/package-lock.json'
       - 'pocs/068-chatgpt-shared-link-export/inspect-math-capture.mjs'
+      - 'pocs/068-chatgpt-shared-link-export/inspect-share-readiness.mjs'
+      - 'pocs/068-chatgpt-shared-link-export/tests/.support/inspect-share-readiness.mjs'
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/inspect-math-capture.mjs'
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/render-semantic-content.mjs'
       - 'pocs/068-chatgpt-shared-link-export/tests/.support/verify-katex-visual-geometry.mjs'
@@ -77,6 +79,9 @@ jobs:
           node --check inspect-math-capture.mjs
           node --check tests/.support/inspect-math-capture.mjs
           node tests/.support/inspect-math-capture.mjs
+          node --check inspect-share-readiness.mjs
+          node --check tests/.support/inspect-share-readiness.mjs
+          node tests/.support/inspect-share-readiness.mjs
           node --check inspect-katex-difference.mjs
           node --check tests/.support/inspect-katex-difference.mjs
           node tests/.support/inspect-katex-difference.mjs
