@@ -23,9 +23,9 @@ function absoluteHttps(value)
   }catch{}
   return null;
 }
-function captureImageIndex(captureDirs)
+export function captureImageIndex(captureDirs)
 {
-  const byUrl=new Map();
+  const byUrl=new Map(),filesByDigest=new Map(),conflictingUrls=new Set();
   let verifiedBodies=0,conflicts=0;
   for(const dir of captureDirs)
   {
@@ -69,16 +69,29 @@ function captureImageIndex(captureDirs)
         conflicts++;continue;
       }
       verifiedBodies++;
+      const previousFile=filesByDigest.get(body.sha256);
+      if(previousFile && (previousFile.extension!==match[2] ||
+          previousFile.mimeType!==body.mimeType)){
+        conflicts++;
+        continue;
+      }
+      if(!previousFile)filesByDigest.set(body.sha256,{
+        file:name,extension:match[2],mimeType:body.mimeType});
       const urls=new Set([response.initialUrl,response.requestUrl,
         response.responseUrl].map(absoluteHttps).filter(Boolean));
       for(const url of urls){
+        if(conflictingUrls.has(url))continue;
         const previous=byUrl.get(url);
-        if(previous&&previous!==body.sha256)conflicts++;
+        if(previous&&previous!==body.sha256){
+          byUrl.delete(url);
+          conflictingUrls.add(url);
+          conflicts++;
+        }
         else if(!previous)byUrl.set(url,body.sha256);
       }
     }
   }
-  return {byUrl,verifiedBodies,conflicts};
+  return {byUrl,filesByDigest,conflictingUrls,verifiedBodies,conflicts};
 }
 const sourceKind=element=>{
   if(element.localName==='details')return 'native-details';

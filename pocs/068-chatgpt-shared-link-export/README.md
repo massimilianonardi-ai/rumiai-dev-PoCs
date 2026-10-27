@@ -1756,3 +1756,59 @@ image bytes can be reused. Do not substitute a site's favicon from a
 different URL, synthesize citation URL ownership or weaken the offline
 CSP. Maintain the operator-accepted eight multi-source disclosures,
 original CSS, diagram, cost table and message-preview semantics.
+
+
+## Exact offline localization of previously captured icons (2026-10-27)
+
+The operator's latest vmdev run on PoC `5cf5b9e` passed all **4/4**
+source-control diagnostics and confirmed that **all 24 external IMG
+references** in the accepted linked archive have a saved image body
+matched by their **exact HTTPS URL and SHA-256** in the five existing
+private capture directories. These 24 references are backed by 11
+verified recorded image bodies and have **zero conflicts**.
+
+`localize-exact-captured-images.mjs` is an independent, opt-in,
+network-free postprocessor. It accepts an existing private linked
+archive, a **new output directory** and one or more private capture
+directories. It SHA-verifies indexed original image bytes, checks
+supported image format signatures, and refuses any missing/conflicting
+source reference before creating output. Only original remote `img
+src` attributes are rewritten to local `assets/poc068-exact-<sha>`
+files; remote `srcset` is removed on each localized image to ensure
+the browser does not prefer an unverified remote alternative. It
+preserves the original CSP (including `script-src 'none'`), CSS,
+unchanged image markup beyond the matched attributes, accepted
+assistant diagram, cost table, long-message native previews and all
+existing 8 native +N disclosures / 19 HTTPS anchors. It copies the
+previous archive into a new private directory and refuses symlinks,
+unsupported formats, corrupt/missing image bodies or ambiguous mapping.
+The existing linked output is never modified.
+
+This fixes original IMG references whose exact bytes were captured;
+it does **not** invent favicon elements in the 19 generated source
+menu anchors, does not convert singleton React citation controls into
+anchors, and does not make the four separate `Fonti` React buttons
+work. Those remain distinct work units requiring verified ownership.
+
+From the PoC directory on vmdev:
+
+    node --test tests/localize-exact-captured-images.test.mjs \
+      tests/offline-control-provenance.test.mjs
+    STYLED_DIR="$(find "$HOME" -maxdepth 1 -type d -name 'chatgpt-share2-linked-*' -printf '%T@ %p\n' | sort -nr | head -n 1 | cut -d' ' -f 2-)"
+    test -f "$STYLED_DIR/index.html"
+    EXACT_DIR="$(mktemp -d "$HOME/chatgpt-share2-exact-icons-XXXXXXXX")"
+    rmdir "$EXACT_DIR"
+    node localize-exact-captured-images.mjs "$STYLED_DIR" "$EXACT_DIR" \
+      /home/admino/chatgpt-share2-interactive-m8xthV9A \
+      /home/admino/chatgpt-share2-targets-WiF0gU8j \
+      /home/admino/chatgpt-share2-trusted-jmYoPJvJ \
+      /home/admino/chatgpt-share2-trusted-XPK0vYAM \
+      /home/admino/chatgpt-share2-targeted-vdv4T3G3
+    node inspect-offline-control-provenance.mjs "$EXACT_DIR"
+    xdg-open "$EXACT_DIR/index.html"
+
+The report must count 24 localized IMG references and zero conflicts;
+the generated archive should have **zero remote IMG src references**
+and preserve 8 details / 19 links. Physical Chromium comparison is
+required to accept icon appearance, layout and click behavior. Do not
+send private archives or original source URLs to GitHub.
