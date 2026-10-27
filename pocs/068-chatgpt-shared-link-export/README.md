@@ -1469,3 +1469,55 @@ different captures. Keep that acceptance step separate before rendering
 live source links in an offline artifact. Source URLs are never
 included in sanitized output. No changes to original CSS,
 approved diagram, long-message preview or inert offline policy.
+
+
+## Cross-capture source-group identity audit (2026-10-27)
+
+The physical vmdev `5aed187` targeted run passed **17/17 Node tests**.
+Its private capture `/home/admino/chatgpt-share2-targeted-vdv4T3G3`
+visited only source group `4:1`, dispatched two trusted CDP mouse
+clicks and intercepted two `window.open` HTTPS destinations. With
+the three existing private evidence directories, the strict
+`inspect-trusted-source-evidence.mjs` audit now reports **8/8
+source groups and 19/19 card destinations, ambiguousCards=0**.
+These are per-card navigation intents; they are not yet validated
+offline links. No intercepted blocked background request is used
+as source attribution.
+
+Before assigning URLs to pill controls in the inert styled export,
+the exact cross-capture group identity must be checked independently.
+`inspect-source-group-identity.mjs` reads and SHA-verifies existing
+`turn.snapshot` files and selects the richest snapshot for each
+conversation ordinal. It compares original capture turn/message
+identities and SHA-256 fingerprints of the normalized text immediately
+surrounding each ordered `+N` leaf control. It detects cardinality
+changes, missing snapshots, insufficient distinctive local text,
+within-turn fingerprint collisions and cross-capture context or
+message-identity mismatches. No text, URL, message identifier, hash
+or original capture filename is printed; only each ordinal/index
+and the verification status are reported.
+
+This is deliberately fail-closed. Even if all 19 URLs are verified
+by browser input, `safeToRestore` remains false unless every
+source group has matching captured message identities and local
+contexts from at least two independent captures. Stable context is
+necessary but not a complete proof of UI appearance, original
+source-card order or historical source URL validity. No original
+CSS, accepted diagram, collapsed-message controls, CSP or offline
+source button is changed by this audit.
+
+From the PoC directory, after pulling and testing, inspect the four
+existing **private** capture directories:
+
+    node --test tests/source-group-identity.test.mjs \
+      tests/trusted-source-evidence.test.mjs
+    node inspect-source-group-identity.mjs \
+      /home/admino/chatgpt-share2-targets-WiF0gU8j \
+      /home/admino/chatgpt-share2-trusted-jmYoPJvJ \
+      /home/admino/chatgpt-share2-trusted-XPK0vYAM \
+      /home/admino/chatgpt-share2-targeted-vdv4T3G3
+
+Do not share raw capture data. Once identity auditing and full-card
+attribution are confirmed on vmdev, restoration of native, script-free
+source disclosure and external anchors can be developed as a separate
+explicitly validated rendering step.
