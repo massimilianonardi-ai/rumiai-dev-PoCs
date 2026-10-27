@@ -37,6 +37,9 @@ test('live interaction observation records private URLs but CLI summary excludes
       assert.equal(summary.sourceHoverAttempts,1);
       assert.equal(summary.distinctCapturedTargetUrls,1);
       assert.equal(summary.sourceOrdinals[0].ordinal,6);
+      assert.equal(summary.sourceGroups.length,1);
+      assert.equal(summary.sourceGroups[0].ordinal,6);
+      assert.equal(summary.sourceGroups[0].scopedAnchorCount,1);
       assert.ok(!JSON.stringify(summary).includes('private?token=abc'));
     }
     finally {fs.rmSync(root,{recursive:true,force:true});}

@@ -192,7 +192,7 @@ export function summarizeLiveShareInteractions(captureDir)
     emptyControlledPanels:0,linkLikeWithoutHref:0,
     distinctCapturedTargetUrls:0,
     userExpansionErrors:0,sourceHoverErrors:0};
-  const urls=new Set(), byOrdinal=new Map();
+  const urls=new Set(), byOrdinal=new Map(), sourceGroups=[];
   for(const line of data.split(/\r?\n/).filter(Boolean))
   {
     const e=JSON.parse(line);
@@ -228,6 +228,18 @@ export function summarizeLiveShareInteractions(captureDir)
       const ordinal=Number(e.ordinal);
       if(Number.isSafeInteger(ordinal) && ordinal>=0)
       {
+        sourceGroups.push({
+          ordinal,index:Number.isSafeInteger(e.index)?e.index:null,
+          expectedSources:Number.isSafeInteger(e.expectedSources)?e.expectedSources:null,
+          scopeType:e.scopeType||'none',
+          triggerExpanded:e.triggerExpanded===true,
+          scopedAnchorCount:Number(e.scopedAnchorCount??(e.links||[]).length),
+          pageAnchorChanges:Number(e.observedNewAnchors||0),
+          newVisiblePopupCandidates:Number(e.newVisiblePopupCandidates||0),
+          buttons:Number(e.contentStructure?.buttons||0),
+          linkRoles:Number(e.contentStructure?.linkRoles||0),
+          anchorElements:Number(e.contentStructure?.anchorElements||0)
+        });
         const item=byOrdinal.get(ordinal)||{ordinal,hoverAttempts:0,withLinks:0};
         item.hoverAttempts++;
         if(e.observedNewAnchors>0)item.withLinks++;
@@ -240,6 +252,7 @@ export function summarizeLiveShareInteractions(captureDir)
   totals.distinctCapturedTargetUrls=urls.size;
   return {status:'private-safe-live-interactions',...totals,
     sourceOrdinals:[...byOrdinal.values()].sort((a,b)=>a.ordinal-b.ordinal),
+    sourceGroups:sourceGroups.sort((a,b)=>a.ordinal-b.ordinal||a.index-b.index),
     limitations:['A synthetic hover may not open every source group',
       'Captured links may include unrelated DOM portals; group identity is not proven',
       'Expanded clicks are attempts; snapshot completeness must be verified separately',

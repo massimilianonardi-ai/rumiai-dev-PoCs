@@ -1170,7 +1170,8 @@ truthy, it never searched for a newly visible source popup. This is now
 corrected: if the controlled element lacks link anchors, the sampler
 checks whether exactly one new or previously hidden popup became visible.
 The inspector also reports counts of empty controlled panels and non-anchor
-controls, without exposing URL values or inventing links. It excludes
+controls, plus per-group ordinal/index and structural metrics in sourceGroups,
+without exposing URL values or inventing links. It excludes
 source triggers nested inside external links and preserves private-event
 separation. A controlled group and a single-new-popup group remain
 distinct provenance categories; neither is accepted as a verified group
