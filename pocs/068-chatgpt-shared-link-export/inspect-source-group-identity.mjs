@@ -47,7 +47,7 @@ export function sourceGroupSignatures(html)
         before,after]))),contextChars:before.length+after.length};
   });
 }
-function captureSignatures(capture)
+export function captureSignatures(capture)
 {
   const root=path.resolve(capture);
   const filename=path.join(root,'events.jsonl');

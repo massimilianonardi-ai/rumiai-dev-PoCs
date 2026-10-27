@@ -1521,3 +1521,67 @@ Do not share raw capture data. Once identity auditing and full-card
 attribution are confirmed on vmdev, restoration of native, script-free
 source disclosure and external anchors can be developed as a separate
 explicitly validated rendering step.
+
+
+## Optional inert offline source disclosures (2026-10-27)
+
+Physical vmdev evidence on PoC 2f6960c passed six targeted tests
+and `inspect-source-group-identity.mjs` reported **8/8 stable source-pill
+groups**, `completeUrlGroups=8` and `safeToRestore=true`, using four
+independent private captures. Earlier guarded CDP input recovered **19/19
+per-card HTTPS window-open destinations**, with no ambiguities.
+
+The styled original-CSS renderer now supports a strictly opt-in
+`--sources <private-evidence-dir>...` extension. The default two-argument
+invocation produces the **unchanged** styled archive. In source mode the
+renderer checks complete unambiguous HTTPS intent per button, audits
+cross-capture source-pill identity **including the selected styled
+capture**, then additionally compares each selected turn snapshot's
+ordered local source-pill fingerprints against the trusted reference.
+Any missing turn, changed group ordering, unsupported original trigger,
+missing selected snippet or incomplete URL evidence aborts the entire
+render, without creating the user-requested output directory.
+
+Only exact original trigger HTML fragments are replaced; unrelated
+assistant markup (including accepted SVG and cost table) and original
+captured CSS bodies remain untouched. Each verified group becomes a
+script-free native `<details><summary>` disclosure. The summary retains
+the original trigger's label, child icon markup, class and inline style.
+Its list displays the verified HTTPS source links labeled by hostname
+and source ordinal: **original card titles were not captured**, so
+synthetic card titles are never attributed to the original interface.
+The additional CSS affects `poc068-source-details` and its children
+only, providing necessary popover presentation without changing the
+writing editor or arbitrary assistant content. Existing `script-src
+'none'` and the archive's private-file permissions remain in force.
+External source URLs are intentionally contained in the resulting
+private HTML because the user explicitly requested usable links;
+they are never copied to Git or included in sanitized stdout.
+
+No new browser acquisition is needed. From the PoC directory, run:
+
+    node --test tests/offline-source-controls.test.mjs \
+      tests/source-group-identity.test.mjs \
+      tests/trusted-source-evidence.test.mjs \
+      tests/offline-preview-controls.test.mjs \
+      tests/same-session-styled.test.mjs
+
+    umask 077
+    STYLED_DIR="$(mktemp -d "$HOME/chatgpt-share2-linked-XXXXXXXX")"
+    rmdir "$STYLED_DIR"
+    node render-same-session-styled.mjs \
+      /home/admino/chatgpt-share2-interactive-m8xthV9A \
+      "$STYLED_DIR" --sources \
+      /home/admino/chatgpt-share2-targets-WiF0gU8j \
+      /home/admino/chatgpt-share2-trusted-jmYoPJvJ \
+      /home/admino/chatgpt-share2-trusted-XPK0vYAM \
+      /home/admino/chatgpt-share2-targeted-vdv4T3G3
+    xdg-open "$STYLED_DIR/index.html"
+
+Verify in Chromium the original OpenAI +N summary appearance, native
+open/close behavior, correct and distinct external targets (without
+requiring the target website to be live), the already accepted diagram,
+long-user-message collapse controls, the cost table, and the unmodified
+original CSS on the "Scrittura" writing block. The new source controls
+are **not yet operator-accepted** until the physical test and visual
+comparison succeed. RAW/full-conversation completeness remains separate.

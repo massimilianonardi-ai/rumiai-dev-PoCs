@@ -7,6 +7,10 @@ import crypto from 'node:crypto';
 import {assemble} from './assemble-rendered-dom.mjs';
 import {localize} from './localize-rendered-resources.mjs';
 import {restoreUserPreviewControls,previewToggleCss} from './offline-preview-controls.mjs';
+import {restoreSourceDisclosures,sourceDisclosureCss} from './offline-source-controls.mjs';
+import {collectTrustedSourceEvidence} from './inspect-trusted-source-evidence.mjs';
+import {auditSourceGroupIdentity,captureSignatures}
+  from './inspect-source-group-identity.mjs';
 
 const sha256 = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const staticName = /^static\/([a-f0-9]{64})\.(css|woff2)$/;
@@ -124,9 +128,20 @@ export function materializeSameSessionResources(capture, target)
   return {css, fonts, images, distinctBodies:files.size};
 }
 
-export function renderSameSessionStyled(captureDir, outputDir)
+export function renderSameSessionStyled(captureDir, outputDir, evidenceDirs = [])
 {
   const capture = path.resolve(captureDir), output = path.resolve(outputDir);
+  if(!Array.isArray(evidenceDirs))throw Error('Invalid source evidence argument');
+  // Sources remain strictly opt-in and require independent archived identity.
+  const sourceEvidence=evidenceDirs.length?
+    collectTrustedSourceEvidence(evidenceDirs):null;
+  const identity=evidenceDirs.length?
+    auditSourceGroupIdentity([...evidenceDirs,capture]):null;
+  if(sourceEvidence && (!identity.safeToRestore ||
+     sourceEvidence.groups.length===0 ||
+     sourceEvidence.groups.some(group=>!group.complete)))
+    throw Error('Source link identity/provenance incomplete; offline links refused');
+  const referenceFrames=sourceEvidence?captureSignatures(evidenceDirs[0]):null;
   if (output === capture || output.startsWith(capture + path.sep) ||
       fs.existsSync(output)) throw Error('Output must be new and outside capture');
   if (!fs.existsSync(path.dirname(output))) throw Error('Output parent missing');
@@ -150,6 +165,7 @@ export function renderSameSessionStyled(captureDir, outputDir)
     // tables and CSS remain byte-identical to the accepted source frames.
     const audit=JSON.parse(fs.readFileSync(path.join(assembled,'audit.json'),'utf8'));
     let restoredPreviews=0,initiallyExpandedPreviews=0,sourceExpandedPreviews=0;
+    let restoredSources=0,sourceLinks=0;
     for(const turn of audit.turns)
     {
       const source=fs.readFileSync(path.join(capture,turn.selected.file),'utf8');
@@ -161,6 +177,38 @@ export function renderSameSessionStyled(captureDir, outputDir)
       restoredPreviews+=changed.converted;
       initiallyExpandedPreviews+=changed.initiallyExpanded;
       sourceExpandedPreviews+=changed.sourceExpanded;
+    }
+    if(sourceEvidence)
+    {
+      const byOrdinal=new Map();
+      for(const group of sourceEvidence.groups){
+        const bucket=byOrdinal.get(group.ordinal)||[];
+        bucket.push(group);
+        byOrdinal.set(group.ordinal,bucket);
+      }
+      const observedOrdinals=new Set();
+      for(const turn of audit.turns)
+      {
+        const groups=byOrdinal.get(turn.ordinal);
+        if(!groups)continue;
+        observedOrdinals.add(turn.ordinal);
+        const reference=referenceFrames.get(turn.ordinal)?.pills;
+        if(!reference)throw Error('Selected source ordinal absent in identity reference');
+        const originalSource=fs.readFileSync(path.join(capture,turn.selected.file),'utf8');
+        const restored=restoreSourceDisclosures(
+          originalSource,turn.ordinal,groups,reference);
+        if(restored.converted!==groups.length)
+          throw Error('Incomplete source replacement in selected turn');
+        if(!edited.includes(originalSource))
+          throw Error('Selected source snapshot missing from rendered assembly');
+        edited=edited.replace(originalSource,restored.html);
+        restoredSources+=restored.converted;
+        sourceLinks+=restored.links;
+      }
+      if(observedOrdinals.size!==byOrdinal.size ||
+         restoredSources!==sourceEvidence.groups.length ||
+         sourceLinks!==sourceEvidence.groups.reduce((n,g)=>n+g.expectedSources,0))
+        throw Error('Captured styled source turns incomplete: no links written');
     }
     fs.writeFileSync(documentFile, edited, {mode:0o600});
     const stage = path.join(workspace, 'output');
@@ -174,31 +222,50 @@ export function renderSameSessionStyled(captureDir, outputDir)
         '<style id="poc068-preview-controls">'+previewToggleCss+'</style></head>'),
         {mode:0o600});
     }
+    if(restoredSources)
+    {
+      const file=path.join(stage,'index.html');
+      const html=fs.readFileSync(file,'utf8');
+      if(!html.includes('</head>'))throw Error('Missing document head');
+      fs.writeFileSync(file,html.replace('</head>',
+        '<style id="poc068-source-controls">'+sourceDisclosureCss+'</style></head>'),
+        {mode:0o600});
+    }
     fs.renameSync(stage, output);
     return {status:'original-css-offline-preview', output,
       capturedTurnCount:assembly.turns, missingOrdinals:assembly.missingOrdinals,
       restoredPreviews,initiallyExpandedPreviews,sourceExpandedPreviews,
+      restoredSources,sourceLinks,
+      sourceIdentityStableGroups:identity?.stableGroups||0,
       resources, localizedStylesheets:localization.stylesheets,
       unresolvedStaticReferences:localization.unresolved,
       limitations:['Original JavaScript and React state are not replayed',
         'CSS without its original DOM ancestors and theme may render differently',
         'Sources without an exact saved response remain unavailable',
         'Local HTML/CSS preview toggles require physical browser verification',
-        'Visual fidelity, source-link expansion and RAW completeness require physical checking']};
+        'Visual fidelity and RAW completeness require physical checking',
+        ...(restoredSources?[
+          'Native source disclosures require physical browser/URL matching acceptance'
+        ]:[]) ]};
   }
   finally {fs.rmSync(workspace, {recursive:true, force:true});}
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname))
 {
-  if (process.argv.length !== 4)
+  const args=process.argv.slice(2);
+  const sourcesAt=args.indexOf('--sources');
+  const valid=(args.length===2 || (sourcesAt===2 &&
+    args.length>=5 && args.filter(arg=>arg==='--sources').length===1));
+  if (!valid)
   {
-    console.error('Usage: node render-same-session-styled.mjs <capture-dir> <new-output-dir>');
+    console.error('Usage: node render-same-session-styled.mjs <capture-dir> <new-output-dir> [--sources <private-evidence-dir> <private-evidence-dir>...]');
     process.exitCode = 2;
   }
   else
   {
-    try {console.log(JSON.stringify(renderSameSessionStyled(process.argv[2], process.argv[3]), null, 2));}
+    try {console.log(JSON.stringify(renderSameSessionStyled(
+      args[0],args[1],sourcesAt===2?args.slice(3):[]), null, 2));}
     catch (error) {console.error(error.message); process.exitCode = 1;}
   }
 }
