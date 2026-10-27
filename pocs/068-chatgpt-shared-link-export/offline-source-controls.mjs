@@ -29,7 +29,7 @@ function trustedTarget(value)
     throw Error('Untrusted source URL');
   return url;
 }
-function disclosure(trigger,ordinal,index,targets)
+function disclosure(trigger,ordinal,index,targets,originalChildren=trigger.innerHTML)
 {
   const classes=trigger.getAttribute('class');
   const inline=trigger.getAttribute('style');
@@ -43,8 +43,100 @@ function disclosure(trigger,ordinal,index,targets)
   // Existing original label/icon markup is reused, not approximated.
   return '<details class="poc068-source-details" data-poc068-ordinal="'+ordinal+
     '" data-poc068-index="'+index+'">'+
-    '<summary'+labelAttrs+'>'+trigger.innerHTML+'</summary>'+
+    '<summary'+labelAttrs+'>'+originalChildren+'</summary>'+
     '<div class="poc068-source-links">'+links+'</div></details>';
+}
+
+// Recover byte offsets from the captured HTML rather than searching for
+// linkedom's normalized outerHTML, which can reformat attributes/entities/SVG.
+// Scanning never rewrites content; each candidate is then independently parsed
+// and compared to the exact, already-verified source-control DOM node.
+function capturedElementRanges(html)
+{
+  const stack=[],ranges=[];
+  const voidTags=new Set(['area','base','br','col','embed','hr','img','input',
+    'link','meta','param','source','track','wbr']);
+  let i=0;
+  while(i<html.length)
+  {
+    const start=html.indexOf('<',i);
+    if(start<0)break;
+    if(html.startsWith('<!--',start)){
+      const end=html.indexOf('-->',start+4);
+      if(end<0)throw Error('Unclosed HTML comment in source snapshot');
+      i=end+3;continue;
+    }
+    if(html.startsWith('<![CDATA[',start)){
+      const end=html.indexOf(']]>',start+9);
+      if(end<0)throw Error('Unclosed CDATA in source snapshot');
+      i=end+3;continue;
+    }
+    const closing=html[start+1]==='/';
+    const token=html.slice(start+(closing?2:1))
+      .match(/^([A-Za-z][A-Za-z0-9:._-]*)/);
+    if(!token){i=start+1;continue;}
+    const name=token[1].toLowerCase();
+    let quote=null,end=-1;
+    for(let j=start+(closing?2:1)+token[1].length;j<html.length;j++){
+      const char=html[j];
+      if(quote){if(char===quote)quote=null;}
+      else if(char==='"'||char==="'")quote=char;
+      else if(char==='>'){end=j+1;break;}
+    }
+    if(end<0 || quote)throw Error('Unclosed HTML source tag');
+    const opening=html.slice(start,end);
+    if(closing)
+    {
+      const node=stack.pop();
+      if(!node || node.name!==name)
+        throw Error('Unbalanced HTML source markup');
+      if(node.sourceCandidate)
+        ranges.push({start:node.start,end,innerStart:node.innerStart,
+          innerEnd:start});
+    }
+    else if(!voidTags.has(name)&&!/\/\s*>$/.test(opening))
+    {
+      stack.push({name,start,innerStart:end,
+        sourceCandidate:/(?:^|[\s])aria-haspopup(?:\s|=|>)/i.test(opening)});
+    }
+    // Original browser outerHTML may contain text with raw '<' in these
+    // elements. Skip to the real closing tag; no source pill is in raw text.
+    if(!closing && /^(script|style|textarea|title)$/.test(name)){
+      const remainder=html.slice(end);
+      const close=new RegExp('</'+name+'\\s*>','i').exec(remainder);
+      if(!close)throw Error('Unclosed raw-text HTML element');
+      i=end+close.index;
+    }else i=end;
+  }
+  if(stack.length)throw Error('Unbalanced HTML source markup');
+  return ranges.sort((a,b)=>a.start-b.start);
+}
+function verifiedRawSourceRanges(html)
+{
+  const ranges=[];
+  for(const range of capturedElementRanges(html))
+  {
+    const original=html.slice(range.start,range.end);
+    const {document}=parseHTML(
+      '<div data-poc068-fragment-root="">'+original+'</div>');
+    const wrapper=document.querySelector('[data-poc068-fragment-root]');
+    const trigger=wrapper?.firstElementChild;
+    if(!trigger || wrapper.children.length!==1 ||
+       !trigger.hasAttribute('aria-haspopup'))continue;
+    const leaves=[
+      ...(sourceLeaf(trigger)?[trigger]:[]),
+      ...trigger.querySelectorAll('span')
+    ].filter(sourceLeaf).filter(node=>
+      node.closest('[aria-haspopup]')===trigger);
+    if(!leaves.length)continue;
+    // Preserve the one source-pill-to-one-trigger requirement; unexpected
+    // nesting is never assigned a target.
+    if(leaves.length!==1)
+      throw Error('Ambiguous captured source trigger');
+    ranges.push({...range,canonical:trigger.outerHTML,
+      sourceLabel:leaves[0].textContent.trim()});
+  }
+  return ranges;
 }
 
 export function restoreSourceDisclosures(snapshotHtml,ordinal,groups,referencePills)
@@ -83,24 +175,32 @@ export function restoreSourceDisclosures(snapshotHtml,ordinal,groups,referencePi
        trigger.querySelector('a,button,input,summary,details'))
       throw Error('Unsupported original source trigger structure');
     used.add(trigger);
-    replacements.push({old:trigger.outerHTML,
-      next:disclosure(trigger,ordinal,group.index,group.targets),
+    replacements.push({old:trigger.outerHTML,trigger,
+      targets:group.targets,
       index:group.index,count:group.targets.length});
   }
-  let result=snapshotHtml;
-  // The original HTML is patched in DOM order using exact serialized
-  // trigger fragments. Every unrelated byte (SVG, tables, content) remains
-  // identical. Fail closed if a parser reserializes a trigger differently.
-  let last=0;
-  for(const item of replacements)
+  // Browser-captured attributes, HTML entities and inline SVG often have
+  // different lexical spellings from linkedom outerHTML. Match by parsed DOM
+  // identity, but patch only byte ranges from the original source snapshot.
+  const rawRanges=verifiedRawSourceRanges(snapshotHtml);
+  if(rawRanges.length!==leaves.length)
+    throw Error('Captured source trigger count mismatch');
+  const sorted=replacements.sort((a,b)=>a.index-b.index);
+  for(let i=0;i<sorted.length;i++)
   {
-    const location=result.indexOf(item.old,last);
-    if(location<0)
-      throw Error('Exact captured source trigger not found; no transformation');
-    result=result.slice(0,location)+item.next+
-      result.slice(location+item.old.length);
-    last=location+item.next.length;
+    const raw=rawRanges[i],item=sorted[i];
+    if(raw.canonical!==item.old ||
+       raw.sourceLabel!==leaves[item.index].textContent.trim())
+      throw Error('Captured source trigger structure mismatch');
+    // Reuse the *literal captured* trigger children, including its SVG bytes.
+    item.next=disclosure(item.trigger,ordinal,item.index,item.targets,
+      snapshotHtml.slice(raw.innerStart,raw.innerEnd));
+    item.start=raw.start;
+    item.end=raw.end;
   }
+  let result=snapshotHtml;
+  for(const item of [...sorted].reverse())
+    result=result.slice(0,item.start)+item.next+result.slice(item.end);
   return {html:result,converted:replacements.length,
     links:replacements.reduce((n,x)=>n+x.count,0)};
 }

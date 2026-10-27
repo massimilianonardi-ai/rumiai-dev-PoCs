@@ -136,3 +136,77 @@ test('identity and source group cardinality mismatch fails closed',()=>
     /differs from trusted group context/);
   assert.equal(restoreSourceDisclosures(html,2,[],reference).html,html);
 });
+
+
+test('captured source attributes, entities and inline SVG may differ from parser outerHTML',()=>
+{
+  const captured=html.replace(
+    '<button class="source-trigger" aria-haspopup="dialog" aria-expanded="false">',
+    '<button data-hint=\'A &amp; B > C\' aria-haspopup="dialog" '+
+      'aria-expanded="false" class=\'source-trigger\'>')
+    .replace('<span class="source-label">OpenAI</span>',
+      '<span class=\'source-label\'>OpenAI &amp; Research</span>'+
+      '<svg data-icon="source"><path d="M1 2" /></svg>');
+  const reference=sourceGroupSignatures(captured);
+  const left=captured.slice(0,captured.indexOf('<button'));
+  const right=captured.slice(captured.indexOf('</button>')+'</button>'.length);
+  const restored=restoreSourceDisclosures(captured,2,[{
+    index:0,expectedSources:2,complete:true,
+    targets:['https://example.net/first','https://example.org/second']
+  }],reference);
+  assert.equal(restored.converted,1);
+  assert.equal(restored.links,2);
+  assert.ok(restored.html.startsWith(left),'prefix byte-for-byte identical');
+  assert.ok(restored.html.endsWith(right),'suffix byte-for-byte identical');
+  assert.ok(restored.html.includes('<svg data-icon="source"><path d="M1 2" /></svg>'),
+    'original inline icon bytes must survive unchanged');
+  assert.match(restored.html,/OpenAI &amp; Research/);
+  assert.match(restored.html,/href="https:\/\/example.net\/first"/);
+  assert.ok(restored.html.includes(originalDiagram));
+});
+
+test('two source controls with identical markup retain distinct ordered card targets',()=>
+{
+  const source='<button aria-haspopup="dialog"><span>OpenAI</span>'+
+    '<span>+1</span></button>';
+  const original='<div data-turn-id-container="assistant-turn">'+
+    '<div data-testid="conversation-turn-2">'+
+    '<p>One source here '+source+' describes a first topic.</p>'+
+    '<p>Another source there '+source+' describes a separate topic.</p>'+
+    originalDiagram+'</div></div>';
+  const signatures=sourceGroupSignatures(original);
+  const targetsA=['https://one.example/a','https://one.example/b'];
+  const targetsB=['https://two.example/a','https://two.example/b'];
+  const changed=restoreSourceDisclosures(original,2,[
+    {index:0,expectedSources:2,complete:true,targets:targetsA},
+    {index:1,expectedSources:2,complete:true,targets:targetsB}
+  ],signatures);
+  assert.equal(changed.converted,2);
+  assert.equal(changed.links,4);
+  assert.ok(changed.html.includes(originalDiagram));
+  const parsed=parseHTML(changed.html).document;
+  const groups=[...parsed.querySelectorAll('details.poc068-source-details')];
+  assert.equal(groups.length,2);
+  assert.deepEqual(groups.map(group=>[...group.querySelectorAll('a')].map(a=>
+    new URL(a.getAttribute('href')).hostname)),
+    [['one.example','one.example'],['two.example','two.example']]);
+  assert.equal(changed.html.split('<details').length-1,2);
+});
+
+test('raw source structure mismatch is rejected without returning modified text',()=>
+{
+  const trigger='<button aria-haspopup="dialog"><span>OpenAI</span><span>+1</span></button>';
+  const invalid='<div data-turn-id-container="assistant-turn">'+
+    '<div data-testid="conversation-turn-2">'+trigger+
+    '<div aria-haspopup="dialog"><span>+1</span><span>+1</span></div>'+
+    '</div></div>';
+  const sig=sourceGroupSignatures(invalid);
+  assert.throws(()=>restoreSourceDisclosures(invalid,2,[
+    {index:0,expectedSources:2,complete:true,
+      targets:['https://example.org/a','https://example.org/b']},
+    {index:1,expectedSources:2,complete:true,
+      targets:['https://example.org/c','https://example.org/d']},
+    {index:2,expectedSources:2,complete:true,
+      targets:['https://example.org/e','https://example.org/f']}
+  ],sig),/Ambiguous captured source trigger|Unsupported original source trigger/);
+});

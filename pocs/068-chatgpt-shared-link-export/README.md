@@ -1624,3 +1624,42 @@ the same `render-same-session-styled.mjs ... --sources ...` command
 with a new private output directory. No new Chromium acquisition
 is necessary. Report a sanitized error if another strict check fails
 rather than patching the original snapshots.
+
+
+## Captured source trigger lexical matching (2026-10-27)
+
+Operator vmdev on `2ae3f93`: all **15/15** targeted Node tests
+passed. Styled rendering progressed past the legacy `expectedSources`
+issue but failed with **`Exact captured source trigger not found; no
+transformation`**, with no output directory created. The source-pill
+DOM signature and URL evidence were already accepted; the failure
+concerns how the renderer locates the *literal bytes* of the original
+source trigger in a browser-captured HTML snapshot. The earlier
+implementation searched for `trigger.outerHTML` from linkedom, but
+the parser can serialize original attribute quoting, entity spellings,
+whitespace and inline SVG differently.
+
+The source restoration routine now tokenizes only HTML tag boundaries,
+respecting quoted `>`, comments, raw-text tags, nested tags and void
+elements, and records the byte ranges of original `aria-haspopup`
+elements. Each source candidate is parsed independently, required to
+contain exactly one direct +N pill and matched in order against the
+already-verified canonical DOM trigger and label. It rejects missing,
+multiple, nested or structurally different candidates. Replacement
+proceeds from the end of the document using exact source byte ranges,
+and the original trigger's child markup (including SVG) is reused
+literally inside native `summary`. All bytes outside each verified
+trigger range remain unchanged. There is no whole-document
+reserialization or relaxation of strict identity/HTTPS checks.
+
+New regression tests exercise quoted `>`, `&amp;`, inner SVG,
+identical-looking source groups with distinct ordered URLs, and
+ambiguous trigger rejection. The default two-argument archive remains
+unchanged, and the opt-in source mode remains fail-closed. The accepted
+diagram, table, message preview and original CSS are not restyled.
+
+On vmdev, run the focused regression suites before retrying the same
+five-input rendering command (one styled capture + four private link
+evidence captures) in a fresh output directory. If parsing the real
+capture exposes a further mismatch, report only the sanitized
+exception; never publish raw HTML or private source URLs.
