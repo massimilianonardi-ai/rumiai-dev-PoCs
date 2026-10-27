@@ -1414,3 +1414,58 @@ previous evidence directories to `inspect-trusted-source-evidence.mjs`.
 If verification reports 8/8 groups complete, the next work unit can
 implement opt-in offline links using those verified destinations.
 Never paste `events.jsonl` or private links.
+
+
+## Targeted source group recovery (2026-10-27)
+
+Physical vmdev run on revision `a60e522`: all **15/15** focused tests
+passed. Previous private evidence returned 5/8 complete source groups
+(10/19 destinations), then the cursor-preserving guarded capture
+`/home/admino/chatgpt-share2-trusted-XPK0vYAM` raised the aggregate
+to **7/8 groups, 17/19 per-card HTTPS targets**, without ambiguities
+or conflicting URLs. The sole missing group is turn ordinal **4**,
+source-pill index **1**, expected **2** destinations.
+
+The opt-in trusted-input mode can now accept
+`--source-group 4:1`. This causes its existing source scanner to skip
+all other ordinals and source-pill indices *without clicking them*,
+so the popup at 4:0 cannot obscure 4:1. It retains native CDP pointer
+dispatch, fail-closed network interception and scroll-cursor
+preservation. The group identifier is the existing
+`conversation-turn-<ordinal>` and zero-based source-pill index,
+not a new source identity. The flag is rejected outside the guarded
+`--probe-trusted-source-card-actions --observe-interactions --sweep`
+combination. If the target is not mounted during the sweep, no
+`interaction.trusted-source-card-intents` event will be generated
+and the evidence auditor must report the group incomplete; no URLs
+may be inferred.
+
+Run one new **private** guarded capture after targeted regression tests:
+
+    node --test tests/targeted-source-group.test.mjs \
+      tests/live-share-interactions.test.mjs \
+      tests/trusted-source-cards.test.mjs \
+      tests/trusted-source-evidence.test.mjs
+
+    umask 077
+    CAPTURE_DIR="$(mktemp -d "$HOME/chatgpt-share2-targeted-XXXXXXXX")"
+    node render-probe.mjs \
+      'https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259' \
+      "$CAPTURE_DIR" \
+      --headless --sweep --observe-interactions \
+      --probe-trusted-source-card-actions --source-group 4:1
+
+    node inspect-trusted-source-cards.mjs "$CAPTURE_DIR"
+    node inspect-trusted-source-evidence.mjs \
+      /home/admino/chatgpt-share2-targets-WiF0gU8j \
+      /home/admino/chatgpt-share2-trusted-jmYoPJvJ \
+      /home/admino/chatgpt-share2-trusted-XPK0vYAM \
+      "$CAPTURE_DIR"
+
+The source evidence auditor is intentionally strict: it verifies
+unambiguous per-button HTTPS targets but does not yet independently
+prove that ordinal/index identity survived *every* remount between
+different captures. Keep that acceptance step separate before rendering
+live source links in an offline artifact. Source URLs are never
+included in sanitized output. No changes to original CSS,
+approved diagram, long-message preview or inert offline policy.

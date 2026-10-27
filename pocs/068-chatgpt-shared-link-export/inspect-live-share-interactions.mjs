@@ -27,7 +27,7 @@ export function liveExpandMessages()
   }
   return {candidates,labelMatches,clicked};
 }
-export function liveHoverSource(alignTrigger=false)
+export function liveHoverSource(alignTrigger=false,targetOrdinal=null,targetIndex=null)
 {
   const seen=globalThis.__rumiaiSourceHovered ||
     (globalThis.__rumiaiSourceHovered=new Set());
@@ -38,18 +38,21 @@ export function liveHoverSource(alignTrigger=false)
     const match=/^conversation-turn-(\d+)$/.exec(
       marker?.getAttribute('data-testid')||'');
     if(!match)continue;
+    if(targetOrdinal!==null && Number(match[1])!==targetOrdinal)continue;
     let index=0;
     for(const span of wrapper.querySelectorAll('span'))
     {
       const label=(span.textContent||'').trim();
       if(span.children.length || !/^\+\d+$/.test(label))continue;
-      const key=match[1]+':'+index++;
+      const ordinalIndex=index++;
+      if(targetIndex!==null && ordinalIndex!==targetIndex)continue;
+      const key=match[1]+':'+ordinalIndex;
       if(seen.has(key))continue;
-      seen.add(key);
       // React popover behavior is owned by the accessible trigger, which
       // may be several ancestors above the +N label, not by the badge div.
       const trigger=span.closest('[aria-haspopup]');
       if(!trigger || trigger.localName==='a' || trigger.closest?.('a[href]'))continue;
+      seen.add(key);
       // Only the separate trusted-input experiment changes scroll position
       // before opening the group. Keep ordinary observations unchanged.
       if(alignTrigger && typeof trigger.scrollIntoView==='function')
@@ -81,7 +84,7 @@ export function liveHoverSource(alignTrigger=false)
       // Only activate an explicit popup trigger; never click arbitrary links.
       if(trigger.getAttribute('aria-expanded')!=='true')trigger.click();
       return {attempted:1,ordinal:Number(match[1]),
-        index:index-1,expectedSources:Number(label.slice(1))+1};
+        index:ordinalIndex,expectedSources:Number(label.slice(1))+1};
     }
   }
   return {attempted:0};
@@ -171,7 +174,7 @@ export function liveReadHoverLinks()
 }
 const expr=fn=>'('+fn.toString()+')()';
 export async function sampleLiveShareInteractions(cdp,sid,record,onSourceGroup=null,
-  alignSourceTrigger=false)
+  alignSourceTrigger=false,targetSourceGroup=null)
 {
   try
   {
@@ -193,8 +196,12 @@ export async function sampleLiveShareInteractions(cdp,sid,record,onSourceGroup=n
   try
   {
     const response=await cdp.send('Runtime.evaluate',
-      {expression:alignSourceTrigger?
-        '('+liveHoverSource.toString()+')(true)':expr(liveHoverSource),
+      {expression:targetSourceGroup?
+        '('+liveHoverSource.toString()+')(true,'+
+          JSON.stringify(targetSourceGroup.ordinal)+','+
+          JSON.stringify(targetSourceGroup.index)+')':
+        alignSourceTrigger?
+          '('+liveHoverSource.toString()+')(true)':expr(liveHoverSource),
         returnByValue:true},sid,7000);
     const row=response.result?.value;
     if(row?.attempted===1)

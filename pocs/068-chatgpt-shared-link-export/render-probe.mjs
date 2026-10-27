@@ -602,10 +602,25 @@ async function run(args) {
   const observeInteractions=rawFlags.includes('--observe-interactions');
   const sourceCardActions=rawFlags.includes('--probe-source-card-actions');
   const trustedSourceCardActions=rawFlags.includes('--probe-trusted-source-card-actions');
-  const mathIndex = rawFlags.indexOf('--compare-live-katex');
-  const mathFile = mathIndex < 0 ? null : rawFlags[mathIndex + 1];
-  const sansMath = mathIndex < 0 ? rawFlags : rawFlags.filter((_,i) =>
-    i !== mathIndex && i !== mathIndex + 1);
+  const sourceGroupPositions=rawFlags.flatMap((flag,i)=>
+    flag==='--source-group'?[i]:[]);
+  const sourceGroupPosition=sourceGroupPositions[0]??-1;
+  const sourceGroupValue=sourceGroupPosition>=0?
+    rawFlags[sourceGroupPosition+1]:null;
+  const sourceGroupMatch=typeof sourceGroupValue==='string'?
+    /^(0|[1-9][0-9]*):(0|[1-9][0-9]*)$/.exec(sourceGroupValue):null;
+  const targetSourceGroup=sourceGroupMatch?
+    {ordinal:Number(sourceGroupMatch[1]),index:Number(sourceGroupMatch[2])}:null;
+  const sourceGroupValid=targetSourceGroup &&
+    Number.isSafeInteger(targetSourceGroup.ordinal) &&
+    Number.isSafeInteger(targetSourceGroup.index) &&
+    targetSourceGroup.ordinal<=10000 && targetSourceGroup.index<=40;
+  const withoutSourceGroup=sourceGroupPosition<0?rawFlags:
+    rawFlags.filter((_,i)=>i!==sourceGroupPosition && i!==sourceGroupPosition+1);
+  const mathIndex = withoutSourceGroup.indexOf('--compare-live-katex');
+  const mathFile = mathIndex < 0 ? null : withoutSourceGroup[mathIndex + 1];
+  const sansMath = mathIndex < 0 ? withoutSourceGroup :
+    withoutSourceGroup.filter((_,i) => i !== mathIndex && i !== mathIndex + 1);
   const offlineIndex = sansMath.indexOf('--offline-output');
   const offlineDir = offlineIndex < 0 ? null : sansMath[offlineIndex + 1];
   const flags = offlineIndex < 0 ? sansMath : sansMath.filter((_,i) =>
@@ -616,12 +631,14 @@ async function run(args) {
       (sourceCardActions && (!observeInteractions || !flags.includes('--sweep'))) ||
       (trustedSourceCardActions && (!observeInteractions || !flags.includes('--sweep'))) ||
       (sourceCardActions && trustedSourceCardActions) ||
+      (sourceGroupPositions.length>1) ||
+      (sourceGroupPosition>=0 && (!trustedSourceCardActions || !sourceGroupValid)) ||
       (readinessOnly && (flags.some(x=>x!=='--headless' &&
         x!=='--readiness-only') || mathIndex>=0 || offlineIndex>=0)) ||
       (offlineIndex >= 0 && (offlineIndex !== sansMath.length - 2 || !offlineDir ||
         !flags.includes('--sweep') || !flags.includes('--capture-image-bodies'))) ||
       flags.some(x => !['--headless','--sweep','--compare-image-urls','--capture-image-bodies','--capture-static-bodies','--observe-interactions','--probe-source-card-actions','--probe-trusted-source-card-actions','--readiness-only'].includes(x))) {
-    process.stderr.write('Usage: node render-probe.mjs <url> <output-dir> [--sweep] [--headless] [--compare-image-urls] [--capture-image-bodies] [--capture-static-bodies] [--observe-interactions] [--probe-source-card-actions] [--probe-trusted-source-card-actions] [--offline-output <new-dir>] [--compare-live-katex <reading-index.html>] [--readiness-only]\n');
+    process.stderr.write('Usage: node render-probe.mjs <url> <output-dir> [--sweep] [--headless] [--compare-image-urls] [--capture-image-bodies] [--capture-static-bodies] [--observe-interactions] [--probe-source-card-actions] [--probe-trusted-source-card-actions] [--source-group <ordinal:index>] [--offline-output <new-dir>] [--compare-live-katex <reading-index.html>] [--readiness-only]\n');
     return 2;
   }
   const parsed = new URL(url);
@@ -805,7 +822,7 @@ async function run(args) {
           await interactionModule.sampleLiveShareInteractions(cdp,sid,log.record,
             sourceCardModule ? sourceCardModule.probeSourceCardIntent :
             trustedCardModule ? trustedCardModule.probeTrustedSourceGroup : null,
-            trustedSourceCardActions);
+            trustedSourceCardActions,targetSourceGroup);
         if (sampleMath) await sampleMath();
       } : null;
       const observation=await sweep(cdp,sid,log.record,sampleLive,
