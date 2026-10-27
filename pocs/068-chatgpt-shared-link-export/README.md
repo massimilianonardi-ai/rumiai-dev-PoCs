@@ -1011,3 +1011,40 @@ including URLs, browser profile, HTML and resource bodies, is private and
 must not be uploaded or committed. Preserve earlier accepted files and use
 a fresh output path for any later rendering. Do not treat the new capture
 as visual acceptance until the archived text and source popovers are checked.
+
+
+## Interactive observation result and nested-label correction (2026-10-27)
+
+The operator executed the real Chromium opt-in capture at
+\`/home/admino/chatgpt-share2-interactive-QelaT13q\`.
+The physical run passed both dedicated test cases, recorded 59 turn snapshots,
+completed the sweep, attempted eight source-group hovers, and found
+**four distinct HTTPS anchors after two hovers** (one on ordinal 2,
+one on ordinal 6). No individual link-to-pill ownership was established,
+and two hovers on ordinal 4 yielded no new anchors. Crucially,
+\`expandedClickAttempts=0\` and no expansion errors were observed.
+
+Source inspection showed the previous show-more detector compared exact
+\`button.textContent\` despite the visible "Mostra di più" label belonging
+to a nested \`span\`. The opt-in detector now checks exact normalized
+**leaf-span labels** as well as the button, counts candidate buttons and
+label matches, and clicks only those below \`[data-can-expand]\`.
+The summary adds \`expandCandidates\` and \`expandLabelsMatched\`.
+A synthetic DOM-control regression covers an aggregate button text that
+contains additional hidden text; real Chromium expansion remains pending.
+
+To assess the *existing* interaction capture without another navigation:
+
+    node inspect-source-hover-attribution.mjs \
+      /home/admino/chatgpt-share2-interactive-QelaT13q
+
+The counts-only report tests each source-hover event's captured URLs against
+the \`+N\` numeric expectation in the latest verified turn snapshot, using
+the same leaf-span ordering as the hover sampler. Numerical agreement is
+**not proof of URL ownership**: portal links can arise from other controls,
+and some groups remain unobserved. Never publish \`events.jsonl\`.
+
+To verify the corrected show-more detector requires a **new** private
+opt-in Chromium run with \`--observe-interactions\`. Preserve all prior
+captures, accepted views and the accepted diagram. The actual offline
+buttons have not yet been replaced by a verified standalone behavior.

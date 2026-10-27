@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {sampleLiveShareInteractions,summarizeLiveShareInteractions}
+import {liveExpandMessages,sampleLiveShareInteractions,summarizeLiveShareInteractions}
   from '../inspect-live-share-interactions.mjs';
 
 test('live interaction observation records private URLs but CLI summary excludes them',
@@ -49,4 +49,33 @@ test('failed live interactions are explicitly reported without source data', asy
   assert.deepEqual(recorded.map(e=>e.kind),
     ['interaction.show-more-unavailable','interaction.source-hover-unavailable']);
   assert.ok(!JSON.stringify(recorded).includes('private browser exception'));
+});
+
+
+test('finds a nested show-more label despite additional button text', () =>
+{
+  let clicked=0;
+  const leaf={children:[],textContent:'Mostra di più'};
+  const button={textContent:'Mostra di più Mostra meno',
+    querySelectorAll(selector){assert.equal(selector,'span');return [leaf];},
+    closest(selector){assert.equal(selector,'[data-can-expand]');return {};},
+    click(){clicked++;}
+  };
+  const former=globalThis.document;
+  try
+  {
+    globalThis.document={querySelectorAll(selector)
+    {
+      assert.match(selector,/data-conversation-preview-interactive/);
+      return [button];
+    }};
+    const result=liveExpandMessages();
+    assert.deepEqual(result,{candidates:1,labelMatches:1,clicked:1});
+    assert.equal(clicked,1);
+  }
+  finally
+  {
+    if(former===undefined)delete globalThis.document;
+    else globalThis.document=former;
+  }
 });
