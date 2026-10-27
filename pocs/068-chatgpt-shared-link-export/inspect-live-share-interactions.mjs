@@ -155,7 +155,7 @@ export function summarizeLiveShareInteractions(captureDir)
   const data=fs.readFileSync(path.join(captureDir,'events.jsonl'),'utf8');
   const totals={expandCandidates:0,expandLabelsMatched:0,expandedClickAttempts:0,sourceHoverAttempts:0,
     sourceHoversWithNewAnchors:0,scopedSourcePopovers:0,
-    verifiedCountMatches:0,distinctCapturedTargetUrls:0,
+    scopedCountMatches:0,distinctCapturedTargetUrls:0,
     userExpansionErrors:0,sourceHoverErrors:0};
   const urls=new Set(), byOrdinal=new Map();
   for(const line of data.split(/\r?\n/).filter(Boolean))
@@ -180,7 +180,7 @@ export function summarizeLiveShareInteractions(captureDir)
       if(Number.isSafeInteger(e.expectedSources) &&
           e.expectedSources===(e.links||[]).length && e.links.length>0 &&
           ['aria-controls','single-new-popup'].includes(e.scopeType))
-        totals.verifiedCountMatches++;
+        totals.scopedCountMatches++;
       const ordinal=Number(e.ordinal);
       if(Number.isSafeInteger(ordinal) && ordinal>=0)
       {

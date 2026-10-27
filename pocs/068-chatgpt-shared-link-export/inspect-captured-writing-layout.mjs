@@ -26,7 +26,7 @@ function describe(node)
     dataComponent:node.getAttribute('data-d-component')||null,
     styleKeys:styleKeys(node),
     hasStyle:node.hasAttribute('style'),
-    styleAttributePresent:node.hasAttribute('class'),
+    hasClassAttribute:node.hasAttribute('class'),
     directChildren:node.children.length,
     parentIsTurn:node.parentElement?.hasAttribute('data-turn-id-container')||false
   };
