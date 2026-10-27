@@ -1708,3 +1708,51 @@ Do not change the already working multi-link +N disclosures, accepted
 diagram, table, user previews, original CSS or inert CSP until exact
 provenance and structural ownership are known. Keep the accepted source
 archive available for regression comparison.
+
+
+## Offline citation and asset provenance follow-up (2026-10-27)
+
+The operator ran \`inspect-offline-link-controls.mjs\` on the actual
+latest linked offline page at PoC revision \`13eb6e7\`: **2/2 fixture
+tests passed**. The page contains 8 native +N disclosures and all 19
+HTTPS source anchors, correctly labelled, each disclosure has a native
+summary and an SVG in its summary, but **all 19 submenu links lack
+icon elements**. Four separate \`Fonti\` buttons have no href or native
+expand/collapse state. Nine \`aria-haspopup\` elements outside the
+restored +N controls are single-citation *candidates*, not verified
+links (8 spans and 1 button). The page includes **24 remote IMG
+references** and 9 absolute SVG-use references. With
+\`script-src 'none'\`, remaining original React-only buttons cannot
+be made functional simply by preserving the original markup. This is
+user-observed browser evidence plus structural evidence; it is not
+proof of source URL ownership for singleton citations or \`Fonti\`.
+
+\`inspect-offline-control-provenance.mjs\` is a distinct read-only
+private-safe inspector for the existing linked offline output plus
+previously recorded private captures. It reports the DOM role/parent
+of the four \`Fonti\` controls and singleton popup candidates, along
+with how many external IMG URLs can be matched by **exact HTTPS URL
+and a verified SHA-256 file body** in those captures. Same-session
+request identity is required; one request/body mismatch, corrupt
+file or conflicting hash is counted and not accepted. It does not
+rewrite the offline HTML, fetch any website, associate icons with
+citation targets, open a source popup or print raw URLs/text/hashes.
+
+Normal run from the PoC root after \`git pull --ff-only\` and the
+focused fixture tests:
+
+    node --test tests/offline-control-provenance.test.mjs
+    STYLED_DIR="$(find "$HOME" -maxdepth 1 -type d -name 'chatgpt-share2-linked-*' -printf '%T@ %p\n' | sort -nr | head -n 1 | cut -d' ' -f 2-)"
+    test -f "$STYLED_DIR/index.html"
+    node inspect-offline-control-provenance.mjs "$STYLED_DIR" \
+      /home/admino/chatgpt-share2-interactive-m8xthV9A \
+      /home/admino/chatgpt-share2-targets-WiF0gU8j \
+      /home/admino/chatgpt-share2-trusted-jmYoPJvJ \
+      /home/admino/chatgpt-share2-trusted-XPK0vYAM \
+      /home/admino/chatgpt-share2-targeted-vdv4T3G3
+
+This report is the prerequisite for choosing whether already verified
+image bytes can be reused. Do not substitute a site's favicon from a
+different URL, synthesize citation URL ownership or weaken the offline
+CSP. Maintain the operator-accepted eight multi-source disclosures,
+original CSS, diagram, cost table and message-preview semantics.
