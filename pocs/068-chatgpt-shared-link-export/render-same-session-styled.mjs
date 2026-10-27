@@ -6,6 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {assemble} from './assemble-rendered-dom.mjs';
 import {localize} from './localize-rendered-resources.mjs';
+import {restoreUserPreviewControls,previewToggleCss} from './offline-preview-controls.mjs';
 
 const sha256 = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const staticName = /^static\/([a-f0-9]{64})\.(css|woff2)$/;
@@ -134,7 +135,7 @@ export function renderSameSessionStyled(captureDir, outputDir)
   {
     const resources = materializeSameSessionResources(capture, path.join(workspace, 'archive'));
     const assembled = path.join(workspace, 'assembled');
-    const assembly = assemble(capture, assembled);
+    const assembly = assemble(capture, assembled, null, {preferExpandedPreviews:true});
     // The generic evidence viewer disables pointer interactions. Permit links and
     // CSS hover on buttons in this alternative output; scripts remain CSP-blocked.
     const documentFile = path.join(assembled, 'index.html');
@@ -142,20 +143,46 @@ export function renderSameSessionStyled(captureDir, outputDir)
     const neutral = original.replace(
       'table{border-collapse:collapse}td,th{border:1px solid #bbb;padding:6px}', '');
     if (neutral === original) throw Error('Unexpected assembly table fallback CSS');
-    const edited = neutral.replace('button,input,a{pointer-events:none}',
+    let edited = neutral.replace('button,input,a{pointer-events:none}',
       'input{pointer-events:none}');
     if (neutral === edited) throw Error('Unexpected assembly pointer CSS');
+    // Only transform verified isolated user-turn snapshots. Assistant SVG,
+    // tables and CSS remain byte-identical to the accepted source frames.
+    const audit=JSON.parse(fs.readFileSync(path.join(assembled,'audit.json'),'utf8'));
+    let restoredPreviews=0,initiallyExpandedPreviews=0;
+    for(const turn of audit.turns)
+    {
+      const source=fs.readFileSync(path.join(capture,turn.selected.file),'utf8');
+      if(!source.includes('data-can-expand'))continue;
+      const changed=restoreUserPreviewControls(source,turn.ordinal);
+      if(!changed.converted)continue;
+      if(!edited.includes(source))throw Error('Selected user preview not present in assembly');
+      edited=edited.replace(source,changed.html);
+      restoredPreviews+=changed.converted;
+      initiallyExpandedPreviews+=changed.initiallyExpanded;
+    }
     fs.writeFileSync(documentFile, edited, {mode:0o600});
     const stage = path.join(workspace, 'output');
     const localization = localize(assembled, path.join(workspace, 'archive'), stage);
+    if(restoredPreviews)
+    {
+      const file=path.join(stage,'index.html');
+      const html=fs.readFileSync(file,'utf8');
+      if(!html.includes('</head>'))throw Error('Missing document head');
+      fs.writeFileSync(file,html.replace('</head>',
+        '<style id="poc068-preview-controls">'+previewToggleCss+'</style></head>'),
+        {mode:0o600});
+    }
     fs.renameSync(stage, output);
     return {status:'original-css-offline-preview', output,
       capturedTurnCount:assembly.turns, missingOrdinals:assembly.missingOrdinals,
+      restoredPreviews,initiallyExpandedPreviews,
       resources, localizedStylesheets:localization.stylesheets,
       unresolvedStaticReferences:localization.unresolved,
       limitations:['Original JavaScript and React state are not replayed',
         'CSS without its original DOM ancestors and theme may render differently',
         'Sources without an exact saved response remain unavailable',
+        'Local HTML/CSS preview toggles require physical browser verification',
         'Visual fidelity, source-link expansion and RAW completeness require physical checking']};
   }
   finally {fs.rmSync(workspace, {recursive:true, force:true});}

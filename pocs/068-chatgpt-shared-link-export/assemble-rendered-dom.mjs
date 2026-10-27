@@ -39,6 +39,7 @@ function refs(html) {
 
 export function assemble(captureDir, outputDir, rawPath = null, options = {}) {
   const imagePreview = options.includeUnidentifiedImages === true;
+  const preferExpandedPreviews = options.preferExpandedPreviews === true;
   const capture = path.resolve(captureDir);
   const output = path.resolve(outputDir);
   if (output === capture || output.startsWith(capture + path.sep))
@@ -88,13 +89,20 @@ export function assemble(captureDir, outputDir, rawPath = null, options = {}) {
       turns.set(event.turnId, turn);
     }
     if (turn.ordinal !== indices[0]) throw Error('Changing ordinal for ' + event.turnId);
+    const expandedPreview = preferExpandedPreviews && !unidentified &&
+      html.includes('data-can-expand') && html.includes('data-expanded') &&
+      html.includes('aria-expanded="true"');
     const version = {sequence: event.sequence, file: event.file,
       sha256: hash, bytes: bytes.length, messageIds: event.messageIds,
-      ...(imagePreview ? {kind: event.kind} : {})};
+      ...(imagePreview ? {kind: event.kind} : {}),
+      ...(preferExpandedPreviews ? {expandedPreview} : {})};
     turn.versions.push(version);
     const previousUnidentified = turn.selected?.kind === 'turn.unidentified-snapshot';
     if (!turn.selected || (previousUnidentified && !unidentified) ||
-        (previousUnidentified === unidentified && event.sequence > turn.selected.sequence))
+        (previousUnidentified === unidentified &&
+          ((preferExpandedPreviews && expandedPreview && !turn.selected.expandedPreview) ||
+           ((!preferExpandedPreviews || expandedPreview === turn.selected.expandedPreview) &&
+            event.sequence > turn.selected.sequence))))
       turn.selected = {...version, html};
   }
   const ordered = [...turns.values()].sort((a, b) => a.ordinal - b.ordinal);
@@ -130,8 +138,11 @@ export function assemble(captureDir, outputDir, rawPath = null, options = {}) {
     provisionalImagePreview: imagePreview,
     unidentifiedImageTurns: ordered.filter(t => t.selected.kind === 'turn.unidentified-snapshot').length,
     selection: imagePreview ? 'latest image-bearing unidentified turn snapshot; message-qualified versions preferred' :
+      preferExpandedPreviews ? 'most recent expanded preview when available; otherwise latest per turn' :
       'latest snapshot by event sequence for each turn',
     recordedSnapshots: observations.length, capturedTurnCount: ordered.length,
+    ...(preferExpandedPreviews ? {selectedExpandedPreviewTurns:
+      ordered.filter(turn=>turn.selected.expandedPreview).length} : {}),
     capturedMessageCount: capturedIds.length, ordinalRange: [ordinals[0], ordinals.at(-1)],
     missingOrdinals, rawComparison,
     limitations: ['No live React component state or interactive behavior',

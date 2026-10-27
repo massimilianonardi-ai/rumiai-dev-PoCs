@@ -1048,3 +1048,51 @@ To verify the corrected show-more detector requires a **new** private
 opt-in Chromium run with \`--observe-interactions\`. Preserve all prior
 captures, accepted views and the accepted diagram. The actual offline
 buttons have not yet been replaced by a verified standalone behavior.
+
+
+## Native offline user-preview expansion from verified expanded frames (2026-10-27)
+
+The operator executed the fixed opt-in live capture at
+\`/home/admino/chatgpt-share2-interactive-m8xthV9A\`. Four physical Node
+tests passed. In this capture the source page recognized five expandable
+preview candidates, matched all five labels and attempted five original
+React clicks. The selected turn-1 and turn-9 frames showed
+\`aria-expanded=true\` and \`data-expanded\`; turn 5 was collapsed again
+in its latest frame. These results **do not prove** completeness of
+the text or a working offline preview by themselves.
+
+The styled renderer now **optionally prefers an earlier verified expanded
+snapshot** for a user turn over a later collapsed remount. The generic
+\`assemble-rendered-dom.mjs\` behavior remains unchanged unless called
+with \`preferExpandedPreviews:true\`. In the styled view only, user
+\`[data-can-expand]\` previews are rendered with native checkbox/label
+controls (no scripts) and local CSS targeted exclusively to those
+previews. The original user text and graphical assets remain in the DOM.
+An expanded source preview opens by default and may be collapsed; a
+collapsed one opens when “Mostra di più” is activated. Other turns
+including the accepted assistant diagram are not parsed or modified.
+The visual result, click interaction and text coverage **require physical
+operator verification**.
+
+From the PoC root:
+
+    git pull --ff-only
+    node --test tests/offline-preview-controls.test.mjs \
+      tests/same-session-styled.test.mjs
+    umask 077
+    STYLED_DIR="$(mktemp -d "$HOME/chatgpt-share2-preview-XXXXXXXX")"
+    rmdir "$STYLED_DIR"
+    node render-same-session-styled.mjs \
+      /home/admino/chatgpt-share2-interactive-m8xthV9A "$STYLED_DIR"
+    xdg-open "$STYLED_DIR/index.html"
+
+The result reports \`restoredPreviews\` and
+\`initiallyExpandedPreviews\`. A positive number means controls were
+transformed, **not** that their display has been physically accepted.
+Verify the long user messages in turns 1, 5 and 9, the accepted diagram
+and cost-per-token table. The CSS overrides apply after all captured
+static stylesheet links, to counteract clipping by original outer
+containers. Original CSS body hashes and semantic reading output are
+preserved. The source-pill \`+N\` popovers are still unresolved: only
+one of eight hover groups had a numerically matching link count, and
+numeric agreement does not prove provenance. Do not fabricate links.
