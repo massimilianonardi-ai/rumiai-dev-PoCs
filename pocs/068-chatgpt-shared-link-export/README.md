@@ -1663,3 +1663,48 @@ five-input rendering command (one styled capture + four private link
 evidence captures) in a fresh output directory. If parsing the real
 capture exposes a further mismatch, report only the sanitized
 exception; never publish raw HTML or private source URLs.
+
+
+## Offline citations, source controls and missing icons: operator review (2026-10-27)
+
+The operator physically confirmed that the latest opt-in linked HTML opens
+and that the *multi-link citation* groups expand/collapse and their HTTPS
+links work. However, the favicon-style icons in those groups are absent
+(the destination website shows its own icon when opened), citations with
+a **single link** do not open their destination, and separate **"Fonti"**
+controls do not expand/collapse. These three UI categories must not be
+conflated with the already verified 8 groups / 19 URL intents. The
+existing `offline-source-controls.mjs` only builds native disclosures
+for +N source-pill groups; each source anchor is explicitly generated
+with a hostname label and **no icon element**, so missing icons in
+those generated lists are a current implementation gap, not evidence
+that an original favicon was captured.
+
+The separate, read-only `inspect-offline-link-controls.mjs` inspects a
+**local generated output directory**, not live ChatGPT. It reports
+counts by turn for standalone "Fonti"/"Sources" controls,
+single-citation-like buttons, buttons/anchors without href,
+native +N disclosure counts, missing icon elements, original img and
+SVG-use resources, CSS URLs and relevant CSP flags. Remote, local and
+missing image references are distinguished without exposing actual
+URLs, messages, CSS declarations or file paths. A button without an
+href is **not automatically a broken link**; it may have had React
+onClick behavior, now inert because the archive preserves
+`script-src 'none'`. Likewise an original external favicon reference
+does not prove a local byte was captured. Only an actual Chromium
+interaction test can prove rendering, visibility and navigation.
+
+From the PoC directory, inspect the latest private linked archive:
+
+    node --test tests/offline-link-controls.test.mjs
+    STYLED_DIR="$(find "$HOME" -maxdepth 1 -type d -name 'chatgpt-share2-linked-*' -printf '%T@ %p\n' | sort -nr | head -n 1 | cut -d' ' -f 2-)"
+    test -f "$STYLED_DIR/index.html"
+    node inspect-offline-link-controls.mjs "$STYLED_DIR"
+
+Never paste the private HTML, raw URLs or message text. Use the sanitized
+report to determine which original controls still need independent
+source-to-URL evidence before converting them to native anchors/details.
+Do not change the already working multi-link +N disclosures, accepted
+diagram, table, user previews, original CSS or inert CSP until exact
+provenance and structural ownership are known. Keep the accepted source
+archive available for regression comparison.
