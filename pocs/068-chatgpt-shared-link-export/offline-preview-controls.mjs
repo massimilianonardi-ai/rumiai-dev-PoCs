@@ -21,7 +21,7 @@ export const previewToggleCss=[
 export function restoreUserPreviewControls(snapshotHtml,ordinal)
 {
   if (!snapshotHtml.includes('data-can-expand'))
-    return {html:snapshotHtml,converted:0,initiallyExpanded:0};
+    return {html:snapshotHtml,converted:0,sourceExpanded:0,initiallyExpanded:0};
   const {document}=parseHTML(snapshotHtml);
   const root=document.querySelector('[data-turn-id-container]');
   if(!root)throw Error('Expected isolated captured turn');
@@ -45,7 +45,9 @@ export function restoreUserPreviewControls(snapshotHtml,ordinal)
     toggle.setAttribute('class','poc068-toggle');
     toggle.setAttribute('id',id);
     toggle.setAttribute('aria-label',english?'Show full message':'Mostra il messaggio completo');
-    if(expanded){toggle.setAttribute('checked','');initiallyExpanded++;}
+    // Expanded capture supplies complete content, not the initial UI state.
+    // The archive must begin collapsed, independent of React's snapshot state.
+    if(expanded) initiallyExpanded++;
     preview.insertBefore(toggle,preview.firstChild);
     const label=document.createElement('label');
     label.setAttribute('for',id);
@@ -65,8 +67,13 @@ export function restoreUserPreviewControls(snapshotHtml,ordinal)
       label.appendChild(span);
     }
     button.replaceWith(label);
+    // Retain all captured text but normalize stale React state so the native
+    // checkbox, not [data-expanded] CSS, controls the visual presentation.
+    preview.removeAttribute('data-expanded');
+    preview.setAttribute('data-collapsed','true');
     preview.setAttribute('data-poc068-preview','');
     converted++;
   }
-  return {html:converted?root.outerHTML:snapshotHtml,converted,initiallyExpanded};
+  return {html:converted?root.outerHTML:snapshotHtml,converted,
+    sourceExpanded:initiallyExpanded,initiallyExpanded:0};
 }

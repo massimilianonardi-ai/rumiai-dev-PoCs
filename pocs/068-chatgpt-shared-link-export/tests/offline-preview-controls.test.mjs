@@ -24,6 +24,7 @@ test('native checkbox and label replace React button on an isolated user turn',(
   const out=restoreUserPreviewControls(userTurn(false),0);
   assert.equal(out.converted,1);
   assert.equal(out.initiallyExpanded,0);
+  assert.equal(out.sourceExpanded,0);
   const {document}=parseHTML(out.html);
   assert.equal(document.querySelectorAll('button').length,0);
   assert.equal(document.querySelectorAll('input[type="checkbox"]').length,1);
@@ -32,6 +33,16 @@ test('native checkbox and label replace React button on an isolated user turn',(
   assert.match(out.html,/Full message text stays present in DOM/);
   assert.match(previewToggleCss,/:has\(>\.poc068-toggle:checked\)/);
   assert.match(previewToggleCss,/\.poc068-less/);
+  const openSource=restoreUserPreviewControls(userTurn(true),0);
+  assert.equal(openSource.sourceExpanded,1);
+  assert.equal(openSource.initiallyExpanded,0);
+  const openDocument=parseHTML(openSource.html).document;
+  const checkbox=openDocument.querySelector('input.poc068-toggle');
+  assert.equal(checkbox.hasAttribute('checked'),false,
+    'archived preview must start closed even if the source snapshot is expanded');
+  const preview=openDocument.querySelector('[data-poc068-preview]');
+  assert.equal(preview.hasAttribute('data-expanded'),false);
+  assert.equal(preview.getAttribute('data-collapsed'),'true');
 });
 
 test('styled archive prefers verified expanded user snapshot without touching assistant diagram',()=>
@@ -46,7 +57,9 @@ test('styled archive prefers verified expanded user snapshot without touching as
     const collapsed=userTurn(false);
     const diagram='<div data-turn-id-container="assistant-turn">' +
       '<div data-testid="conversation-turn-1" data-message-id="assistant-message">' +
-      '<svg id="accepted-diagram"><path d="M2 2"/></svg></div></div>';
+      '<svg id="accepted-diagram"><path d="M2 2"/></svg>' +
+      '<div style="--writing-block-editor-pl:0px">Scrittura - example text</div>' +
+      '</div></div>';
     const records=[];
     for(const [html,turnId,messageId,sequence] of [
       [expanded,'user-turn','user-message',1],
@@ -70,11 +83,19 @@ test('styled archive prefers verified expanded user snapshot without touching as
     const result=renderSameSessionStyled(capture,output);
     assert.equal(result.capturedTurnCount,2);
     assert.equal(result.restoredPreviews,1);
-    assert.equal(result.initiallyExpandedPreviews,1);
+    assert.equal(result.initiallyExpandedPreviews,0);
+    assert.equal(result.sourceExpandedPreviews,1);
+    assert.equal(result.writingEditorCandidates,1);
     const html=fs.readFileSync(path.join(output,'index.html'),'utf8');
     assert.ok(html.includes(diagram),'accepted assistant graphic stays byte-identical');
-    assert.match(html,/input[^>]*poc068-toggle[^>]*checked/);
-    assert.match(html,/poc068-preview-controls/);
+    const archived=parseHTML(html).document;
+    assert.equal(archived.querySelector('input.poc068-toggle').hasAttribute('checked'),
+      false,'preview is initially closed but content must remain present');
+    assert.equal(archived.querySelector('[data-poc068-preview]').hasAttribute('data-expanded'),
+      false);
+    assert.match(html,/poc068-offline-adjustments/);
+    assert.match(html,/#cumulative-turns \[style\*="--writing-block-editor-pl"\]/);
+    assert.match(html,/padding-inline-start:1rem!important/);
     assert.match(html,/script-src 'none'/);
     assert.ok(!html.includes('td,th{border:1px solid #bbb;padding:6px}'));
   }

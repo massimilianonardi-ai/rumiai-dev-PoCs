@@ -1096,3 +1096,50 @@ containers. Original CSS body hashes and semantic reading output are
 preserved. The source-pill \`+N\` popovers are still unresolved: only
 one of eight hover groups had a numerically matching link count, and
 numeric agreement does not prove provenance. Do not fabricate links.
+
+
+## Default collapsed previews and writing-editor inset (2026-10-27)
+
+Operator validation of the native preview controls: expand/collapse now works,
+but captured-expanded long user messages opened **expanded by default**.
+The requirement is to start collapsed in the offline output, irrespective
+of which source DOM snapshot was chosen for maximum content coverage.
+
+The native checkbox is therefore always initially **unchecked**. The
+user-preview wrapper has stale React \`data-expanded\` state removed and
+\`data-collapsed\` set, while preserving the contents from the preferred
+expanded snapshot. Clicking the native label still reveals or hides that
+complete text. \`sourceExpandedPreviews\` counts chosen original expanded
+snapshots; \`initiallyExpandedPreviews\` now reports zero. This intentionally
+changes only the opt-in styled archive, not the accepted semantic renderer.
+
+In the block following "Una richiesta sperimentale potrebbe essere questa:",
+the captured "Scrittura" writing editor had no readable left inset in the
+offline preview. The existing captured inline declaration
+\`--writing-block-editor-pl\` identifies the editor surface. A tightly
+scoped offline CSS fallback adds a 1rem logical left/right inset **only**
+to elements carrying that original custom property. The original CSS and
+diagram DOM are not modified. \`writingEditorCandidates\` counts elements
+matching the archived inline style, but does not establish visual fidelity.
+
+The user's optional copy controls are deferred: the current archive
+deliberately enforces \`script-src 'none'\`. Recreating dynamic clipboard
+actions would require a new explicitly scoped and tested interaction
+mechanism, not simply enabling archived React buttons. Normal browser
+select/copy remains available.
+
+Re-render the existing private source without another acquisition:
+
+    git pull --ff-only
+    node --test tests/offline-preview-controls.test.mjs \
+      tests/same-session-styled.test.mjs
+    umask 077
+    STYLED_DIR="$(mktemp -d "$HOME/chatgpt-share2-preview-XXXXXXXX")"
+    rmdir "$STYLED_DIR"
+    node render-same-session-styled.mjs \
+      /home/admino/chatgpt-share2-interactive-m8xthV9A "$STYLED_DIR"
+    xdg-open "$STYLED_DIR/index.html"
+
+Verify closed-by-default + functional expansion, writing-editor body inset,
+the preserved accepted diagram and table styling. This correction is
+not physically accepted until tested on vmdev and inspected visually.
