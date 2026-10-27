@@ -93,11 +93,19 @@ export function captureSignatures(capture)
   }
   return found;
 }
-export function auditSourceGroupIdentity(captures)
+export function auditSourceGroupIdentity(captures,evidenceCaptures=captures)
 {
   if(!Array.isArray(captures)||captures.length<2)
     throw Error('At least two separate private captures are required');
-  const evidence=collectTrustedSourceEvidence(captures);
+  if(!Array.isArray(evidenceCaptures)||!evidenceCaptures.length ||
+    evidenceCaptures.some(capture=>
+      !captures.some(sample=>path.resolve(sample)===path.resolve(capture))))
+    throw Error('Source evidence captures must belong to the identity capture set');
+  // Older original-CSS capture sessions can provide valid DOM snapshots but
+  // predate expectedSources source-hover events. Verify message identity from
+  // all captures, while requiring source count and link evidence only from
+  // the explicit validated navigation-observation capture set.
+  const evidence=collectTrustedSourceEvidence(evidenceCaptures);
   const sourceSets=captures.map(captureSignatures);
   const groups=evidence.groups.map(group=>{
     const seen=[];

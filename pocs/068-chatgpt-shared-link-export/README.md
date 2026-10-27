@@ -1585,3 +1585,42 @@ long-user-message collapse controls, the cost table, and the unmodified
 original CSS on the "Scrittura" writing block. The new source controls
 are **not yet operator-accepted** until the physical test and visual
 comparison succeed. RAW/full-conversation completeness remains separate.
+
+
+## Legacy source-hover compatibility for styled archive (2026-10-27)
+
+Physical vmdev test on `45eeda7` passed **15/15 focused Node tests**.
+However, rendering against the previously accepted styled source capture
+`/home/admino/chatgpt-share2-interactive-m8xthV9A` stopped before
+creating an output with **`Invalid expected source count`**.
+The opt-in renderer accidentally included that old styled-capture event
+stream in the strict navigation/source-count evidence collector. This
+older snapshot capture is valid for CSS, DOM and message identity but its
+`interaction.source-hover` events predate the `expectedSources` field.
+The four separately validated navigation captures already verify 19/19
+targets and must remain the only input to source-link attribution.
+
+The fix preserves strict verification, **separating evidence purposes**:
+`auditSourceGroupIdentity(identityCaptures,evidenceCaptures)` reads
+hashed turn/message snapshots from **all** identity captures (including
+the old styled source) but reads source-count and URL evidence only from
+the explicitly supplied, complete navigation captures. Both capture
+sets are checked for consistency; source evidence directories must
+belong to the identity set. Existing CLI and one-argument use continue
+to require source evidence from every input, unchanged.
+
+The styled renderer now calls the identity audit with
+`[...navigationEvidenceDirs, styledCapture]` and the independent
+`navigationEvidenceDirs`. The source-linked output remains opt-in
+and fail-closed; the exact selected source turn still must pass its
+fingerprint check before any source control is written. The integration
+test fixture now includes a legacy `interaction.source-hover`
+without `expectedSources` in its styled capture, which reproduces
+the prior failure. No CSS, renderer output defaults, source URL values,
+original user preview behavior or accepted diagrams are changed.
+
+On vmdev rerun the focused source/identity/styled tests, then repeat
+the same `render-same-session-styled.mjs ... --sources ...` command
+with a new private output directory. No new Chromium acquisition
+is necessary. Report a sanitized error if another strict check fails
+rather than patching the original snapshots.

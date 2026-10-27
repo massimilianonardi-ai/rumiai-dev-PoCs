@@ -31,8 +31,10 @@ function store(root,name,actions=false,incomplete=false)
   const rows=[{kind:'turn.snapshot',sequence:1,turnId:'assistant-turn',
     messageIds:['assistant-message'],sha256:digest,bytes:bytes.length,
     file:'turns/'+digest+'.html'},
+    // The styled source capture predates the source-card count observer.
+    // It is valid identity evidence, but not source-count/URL evidence.
     {kind:'interaction.source-hover',sequence:2,
-      ordinal:2,index:0,expectedSources:2}];
+      ordinal:2,index:0,...(name==='styled'?{}:{expectedSources:2})}];
   if(actions)rows.push({kind:'interaction.trusted-source-card-intents',
     ordinal:2,groupIndex:0,expectedSources:2,
     attempts:(incomplete?[0]:[0,1]).map(index=>({
@@ -93,6 +95,9 @@ test('styled source mode is opt-in, preserves accepted diagram and keeps CSP ine
    assert.ok(!normalHtml.includes('poc068-source-controls'));
 
    const out=path.join(root,'with-links');
+   // Legacy source-hover without expectedSources in the styled capture must
+   // not be interpreted as navigation evidence. Its hashed DOM content still
+   // participates in the cross-capture identity check.
    const result=renderSameSessionStyled(styled,out,[first,second]);
    assert.equal(result.restoredSources,1);
    assert.equal(result.sourceLinks,2);

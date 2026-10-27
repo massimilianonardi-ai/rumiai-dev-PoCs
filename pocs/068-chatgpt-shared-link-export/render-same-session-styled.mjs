@@ -136,7 +136,7 @@ export function renderSameSessionStyled(captureDir, outputDir, evidenceDirs = []
   const sourceEvidence=evidenceDirs.length?
     collectTrustedSourceEvidence(evidenceDirs):null;
   const identity=evidenceDirs.length?
-    auditSourceGroupIdentity([...evidenceDirs,capture]):null;
+    auditSourceGroupIdentity([...evidenceDirs,capture],evidenceDirs):null;
   if(sourceEvidence && (!identity.safeToRestore ||
      sourceEvidence.groups.length===0 ||
      sourceEvidence.groups.some(group=>!group.complete)))
