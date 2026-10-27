@@ -1356,3 +1356,61 @@ using --headless --sweep --observe-interactions
 https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259 URL.
 The accepted offline HTML, diagram, CSS and long-message toggles are not
 altered. Raw events.jsonl remains private.
+
+
+## Verified per-card URLs and virtual-scroll preservation (2026-10-27)
+
+Physical vmdev capture `/home/admino/chatgpt-share2-trusted-jmYoPJvJ`,
+made with revision `27d0d7b`, passed all 11 focused Node tests and completed
+70 distinct turn snapshots. For **5 of the 8 known source-pill groups**
+(ordinals 6:0, 4:0, 2:0, 2:1, 2:2), all 10 native CDP mouse inputs were
+dispatched and all 10 resulted in per-card `window.open` attempts.
+The other three known groups (6:1, 6:2, 4:1) were not visited in
+this particular sweep; they are **not proven absent**. The three
+blocked requests are unscoped network evidence only.
+
+Cause of incomplete group coverage: when the trusted-input probe called
+`scrollIntoView` for a source pill, it moved the same virtualized scroll
+root that the main sweep was traversing. The source-specific mode now
+restores the sweep's current scroll cursor **after every sampling action**,
+preventing popup positioning from altering iteration progress. This
+cursor preservation is disabled for the normal capture, CSS acquisition
+and synthetic-click modes. A deterministic regression test exercises
+the actual sweep body with interaction-induced scroll jumps.
+
+`inspect-trusted-source-evidence.mjs` verifies private source action
+evidence without emitting URLs. It requires exactly one unambiguous
+HTTPS destination for a successfully dispatched source-card button,
+rejects invalid protocols and conflicting values across captures,
+and does not promote adjacent blocked requests to links. A separate
+previous `interaction.source-hover` capture can supply the full
+8-group catalog so missing groups are shown as missing rather than
+silently skipped. Distinct URLs are stored and processed only in
+private local files. This script does **not** yet modify the offline
+HTML; standalone source-popover restoration still requires complete
+and structurally matched evidence plus a browser acceptance check.
+
+From the PoC root, inspect the evidence **already captured**:
+
+    node inspect-trusted-source-evidence.mjs \
+      /home/admino/chatgpt-share2-targets-WiF0gU8j \
+      /home/admino/chatgpt-share2-trusted-jmYoPJvJ
+
+After pulling, run:
+
+    node --test tests/live-share-interactions.test.mjs \
+      tests/trusted-source-cards.test.mjs \
+      tests/sweep-scroll-cursor.test.mjs \
+      tests/trusted-source-evidence.test.mjs
+
+Only then perform one new **navigation-guarded** sweep with the corrected
+scroll cursor using exactly this URL:
+
+    https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259
+
+Use `--headless --sweep --observe-interactions --probe-trusted-source-card-actions`
+and a new private directory, then pass that directory alongside the two
+previous evidence directories to `inspect-trusted-source-evidence.mjs`.
+If verification reports 8/8 groups complete, the next work unit can
+implement opt-in offline links using those verified destinations.
+Never paste `events.jsonl` or private links.

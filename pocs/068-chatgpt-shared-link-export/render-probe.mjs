@@ -500,7 +500,20 @@ function recording(directory) {
 }
 
 async function sweep(cdp, sid, record, onSample = null, onProgress = null,
-    shouldStop = () => false) {
+    shouldStop = () => false, preserveSweepCursor = false) {
+  // Interactive source-card tests may call scrollIntoView on their popup
+  // trigger. Keep that side-effect from moving the virtualized sweep cursor.
+  async function sampleWithoutMovingCursor(cursor)
+  {
+    if(!onSample)return;
+    await onSample();
+    if(!preserveSweepCursor || !Number.isFinite(cursor))return;
+    const expr="(() => {const e=document.querySelector('[data-scroll-root]');"+
+      "if(!e)return {missing:true};e.scrollTop="+JSON.stringify(cursor)+
+      ";return {restored:e.scrollTop};})()";
+    await cdp.send('Runtime.evaluate',{expression:expr,returnByValue:true},sid,7000);
+    await pause(80);
+  }
   // Only actual scrollTop changes can cause native intersection recalculation.
   let ready = false;
   const limit = performance.now() + 120000;
@@ -534,7 +547,15 @@ async function sweep(cdp, sid, record, onSample = null, onProgress = null,
   }
   record({kind: 'sweep.started'});
   if(onProgress)onProgress('struttura pronta; avvio scorrimento');
-  if (onSample) await onSample();
+  let initialCursor=null;
+  if(preserveSweepCursor)
+  {
+    const row=await cdp.send('Runtime.evaluate',{
+      expression:"document.querySelector('[data-scroll-root]')?.scrollTop",
+      returnByValue:true},sid,7000);
+    initialCursor=Number(row.result?.value);
+  }
+  await sampleWithoutMovingCursor(initialCursor);
   if(shouldStop())return {ready:false,interrupted:true};
   const deadline=performance.now()+360000;
   for (const direction of [1, -1]) {
@@ -558,7 +579,7 @@ async function sweep(cdp, sid, record, onSample = null, onProgress = null,
       if (value.missing) break;
       stable = value.before === value.after ? stable + 1 : 0;
       await pause(350);
-      if (onSample) await onSample();
+      await sampleWithoutMovingCursor(value.after);
       if (stable >= 5) break;
     }
   }
@@ -568,7 +589,7 @@ async function sweep(cdp, sid, record, onSample = null, onProgress = null,
     return {ready:false,timedOut:true};
   }
   await pause(1200);
-  if (onSample) await onSample();
+  await sampleWithoutMovingCursor(null);
   if(shouldStop())return {ready:false,interrupted:true};
   record({kind: 'sweep.finished'});
   return {ready:true};
@@ -788,7 +809,8 @@ async function run(args) {
         if (sampleMath) await sampleMath();
       } : null;
       const observation=await sweep(cdp,sid,log.record,sampleLive,
-        mathFile ? progress : null,()=>interrupted);
+        mathFile ? progress : null,()=>interrupted,
+        trustedSourceCardActions);
       if(observation.interrupted || interrupted) {
         progress('interrotto; le misure non sono state completate');
         process.stdout.write(JSON.stringify(await stop('signal'))+'\n');
