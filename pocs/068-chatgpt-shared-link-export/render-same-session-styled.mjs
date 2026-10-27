@@ -8,14 +8,6 @@ import {assemble} from './assemble-rendered-dom.mjs';
 import {localize} from './localize-rendered-resources.mjs';
 import {restoreUserPreviewControls,previewToggleCss} from './offline-preview-controls.mjs';
 
-// The captured writing-block editor declares these original padding variables,
-// but its original parent/layout context can be absent from the offline page.
-// This fallback is scoped to that editor, not to assistant prose or SVG.
-const writingEditorPaddingCss =
-  '#cumulative-turns [style*="--writing-block-editor-pl"]{' +
-  'box-sizing:border-box;padding-inline-start:1rem!important;' +
-  'padding-inline-end:1rem!important;}';
-
 const sha256 = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const staticName = /^static\/([a-f0-9]{64})\.(css|woff2)$/;
 const imageName = /^images\/([a-f0-9]{64})\.(png|jpg|webp|gif)$/;
@@ -170,27 +162,22 @@ export function renderSameSessionStyled(captureDir, outputDir)
       initiallyExpandedPreviews+=changed.initiallyExpanded;
       sourceExpandedPreviews+=changed.sourceExpanded;
     }
-    // This is an observability count, not a visual fidelity assertion.
-    const writingEditorCandidates=(edited.match(
-      /style="[^"]*--writing-block-editor-pl[^"]*"/g)||[]).length;
     fs.writeFileSync(documentFile, edited, {mode:0o600});
     const stage = path.join(workspace, 'output');
     const localization = localize(assembled, path.join(workspace, 'archive'), stage);
+    if(restoredPreviews)
     {
       const file=path.join(stage,'index.html');
       const html=fs.readFileSync(file,'utf8');
       if(!html.includes('</head>'))throw Error('Missing document head');
-      const extraCss=(restoredPreviews?previewToggleCss+'\n':'')+
-        writingEditorPaddingCss;
       fs.writeFileSync(file,html.replace('</head>',
-        '<style id="poc068-offline-adjustments">'+extraCss+'</style></head>'),
+        '<style id="poc068-preview-controls">'+previewToggleCss+'</style></head>'),
         {mode:0o600});
     }
     fs.renameSync(stage, output);
     return {status:'original-css-offline-preview', output,
       capturedTurnCount:assembly.turns, missingOrdinals:assembly.missingOrdinals,
       restoredPreviews,initiallyExpandedPreviews,sourceExpandedPreviews,
-      writingEditorCandidates,
       resources, localizedStylesheets:localization.stylesheets,
       unresolvedStaticReferences:localization.unresolved,
       limitations:['Original JavaScript and React state are not replayed',

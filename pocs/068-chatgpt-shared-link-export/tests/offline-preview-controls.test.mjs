@@ -85,7 +85,6 @@ test('styled archive prefers verified expanded user snapshot without touching as
     assert.equal(result.restoredPreviews,1);
     assert.equal(result.initiallyExpandedPreviews,0);
     assert.equal(result.sourceExpandedPreviews,1);
-    assert.equal(result.writingEditorCandidates,1);
     const html=fs.readFileSync(path.join(output,'index.html'),'utf8');
     assert.ok(html.includes(diagram),'accepted assistant graphic stays byte-identical');
     const archived=parseHTML(html).document;
@@ -93,9 +92,10 @@ test('styled archive prefers verified expanded user snapshot without touching as
       false,'preview is initially closed but content must remain present');
     assert.equal(archived.querySelector('[data-poc068-preview]').hasAttribute('data-expanded'),
       false);
-    assert.match(html,/poc068-offline-adjustments/);
-    assert.match(html,/#cumulative-turns \[style\*="--writing-block-editor-pl"\]/);
-    assert.match(html,/padding-inline-start:1rem!important/);
+    assert.match(html,/poc068-preview-controls/);
+    assert.ok(!html.includes('padding-inline-start:1rem!important'),
+      'original CSS wins; do not recreate editor spacing with arbitrary overrides');
+    assert.ok(html.includes('--writing-block-editor-pl:0px'));
     assert.match(html,/script-src 'none'/);
     assert.ok(!html.includes('td,th{border:1px solid #bbb;padding:6px}'));
   }

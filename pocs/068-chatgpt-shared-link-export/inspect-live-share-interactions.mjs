@@ -27,31 +27,36 @@ export function liveExpandMessages()
   }
   return {candidates,labelMatches,clicked};
 }
-function liveHoverSource()
+export function liveHoverSource()
 {
   const seen=globalThis.__rumiaiSourceHovered ||
     (globalThis.__rumiaiSourceHovered=new Set());
-  for (const wrapper of document.querySelectorAll('[data-turn-id-container]'))
+  for(const wrapper of document.querySelectorAll('[data-turn-id-container]'))
   {
     const marker=wrapper.querySelector('[data-testid^="conversation-turn-"]') ||
       (wrapper.matches('[data-testid^="conversation-turn-"]')?wrapper:null);
     const match=/^conversation-turn-(\d+)$/.exec(
       marker?.getAttribute('data-testid')||'');
-    if (!match) continue;
+    if(!match)continue;
     let index=0;
-    for (const span of wrapper.querySelectorAll('span'))
+    for(const span of wrapper.querySelectorAll('span'))
     {
-      if (span.children.length || !/^\+\d+$/.test((span.textContent||'').trim()))
-        continue;
+      const label=(span.textContent||'').trim();
+      if(span.children.length || !/^\+\d+$/.test(label))continue;
       const key=match[1]+':'+index++;
-      if (seen.has(key)) continue;
+      if(seen.has(key))continue;
       seen.add(key);
-      const trigger=span.closest('[data-d-hoverable], [role="button"],button,a') ||
-        span.parentElement?.parentElement || span.parentElement;
-      if (!trigger) continue;
-      const anchors=[...document.querySelectorAll('a[href]')]
-        .map(a=>a.href).filter(x=>x.startsWith('https://'));
-      globalThis.__rumiaiSourceHoverBefore=new Set(anchors);
+      // React popover behavior is owned by the accessible trigger, which
+      // may be several ancestors above the +N label, not by the badge div.
+      const trigger=span.closest('[aria-haspopup]');
+      if(!trigger || trigger.localName==='a')continue;
+      const popupSelector='[role="dialog"],[role="tooltip"],' +
+        '[data-radix-popper-content-wrapper]';
+      globalThis.__rumiaiSourceActive={
+        trigger, beforePopups:new Set(document.querySelectorAll(popupSelector)),
+        beforeAnchors:new Set([...document.querySelectorAll('a[href]')]
+          .map(a=>a.href).filter(href=>href.startsWith('https://')))
+      };
       try
       {
         trigger.dispatchEvent(new PointerEvent('pointerover',
@@ -60,17 +65,46 @@ function liveHoverSource()
         trigger.dispatchEvent(new MouseEvent('mouseenter',{bubbles:false}));
       }
       catch {trigger.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));}
-      return {attempted:1,ordinal:Number(match[1]),index:index-1};
+      // Only activate an explicit popup trigger; never click arbitrary links.
+      if(trigger.getAttribute('aria-expanded')!=='true')trigger.click();
+      return {attempted:1,ordinal:Number(match[1]),
+        index:index-1,expectedSources:Number(label.slice(1))+1};
     }
   }
   return {attempted:0};
 }
-function liveReadHoverLinks()
+export function liveReadHoverLinks()
 {
-  const before=globalThis.__rumiaiSourceHoverBefore||new Set();
-  const hrefs=[...document.querySelectorAll('a[href]')]
-    .map(a=>a.href).filter(x=>x.startsWith('https://')&&!before.has(x));
-  return {links:[...new Set(hrefs)].slice(0,20)};
+  const active=globalThis.__rumiaiSourceActive;
+  if(!active)return {links:[],scopeType:'none',observedNewAnchors:0};
+  const valid=(node)=>node && typeof node.querySelectorAll==='function' &&
+    (!node.getBoundingClientRect ||
+      (node.getBoundingClientRect().width>0 &&
+       node.getBoundingClientRect().height>0));
+  const hrefs=root=>[...root.querySelectorAll('a[href]')]
+    .map(a=>a.href).filter(href=>href.startsWith('https://'));
+  const newAnchors=[...new Set(hrefs(document).filter(
+    href=>!active.beforeAnchors.has(href)))];
+  const controls=active.trigger.getAttribute('aria-controls');
+  let scope=controls?document.getElementById(controls):null;
+  let scopeType=scope && valid(scope)?'aria-controls':'none';
+  const expanded=active.trigger.getAttribute('aria-expanded')==='true' ||
+    active.trigger.getAttribute('data-state')==='open';
+  if(!scopeType && expanded)
+  {
+    const selector='[role="dialog"],[role="tooltip"],' +
+      '[data-radix-popper-content-wrapper]';
+    const fresh=[...document.querySelectorAll(selector)]
+      .filter(node=>!active.beforePopups.has(node) && valid(node) &&
+        hrefs(node).length>0);
+    // Nested Radix wrappers may represent the same popup; retain only roots.
+    const outer=fresh.filter(node=>!fresh.some(other=>
+      other!==node && other.contains(node)));
+    if(outer.length===1){scope=outer[0];scopeType='single-new-popup';}
+  }
+  const links=scopeType==='none'?[]:[...new Set(hrefs(scope))].slice(0,40);
+  return {links,scopeType,triggerExpanded:expanded,
+    observedNewAnchors:newAnchors.length};
 }
 const expr=fn=>'('+fn.toString()+')()';
 export async function sampleLiveShareInteractions(cdp,sid,record)
@@ -102,9 +136,14 @@ export async function sampleLiveShareInteractions(cdp,sid,record)
       await pause(300);
       const after=await cdp.send('Runtime.evaluate',
         {expression:expr(liveReadHoverLinks),returnByValue:true},sid,7000);
-      const links=after.result?.value?.links||[];
+      const result=after.result?.value||{};
+      const links=Array.isArray(result.links)?result.links:[];
       record({kind:'interaction.source-hover',ordinal:row.ordinal,
-        index:row.index,observedNewAnchors:links.length,links});
+        index:row.index,expectedSources:row.expectedSources,
+        scopeType:result.scopeType||'none',
+        triggerExpanded:result.triggerExpanded===true,
+        observedNewAnchors:Number(result.observedNewAnchors??links.length),
+        scopedAnchorCount:links.length,links});
     }
   }
   catch {record({kind:'interaction.source-hover-unavailable'});}
@@ -115,7 +154,8 @@ export function summarizeLiveShareInteractions(captureDir)
 {
   const data=fs.readFileSync(path.join(captureDir,'events.jsonl'),'utf8');
   const totals={expandCandidates:0,expandLabelsMatched:0,expandedClickAttempts:0,sourceHoverAttempts:0,
-    sourceHoversWithNewAnchors:0,distinctCapturedTargetUrls:0,
+    sourceHoversWithNewAnchors:0,scopedSourcePopovers:0,
+    verifiedCountMatches:0,distinctCapturedTargetUrls:0,
     userExpansionErrors:0,sourceHoverErrors:0};
   const urls=new Set(), byOrdinal=new Map();
   for(const line of data.split(/\r?\n/).filter(Boolean))
@@ -135,6 +175,12 @@ export function summarizeLiveShareInteractions(captureDir)
     {
       totals.sourceHoverAttempts++;
       if(e.observedNewAnchors>0)totals.sourceHoversWithNewAnchors++;
+      if(['aria-controls','single-new-popup'].includes(e.scopeType))
+        totals.scopedSourcePopovers++;
+      if(Number.isSafeInteger(e.expectedSources) &&
+          e.expectedSources===(e.links||[]).length && e.links.length>0 &&
+          ['aria-controls','single-new-popup'].includes(e.scopeType))
+        totals.verifiedCountMatches++;
       const ordinal=Number(e.ordinal);
       if(Number.isSafeInteger(ordinal) && ordinal>=0)
       {
