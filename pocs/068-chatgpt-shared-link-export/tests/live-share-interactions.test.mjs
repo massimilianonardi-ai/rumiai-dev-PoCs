@@ -214,3 +214,55 @@ test('a nonempty aria-controls panel takes precedence over unscoped page links',
     else globalThis.document=former;
   }
 });
+
+test('extracts HTTPS destinations only from directly declared source-button properties',()=>
+{
+  const oldActive=globalThis.__rumiaiSourceActive;
+  const oldDocument=globalThis.document;
+  const buttonA={
+    getAttribute(name){return name==='data-url'?'https://example.com/source-a':null;}
+  };
+  const buttonB={
+    getAttribute(){return null;},
+    ['__reactProps'+String.fromCharCode(36)+'mock']:{
+      onClick(){},sourceUrl:'https://example.net/source-b'
+    }
+  };
+  const buttonC={
+    getAttribute(){return null;},
+    ['__reactProps'+String.fromCharCode(36)+'mock']:{
+      onClick(){},url:'javascript:alert(1)'
+    }
+  };
+  const panel={
+    querySelectorAll(sel){
+      if(sel==='button')return [buttonA,buttonB,buttonC];
+      return [];
+    },
+    getBoundingClientRect(){return {width:150,height:120};}
+  };
+  try{
+    globalThis.__rumiaiSourceActive={
+      trigger:{getAttribute(name){
+        return name==='aria-controls'?'controls':name==='aria-expanded'?'true':null;
+      }},
+      beforePopups:new Set(),beforeAnchors:new Set()
+    };
+    globalThis.document={
+      getElementById(){return panel;},
+      querySelectorAll(){return [];}
+    };
+    const result=liveReadHoverLinks();
+    assert.equal(result.links.length,0);
+    assert.equal(result.buttonTargets.length,2);
+    assert.deepEqual(result.buttonTargets.map(x=>x.index),[0,1]);
+    assert.equal(result.contentStructure.buttons,3);
+    assert.equal(result.contentStructure.buttonsWithReactClick,2);
+    assert.ok(!result.buttonTargets.some(x=>x.url.startsWith('javascript:')));
+  }finally{
+    if(oldActive===undefined)delete globalThis.__rumiaiSourceActive;
+    else globalThis.__rumiaiSourceActive=oldActive;
+    if(oldDocument===undefined)delete globalThis.document;
+    else globalThis.document=oldDocument;
+  }
+});

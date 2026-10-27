@@ -1183,3 +1183,35 @@ ownership. One **new** opt-in Chromium capture using the existing
 `--observe-interactions` flag will be required to test the repaired
 sampler. The original styled output, native show-more controls and all
 captured CSS remain unchanged.
+
+
+## Source card controls: physical observation and passive target evidence (2026-10-27)
+
+On vmdev, revision dcbf875 passed all eight focused Node tests and a
+new same-session Chromium capture completed successfully at
+/home/admino/chatgpt-share2-sources-fixed-ZPOiH7NQ, with 85 turn snapshots.
+All eight observed grouped source controls opened with triggerExpanded=true,
+but **none supplied an anchor href**. Seven presented clickable buttons:
+for all seven the button count matched the number of expected sources
+(two buttons for OpenAI +1; five for the +4 group). The eighth group had
+zero buttons at the captured moment. This is structural evidence, **not**
+URL attribution. The capture remains private and no links are invented.
+
+The next diagnostic does not activate source cards or navigate to
+external pages. It checks whether any source-card button declares a direct
+HTTPS destination in an HTML data attribute or immediately attached React
+element prop. Only one unambiguous destination per button is recorded;
+javascript/data URLs are rejected. Exact URLs are written **only to the
+local private events.jsonl**, grouped by ordinal, pill index and button
+index. The sanitized CLI report contains only counts
+(groupsWithButtons, buttonCountMatches, buttonsWithReactClicks,
+buttonsWithDirectTargets, and per-source-group directTargets). A React
+onClick handler's existence does not reveal its destination. This probe
+never clicks the cards; if URLs reside only in handler closures, it must
+report zero rather than invent destinations.
+
+The earlier capture did not record these button properties, so a new
+opt-in same-session observation is needed. Run the focused tests before
+capturing. No change is made to the accepted diagram, CSS, writing block,
+preview toggles or CSP. Offline source-group reconstruction requires
+proven exact button-to-URL attribution.

@@ -127,12 +127,42 @@ export function liveReadHoverLinks()
   const contentRoot=scope||controlled;
   // Counts only: a React source panel may present clickable cards rather
   // than <a href> nodes; the archive must not invent destinations.
+  const buttonNodes=[...(contentRoot?.querySelectorAll('button')||[])].slice(0,40);
+  let buttonsWithReactClick=0;
+  const buttonTargets=[];
+  const directUrl=value=>{
+    if(typeof value!=='string' || value.length>4096)return null;
+    try{
+      const url=new URL(value);
+      return url.protocol==='https:' && !url.username && !url.password?url.href:null;
+    }catch{return null;}
+  };
+  const attributeNames=['data-href','data-url','data-source-url','data-link-url'];
+  const propNames=['href','url','sourceUrl','targetUrl','linkUrl'];
+  for(let index=0;index<buttonNodes.length;index++){
+    const node=buttonNodes[index], candidates=new Set();
+    for(const name of attributeNames){
+      const url=directUrl(node.getAttribute?.(name));
+      if(url)candidates.add(url);
+    }
+    for(const name of Object.keys(node).filter(key=>key.startsWith('__reactProps$'))){
+      const props=node[name];
+      if(!props || typeof props!=='object')continue;
+      if(typeof props.onClick==='function')buttonsWithReactClick++;
+      for(const field of propNames){
+        const url=directUrl(props[field]);
+        if(url)candidates.add(url);
+      }
+    }
+    if(candidates.size===1)buttonTargets.push({index,url:[...candidates][0]});
+  }
   const contentStructure=contentRoot && typeof contentRoot.querySelectorAll==='function'?
-    {buttons:contentRoot.querySelectorAll('button').length,
+    {buttons:buttonNodes.length,
       linkRoles:contentRoot.querySelectorAll('[role="link"]').length,
-      anchorElements:contentRoot.querySelectorAll('a').length}:null;
+      anchorElements:contentRoot.querySelectorAll('a').length,
+      buttonsWithReactClick,directTargets:buttonTargets.length}:null;
   return {links,scopeType,triggerExpanded:expanded,
-    controlledLinkCount,newVisiblePopupCandidates,contentStructure,
+    controlledLinkCount,newVisiblePopupCandidates,contentStructure,buttonTargets,
     observedNewAnchors:newAnchors.length};
 }
 const expr=fn=>'('+fn.toString()+')()';
@@ -174,6 +204,7 @@ export async function sampleLiveShareInteractions(cdp,sid,record)
         controlledLinkCount:Number(result.controlledLinkCount||0),
         newVisiblePopupCandidates:Number(result.newVisiblePopupCandidates||0),
         contentStructure:result.contentStructure||null,
+        buttonTargets:Array.isArray(result.buttonTargets)?result.buttonTargets:[],
         observedNewAnchors:Number(result.observedNewAnchors??links.length),
         scopedAnchorCount:links.length,links});
     }
@@ -190,6 +221,8 @@ export function summarizeLiveShareInteractions(captureDir)
     scopedCountMatches:0,scopedWithLinks:0,
     controlledPopupWithLinks:0,
     emptyControlledPanels:0,linkLikeWithoutHref:0,
+    groupsWithButtons:0,buttonCountMatches:0,
+    buttonsWithReactClicks:0,buttonsWithDirectTargets:0,
     distinctCapturedTargetUrls:0,
     userExpansionErrors:0,sourceHoverErrors:0};
   const urls=new Set(), byOrdinal=new Map(), sourceGroups=[];
@@ -218,6 +251,12 @@ export function summarizeLiveShareInteractions(captureDir)
         totals.controlledPopupWithLinks++;
       if(e.controlledLinkCount===0 && e.contentStructure)
         totals.emptyControlledPanels++;
+      if((e.contentStructure?.buttons||0)>0){
+        totals.groupsWithButtons++;
+        if(e.contentStructure.buttons===e.expectedSources)totals.buttonCountMatches++;
+      }
+      totals.buttonsWithReactClicks+=e.contentStructure?.buttonsWithReactClick||0;
+      totals.buttonsWithDirectTargets+=(e.buttonTargets||[]).length;
       if((e.links||[]).length===0 && e.contentStructure &&
           (e.contentStructure.buttons>0 || e.contentStructure.linkRoles>0))
         totals.linkLikeWithoutHref++;
@@ -238,7 +277,9 @@ export function summarizeLiveShareInteractions(captureDir)
           newVisiblePopupCandidates:Number(e.newVisiblePopupCandidates||0),
           buttons:Number(e.contentStructure?.buttons||0),
           linkRoles:Number(e.contentStructure?.linkRoles||0),
-          anchorElements:Number(e.contentStructure?.anchorElements||0)
+          anchorElements:Number(e.contentStructure?.anchorElements||0),
+          reactClicks:Number(e.contentStructure?.buttonsWithReactClick||0),
+          directTargets:Array.isArray(e.buttonTargets)?e.buttonTargets.length:0
         });
         const item=byOrdinal.get(ordinal)||{ordinal,hoverAttempts:0,withLinks:0};
         item.hoverAttempts++;
@@ -247,6 +288,9 @@ export function summarizeLiveShareInteractions(captureDir)
       }
       for(const url of e.links||[])
         if(typeof url==='string' && url.startsWith('https://'))urls.add(url);
+      for(const target of e.buttonTargets||[])
+        if(typeof target.url==='string' && target.url.startsWith('https://'))
+          urls.add(target.url);
     }
   }
   totals.distinctCapturedTargetUrls=urls.size;
