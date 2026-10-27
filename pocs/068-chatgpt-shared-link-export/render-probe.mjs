@@ -580,6 +580,7 @@ async function run(args) {
   const captureStatic=rawFlags.includes('--capture-static-bodies');
   const observeInteractions=rawFlags.includes('--observe-interactions');
   const sourceCardActions=rawFlags.includes('--probe-source-card-actions');
+  const trustedSourceCardActions=rawFlags.includes('--probe-trusted-source-card-actions');
   const mathIndex = rawFlags.indexOf('--compare-live-katex');
   const mathFile = mathIndex < 0 ? null : rawFlags[mathIndex + 1];
   const sansMath = mathIndex < 0 ? rawFlags : rawFlags.filter((_,i) =>
@@ -592,12 +593,14 @@ async function run(args) {
       (mathIndex >= 0 && (!mathFile || !flags.includes('--sweep'))) ||
       (observeInteractions && !flags.includes('--sweep')) ||
       (sourceCardActions && (!observeInteractions || !flags.includes('--sweep'))) ||
+      (trustedSourceCardActions && (!observeInteractions || !flags.includes('--sweep'))) ||
+      (sourceCardActions && trustedSourceCardActions) ||
       (readinessOnly && (flags.some(x=>x!=='--headless' &&
         x!=='--readiness-only') || mathIndex>=0 || offlineIndex>=0)) ||
       (offlineIndex >= 0 && (offlineIndex !== sansMath.length - 2 || !offlineDir ||
         !flags.includes('--sweep') || !flags.includes('--capture-image-bodies'))) ||
-      flags.some(x => !['--headless','--sweep','--compare-image-urls','--capture-image-bodies','--capture-static-bodies','--observe-interactions','--probe-source-card-actions','--readiness-only'].includes(x))) {
-    process.stderr.write('Usage: node render-probe.mjs <url> <output-dir> [--sweep] [--headless] [--compare-image-urls] [--capture-image-bodies] [--capture-static-bodies] [--observe-interactions] [--probe-source-card-actions] [--offline-output <new-dir>] [--compare-live-katex <reading-index.html>] [--readiness-only]\n');
+      flags.some(x => !['--headless','--sweep','--compare-image-urls','--capture-image-bodies','--capture-static-bodies','--observe-interactions','--probe-source-card-actions','--probe-trusted-source-card-actions','--readiness-only'].includes(x))) {
+    process.stderr.write('Usage: node render-probe.mjs <url> <output-dir> [--sweep] [--headless] [--compare-image-urls] [--capture-image-bodies] [--capture-static-bodies] [--observe-interactions] [--probe-source-card-actions] [--probe-trusted-source-card-actions] [--offline-output <new-dir>] [--compare-live-katex <reading-index.html>] [--readiness-only]\n');
     return 2;
   }
   const parsed = new URL(url);
@@ -774,10 +777,13 @@ async function run(args) {
         await import('./inspect-live-share-interactions.mjs') : null;
       const sourceCardModule=sourceCardActions ?
         await import('./inspect-source-card-actions.mjs') : null;
+      const trustedCardModule=trustedSourceCardActions ?
+        await import('./inspect-trusted-source-cards.mjs') : null;
       const sampleLive=(interactionModule || sampleMath) ? async () => {
         if (interactionModule)
           await interactionModule.sampleLiveShareInteractions(cdp,sid,log.record,
-            sourceCardModule ? sourceCardModule.probeSourceCardIntent : null);
+            sourceCardModule ? sourceCardModule.probeSourceCardIntent :
+            trustedCardModule ? trustedCardModule.probeTrustedSourceGroup : null);
         if (sampleMath) await sampleMath();
       } : null;
       const observation=await sweep(cdp,sid,log.record,sampleLive,

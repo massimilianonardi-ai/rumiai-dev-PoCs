@@ -1270,3 +1270,56 @@ events.jsonl or transfer it into a repository. Keep the previous validated
 offline diagram, original CSS/font bodies, collapsed-by-default preview
 behavior and semantic export unchanged. This is a bounded research probe,
 not a complete solution to citation interaction or to writing-block CSS.
+
+
+## CDP trusted-pointer follow-up (2026-10-27)
+
+Physical vmdev result for `0410fdf`: the correct share 2 URL yielded
+81 snapshots and eight source-card action groups, 19 synthetic
+`HTMLElement.click()` attempts, **no** `window.open` or programmatic
+anchor-click URL, and two intercepted network requests (ordinal 4/group 1,
+ordinal 2/group 2). The blocked requests were NOT proved to belong to a
+specific card and do not establish a source destination.
+
+The next distinct experiment uses the opt-in flag
+`--probe-trusted-source-card-actions` instead of
+`--probe-source-card-actions` (the two are mutually exclusive).
+After the source pill has opened in a disposable browser session,
+CDP `Fetch.enable` must succeed before any click is dispatched.
+The probe checks the exact expected number of source-card buttons,
+their viewport rectangles and the hit-test at each center point,
+then sends native CDP `Input.dispatchMouseEvent` move/press/release
+events. Unlike `HTMLElement.click()`, these input events can exercise
+browser user-activation paths. It records `window.open` and programmatic
+anchor-click intent as **private evidence**, plus temporally nearby
+blocked requests without claiming the latter belong to a card.
+Navigation remains blocked after guard installation, including any
+newly paused page target. No original stylesheet or offline output is
+modified.
+
+A sanitized counts-only report is generated with
+`inspect-trusted-source-cards.mjs`. It reports dispatches,
+obscured/unmounted buttons and source intents per group. No URLs are
+printed. Because a true click may dismiss its popup, later cards may
+be unavailable; partial group coverage is not proof of missing sources.
+
+The old capture cannot validate trusted input; one new isolated
+guarded observation is required **only after** running focused tests.
+Do not combine this capture with CSS/image fidelity testing.
+Do not publish private `events.jsonl` or promote intercepted
+background requests to verified source links.
+
+From the PoC directory:
+
+    (
+      set -eu
+      git pull --ff-only
+      node --check render-probe.mjs
+      node --check inspect-trusted-source-cards.mjs
+      node --test tests/trusted-source-cards.test.mjs
+      umask 077
+      CAPTURE_DIR="$(mktemp -d "$HOME/chatgpt-share2-trusted-XXXXXXXX")"
+      node render-probe.mjs 'https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259' "$CAPTURE_DIR" --headless --sweep --observe-interactions --probe-trusted-source-card-actions
+      printf 'CAPTURE_DIR=%s\n' "$CAPTURE_DIR"
+      node inspect-trusted-source-cards.mjs "$CAPTURE_DIR"
+    )
