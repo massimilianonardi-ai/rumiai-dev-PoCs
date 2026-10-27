@@ -1232,7 +1232,8 @@ The separate, opt-in --probe-source-card-actions flag is accepted only with
 It uses an isolated Chromium process, enables Chrome DevTools Fetch request
 interception before source buttons are clicked, and fails every intercepted
 request. Newly created page targets inherit this guard while paused before
-their debugger resumes. The capture also replaces window.open and
+their debugger resumes. If the guard cannot be installed, the target is
+closed (or left paused if closing fails), never resumed unguarded. The capture also replaces window.open and
 programmatic anchor.click in the disposable page with inert wrappers for
 the remainder of the session, retaining attempted HTTPS URLs in private
 events. The guard remains active through the rest of the browser session

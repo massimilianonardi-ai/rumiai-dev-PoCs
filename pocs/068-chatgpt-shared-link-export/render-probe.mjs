@@ -363,6 +363,9 @@ class Cdp {
     await Promise.allSettled([...this.imageBodyJobs]);
   }
   async setup(sid, type) {
+    const guardedNewTarget=this.blockRequests &&
+      sid!==this.primarySessionId && (type==='page' || type==='iframe');
+    let guardInstalled=false;
     try {
       await this.send('Runtime.enable', {}, sid);
       if (type === 'page' || type === 'iframe') {
@@ -370,9 +373,11 @@ class Cdp {
         // Target auto-attach pauses new pages before any script can run.
         // Install the same fail-closed Fetch guard in every popup target
         // before resuming its debugger.
-        if (this.blockRequests && sid !== this.primarySessionId)
+        if (guardedNewTarget) {
           await this.send('Fetch.enable',{
             patterns:[{urlPattern:'*',requestStage:'Request'}]},sid,7000);
+          guardInstalled=true;
+        }
         if (this.captureImageUrls) await this.send('Network.enable', {}, sid);
         await this.send('Runtime.addBinding', {name: '__rumiaiTrace'}, sid);
         const source = (this.captureImageUrls ?
@@ -383,7 +388,20 @@ class Cdp {
       const info = this.sessions.get(sid);
       if (info) info.ready = true;
     } catch (e) {this.report({kind: 'probe.instrumentation-failed', reason: e.message}, sid);}
-    finally {try {await this.send('Runtime.runIfWaitingForDebugger', {}, sid, 3000);} catch {}}
+    finally {
+      if(guardedNewTarget && !guardInstalled) {
+        // Never resume a newly opened target without the network guard.
+        const targetId=[...this.targetSessions.entries()]
+          .find(([,session])=>session===sid)?.[0];
+        if(targetId){
+          try{await this.send('Target.closeTarget',{targetId},undefined,3000);}
+          catch{this.report({kind:'interaction.popup-guard-close-failed'},sid);}
+        }
+        return;
+      }
+      try{await this.send('Runtime.runIfWaitingForDebugger',{},sid,3000);}
+      catch{}
+    }
   }
 }
 
