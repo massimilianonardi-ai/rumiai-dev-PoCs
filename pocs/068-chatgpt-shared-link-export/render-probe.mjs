@@ -198,6 +198,8 @@ class Cdp {
     this.networkRequests = new Map();
     this.sessions = new Map(); this.targetSessions = new Map();
     this.nextId = 0; this.closed = false;
+    this.blockRequests = false;
+    this.blockedRequestEvents = [];
   }
   async connect() {
     await new Promise((resolve, reject) => {
@@ -236,7 +238,18 @@ class Cdp {
       return;
     }
     const {method, params = {}, sessionId} = message;
-    if (method === 'Target.attachedToTarget') {
+    if (method === 'Fetch.requestPaused') {
+      // Fail closed for the explicit source-card action probe. Never allow a
+      // paused request to continue, even while shutting down the capture.
+      if (this.blockRequests && this.blockedRequestEvents.length < 80) {
+        const url=params.request?.url;
+        if(typeof url==='string' && url.startsWith('https://'))
+          this.blockedRequestEvents.push({url,resourceType:params.resourceType||null});
+      }
+      void this.send('Fetch.failRequest',
+        {requestId:params.requestId,errorReason:'BlockedByClient'},sessionId,3000)
+        .catch(()=>{});
+    } else if (method === 'Target.attachedToTarget') {
       const sid = params.sessionId, info = params.targetInfo;
       this.sessions.set(sid, {type: info.type, ready: false});
       this.targetSessions.set(info.targetId, sid);
@@ -354,6 +367,12 @@ class Cdp {
       await this.send('Runtime.enable', {}, sid);
       if (type === 'page' || type === 'iframe') {
         await this.send('Page.enable', {}, sid);
+        // Target auto-attach pauses new pages before any script can run.
+        // Install the same fail-closed Fetch guard in every popup target
+        // before resuming its debugger.
+        if (this.blockRequests && sid !== this.primarySessionId)
+          await this.send('Fetch.enable',{
+            patterns:[{urlPattern:'*',requestStage:'Request'}]},sid,7000);
         if (this.captureImageUrls) await this.send('Network.enable', {}, sid);
         await this.send('Runtime.addBinding', {name: '__rumiaiTrace'}, sid);
         const source = (this.captureImageUrls ?
@@ -542,6 +561,7 @@ async function run(args) {
   const readinessOnly=rawFlags.includes('--readiness-only');
   const captureStatic=rawFlags.includes('--capture-static-bodies');
   const observeInteractions=rawFlags.includes('--observe-interactions');
+  const sourceCardActions=rawFlags.includes('--probe-source-card-actions');
   const mathIndex = rawFlags.indexOf('--compare-live-katex');
   const mathFile = mathIndex < 0 ? null : rawFlags[mathIndex + 1];
   const sansMath = mathIndex < 0 ? rawFlags : rawFlags.filter((_,i) =>
@@ -553,12 +573,13 @@ async function run(args) {
   if (!url || !outputName ||
       (mathIndex >= 0 && (!mathFile || !flags.includes('--sweep'))) ||
       (observeInteractions && !flags.includes('--sweep')) ||
+      (sourceCardActions && (!observeInteractions || !flags.includes('--sweep'))) ||
       (readinessOnly && (flags.some(x=>x!=='--headless' &&
         x!=='--readiness-only') || mathIndex>=0 || offlineIndex>=0)) ||
       (offlineIndex >= 0 && (offlineIndex !== sansMath.length - 2 || !offlineDir ||
         !flags.includes('--sweep') || !flags.includes('--capture-image-bodies'))) ||
-      flags.some(x => !['--headless','--sweep','--compare-image-urls','--capture-image-bodies','--capture-static-bodies','--observe-interactions','--readiness-only'].includes(x))) {
-    process.stderr.write('Usage: node render-probe.mjs <url> <output-dir> [--sweep] [--headless] [--compare-image-urls] [--capture-image-bodies] [--capture-static-bodies] [--observe-interactions] [--offline-output <new-dir>] [--compare-live-katex <reading-index.html>] [--readiness-only]\n');
+      flags.some(x => !['--headless','--sweep','--compare-image-urls','--capture-image-bodies','--capture-static-bodies','--observe-interactions','--probe-source-card-actions','--readiness-only'].includes(x))) {
+    process.stderr.write('Usage: node render-probe.mjs <url> <output-dir> [--sweep] [--headless] [--compare-image-urls] [--capture-image-bodies] [--capture-static-bodies] [--observe-interactions] [--probe-source-card-actions] [--offline-output <new-dir>] [--compare-live-katex <reading-index.html>] [--readiness-only]\n');
     return 2;
   }
   const parsed = new URL(url);
@@ -645,6 +666,7 @@ async function run(args) {
     while (!cdp.targetSessions.has(targetId) && performance.now() < attachLimit) await pause(30);
     const sid = cdp.targetSessions.get(targetId);
     if (!sid) throw Error('Target attach timeout');
+    cdp.primarySessionId=sid;
     while (!cdp.sessions.get(sid)?.ready && performance.now() < attachLimit) await pause(30);
     if (!cdp.sessions.get(sid)?.ready) throw Error('Page instrumentation failed');
     const navigation = cdp.send('Page.navigate', {url: parsed.href}, sid,
@@ -732,9 +754,12 @@ async function run(args) {
       } : null;
       const interactionModule=observeInteractions ?
         await import('./inspect-live-share-interactions.mjs') : null;
+      const sourceCardModule=sourceCardActions ?
+        await import('./inspect-source-card-actions.mjs') : null;
       const sampleLive=(interactionModule || sampleMath) ? async () => {
         if (interactionModule)
-          await interactionModule.sampleLiveShareInteractions(cdp,sid,log.record);
+          await interactionModule.sampleLiveShareInteractions(cdp,sid,log.record,
+            sourceCardModule ? sourceCardModule.probeSourceCardIntent : null);
         if (sampleMath) await sampleMath();
       } : null;
       const observation=await sweep(cdp,sid,log.record,sampleLive,

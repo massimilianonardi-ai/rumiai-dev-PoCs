@@ -166,7 +166,7 @@ export function liveReadHoverLinks()
     observedNewAnchors:newAnchors.length};
 }
 const expr=fn=>'('+fn.toString()+')()';
-export async function sampleLiveShareInteractions(cdp,sid,record)
+export async function sampleLiveShareInteractions(cdp,sid,record,onSourceGroup=null)
 {
   try
   {
@@ -207,6 +207,8 @@ export async function sampleLiveShareInteractions(cdp,sid,record)
         buttonTargets:Array.isArray(result.buttonTargets)?result.buttonTargets:[],
         observedNewAnchors:Number(result.observedNewAnchors??links.length),
         scopedAnchorCount:links.length,links});
+      if(onSourceGroup)
+        await onSourceGroup(cdp,sid,record,row);
     }
   }
   catch {record({kind:'interaction.source-hover-unavailable'});}

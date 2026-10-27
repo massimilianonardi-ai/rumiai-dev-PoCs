@@ -1215,3 +1215,57 @@ opt-in same-session observation is needed. Run the focused tests before
 capturing. No change is made to the accepted diagram, CSS, writing block,
 preview toggles or CSP. Offline source-group reconstruction requires
 proven exact button-to-URL attribution.
+
+
+## Opt-in guarded source-card action probe (2026-10-27)
+
+Physical vmdev evidence for revision af7e052: all six focused tests pass;
+private capture /home/admino/chatgpt-share2-targets-WiF0gU8j contains 79
+snapshots. Eight of eight source groups expose exactly as many buttons as
+the source count indicated by the +N badge: 19 buttons in total, each
+with a React onClick handler, but **zero direct HTTPS target attributes
+or immediate React props**. More passive href/prop scans will not recover
+the intended URL. No URL has yet been attributed to an individual card.
+
+The separate, opt-in --probe-source-card-actions flag is accepted only with
+--observe-interactions and --sweep. It is NOT part of the normal exporter.
+It uses an isolated Chromium process, enables Chrome DevTools Fetch request
+interception before source buttons are clicked, and fails every intercepted
+request. Newly created page targets inherit this guard while paused before
+their debugger resumes. The capture also replaces window.open and
+programmatic anchor.click in the disposable page with inert wrappers for
+the remainder of the session, retaining attempted HTTPS URLs in private
+events. The guard remains active through the rest of the browser session
+to prevent delayed React callbacks from obtaining external network access.
+Because it disables networking after first activation, this capture
+must not be used to evaluate completeness of original assets/DOM.
+
+Every source-card observation is recorded privately with its mounted
+turn ordinal, source-pill index and button index. The sanitized standalone
+report counts only attempted window openings, programmatic anchor clicks
+and browser-level blocked requests; it never prints URL values. React
+buttons may unmount when clicked, so an unattempted card cannot be
+considered observed. The diagnostics do not claim that a blocked background
+request belongs to the clicked card. No offline link is generated unless
+source ownership is unambiguous in captured evidence.
+
+From the PoC directory, to run a new **navigation-guarded** observation:
+
+    (
+      set -eu
+      git pull --ff-only
+      node --check render-probe.mjs
+      node --check inspect-source-card-actions.mjs
+      node --test tests/live-share-interactions.test.mjs         tests/source-card-actions.test.mjs
+      umask 077
+      CAPTURE_DIR="$(mktemp -d "$HOME/chatgpt-share2-card-actions-XXXXXXXX")"
+      node render-probe.mjs         'https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259'         "$CAPTURE_DIR"         --headless --sweep --observe-interactions --probe-source-card-actions
+      printf 'CAPTURE_DIR=%s\n' "$CAPTURE_DIR"
+      node inspect-source-card-actions.mjs "$CAPTURE_DIR"
+    )
+
+The private capture may contain URLs and source message text: do not paste
+events.jsonl or transfer it into a repository. Keep the previous validated
+offline diagram, original CSS/font bodies, collapsed-by-default preview
+behavior and semantic export unchanged. This is a bounded research probe,
+not a complete solution to citation interaction or to writing-block CSS.
