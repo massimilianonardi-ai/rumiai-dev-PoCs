@@ -1256,10 +1256,10 @@ From the PoC directory, to run a new **navigation-guarded** observation:
       git pull --ff-only
       node --check render-probe.mjs
       node --check inspect-source-card-actions.mjs
-      node --test tests/live-share-interactions.test.mjs         tests/source-card-actions.test.mjs
+      node --test tests/live-share-interactions.test.mjs tests/source-card-actions.test.mjs
       umask 077
       CAPTURE_DIR="$(mktemp -d "$HOME/chatgpt-share2-card-actions-XXXXXXXX")"
-      node render-probe.mjs         'https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259'         "$CAPTURE_DIR"         --headless --sweep --observe-interactions --probe-source-card-actions
+      node render-probe.mjs 'https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259' "$CAPTURE_DIR" --headless --sweep --observe-interactions --probe-source-card-actions
       printf 'CAPTURE_DIR=%s\n' "$CAPTURE_DIR"
       node inspect-source-card-actions.mjs "$CAPTURE_DIR"
     )
