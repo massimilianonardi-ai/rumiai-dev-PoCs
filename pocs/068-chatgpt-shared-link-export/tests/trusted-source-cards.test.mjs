@@ -103,3 +103,76 @@ test('trusted source input is skipped if network interception fails',async()=>
   assert.deepEqual(events.map(x=>x.kind),
     ['interaction.trusted-source-guard-unavailable']);
 });
+
+
+test('off-screen card scrolls once, then must pass a new viewport and hit test',()=>
+{
+  const old={document:globalThis.document,window:globalThis.window,
+    location:globalThis.location,innerWidth:globalThis.innerWidth,
+    innerHeight:globalThis.innerHeight,active:globalThis.__rumiaiSourceActive,
+    trusted:globalThis.__rumiaiTrustedSourceIntent};
+  let top=1500,scrolled=0;
+  const card={isConnected:true,getBoundingClientRect(){
+    return {left:10,right:110,top,bottom:top+40,width:100,height:40};
+  },scrollIntoView(opts){
+    assert.equal(opts.block,'center');
+    scrolled++;
+    top=70;
+  },contains(node){return node===this;}};
+  try{
+    globalThis.window={open(){throw Error('Unexpected navigation');}};
+    globalThis.location={href:'https://chatgpt.com/share/test'};
+    globalThis.innerWidth=800;
+    globalThis.innerHeight=400;
+    globalThis.document={getElementById(){
+      return {querySelectorAll(){return [card];}};
+    },elementFromPoint(){return card;}};
+    globalThis.__rumiaiSourceActive={trigger:{
+      getAttribute(){return 'source-list';}
+    }};
+    delete globalThis.__rumiaiTrustedSourceIntent;
+    const before=browserPrepareTrustedSourceCard(0,1);
+    assert.equal(before.status,'scroll-pending');
+    assert.equal(scrolled,1);
+    const after=browserPrepareTrustedSourceCard(0,1,false);
+    assert.equal(after.status,'ready');
+    assert.equal(after.y,90);
+    assert.equal(scrolled,1);
+  }finally{
+    for(const [key,value] of Object.entries({
+      document:old.document,window:old.window,location:old.location,
+      innerWidth:old.innerWidth,innerHeight:old.innerHeight,
+      __rumiaiSourceActive:old.active,
+      __rumiaiTrustedSourceIntent:old.trusted
+    })){
+      if(value===undefined)delete globalThis[key];
+      else globalThis[key]=value;
+    }
+  }
+});
+
+test('off-screen retry does not dispatch any mouse input when still invisible',async()=>
+{
+  const calls=[],events=[];
+  let prepareCalls=0;
+  const cdp={blockRequests:false,blockedRequestEvents:[],async send(method,params){
+    calls.push(method);
+    if(method==='Fetch.enable')return {};
+    if(method==='Runtime.evaluate'){
+      if(params.expression.includes('browserPrepareTrustedSourceCard')){
+        prepareCalls++;
+        return {result:{value:prepareCalls===1?
+          {status:'scroll-pending'}:{status:'card-not-visible'}}};
+      }
+      throw Error('Unexpected readback');
+    }
+    throw Error('Unexpected CDP method '+method);
+  }};
+  await probeTrustedSourceGroup(cdp,'session',event=>events.push(event),
+    {ordinal:6,index:1,expectedSources:1});
+  assert.deepEqual(calls,
+    ['Fetch.enable','Runtime.evaluate','Runtime.evaluate']);
+  assert.equal(events[0].attempts[0].status,'card-not-visible');
+  assert.equal(events[0].attempts[0].scrollAttempted,true);
+  assert.equal(events[0].attempts[0].windowOpen.length,0);
+});

@@ -93,9 +93,10 @@ test('a +N source group activates its aria-haspopup owner and scopes popup links
     sourceSeen:globalThis.__rumiaiSourceHovered,
     sourceActive:globalThis.__rumiaiSourceActive
   };
-  let clicks=0,expanded=false;
+  let clicks=0,expanded=false,scrolls=0;
   const trigger={
     localName:'span',
+    scrollIntoView(){scrolls++;},
     getAttribute(name){
       if(name==='aria-expanded')return expanded?'true':'false';
       if(name==='aria-controls')return 'empty-popup-container';
@@ -142,7 +143,8 @@ test('a +N source group activates its aria-haspopup owner and scopes popup links
         getBoundingClientRect(){return {width:180,height:80};}
       };}
     };
-    const first=liveHoverSource();
+    const first=liveHoverSource(true);
+    assert.equal(scrolls,1);
     assert.equal(first.attempted,1);
     assert.equal(first.expectedSources,2);
     assert.equal(clicks,1);

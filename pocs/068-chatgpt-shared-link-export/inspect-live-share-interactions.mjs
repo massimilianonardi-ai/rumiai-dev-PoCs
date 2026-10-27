@@ -27,7 +27,7 @@ export function liveExpandMessages()
   }
   return {candidates,labelMatches,clicked};
 }
-export function liveHoverSource()
+export function liveHoverSource(alignTrigger=false)
 {
   const seen=globalThis.__rumiaiSourceHovered ||
     (globalThis.__rumiaiSourceHovered=new Set());
@@ -50,6 +50,10 @@ export function liveHoverSource()
       // may be several ancestors above the +N label, not by the badge div.
       const trigger=span.closest('[aria-haspopup]');
       if(!trigger || trigger.localName==='a' || trigger.closest?.('a[href]'))continue;
+      // Only the separate trusted-input experiment changes scroll position
+      // before opening the group. Keep ordinary observations unchanged.
+      if(alignTrigger && typeof trigger.scrollIntoView==='function')
+        trigger.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});
       const popupSelector='[role="dialog"],[role="tooltip"],[role="menu"],' +
         '[data-radix-popper-content-wrapper]';
       const visible=node=>{
@@ -166,7 +170,8 @@ export function liveReadHoverLinks()
     observedNewAnchors:newAnchors.length};
 }
 const expr=fn=>'('+fn.toString()+')()';
-export async function sampleLiveShareInteractions(cdp,sid,record,onSourceGroup=null)
+export async function sampleLiveShareInteractions(cdp,sid,record,onSourceGroup=null,
+  alignSourceTrigger=false)
 {
   try
   {
@@ -188,7 +193,9 @@ export async function sampleLiveShareInteractions(cdp,sid,record,onSourceGroup=n
   try
   {
     const response=await cdp.send('Runtime.evaluate',
-      {expression:expr(liveHoverSource),returnByValue:true},sid,7000);
+      {expression:alignSourceTrigger?
+        '('+liveHoverSource.toString()+')(true)':expr(liveHoverSource),
+        returnByValue:true},sid,7000);
     const row=response.result?.value;
     if(row?.attempted===1)
     {

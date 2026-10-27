@@ -783,7 +783,8 @@ async function run(args) {
         if (interactionModule)
           await interactionModule.sampleLiveShareInteractions(cdp,sid,log.record,
             sourceCardModule ? sourceCardModule.probeSourceCardIntent :
-            trustedCardModule ? trustedCardModule.probeTrustedSourceGroup : null);
+            trustedCardModule ? trustedCardModule.probeTrustedSourceGroup : null,
+            trustedSourceCardActions);
         if (sampleMath) await sampleMath();
       } : null;
       const observation=await sweep(cdp,sid,log.record,sampleLive,

@@ -8,7 +8,7 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const expression=(fn,...args)=>
   '('+fn.toString()+')('+args.map(x=>JSON.stringify(x)).join(',')+')';
 
-export function browserPrepareTrustedSourceCard(index,expected)
+export function browserPrepareTrustedSourceCard(index,expected,allowScroll=true)
 {
   const trigger=globalThis.__rumiaiSourceActive?.trigger;
   const id=trigger?.getAttribute?.('aria-controls');
@@ -48,9 +48,17 @@ export function browserPrepareTrustedSourceCard(index,expected)
   if(!card || card.isConnected===false)return {status:'card-unmounted'};
   const rect=card.getBoundingClientRect();
   const x=(rect.left+rect.right)/2,y=(rect.top+rect.bottom)/2;
-  if(!Number.isFinite(x)||!Number.isFinite(y)||rect.width<3||rect.height<3 ||
-     x<0||y<0||x>=innerWidth||y>=innerHeight)
+  if(!Number.isFinite(x)||!Number.isFinite(y))
+    return {status:'card-invalid-geometry'};
+  if(rect.width<3||rect.height<3)
+    return {status:'card-zero-size'};
+  if(x<0||y<0||x>=innerWidth||y>=innerHeight){
+    if(allowScroll && typeof card.scrollIntoView==='function'){
+      card.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});
+      return {status:'scroll-pending'};
+    }
     return {status:'card-not-visible'};
+  }
   const hit=document.elementFromPoint(x,y);
   if(!hit || (hit!==card && !card.contains(hit)))
     return {status:'card-obscured'};
@@ -85,13 +93,24 @@ export async function probeTrustedSourceGroup(cdp,sid,record,row)
   const count=Math.min(Math.max(Number(row.expectedSources)||0,0),12);
   for(let index=0;index<count;index++)
   {
-    let outcome={index,status:'unavailable',
+    let outcome={index,status:'unavailable',scrollAttempted:false,
       windowOpen:[],anchorClick:[],blockedRequests:[]};
     try{
       const setup=await cdp.send('Runtime.evaluate',{
         expression:expression(browserPrepareTrustedSourceCard,index,count),
         returnByValue:true},sid,6000);
-      const candidate=setup.result?.value||{};
+      let candidate=setup.result?.value||{};
+      if(candidate.status==='scroll-pending'){
+        outcome.scrollAttempted=true;
+        // React and the browser need a layout frame after scrollIntoView;
+        // do not dispatch any mouse event until fresh coordinates pass
+        // visibility and hit testing a second time.
+        await pause(180);
+        const retry=await cdp.send('Runtime.evaluate',{
+          expression:expression(browserPrepareTrustedSourceCard,index,count,false),
+          returnByValue:true},sid,6000);
+        candidate=retry.result?.value||{};
+      }
       outcome.status=candidate.status||'unavailable';
       if(outcome.status==='ready')
       {
@@ -142,6 +161,9 @@ export function summarizeTrustedSourceCards(directory)
       dispatched:attempts.filter(x=>x.status==='dispatched').length,
       obscured:attempts.filter(x=>x.status==='card-obscured').length,
       notVisible:attempts.filter(x=>x.status==='card-not-visible').length,
+      zeroSize:attempts.filter(x=>x.status==='card-zero-size').length,
+      invalidGeometry:attempts.filter(x=>x.status==='card-invalid-geometry').length,
+      scrollAttempts:attempts.filter(x=>x.scrollAttempted).length,
       unmounted:attempts.filter(x=>x.status==='card-unmounted').length,
       opened:attempts.reduce((n,x)=>n+(x.windowOpen||[]).length,0),
       anchorClicks:attempts.reduce((n,x)=>n+(x.anchorClick||[]).length,0),
@@ -150,6 +172,7 @@ export function summarizeTrustedSourceCards(directory)
   return {status:'private-safe-trusted-source-card-intents',
     guardedFailures:rows.filter(x=>x.kind==='interaction.trusted-source-guard-unavailable').length,
     groups,limits:[
+      'Off-screen cards are scrolled into view and hit-tested again before input',
       'Pointer dispatch does not guarantee navigation or capture delayed callbacks',
       'A network request close to a card click does not by itself prove its ownership',
       'All captured URLs remain private and are never included in this report']};

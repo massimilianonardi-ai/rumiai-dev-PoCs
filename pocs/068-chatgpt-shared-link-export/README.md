@@ -1323,3 +1323,36 @@ From the PoC directory:
       printf 'CAPTURE_DIR=%s\n' "$CAPTURE_DIR"
       node inspect-trusted-source-cards.mjs "$CAPTURE_DIR"
     )
+
+
+## Trusted input visibility correction (2026-10-27)
+
+The operator ran the real e6beb9f probe with the verified share-2 URL.
+All three focused Node tests passed and the capture at
+/home/admino/chatgpt-share2-trusted-avDsYYDq completed, with 76 snapshots,
+eight source groups and 19 source-card observations. **All 19 were
+reported card-not-visible**, so CDP did not dispatch a single native
+mouse event. This is a positioning/readiness failure of the experimental
+probe, not evidence about the source destinations. Network guarding was
+successfully enabled, with no guarded failures.
+
+The separate trusted-input mode now brings each +N source trigger into
+the viewport *before opening its popup*. If a button still falls outside
+the viewport, it calls scrollIntoView exactly once, waits for layout to
+settle and evaluates geometry and hit testing again before any pointer
+input. A closed/unmounted button is not clicked. Zero-size or invalid
+geometry is reported separately, since scrolling cannot make such a
+control visible. The original synthetic-click probe and regular
+read-only capture remain unchanged.
+
+The private-safe report adds scrollAttempts, zeroSize and invalidGeometry
+per source group. These values distinguish positioning attempts from
+actual dispatched input and prevent interpreting a zero-target result as
+a tested navigation if nothing was clicked.
+
+Run a single new guarded capture only if the focused test suite succeeds,
+using --headless --sweep --observe-interactions
+--probe-trusted-source-card-actions with the verified
+https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259 URL.
+The accepted offline HTML, diagram, CSS and long-message toggles are not
+altered. Raw events.jsonl remains private.
