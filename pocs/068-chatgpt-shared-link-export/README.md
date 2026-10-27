@@ -1153,3 +1153,32 @@ capture if source-popup provenance is still required:
 
 No prior capture or accepted output is overwritten. Optional
 copy-to-clipboard buttons remain deferred under script-src none.
+
+## Source popup attribution: October 27 runtime correction
+
+Physical vmdev test: six of seven Node tests passed; the new source-popup
+fixture failed because no popup was selected. The live source observation
+recorded eight scope candidates but **zero URL targets** in the private
+capture `/home/admino/chatgpt-share2-sources-Ld75fDXQ`. The writing-layout
+inspection found two captured editor instances, on turn ordinals 2 and 6,
+with all four original editor padding custom property names present; this
+does not establish their computed values.
+
+The previous popup reader initialized `scopeType` with the string
+`'none'` but tested `if (!scopeType)`. Because a nonempty string is
+truthy, it never searched for a newly visible source popup. This is now
+corrected: if the controlled element lacks link anchors, the sampler
+checks whether exactly one new or previously hidden popup became visible.
+The inspector also reports counts of empty controlled panels and non-anchor
+controls, without exposing URL values or inventing links. It excludes
+source triggers nested inside external links and preserves private-event
+separation. A controlled group and a single-new-popup group remain
+distinct provenance categories; neither is accepted as a verified group
+until physical observations support the association.
+
+After pulling, rerun the focused source-interaction test. The 2026-10-27
+capture predates this fix and cannot be reinterpreted as proof of source
+ownership. One **new** opt-in Chromium capture using the existing
+`--observe-interactions` flag will be required to test the repaired
+sampler. The original styled output, native show-more controls and all
+captured CSS remain unchanged.

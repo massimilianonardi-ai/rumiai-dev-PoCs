@@ -93,7 +93,11 @@ test('a +N source group activates its aria-haspopup owner and scopes popup links
   let clicks=0,expanded=false;
   const trigger={
     localName:'span',
-    getAttribute(name){return name==='aria-expanded'?(expanded?'true':'false'):null;},
+    getAttribute(name){
+      if(name==='aria-expanded')return expanded?'true':'false';
+      if(name==='aria-controls')return 'empty-popup-container';
+      return null;
+    },
     dispatchEvent(){},
     click(){clicks++;expanded=true;}
   };
@@ -130,7 +134,10 @@ test('a +N source group activates its aria-haspopup owner and scopes popup links
         if(selector.includes('[role="dialog"]'))return present?[popup]:[];
         throw Error('Unexpected selector: '+selector);
       },
-      getElementById(){return null;}
+      getElementById(){return {
+        querySelectorAll(){return [];},
+        getBoundingClientRect(){return {width:180,height:80};}
+      };}
     };
     const first=liveHoverSource();
     assert.equal(first.attempted,1);
@@ -138,7 +145,10 @@ test('a +N source group activates its aria-haspopup owner and scopes popup links
     assert.equal(clicks,1);
     present=true;
     const popover=liveReadHoverLinks();
-    assert.equal(popover.scopeType,'single-new-popup');
+    assert.equal(popover.scopeType,'single-new-popup',
+      'empty aria-controls panel must not block a newly visible popup');
+    assert.equal(popover.controlledLinkCount,0);
+    assert.equal(popover.newVisiblePopupCandidates,1);
     assert.equal(popover.triggerExpanded,true);
     assert.equal(popover.links.length,2);
     assert.equal(popover.observedNewAnchors,2);
@@ -154,5 +164,50 @@ test('a +N source group activates its aria-haspopup owner and scopes popup links
       if(value===undefined)delete globalThis[key];
       else globalThis[key]=value;
     }
+  }
+});
+
+
+test('a nonempty aria-controls panel takes precedence over unscoped page links',()=>
+{
+  const previous=globalThis.__rumiaiSourceActive;
+  const former=globalThis.document;
+  const linked=[
+    {href:'https://example.com/verified-one'},
+    {href:'https://example.com/verified-two'}
+  ];
+  const controlled={
+    querySelectorAll(){return linked;},
+    getBoundingClientRect(){return {width:150,height:100};}
+  };
+  try
+  {
+    globalThis.__rumiaiSourceActive={
+      trigger:{getAttribute(name){
+        if(name==='aria-controls')return 'popup';
+        if(name==='aria-expanded')return 'true';
+        return null;
+      }},
+      beforeAnchors:new Set(),
+      beforePopups:new Set()
+    };
+    globalThis.document={
+      querySelectorAll(selector){
+        if(selector==='a[href]')return linked;
+        return [];
+      },
+      getElementById(id){assert.equal(id,'popup');return controlled;}
+    };
+    const result=liveReadHoverLinks();
+    assert.equal(result.scopeType,'aria-controls');
+    assert.equal(result.links.length,2);
+    assert.equal(result.controlledLinkCount,2);
+  }
+  finally
+  {
+    if(previous===undefined)delete globalThis.__rumiaiSourceActive;
+    else globalThis.__rumiaiSourceActive=previous;
+    if(former===undefined)delete globalThis.document;
+    else globalThis.document=former;
   }
 });

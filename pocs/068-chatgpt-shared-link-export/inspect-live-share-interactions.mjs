@@ -49,11 +49,20 @@ export function liveHoverSource()
       // React popover behavior is owned by the accessible trigger, which
       // may be several ancestors above the +N label, not by the badge div.
       const trigger=span.closest('[aria-haspopup]');
-      if(!trigger || trigger.localName==='a')continue;
-      const popupSelector='[role="dialog"],[role="tooltip"],' +
+      if(!trigger || trigger.localName==='a' || trigger.closest?.('a[href]'))continue;
+      const popupSelector='[role="dialog"],[role="tooltip"],[role="menu"],' +
         '[data-radix-popper-content-wrapper]';
+      const visible=node=>{
+        if(node.getAttribute?.('data-state')==='closed')return false;
+        const rect=node.getBoundingClientRect?.();
+        if(rect && (rect.width<=0 || rect.height<=0))return false;
+        const style=typeof getComputedStyle==='function'?getComputedStyle(node):null;
+        return !style || (style.display!=='none' && style.visibility!=='hidden'
+          && style.opacity!=='0');
+      };
       globalThis.__rumiaiSourceActive={
-        trigger, beforePopups:new Set(document.querySelectorAll(popupSelector)),
+        trigger, beforePopups:new Set([...document.querySelectorAll(popupSelector)]
+          .filter(visible)),
         beforeAnchors:new Set([...document.querySelectorAll('a[href]')]
           .map(a=>a.href).filter(href=>href.startsWith('https://')))
       };
@@ -77,22 +86,33 @@ export function liveReadHoverLinks()
 {
   const active=globalThis.__rumiaiSourceActive;
   if(!active)return {links:[],scopeType:'none',observedNewAnchors:0};
-  const valid=(node)=>node && typeof node.querySelectorAll==='function' &&
-    (!node.getBoundingClientRect ||
-      (node.getBoundingClientRect().width>0 &&
-       node.getBoundingClientRect().height>0));
+  const valid=(node)=>{
+    if(!node || typeof node.querySelectorAll!=='function' ||
+       node.getAttribute?.('data-state')==='closed')return false;
+    const rect=node.getBoundingClientRect?.();
+    if(rect && (rect.width<=0 || rect.height<=0))return false;
+    const style=typeof getComputedStyle==='function'?getComputedStyle(node):null;
+    return !style || (style.display!=='none' && style.visibility!=='hidden'
+      && style.opacity!=='0');
+  };
   const hrefs=root=>[...root.querySelectorAll('a[href]')]
     .map(a=>a.href).filter(href=>href.startsWith('https://'));
   const newAnchors=[...new Set(hrefs(document).filter(
     href=>!active.beforeAnchors.has(href)))];
   const controls=active.trigger.getAttribute('aria-controls');
-  let scope=controls?document.getElementById(controls):null;
-  let scopeType=scope && valid(scope)?'aria-controls':'none';
+  const controlled=controls?document.getElementById(controls):null;
+  // A valid but empty controlled element is not enough: the actual source
+  // links may reside in a separate newly visible portal.
+  const controlledLinkCount=controlled && valid(controlled)?
+    [...new Set(hrefs(controlled))].length:0;
+  let scope=controlledLinkCount>0?controlled:null;
+  let scopeType=scope?'aria-controls':'none';
   const expanded=active.trigger.getAttribute('aria-expanded')==='true' ||
     active.trigger.getAttribute('data-state')==='open';
-  if(!scopeType && expanded)
+  let newVisiblePopupCandidates=0;
+  if(scopeType==='none')
   {
-    const selector='[role="dialog"],[role="tooltip"],' +
+    const selector='[role="dialog"],[role="tooltip"],[role="menu"],' +
       '[data-radix-popper-content-wrapper]';
     const fresh=[...document.querySelectorAll(selector)]
       .filter(node=>!active.beforePopups.has(node) && valid(node) &&
@@ -100,10 +120,19 @@ export function liveReadHoverLinks()
     // Nested Radix wrappers may represent the same popup; retain only roots.
     const outer=fresh.filter(node=>!fresh.some(other=>
       other!==node && other.contains(node)));
+    newVisiblePopupCandidates=outer.length;
     if(outer.length===1){scope=outer[0];scopeType='single-new-popup';}
   }
   const links=scopeType==='none'?[]:[...new Set(hrefs(scope))].slice(0,40);
+  const contentRoot=scope||controlled;
+  // Counts only: a React source panel may present clickable cards rather
+  // than <a href> nodes; the archive must not invent destinations.
+  const contentStructure=contentRoot && typeof contentRoot.querySelectorAll==='function'?
+    {buttons:contentRoot.querySelectorAll('button').length,
+      linkRoles:contentRoot.querySelectorAll('[role="link"]').length,
+      anchorElements:contentRoot.querySelectorAll('a').length}:null;
   return {links,scopeType,triggerExpanded:expanded,
+    controlledLinkCount,newVisiblePopupCandidates,contentStructure,
     observedNewAnchors:newAnchors.length};
 }
 const expr=fn=>'('+fn.toString()+')()';
@@ -142,6 +171,9 @@ export async function sampleLiveShareInteractions(cdp,sid,record)
         index:row.index,expectedSources:row.expectedSources,
         scopeType:result.scopeType||'none',
         triggerExpanded:result.triggerExpanded===true,
+        controlledLinkCount:Number(result.controlledLinkCount||0),
+        newVisiblePopupCandidates:Number(result.newVisiblePopupCandidates||0),
+        contentStructure:result.contentStructure||null,
         observedNewAnchors:Number(result.observedNewAnchors??links.length),
         scopedAnchorCount:links.length,links});
     }
@@ -155,7 +187,10 @@ export function summarizeLiveShareInteractions(captureDir)
   const data=fs.readFileSync(path.join(captureDir,'events.jsonl'),'utf8');
   const totals={expandCandidates:0,expandLabelsMatched:0,expandedClickAttempts:0,sourceHoverAttempts:0,
     sourceHoversWithNewAnchors:0,scopedSourcePopovers:0,
-    scopedCountMatches:0,distinctCapturedTargetUrls:0,
+    scopedCountMatches:0,scopedWithLinks:0,
+    controlledPopupWithLinks:0,
+    emptyControlledPanels:0,linkLikeWithoutHref:0,
+    distinctCapturedTargetUrls:0,
     userExpansionErrors:0,sourceHoverErrors:0};
   const urls=new Set(), byOrdinal=new Map();
   for(const line of data.split(/\r?\n/).filter(Boolean))
@@ -175,8 +210,17 @@ export function summarizeLiveShareInteractions(captureDir)
     {
       totals.sourceHoverAttempts++;
       if(e.observedNewAnchors>0)totals.sourceHoversWithNewAnchors++;
-      if(['aria-controls','single-new-popup'].includes(e.scopeType))
+      if(['aria-controls','single-new-popup'].includes(e.scopeType)) {
         totals.scopedSourcePopovers++;
+        if((e.links||[]).length>0)totals.scopedWithLinks++;
+      }
+      if(e.scopeType==='aria-controls' && (e.links||[]).length>0)
+        totals.controlledPopupWithLinks++;
+      if(e.controlledLinkCount===0 && e.contentStructure)
+        totals.emptyControlledPanels++;
+      if((e.links||[]).length===0 && e.contentStructure &&
+          (e.contentStructure.buttons>0 || e.contentStructure.linkRoles>0))
+        totals.linkLikeWithoutHref++;
       if(Number.isSafeInteger(e.expectedSources) &&
           e.expectedSources===(e.links||[]).length && e.links.length>0 &&
           ['aria-controls','single-new-popup'].includes(e.scopeType))
