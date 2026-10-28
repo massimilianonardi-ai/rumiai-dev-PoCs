@@ -602,6 +602,7 @@ async function run(args) {
   const observeInteractions=rawFlags.includes('--observe-interactions');
   const sourceCardActions=rawFlags.includes('--probe-source-card-actions');
   const trustedSourceCardActions=rawFlags.includes('--probe-trusted-source-card-actions');
+  const remainingControlsProbe=rawFlags.includes('--probe-remaining-controls');
   const sourceGroupPositions=rawFlags.flatMap((flag,i)=>
     flag==='--source-group'?[i]:[]);
   const sourceGroupPosition=sourceGroupPositions[0]??-1;
@@ -630,15 +631,19 @@ async function run(args) {
       (observeInteractions && !flags.includes('--sweep')) ||
       (sourceCardActions && (!observeInteractions || !flags.includes('--sweep'))) ||
       (trustedSourceCardActions && (!observeInteractions || !flags.includes('--sweep'))) ||
+      (remainingControlsProbe && (!observeInteractions ||
+        !flags.includes('--sweep') || !flags.includes('--headless'))) ||
       (sourceCardActions && trustedSourceCardActions) ||
+      (remainingControlsProbe && (sourceCardActions || trustedSourceCardActions ||
+        sourceGroupPosition>=0 || mathIndex>=0 || offlineIndex>=0)) ||
       (sourceGroupPositions.length>1) ||
       (sourceGroupPosition>=0 && (!trustedSourceCardActions || !sourceGroupValid)) ||
       (readinessOnly && (flags.some(x=>x!=='--headless' &&
         x!=='--readiness-only') || mathIndex>=0 || offlineIndex>=0)) ||
       (offlineIndex >= 0 && (offlineIndex !== sansMath.length - 2 || !offlineDir ||
         !flags.includes('--sweep') || !flags.includes('--capture-image-bodies'))) ||
-      flags.some(x => !['--headless','--sweep','--compare-image-urls','--capture-image-bodies','--capture-static-bodies','--observe-interactions','--probe-source-card-actions','--probe-trusted-source-card-actions','--readiness-only'].includes(x))) {
-    process.stderr.write('Usage: node render-probe.mjs <url> <output-dir> [--sweep] [--headless] [--compare-image-urls] [--capture-image-bodies] [--capture-static-bodies] [--observe-interactions] [--probe-source-card-actions] [--probe-trusted-source-card-actions] [--source-group <ordinal:index>] [--offline-output <new-dir>] [--compare-live-katex <reading-index.html>] [--readiness-only]\n');
+      flags.some(x => !['--headless','--sweep','--compare-image-urls','--capture-image-bodies','--capture-static-bodies','--observe-interactions','--probe-source-card-actions','--probe-trusted-source-card-actions','--probe-remaining-controls','--readiness-only'].includes(x))) {
+    process.stderr.write('Usage: node render-probe.mjs <url> <output-dir> [--sweep] [--headless] [--compare-image-urls] [--capture-image-bodies] [--capture-static-bodies] [--observe-interactions] [--probe-source-card-actions] [--probe-trusted-source-card-actions] [--probe-remaining-controls] [--source-group <ordinal:index>] [--offline-output <new-dir>] [--compare-live-katex <reading-index.html>] [--readiness-only]\n');
     return 2;
   }
   const parsed = new URL(url);
@@ -817,8 +822,12 @@ async function run(args) {
         await import('./inspect-source-card-actions.mjs') : null;
       const trustedCardModule=trustedSourceCardActions ?
         await import('./inspect-trusted-source-cards.mjs') : null;
+      const remainingControlsModule=remainingControlsProbe?
+        await import('./inspect-remaining-controls.mjs'):null;
       const sampleLive=(interactionModule || sampleMath) ? async () => {
-        if (interactionModule)
+        if(remainingControlsModule)
+          await remainingControlsModule.probeRemainingControls(cdp,sid,log.record);
+        else if (interactionModule)
           await interactionModule.sampleLiveShareInteractions(cdp,sid,log.record,
             sourceCardModule ? sourceCardModule.probeSourceCardIntent :
             trustedCardModule ? trustedCardModule.probeTrustedSourceGroup : null,
@@ -827,7 +836,7 @@ async function run(args) {
       } : null;
       const observation=await sweep(cdp,sid,log.record,sampleLive,
         mathFile ? progress : null,()=>interrupted,
-        trustedSourceCardActions);
+        trustedSourceCardActions||remainingControlsProbe);
       if(observation.interrupted || interrupted) {
         progress('interrotto; le misure non sono state completate');
         process.stdout.write(JSON.stringify(await stop('signal'))+'\n');

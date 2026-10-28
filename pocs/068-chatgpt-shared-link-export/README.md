@@ -1812,3 +1812,63 @@ the generated archive should have **zero remote IMG src references**
 and preserve 8 details / 19 links. Physical Chromium comparison is
 required to accept icon appearance, layout and click behavior. Do not
 send private archives or original source URLs to GitHub.
+
+
+## Guarded recovery of singleton citation and standalone Fonti behavior (2026-10-28)
+
+The operator accepted the **external-link icon visibility** in the
+exact-localized private offline archive. This visual result is fixed;
+no more image recapture is required. The existing 8 expanded +N groups
+and 19 individually verified HTTPS destinations must also be preserved.
+
+The two remaining controls are semantically different from +N groups:
+- singleton citation triggers may navigate directly without displaying a
+  dropdown; a current static span with aria-haspopup is not sufficient
+  evidence of its correct destination;
+- the four separate "Fonti" buttons may open a dedicated source panel;
+  their original panel DOM and click ownership must be observed rather
+  than guessing that their content is the union of nearby +N links.
+
+New opt-in live runner mode \`--probe-remaining-controls\` probes only
+these two control categories under the same **fail-closed CDP Fetch
+interception** and trusted pointer input as the earlier successful
+source-card experiment. The new mode is mutually exclusive with the
+original +N source-card action modes, and requires \`--headless --sweep
+--observe-interactions\`. It selects exact standalone Fonti-labelled
+buttons and leaf aria-haspopup controls containing an IMG but no +N
+source pill. It excludes nested aria-haspopup wrappers and the
+previously accepted +N controls. It stores per-control original markup,
+any directly intercepted window.open or scripted anchor clicks and
+bounded newly visible popup DOM **only inside the private capture**.
+All subsequent network requests remain blocked. It always retains the
+virtualized sweep's scroll cursor after a probe.
+
+\`inspect-remaining-controls.mjs\` prints a **privacy-safe summary**
+(counts, turn/index, control kind, evidence status and popup structure
+only). An intercepted direct HTTPS open is navigation intent evidence;
+a nearby blocked request is not. Popup observation alone is not proof
+of complete panel content. No offline HTML/CSS, image assets, source
+URLs, CSP, accepted diagram/table, preview controls or working +N
+disclosures are modified by this observation work unit.
+
+From the PoC root, run the focused tests and **one new disposable
+guarded observation** of the already known correct share 2 URL:
+
+    node --test tests/remaining-controls.test.mjs \
+      tests/trusted-source-cards.test.mjs
+    umask 077
+    CAPTURE_DIR="$(mktemp -d "$HOME/chatgpt-share2-remaining-XXXXXXXX")"
+    node render-probe.mjs \
+      'https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259' \
+      "$CAPTURE_DIR" --headless --sweep \
+      --observe-interactions --probe-remaining-controls
+    node inspect-remaining-controls.mjs "$CAPTURE_DIR"
+
+Never share events.jsonl or the private capture directory's HTML files.
+Report only the sanitized JSON. On actual evidence, implement **separate
+inert, script-free** transformations for verified singleton direct
+anchors and verified Fonti panel disclosure, preserving the approved
+24 localized external-image references and the working 8/19 +N links.
+If observed evidence is insufficient, keep those controls unmodified
+and explain the precise missing association rather than substituting
+the known +N target URLs.
