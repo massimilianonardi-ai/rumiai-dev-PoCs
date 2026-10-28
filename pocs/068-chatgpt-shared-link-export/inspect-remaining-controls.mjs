@@ -12,7 +12,7 @@ const expr=(fn,...args)=>
 export function browserSelectRemainingControl()
 {
   const state=globalThis.__rumiaiRemaining || (
-    globalThis.__rumiaiRemaining={seen:new Set(),target:null});
+    globalThis.__rumiaiRemaining={seen:new Set(),deferred:new Map(),target:null});
   const norm=value=>String(value||'').normalize('NFKC')
     .replace(/\s+/g,' ').trim().toLowerCase();
   const isBadge=el=>[...el.querySelectorAll('span')].some(span=>
@@ -46,9 +46,15 @@ export function browserSelectRemainingControl()
     {
       const key=ordinal+':'+kind+':'+index;
       if(state.seen.has(key))continue;
+      const pending=state.deferred.get(key);
+      const cursor=document.querySelector?.('[data-scroll-root]')?.scrollTop;
+      // Retry only when the virtualized sweep has moved, not repeatedly
+      // inside the same sampling frame.
+      if(pending && Number.isFinite(cursor) &&
+         Math.abs(cursor-pending.cursor)<240)continue;
       const node=items[index];
       state.seen.add(key);
-      state.target={node,ordinal,kind,index};
+      state.target={node,ordinal,kind,index,key};
       return {selected:true,ordinal,kind,index,
         ariaControls:!!node.getAttribute('aria-controls'),
         tag:node.localName};
@@ -57,6 +63,20 @@ export function browserSelectRemainingControl()
   state.target=null;
   return {selected:false};
 }
+export function browserDeferRemainingControl()
+{
+  const state=globalThis.__rumiaiRemaining;
+  const key=state?.target?.key;
+  if(!key || !state.seen.has(key))return false;
+  const previous=state.deferred.get(key);
+  const count=(previous?.count||0)+1;
+  if(count>=3)return false;
+  const cursor=document.querySelector?.('[data-scroll-root]')?.scrollTop;
+  state.deferred.set(key,{count,cursor:Number.isFinite(cursor)?cursor:null});
+  state.seen.delete(key);
+  return true;
+}
+
 export function browserPrepareRemainingControl(allowScroll=true)
 {
   const state=globalThis.__rumiaiRemaining;
@@ -110,10 +130,13 @@ export function browserPrepareRemainingControl(allowScroll=true)
   const before=[...document.querySelectorAll(popupSelector)]
     .filter(visible);
   const context=node.parentElement?.outerHTML||'';
+  const turnHtml=node.closest('[data-turn-id-container]')?.outerHTML||'';
   state.hooks.active={opened:[],anchors:[],before:new Set(before),
     controlHtml:node.outerHTML,
     contextHtml:context.length<=16384?context:null,
-    contextTruncated:context.length>16384};
+    contextTruncated:context.length>16384,
+    turnHtml:turnHtml.length<=524288?turnHtml:null,
+    turnTruncated:turnHtml.length>524288};
   return {status:'ready',x,y};
 }
 export function browserReadRemainingControl()
@@ -139,10 +162,20 @@ export function browserReadRemainingControl()
   const chosen=outer.length===1?outer[0]:
     controlled&&visible(controlled)?controlled:null;
   const html=chosen?.outerHTML||'';
+  const afterTurn=selected.node.closest('[data-turn-id-container]')?.outerHTML||'';
+  const menuButtons=[...(chosen?.querySelectorAll('button')||[])];
+  state.popupButton=selected.kind==='singleton'&&menuButtons.length===1?
+    menuButtons[0]:null;
   return {active:true,opened:active.opened,anchors:active.anchors,
     controlHtml:active.controlHtml,
     contextHtml:active.contextHtml,
     contextTruncated:active.contextTruncated,
+    turnBeforeHtml:active.turnHtml,
+    turnAfterHtml:afterTurn.length<=524288?afterTurn:null,
+    turnTruncated:active.turnTruncated||afterTurn.length>524288,
+    turnChanged:active.turnHtml!==null && active.turnHtml!==afterTurn,
+    popupButtonHtml:state.popupButton?.outerHTML||null,
+    popupButtonHasImage:!!state.popupButton?.querySelector('img'),
     panelHtml:html.length<=131072?html:null,
     panelTruncated:html.length>131072,
     freshPopups:outer.length,
@@ -151,6 +184,39 @@ export function browserReadRemainingControl()
     expanded:selected.node.getAttribute('aria-expanded')==='true',
     panelObserved:!!chosen};
 }
+// The first trusted click on a singleton citation opens a React popup.
+// Only a unique, still-visible button in that exact popup may be probed next.
+// Its navigation intent belongs to this second native click, not to the
+// earlier popup-opening input or an unrelated blocked network request.
+export function browserPrepareRemainingPopupButton()
+{
+  const state=globalThis.__rumiaiRemaining;
+  const card=state?.popupButton;
+  if(state?.target?.kind!=='singleton' || !card || !card.isConnected)
+    return {status:'no-unique-popup-button'};
+  const rect=card.getBoundingClientRect();
+  const x=(rect.left+rect.right)/2,y=(rect.top+rect.bottom)/2;
+  if(!Number.isFinite(x)||!Number.isFinite(y)||
+     rect.width<3||rect.height<3 ||
+     x<0||y<0||x>=innerWidth||y>=innerHeight)
+    return {status:'popup-button-offscreen'};
+  const hit=document.elementFromPoint(x,y);
+  if(!hit || (hit!==card&&!card.contains(hit)))
+    return {status:'popup-button-obscured'};
+  if(!state.hooks)return {status:'missing-interceptor'};
+  state.hooks.active={opened:[],anchors:[]};
+  return {status:'ready',x,y};
+}
+export function browserReadRemainingPopupButton()
+{
+  const state=globalThis.__rumiaiRemaining;
+  const active=state?.hooks?.active;
+  if(!active)return {active:false,opened:[],anchors:[]};
+  state.hooks.active=null;
+  state.popupButton=null;
+  return {active:true,opened:active.opened,anchors:active.anchors};
+}
+
 export async function probeRemainingControls(cdp,sid,record)
 {
   if(!cdp.blockRequests)
@@ -200,6 +266,33 @@ export async function probeRemainingControls(cdp,sid,record)
           expression:expr(browserReadRemainingControl),
           returnByValue:true},sid,7000)).result?.value||{};
         status=result.active?'dispatched':'readback-unavailable';
+        if(selected.kind==='singleton' && result.panelObserved &&
+           result.panelButtons===1)
+        {
+          const prepared=(await cdp.send('Runtime.evaluate',{
+            expression:expr(browserPrepareRemainingPopupButton),
+            returnByValue:true},sid,7000)).result?.value||{};
+          result.popupCardStatus=prepared.status||'unavailable';
+          if(result.popupCardStatus==='ready')
+          {
+            const px=prepared.x,py=prepared.y;
+            await cdp.send('Input.dispatchMouseEvent',{
+              type:'mouseMoved',x:px,y:py,button:'none',buttons:0},sid,6000);
+            await cdp.send('Input.dispatchMouseEvent',{
+              type:'mousePressed',x:px,y:py,button:'left',buttons:1,
+              clickCount:1},sid,6000);
+            await cdp.send('Input.dispatchMouseEvent',{
+              type:'mouseReleased',x:px,y:py,button:'left',buttons:0,
+              clickCount:1},sid,6000);
+            await pause(220);
+            const card=(await cdp.send('Runtime.evaluate',{
+              expression:expr(browserReadRemainingPopupButton),
+              returnByValue:true},sid,7000)).result?.value||{};
+            result.popupCardStatus=card.active?'dispatched':'readback-unavailable';
+            result.popupCardOpened=card.opened||[];
+            result.popupCardAnchors=card.anchors||[];
+          }
+        }
         // Close any popup before probing the next control. Guard stays active.
         await cdp.send('Input.dispatchKeyEvent',{
           type:'keyDown',key:'Escape',code:'Escape',
@@ -209,6 +302,13 @@ export async function probeRemainingControls(cdp,sid,record)
           windowsVirtualKeyCode:27},sid,4000);
       }
     }catch{status='probe-failed';}
+    if(status==='offscreen'||status==='unmounted'){
+      try{
+        await cdp.send('Runtime.evaluate',{
+          expression:expr(browserDeferRemainingControl),
+          returnByValue:true},sid,4000);
+      }catch{}
+    }
     record({kind:'interaction.remaining-control-intent',
       ordinal:selected.ordinal,controlKind:selected.kind,
       index:selected.index,controlTag:selected.tag,
@@ -230,6 +330,12 @@ export function summarizeRemainingControls(directory)
       panelObserved:!!x.panelObserved,
       panelTruncated:!!x.panelTruncated,
       contextTruncated:!!x.contextTruncated,
+      turnTruncated:!!x.turnTruncated,
+      turnChanged:!!x.turnChanged,
+      popupCardStatus:x.popupCardStatus||'not-probed',
+      popupCardOpened:(x.popupCardOpened||[]).length,
+      popupCardAnchorClicks:(x.popupCardAnchors||[]).length,
+      popupButtonHasImage:!!x.popupButtonHasImage,
       panelButtons:x.panelButtons||0,panelAnchors:x.panelAnchors||0,
       freshPopups:x.freshPopups||0,expanded:!!x.expanded
     })),

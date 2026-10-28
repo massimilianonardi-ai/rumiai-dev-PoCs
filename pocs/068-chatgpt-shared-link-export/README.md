@@ -1872,3 +1872,51 @@ anchors and verified Fonti panel disclosure, preserving the approved
 If observed evidence is insufficient, keep those controls unmodified
 and explain the precise missing association rather than substituting
 the known +N target URLs.
+
+
+## Two-stage singleton navigation and inline Fonti follow-up (2026-10-28)
+
+Physical vmdev on PoC `866de4c` passed **9/9** focused Node tests
+and completed a guarded Chromium capture in
+`/home/admino/chatgpt-share2-remaining-23cpAMPP` (1,459 events,
+113 unique turn snapshots). It found 12 individual control attempts:
+four standalone `Fonti` buttons (ordinal 6 initially offscreen,
+2 unmounted, 4 and 8 dispatched without a newly visible recognized
+popup) and **eight singleton-citation controls** (ordinals 2,4,6,8).
+All eight singleton triggers successfully opened a visible original
+React popup, each with exactly **one button, zero href anchors**.
+None of the eight initial trigger clicks directly opened an HTTPS URL.
+This confirms that original singleton citation links must be tested
+at the *popup's internal button*, not inferred from its original
+`aria-haspopup` span. The absence of a `Fonti` dialog is not proof
+that the button did nothing: it might change inline turn DOM or
+render under an unrecognized non-dialog container.
+
+The same opt-in `--probe-remaining-controls` mode now performs a
+**second, independently hit-tested trusted CDP pointer click** only
+if the original singleton popup yields one connected, visible button.
+It captures `popupCardOpened` and `popupCardAnchors` as private
+per-control evidence, distinct from the initial trigger intents.
+The report prints only the counts, the second-click result and a
+`popupButtonHasImage` flag. For each `Fonti` click it also saves
+bounded original assistant-turn DOM **before/after** in the private
+capture, and reports only `turnChanged` / `turnTruncated` flags.
+Offscreen or unmounted targets can now be retried on later sweep
+positions, at most three attempts, without monopolizing a scan
+at one cursor. The original strict Fetch network guard and
+sweep-scroll cursor preservation remain in place.
+
+The report is still evidence, **not** a renderer repair. Single
+citations may be converted to script-free direct anchors only after
+their *own* popup button's exact HTTPS destination is verified and
+matched to the original turn/control. The four `Fonti` panels
+must be reconstructed from an actually observed/verified panel, not
+from the existing 19 +N URL targets. The previously accepted icon
+localization, eight +N disclosures, original CSS and diagram,
+long-message controls and `script-src 'none'` remain unchanged.
+
+From PoC 068 on vmdev, rerun the focused tests and one new guarded
+observation using exactly the same correct share URL and flags as
+above. Inspect the new private capture using
+`node inspect-remaining-controls.mjs <new-capture-dir>`. Never
+paste raw HTML, `events.jsonl` or captured source URLs.
