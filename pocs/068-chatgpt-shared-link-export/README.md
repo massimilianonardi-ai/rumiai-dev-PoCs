@@ -30,7 +30,9 @@ CSS and verified +N source reconstruction; exact SHA-256 image
 localization (one additional capture only if needed); two independent
 guarded singleton-popup-button captures; and native singleton
 link restoration. It publishes the final directory only when all
-available provenance and structural checks pass. **No inferred or
+available provenance and structural checks pass. **If a capture fails with the known transient
+`sweep-not-ready` exit status, it retries **once with a fresh isolated
+Chromium profile**, never bypassing the DOM readiness gate. No inferred or
 fabricated external link is substituted**. A failed invocation
 leaves its private `.poc068-export-*` work directory for debugging
 but never publishes a partial output. Successful runs erase those

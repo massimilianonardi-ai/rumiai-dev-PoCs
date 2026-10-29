@@ -149,3 +149,42 @@ test('keep-evidence option retains private capture directory on success',()=>
    assert.equal(fs.readFileSync(path.join(output,'index.html'),'utf8'),'accepted');
  })
 );
+
+
+test('only readiness exit 3 retries once with a fresh private capture',()=>
+ sandbox(async root=>{
+   const output=path.join(root,'archive'),calls=[];
+   const ops=fixtureOps(calls);
+   const originalCapture=ops.capture;
+   let first=true;
+   ops.capture=async(url,dir,flags)=>{
+     if(first){
+       first=false;
+       const error=Error('sweep-not-ready');
+       error.captureExitCode=3;
+       throw error;
+     }
+     return originalCapture(url,dir,flags);
+   };
+   const report=await exportOfflineShare(share,output,{operations:ops});
+   assert.equal(report.status,'private-offline-export-created');
+   assert.ok(calls.some(x=>x[1]==='original-readiness-retry'));
+   assert.ok(fs.existsSync(path.join(output,'index.html')));
+ })
+);
+test('other capture failures do not trigger retries or publish partial output',()=>
+ sandbox(async root=>{
+   const output=path.join(root,'archive'),calls=[];
+   const ops=fixtureOps(calls);
+   ops.capture=async()=>{
+     calls.push('failed');
+     const error=Error('bad browser session');
+     error.captureExitCode=1;
+     throw error;
+   };
+   await assert.rejects(exportOfflineShare(share,output,{operations:ops}),
+     /bad browser session/);
+   assert.deepEqual(calls,['failed']);
+   assert.equal(fs.existsSync(output),false);
+ })
+);
