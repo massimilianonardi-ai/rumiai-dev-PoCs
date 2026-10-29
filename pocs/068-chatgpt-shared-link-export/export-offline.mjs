@@ -222,7 +222,8 @@ export async function exportOfflineShare(urlInput,outputName,options={})
       '--observe-interactions','--probe-remaining-controls']);
     const referenceKeys=ops.verifySingletons(originalRemaining);
     const targetKeys=ops.verifySingletons(verifiedRemaining);
-    if(referenceKeys.size!==targetKeys.size ||
+    if(referenceKeys.size!==MAX_SINGLETONS ||
+       targetKeys.size!==MAX_SINGLETONS ||
        [...referenceKeys].some(key=>!targetKeys.has(key)))
       throw Error('Singleton identities changed across captures');
     const final=path.join(stage,'archive');
