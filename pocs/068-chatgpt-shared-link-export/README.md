@@ -1,6 +1,65 @@
 # PoC 068 — ChatGPT shared-link export with web-control
 
-Status: Experimental. Not a published RumiAI command/package.
+Status: **Experimental — final operator-accepted milestone (2026-10-29).** Not a published RumiAI command/package.
+
+## Final experimental outcome and acceptance
+
+**Development of this PoC is concluded at the operator's request.** The
+result is useful but intentionally not pixel-perfect or production-ready.
+The source implementation remains as-is; the finalization records actual
+observations and explicitly accepted gaps rather than attempting further
+renderer or CSS changes.
+
+The **private offline result** is the script-free original-CSS rendering
+followed by verified source-link reconstruction, exact image localization
+and the separate singleton-link postprocessor. In the operator's physical
+browser checks:
+
+- Assistant diagram rendering and long-user-message disclosures were
+  accepted; previously verified grouped citations contain **8 native
+  expandable groups and 19 functional HTTPS links**.
+- Original external-link icons are displayed correctly after exact-URL
+  / SHA-256 matching of **24 image references** to **11 captured image
+  bodies**, without changing the original inert CSP.
+- **8 single-source citations open the correct external HTTPS link**.
+  Their original icon remains visible, but the following caption/text
+  wraps onto another line rather than staying beside the icon.
+- The **4 separate "Fonti" buttons do not provide a working disclosure**
+  in this final offline output. This is a known, accepted functional gap.
+
+The last successful guarded browser capture identified one original
+HTTPS destination for each of the 8 singleton popover buttons and
+observed all 4 "Fonti" controls, but the latter did not produce
+sufficient verified disclosure content for a safe script-free replay.
+No inferred destinations or fabricated Fonti panels are introduced.
+
+**Validation boundaries:** the operator has confirmed the final
+singleton-link navigation and preceding icon / grouped-link behavior.
+The earlier **12/12 Node tests** and successful guarded live-capture
+exercise applied to revision `f585472`. No physical Node result for
+the later `tests/restore-singleton-citations.test.mjs` suite was
+supplied in this conversation; do not claim it passed. Visual fidelity
+of the cost table and the "Scrittura" block spacing was not separately
+confirmed. The RAW completeness of the underlying shared conversation
+has **not** been proven; the exported visible messages must not be
+represented as a certified full ChatGPT history.
+
+**Private artifact retention / reproduction:** the accepted result is
+stored on the operator's vmdev host, not in Git. The final opt-in
+postprocessor is `restore-singleton-citations.mjs`; it creates a new
+private `chatgpt-share2-singletons-*` directory from the previously
+accepted `chatgpt-share2-exact-icons-*` archive and the two verified
+original remaining-control captures. The invocation and evidence
+requirements are documented in **"Verify and restore eight singleton
+citation anchors"** below. Preserve the existing final result and
+source captures locally; do not commit HTML, private links, session
+profiles or source image bodies to this repository.
+
+All remaining deviations above are **accepted limitations of this
+closed experimental milestone**, not active implementation tasks.
+A later improvement would require an explicit new work unit.
+
+
 
 ## Objective
 
