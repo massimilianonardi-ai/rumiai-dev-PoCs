@@ -2,6 +2,57 @@
 
 Status: **Experimental — final operator-accepted milestone (2026-10-29).** Not a published RumiAI command/package.
 
+## Integrated Node.js command — new packaging work unit (not yet physically validated)
+
+The **operator-accepted archive** below remains unchanged. A new
+Node.js command composes its existing evidence-verified tools so a
+caller does not need to supply individual capture directories or
+source-group indices:
+
+```sh
+cd pocs/068-chatgpt-shared-link-export
+npm install
+node export-offline.mjs \
+  'https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259' \
+  "$HOME/my-private-chatgpt-export"
+```
+
+The output directory **must not already exist**. On successful
+completion it contains `index.html` and locally saved resources.
+Chromium, Node.js 22+ and the current PoC npm dependencies must
+already be available. There is no input-file upload, ChatGPT login
+bypass, provider API access or source JavaScript replay.
+
+The command runs, in order: an original-CSS/image/DOM capture; an
+independent guarded +N source-card capture plus bounded retries for
+missing groups; source identity verification across sessions; original
+CSS and verified +N source reconstruction; exact SHA-256 image
+localization (one additional capture only if needed); two independent
+guarded singleton-popup-button captures; and native singleton
+link restoration. It publishes the final directory only when all
+available provenance and structural checks pass. **No inferred or
+fabricated external link is substituted**. A failed invocation
+leaves its private `.poc068-export-*` work directory for debugging
+but never publishes a partial output. Successful runs erase those
+private intermediate captures unless `--keep-evidence` is supplied.
+
+This is an **integrated site-specific experimental command**, not
+yet a production-ready generic ChatGPT exporter. The current
+singleton restorer's verified contract is still the exact
+**eight-singleton / eight-+N-group / nineteen-group-link layout**
+of the accepted example. A conversation with another structure may
+be refused. Even a successful command does not prove full RAW
+conversation completeness or perfect visual fidelity. As accepted
+by the operator, the separate "Fonti" buttons remain inert and
+some singleton captions may wrap below their icons. No fixed
+previously captured private URLs or contents are shipped with it.
+
+The integrated command and targeted mock-boundary tests are new
+work; **a fresh real Chromium run on vmdev and visual acceptance
+must be completed before claiming that the new end-to-end command
+works**. The older operator-accepted offline archive is separate
+and remains valid.
+
 ## Final experimental outcome and acceptance
 
 **Development of this PoC is concluded at the operator's request.** The
