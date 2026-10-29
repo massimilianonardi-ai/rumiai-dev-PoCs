@@ -2,7 +2,7 @@
 
 Status: **Experimental — final operator-accepted milestone (2026-10-29).** Not a published RumiAI command/package.
 
-## Integrated Node.js command — new packaging work unit (not yet physically validated)
+## Integrated Node.js command — validated on GitHub-hosted Linux (2026-10-29)
 
 The **operator-accepted archive** below remains unchanged. A new
 Node.js command composes its existing evidence-verified tools so a
@@ -49,11 +49,18 @@ by the operator, the separate "Fonti" buttons remain inert and
 some singleton captions may wrap below their icons. No fixed
 previously captured private URLs or contents are shipped with it.
 
-The integrated command and targeted mock-boundary tests are new
-work; **a fresh real Chromium run on vmdev and visual acceptance
-must be completed before claiming that the new end-to-end command
-works**. The older operator-accepted offline archive is separate
-and remains valid.
+**Fresh end-to-end Linux execution passed** on the GitHub-hosted
+Ubuntu runner in [PoC 068 Live Offline Export run 40954580470](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/40954580470)
+for the example URL above. Node.js 22 syntax checks and all eight
+`export-offline` Node tests passed; the real Chromium-driven command
+published a private offline archive with 8 verified +N groups,
+19 group links, 8 singleton links, 0 residual remote images and
+a script-blocking CSP. The resulting `index.html` was 264,928 bytes.
+No HTML or CDP evidence was uploaded from the runner. This is a
+successful **auxiliary GitHub-hosted Linux test of this exact share**,
+not physical vmdev validation, operator visual acceptance of the new
+single-command output, or proof of support for arbitrary shares.
+The older operator-accepted offline archive is separate and remains valid.
 
 ## Final experimental outcome and acceptance
 
