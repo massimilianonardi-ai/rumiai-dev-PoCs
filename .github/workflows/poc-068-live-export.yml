@@ -1,0 +1,81 @@
+name: PoC 068 Live Offline Export
+
+on:
+  push:
+    paths:
+      - '.github/workflows/poc-068-live-export.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare Node and actual Chrome
+        shell: bash
+        run: |
+          set -eu
+          cd pocs/068-chatgpt-shared-link-export
+          npm ci --no-audit --no-fund
+          npm run check
+          node --test tests/export-offline.test.mjs
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$browser"
+          "$browser" --version
+          mkdir -p "$RUNNER_TEMP/poc068-bin"
+          cat > "$RUNNER_TEMP/poc068-bin/chromium" <<EOF
+          #!/bin/sh
+          exec "$browser" "\$@"
+          EOF
+          chmod +x "$RUNNER_TEMP/poc068-bin/chromium"
+      - name: Export real public share with the released command
+        shell: bash
+        env:
+          SHARE_URL: https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259
+        run: |
+          set -eu
+          umask 077
+          export PATH="$RUNNER_TEMP/poc068-bin:$PATH"
+          export EXPORT_PRIVATE="$RUNNER_TEMP/poc068-live-private"
+          mkdir -p "$EXPORT_PRIVATE"
+          cd pocs/068-chatgpt-shared-link-export
+          node export-offline.mjs "$SHARE_URL" "$EXPORT_PRIVATE/final" > "$EXPORT_PRIVATE/result.json"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import assert from 'node:assert/strict';
+          import {inspectOfflineLinkControls} from './inspect-offline-link-controls.mjs';
+          const privateDir=process.env.EXPORT_PRIVATE;
+          const report=JSON.parse(fs.readFileSync(path.join(privateDir,'result.json'),'utf8'));
+          const output=path.join(privateDir,'final');
+          assert.equal(report.status,'private-offline-export-created');
+          assert.equal(report.restoredGroups,8);
+          assert.equal(report.groupLinks,19);
+          assert.equal(report.singletonLinks,8);
+          assert.equal(report.remoteImages,0);
+          assert.equal(report.originalScriptsDisabled,true);
+          assert.ok(fs.statSync(path.join(output,'index.html')).size>0);
+          const audit=inspectOfflineLinkControls(output);
+          assert.equal(audit.sourceDetails,8);
+          assert.equal(audit.sourceLinks,19);
+          assert.equal(audit.hasScriptBlocking,true);
+          assert.equal(audit.imageReferences.remote||0,0);
+          console.log(JSON.stringify({
+            status:'live-export-verified',
+            sourceGroups:audit.sourceDetails,
+            sourceLinks:audit.sourceLinks,
+            singletonLinks:report.singletonLinks,
+            remoteImages:audit.imageReferences.remote||0,
+            scriptBlocked:audit.hasScriptBlocking,
+            indexBytes:fs.statSync(path.join(output,'index.html')).size
+          }));
+          NODE
+      # The HTML, CDP records and browser profile are private session data.
+      # Intentionally do not upload them or print their contents to Actions logs.
