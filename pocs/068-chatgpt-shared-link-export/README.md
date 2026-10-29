@@ -1920,3 +1920,64 @@ observation using exactly the same correct share URL and flags as
 above. Inspect the new private capture using
 `node inspect-remaining-controls.mjs <new-capture-dir>`. Never
 paste raw HTML, `events.jsonl` or captured source URLs.
+
+
+## Verify and restore eight singleton citation anchors (2026-10-29)
+
+The guarded real vmdev capture on PoC `f585472` succeeded in
+`/home/admino/chatgpt-share2-remaining-7GRRAT1l`: 101 unique turn
+snapshots and 12 attempted remaining controls, zero Fetch guard
+failures. **All eight** singleton citation popup buttons were
+independently hit-tested and dispatched, each with one directly
+intercepted `window.open` HTTPS target. Thus we now have exact
+second-click attribution, not inferred links from adjacent +N pills.
+
+All four `Fonti` buttons also dispatched: ordinals 2 and 6 reported
+a changed turn DOM, while 4 and 8 did not; no previously recognized
+standalone popup. This is not sufficient to reconstruct four native
+Fonti disclosures.
+
+`restore-singleton-citations.mjs` is an opt-in, fail-closed **local
+postprocessor** accepting the existing *exact-icons* private archive,
+a NEW private output directory, and BOTH original remaining-control
+captures (first-click observation and successful second-click
+observation). It requires exactly eight original single-citation
+controls, the 1/2/3/2 per-turn distribution, matching structural
+fingerprints across both captures, unique exact HTTPS second-button
+intent for each, and matching per-turn/index/structure in the offline
+HTML. It ignores mutable React IDs and original IMG.src URL values
+because the latter were replaced by SHA-verified local image files.
+It patches only verified original byte ranges by wrapping each source
+control with a normal native HTTPS anchor and copying the original
+element bytes intact. The existing 8 +N groups / 19 link targets, the
+original external icons, CSS and inert CSP are unchanged. A missing
+or ambiguous association aborts without creating an output.
+
+`inspect-fonti-dom-deltas.mjs` reads the private original Fonti
+before/after HTML events and prints only structural counts/deltas
+(added/removed links, elements, list items, buttons, sections,
+aria-expanded changes and normalized text length differences).
+It does not reconstruct Fonti; evidence of the actual panel's DOM
+and ownership must precede that change.
+
+From the PoC root on vmdev:
+
+    node --test tests/restore-singleton-citations.test.mjs
+    umask 077
+    ORIGINAL="$(find "$HOME" -maxdepth 1 -type d -name 'chatgpt-share2-exact-icons-*' -printf '%T@ %p\n' | sort -nr | head -n 1 | cut -d' ' -f 2-)"
+    test -f "$ORIGINAL/index.html"
+    OUTPUT="$(mktemp -d "$HOME/chatgpt-share2-singletons-XXXXXXXX")"
+    rmdir "$OUTPUT"
+    node restore-singleton-citations.mjs "$ORIGINAL" "$OUTPUT" \
+      /home/admino/chatgpt-share2-remaining-23cpAMPP \
+      /home/admino/chatgpt-share2-remaining-7GRRAT1l
+    node inspect-fonti-dom-deltas.mjs \
+      /home/admino/chatgpt-share2-remaining-7GRRAT1l
+    xdg-open "$OUTPUT/index.html"
+
+If it succeeds, verify eight direct HTTPS singleton citations,
+all eight accepted +N menus and 19 links, icon visibility, diagram
+and CSS. Keep the old exact-icons archive intact for comparison.
+If the strict identity check refuses a control, report the sanitized
+error: do not patch the HTML or insert a guessed URL. Never share
+the private archive, original links, raw events or capture DOM.

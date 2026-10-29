@@ -51,7 +51,7 @@ function disclosure(trigger,ordinal,index,targets,originalChildren=trigger.inner
 // linkedom's normalized outerHTML, which can reformat attributes/entities/SVG.
 // Scanning never rewrites content; each candidate is then independently parsed
 // and compared to the exact, already-verified source-control DOM node.
-function capturedElementRanges(html)
+export function capturedElementRanges(html)
 {
   const stack=[],ranges=[];
   const voidTags=new Set(['area','base','br','col','embed','hr','img','input',
