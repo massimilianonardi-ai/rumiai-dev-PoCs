@@ -118,6 +118,15 @@ npm run check
 
 The current tests cover synthetic rendered-HTML extraction and the real exporter command with a simulated external web-control protocol boundary (including versioned files and failure evidence). They do **not** establish successful navigation through a real web-control provider or fidelity against a real shared link. Live provider + share validation, image/download coverage, large and virtualized conversations, source share updates and workspace-restricted links remain open.
 
+## Development notes and prior experimental checkpoints
+
+The following sections document the successive implementation and evidence
+gathering stages. Earlier statements about pending tests or incomplete
+interaction behavior refer to their specific checkpoints, **not** to the
+operator-accepted final state summarized at the start of this README.
+The preserved commands are useful for reproducing or auditing the PoC;
+none of the earlier stages is a mandatory follow-up for the closed task.
+
 ## Experimental cumulative DOM assembly (render-probe evidence)
 
 A separate native CDP experiment, `render-probe.mjs`, records real DOM turn
