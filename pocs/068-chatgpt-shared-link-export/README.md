@@ -58,9 +58,18 @@ published a private offline archive with 8 verified +N groups,
 a script-blocking CSP. The resulting `index.html` was 264,928 bytes.
 No HTML or CDP evidence was uploaded from the runner. This is a
 successful **auxiliary GitHub-hosted Linux test of this exact share**,
-not physical vmdev validation, operator visual acceptance of the new
-single-command output, or proof of support for arbitrary shares.
-The older operator-accepted offline archive is separate and remains valid.
+not by itself physical validation of the operator's host or proof of
+support for arbitrary shares.
+
+**Operator correction (2026-10-29):** the operator explicitly confirms
+that a real export test had already been carried out and that its
+result was perfect. The previous statement that real/operator testing
+was still pending is therefore superseded. This confirmation is
+operator-reported evidence, separate from the independently logged
+GitHub Actions execution; the exact command, source revision and
+private output of that earlier test were not supplied with this
+correction and must not be invented. The previously operator-accepted
+offline archive remains valid.
 
 ## Final experimental outcome and acceptance
 
