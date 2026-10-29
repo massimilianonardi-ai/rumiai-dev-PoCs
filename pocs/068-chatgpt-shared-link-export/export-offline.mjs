@@ -99,9 +99,12 @@ async function runCapture(url,directory,flags)
         else resolve(exitCode);
       });
     });
-    if(code!==0)
-      throw Error('Chromium capture '+label+' failed with exit '+code+
+    if(code!==0){
+      const error=Error('Chromium capture '+label+' failed with exit '+code+
         '; private diagnostic log retained');
+      error.captureExitCode=code;
+      throw error;
+    }
     const audit=JSON.parse(fs.readFileSync(
       path.join(directory,'summary.json'),'utf8'));
     if(!audit.counts || audit.counts['sweep.finished']!==1 ||
@@ -158,10 +161,25 @@ export async function exportOfflineShare(urlInput,outputName,options={})
   try
   {
     const capture=async(name,flags)=>{
-      const dir=path.join(stage,name);
-      progress('Capturing '+name);
-      await ops.capture(url,dir,flags);
-      return dir;
+      for(let attempt=0;attempt<2;attempt++){
+        const label=attempt?name+'-readiness-retry':name;
+        const dir=path.join(stage,label);
+        progress('Capturing '+label);
+        try{
+          await ops.capture(url,dir,flags);
+          return dir;
+        }catch(error){
+          // The observed share occasionally exposes main but not its
+          // conversation hooks in one entire browser session. Retry once,
+          // in an isolated new profile, only for the documented exit 3.
+          if(attempt===0&&error.captureExitCode===3){
+            progress('Expected conversation DOM not ready; retrying once');
+            continue;
+          }
+          throw error;
+        }
+      }
+      throw Error('Capture readiness could not be recovered');
     };
     const base=await capture('original',[
       '--observe-interactions','--capture-static-bodies',
