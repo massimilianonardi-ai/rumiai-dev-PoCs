@@ -76,9 +76,14 @@ source-card and singleton restoration scripts remain standalone
 historical PoC tools, not prerequisites of the integrated exporter.
 
 The command retries a `sweep-not-ready` capture once with a fresh
-Chromium profile. Missing original turn markup, non-localized
-image assets and failed structural/CSP checks still prevent
-publication; missing citation destinations do not.
+Chromium profile. **Citation and external-link decorative IMG icons are
+ignored** before image localization: original HTML/CSS bytes outside those
+small image tags, the visible citation text and substantive conversation
+images are retained. Images inside citation controls, known Google favicon
+endpoints and explicitly small/icon-marked external-link badges are omitted.
+Missing original turn markup, missing substantive conversation media and
+failed structural/CSP checks still prevent publication. Neither citation
+targets nor their icon bytes are required.
 
 A real public-share export exposed a root-relative ChatGPT image such as
 `/images/ecosystem/apps/github/icon.png` that Chrome had not supplied as a

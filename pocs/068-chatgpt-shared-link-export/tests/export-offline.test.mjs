@@ -91,6 +91,33 @@ test('archives original citation controls without source-click evidence',()=>
  })
 );
 
+test('actual icon exclusion precedes image audit and prevents favicon retries',()=>
+ sandbox(async root=>{
+   const calls=[],ops=fixtureOps(calls);
+   ops.render=(_base,output)=>{
+     fs.mkdirSync(output,{recursive:true});
+     fs.writeFileSync(path.join(output,'index.html'),
+       '<html><head><meta content="script-src \\u0027none\\u0027"></head>'+
+       '<body><img src="https://www.google.com/s2/favicons?domain=x">'+
+       '<p>Visible conversation text</p></body></html>');
+     return {capturedTurnCount:1};
+   };
+   ops.inspect=dir=>{
+     calls.push(['inspect',path.basename(dir)]);
+     const html=fs.readFileSync(path.join(dir,'index.html'),'utf8');
+     return {hasScriptBlocking:true,imageReferences:{
+       remote:html.includes('www.google.com/s2/favicons')?1:0}};
+   };
+   const output=path.join(root,'archive');
+   const result=await exportOfflineShare(share,output,{operations:ops});
+   assert.equal(result.omittedExternalLinkIcons,1);
+   assert.ok(!calls.some(call=>call[0]==='localize'));
+   assert.ok(!calls.some(call=>call[1]==='more-images'));
+   assert.match(fs.readFileSync(path.join(output,'index.html'),'utf8'),
+     /Visible conversation text/);
+ })
+);
+
 test('metadata is returned on request without requiring citation targets',()=>
  sandbox(async root=>{
    const report=await exportOfflineShare(share,path.join(root,'archive'),{

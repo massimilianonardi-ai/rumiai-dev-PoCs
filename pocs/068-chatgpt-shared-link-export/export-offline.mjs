@@ -9,7 +9,7 @@ import {fileURLToPath} from 'node:url';
 import {renderSameSessionStyled} from './render-same-session-styled.mjs';
 import {localizeExactCapturedImages} from './localize-exact-captured-images.mjs';
 import {localizeFirstPartyImages} from './localize-first-party-images.mjs';
-import {recoverGoogleFavicons} from './recover-google-favicons.mjs';
+import {omitExternalLinkIcons} from './omit-external-link-icons.mjs';
 import {inspectOfflineLinkControls} from './inspect-offline-link-controls.mjs';
 import {readCapturedChatMetadata} from './share-metadata.mjs';
 
@@ -81,7 +81,7 @@ const realOperations={
   render:renderSameSessionStyled,
   localize:localizeExactCapturedImages,
   firstPartyImages:localizeFirstPartyImages,
-  recoverGoogleFavicons,
+  omitIcons:omitExternalLinkIcons,
   inspect:inspectOfflineLinkControls
 };
 
@@ -129,6 +129,10 @@ export async function exportOfflineShare(urlInput,outputName,options={})
        rendering.capturedTurnCount<=0)
       throw Error('Original conversation render has no captured turns');
 
+    // Citation/link badges are not conversation images. Their third-party
+    // favicon availability is not an archive-completeness requirement.
+    const omitted=ops.omitIcons(styled);
+    progress('Omitted '+omitted.omitted+' citation/link decorative images');
     const final=path.join(stage,'archive');
     let checked=ops.inspect(styled);
     if(checked.hasScriptBlocking!==true)
@@ -144,21 +148,11 @@ export async function exportOfflineShare(urlInput,outputName,options={})
           ops.localize(styled,final,captures);
           completed=true;
         }catch(error){
-          if(!/Unmatched remote image reference/.test(String(error.message)))
+          if(attempt!==0||
+             !/Unmatched remote image reference/.test(String(error.message)))
             throw error;
-          if(attempt===0)
-          {
-            captures=[...captures,await capture('more-images',[
-              '--capture-image-bodies'])];
-            continue;
-          }
-          // A second full browser capture still lacked some Google favicon
-          // responses. Fetch only the exact missing Google icon URLs and
-          // represent their verified HTTPS bodies as separate provenance.
-          const recovered=path.join(stage,'verified-google-icons');
-          await ops.recoverGoogleFavicons(styled,captures,recovered);
-          ops.localize(styled,final,[...captures,recovered]);
-          completed=true;
+          captures=[...captures,await capture('more-images',[
+            '--capture-image-bodies'])];
         }
       }
       if(!completed)throw Error('Original image bytes are incomplete');
@@ -184,10 +178,12 @@ export async function exportOfflineShare(urlInput,outputName,options={})
     return {status:'private-offline-export-created',output,
       ...(metadata?{metadata}:{}),
       restoredGroups:0,groupLinks:0,singletonLinks:0,
+      omittedExternalLinkIcons:omitted.omitted,
       remoteImages:0,originalScriptsDisabled:true,
       evidenceDirectory:keepEvidence?stage:null,
       limitations:[
-        'Citation controls retain their visual representation; target URLs and click behavior are not guaranteed',
+        'Citation/link decorative images are omitted; text and other content images are retained',
+        'Citation controls retain their textual representation; target URLs and click behavior are not guaranteed',
         'Original site JavaScript is disabled in the offline archive',
         'Visible HTML capture does not certify completeness of the RAW conversation'
       ]};
