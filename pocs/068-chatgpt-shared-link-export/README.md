@@ -2,6 +2,32 @@
 
 Status: **Experimental — final operator-accepted milestone (2026-10-29).** Not a published RumiAI command/package.
 
+## GitHub Actions publication adapter (2026-10-30)
+
+The optional `share-metadata.mjs` reader extracts the **original chat title**
+from the original shared-page document title and the **first user message's**
+`create_time` from the React Router hydration stream, formatting the archive
+date in `Europe/Rome`. The separately generated offline HTML has a generic
+title and is never used for naming. The original HTML response is saved only
+as SHA-256-verified *private* evidence by `render-probe.mjs` when static-body
+capture is enabled, and is not included in the final archive.
+
+The separate `publish-chat-archive.mjs` adapter accepts a private JSON request
+containing exactly `url` and `topic` and a local checkout of the
+`rumiai-dev` destination repository. It performs the accepted export with
+private evidence, validates title, date, CSP, local resources and path safety,
+and stages the **complete unchanged** archive at
+`chats/<topic>/<YYYY-MM-DD> <original title>/index.html` with its assets.
+It never overwrites an archive. It does **not** run Git commands or publish
+anything remotely: `rumiai-dev/.github/workflows/chatgpt-export.yml` performs
+authorized Issue dispatch, forward-only Git commits and completion reporting.
+
+The GitHub-hosted raw-share metadata extraction for the sample
+`Integrare Chat e Work` recovered date `2026-10-08` and targeted metadata
+and publication-adapter tests passed. Actual original-Document CDP capture
+integration and Issue-to-Git publication must be assessed by their respective
+workflow results; they cannot be inferred from component tests.
+
 ## Integrated Node.js command — validated on GitHub-hosted Linux (2026-10-29)
 
 The **operator-accepted archive** below remains unchanged. A new
