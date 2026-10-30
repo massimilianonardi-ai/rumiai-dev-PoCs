@@ -102,9 +102,23 @@ jobs:
             results.verifiedBodies=index.verifiedBodies;
             results.conflicts=index.conflicts;
             results.captureImageStatuses={};
+            results.unmatchedChromeResponses={};
             for(const dir of captures){
               for(const line of fs.readFileSync(path.join(dir,'events.jsonl'),'utf8').split(/\r?\n/).filter(Boolean)){
                 const event=JSON.parse(line);
+                if(event.kind==='network.image-response'){
+                  const urls=[event.initialUrl,event.requestUrl,event.responseUrl]
+                    .filter(Boolean).map(raw=>{
+                      try{const url=new URL(raw);url.hash='';return url.href;}
+                      catch{return null;}
+                    });
+                  if(urls.some(url=>missingUrls.has(url))){
+                    const key=String(event.status||'unknown')+':'+
+                      String(event.mimeType||'unknown').toLowerCase();
+                    results.unmatchedChromeResponses[key]=
+                      (results.unmatchedChromeResponses[key]||0)+1;
+                  }
+                }
                 if(event.kind!=='network.image-body')continue;
                 const status=event.status||'unspecified';
                 results.captureImageStatuses[status]=(results.captureImageStatuses[status]||0)+1;
@@ -129,6 +143,10 @@ jobs:
           ];
           results.safeRecoveryError=permittedErrors.find(msg=>
             log.includes('[offline-export] '+msg))||null;
+          const http=log.match(/\[offline-export\] Exact Google favicon returned HTTP (\d{3})/u);
+          results.googleRecoveryHttpStatus=http?Number(http[1]):null;
+          results.googleRecoveryUrlMismatch=log.includes(
+            'Google favicon response URL changed outside approved redirects');
           // No source URLs, query tokens, conversation text, browser profiles or raw HTML.
           console.log('PRIVATE-SAFE-IMAGE-EVIDENCE '+JSON.stringify(results));
           NODE
