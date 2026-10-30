@@ -291,7 +291,8 @@ class Cdp {
         requestId: response.requestId, status: 'loading-failed'}, response.sessionId);
     } else if (this.captureImageUrls && method === 'Network.responseReceived') {
       const mime = String(params.response?.mimeType || '').toLowerCase();
-      if (this.storeStatic && (params.type === 'Stylesheet' || params.type === 'Font')) {
+      if (this.storeStatic && (params.type === 'Stylesheet' ||
+          params.type === 'Font' || params.type === 'Document')) {
         this.staticResponses.set(JSON.stringify([sessionId,params.requestId]),{
           sessionId,requestId:params.requestId,mime,status:params.response?.status,
           resourceType:params.type,url:params.response?.url
@@ -451,9 +452,12 @@ function recording(directory) {
     const mime=response.mime.split(';')[0].trim();
     const ext=response.resourceType==='Stylesheet' && mime==='text/css' ? 'css' :
       response.resourceType==='Font' && (mime==='font/woff2' ||
-      mime==='application/octet-stream') && bytes.toString('ascii',0,4)==='wOF2' ? 'woff2' : null;
+      mime==='application/octet-stream') && bytes.toString('ascii',0,4)==='wOF2' ? 'woff2' :
+      response.resourceType==='Document' && mime==='text/html' ? 'html' : null;
     if (!ext) return {status:'mime-unsupported'};
-    if (!bytes.length || bytes.length>8*1024*1024) return {status:'body-invalid-or-too-large'};
+    const maxBytes=ext==='html'?24*1024*1024:8*1024*1024;
+    if (!bytes.length || bytes.length>maxBytes)
+      return {status:'body-invalid-or-too-large'};
     const digest=sha(bytes),name='static/'+digest+'.'+ext;
     if ((!staticFiles.has(name) && staticFiles.size>=128) ||
       (!staticFiles.has(name) && staticBytesTotal+bytes.length>48*1024*1024))
