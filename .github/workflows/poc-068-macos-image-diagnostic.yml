@@ -71,18 +71,26 @@ jobs:
           if(styled&&fs.existsSync(styled)){
             const index=captureImageIndex(captures);
             const {document}=parseHTML(fs.readFileSync(styled,'utf8'));
-            const totals={};
+            const totals={},missingPaths={},missingUrls=new Set();
             for(const node of document.querySelectorAll('img[src]')){
               const raw=node.getAttribute('src');
               try{
                 const url=new URL(raw.replace(/&amp;/g,'&'));
                 if(url.protocol!=='https:')continue;
                 url.hash='';
-                const key=classify(url)+':'+(index.byUrl.has(url.href)?'verified':'missing');
+                const found=index.byUrl.has(url.href);
+                const key=classify(url)+':'+(found?'verified':'missing');
                 totals[key]=(totals[key]||0)+1;
+                if(!found){
+                  missingUrls.add(url.href);
+                  const shape=url.pathname==='/s2/favicons'?'google-s2':url.pathname.startsWith('/s2/')?'google-other-s2':'other-path';
+                  missingPaths[shape]=(missingPaths[shape]||0)+1;
+                }
               }catch{}
             }
             results.imageReferences=totals;
+            results.uniqueMissingUrls=missingUrls.size;
+            results.missingImagePaths=missingPaths;
             results.conflictingImageReferences=[...document.querySelectorAll('img[src]')]
               .filter(node=>{
                 try{
@@ -103,6 +111,24 @@ jobs:
               }
             }
           }
+          const log=fs.readFileSync(path.join(home,'diagnostics.log'),'utf8');
+          const permittedErrors=[
+            'Unmatched non-Google remote image reference',
+            'Google favicon returned unsupported image MIME',
+            'Google favicon bytes do not match image signature',
+            'Exact Google favicon URL was not retrievable',
+            'Google favicon redirected outside approved image endpoints',
+            'Google favicon redirect has no target',
+            'Google favicon exceeded bounded redirect count',
+            'Google favicon body unavailable or too large',
+            'Google favicon exceeds size limit',
+            'Conflicting or invalid original image capture evidence',
+            'No bounded missing Google favicon set to recover',
+            'Recovered Google icon evidence failed SHA verification',
+            'Unmatched remote image reference in archive'
+          ];
+          results.safeRecoveryError=permittedErrors.find(msg=>
+            log.includes('[offline-export] '+msg))||null;
           // No source URLs, query tokens, conversation text, browser profiles or raw HTML.
           console.log('PRIVATE-SAFE-IMAGE-EVIDENCE '+JSON.stringify(results));
           NODE
