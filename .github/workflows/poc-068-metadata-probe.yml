@@ -39,7 +39,7 @@ jobs:
           const chunks=[...html.matchAll(/streamController\.enqueue\(("(?:\\.|[^"\\])*")\)/g)]
             .map(m=>JSON.parse(m[1]));
           let values=[];
-          try{values=JSON.parse(chunks.join('').split('\\n')[0]);}catch{}
+          try{values=JSON.parse(chunks.join('').split('\n')[0]);}catch{}
           const adjacent=(key)=>values.flatMap((value,i)=>value===key?
             [{at:i,nextType:typeof values[i+1],nextNumeric:typeof values[i+1]==='number'?values[i+1]:null}]:[]);
 
@@ -55,7 +55,7 @@ jobs:
               createTime:count('create_time'),createdAt:count('created_at'),
               shareTitle:count('conversation_title'),turboStream:count('streamController')}
           });
-          fs.writeFileSync('metadata-probe-result.json',JSON.stringify(report,null,2)+'\\n');
+          fs.writeFileSync('metadata-probe-result.json',JSON.stringify(report,null,2)+'\n');
           console.log(JSON.stringify(report));
           NODE
       - name: Publish metadata presence result only
