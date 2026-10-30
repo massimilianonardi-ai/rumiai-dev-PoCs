@@ -95,6 +95,54 @@ jobs:
           fs.writeFileSync('metadata-probe-result.json',JSON.stringify(report,null,2)+'\n');
           console.log(JSON.stringify(report));
           NODE
+      - name: Real Chromium export and captured-document metadata check
+        shell: bash
+        env:
+          SHARE_URL: https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259
+        run: |
+          set -eu
+          umask 077
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$browser"
+          mkdir -p "$RUNNER_TEMP/poc068-bin" "$RUNNER_TEMP/poc068-export"
+          cat > "$RUNNER_TEMP/poc068-bin/chromium" <<EOF
+          #!/bin/sh
+          exec "$browser" "\$@"
+          EOF
+          chmod +x "$RUNNER_TEMP/poc068-bin/chromium"
+          export PATH="$RUNNER_TEMP/poc068-bin:$PATH"
+          cd pocs/068-chatgpt-shared-link-export
+          node export-offline.mjs "$SHARE_URL" "$RUNNER_TEMP/poc068-export/final" --keep-evidence \
+            > "$RUNNER_TEMP/poc068-export/result.json"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import assert from 'node:assert/strict';
+          import {readCapturedChatMetadata} from './share-metadata.mjs';
+          const report=JSON.parse(fs.readFileSync(
+            path.join(process.env.RUNNER_TEMP,'poc068-export/result.json'),'utf8'));
+          assert.equal(report.status,'private-offline-export-created');
+          assert.equal(report.originalScriptsDisabled,true);
+          assert.equal(report.remoteImages,0);
+          assert.ok(report.evidenceDirectory);
+          const original=readCapturedChatMetadata(
+            path.join(report.evidenceDirectory,'original'),process.env.SHARE_URL);
+          assert.deepEqual({title:original.title,date:original.date},{
+            title:'Integrare Chat e Work',date:'2026-10-08'});
+          const out=JSON.parse(fs.readFileSync('../../metadata-probe-result.json','utf8'));
+          out.capturedOriginalHtmlMetadata='pass';
+          out.integratedRealChromeExport='pass';
+          fs.writeFileSync('../../metadata-probe-result.json',
+            JSON.stringify(out,null,2)+'\n');
+          fs.rmSync(report.evidenceDirectory,{recursive:true,force:true});
+          console.log(JSON.stringify({
+            status:'integrated-chrome-export-metadata-pass',
+            originalDate:original.date,
+            titleRecovered:true,
+            groups:report.restoredGroups,
+            singletonLinks:report.singletonLinks
+          }));
+          NODE
       - name: Publish metadata presence result only
         run: |
           set -eu
