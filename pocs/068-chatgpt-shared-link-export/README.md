@@ -88,8 +88,20 @@ host, redirect or substituted icon is allowed; MIME, signature, size and
 SHA-256 identity are checked before the HTML is rewritten to a local asset.
 The validator still refuses missing relative files and unlocalized images.
 This bounded first-party retrieval is distinct from the network-free
-localization of already captured third-party image bodies. Failed runs
-retain private diagnostics without creating a partial archive.
+localization of already captured third-party image bodies.
+
+When a second Chromium capture still cannot supply an exact Google favicon
+body, the integrated command makes one narrowly scoped recovery attempt for
+the **original** `https://www.google.com/s2/favicons` URL. HTTPS redirects
+are limited to the Google favicon service's static image endpoint. Responses
+are retrieved without user credentials, validated by bounded size, MIME,
+signature and SHA-256, and recorded as **direct HTTPS recovery evidence**,
+not mislabelled as browser CDP captures. The existing exact-image localizer
+then verifies that evidence and preserves the original HTML/CSP behavior.
+Images from other unmatched remote origins, failed requests, invalid images,
+or unsupported MIME types still prevent publication.
+
+Failed runs retain private diagnostics without creating a partial archive.
 Successful runs discard them unless `--keep-evidence` is set.
 
 This is still a site-specific experimental visible-HTML archive, not
