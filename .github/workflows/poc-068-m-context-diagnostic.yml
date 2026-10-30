@@ -35,25 +35,41 @@ jobs:
           EOF
           chmod +x "$RUNNER_TEMP/bin/chromium"
           export PATH="$RUNNER_TEMP/bin:$PATH"
-          node render-probe.mjs "$SHARE_URL" "$RUNNER_TEMP/private/original" \
-            --headless --sweep --observe-interactions \
-            > "$RUNNER_TEMP/private/original.log" 2>&1
-          node render-probe.mjs "$SHARE_URL" "$RUNNER_TEMP/private/sources" \
-            --headless --sweep --observe-interactions \
-            --probe-trusted-source-card-actions \
-            > "$RUNNER_TEMP/private/sources.log" 2>&1
+          capture() {
+            label="$1"
+            shift
+            for attempt in 1 2; do
+              dir="$RUNNER_TEMP/private/$label-$attempt"
+              status=0
+              node render-probe.mjs "$SHARE_URL" "$dir" \
+                --headless --sweep --observe-interactions "$@" \
+                > "$RUNNER_TEMP/private/$label-$attempt.log" 2>&1 || status=$?
+              if [ "$status" -eq 0 ]; then
+                printf '%s' "$dir" > "$RUNNER_TEMP/private/$label.path"
+                return 0
+              fi
+              if [ "$status" -ne 3 ]; then
+                echo "Capture $label failed with code $status" >&2
+                return "$status"
+              fi
+              echo "Capture $label not ready; isolated retry $attempt" >&2
+            done
+            return 3
+          }
+          capture original
+          capture sources --probe-trusted-source-card-actions
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           import path from 'node:path';
           import {captureSignatures} from './inspect-source-group-identity.mjs';
           import {collectTrustedSourceEvidence} from './inspect-trusted-source-evidence.mjs';
           const root=process.env.RUNNER_TEMP+'/private';
-          const original=captureSignatures(path.join(root,'original'));
+          const original=captureSignatures(fs.readFileSync(path.join(root,'original.path'),'utf8'))
           const expected=[];
           for(const [ordinal,entry] of original)
             for(const pill of entry.pills)
               expected.push({ordinal,index:pill.index,count:pill.count});
-          const sourceDir=path.join(root,'sources');
+          const sourceDir=fs.readFileSync(path.join(root,'sources.path'),'utf8');
           const evidence=collectTrustedSourceEvidence([sourceDir]);
           const data=fs.readFileSync(path.join(sourceDir,'events.jsonl'),'utf8')
             .split('\n').filter(Boolean).map(JSON.parse);
