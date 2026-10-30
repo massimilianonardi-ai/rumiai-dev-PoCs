@@ -1,0 +1,95 @@
+name: PoC 068 macOS dev image evidence diagnostic
+
+on:
+  push:
+    paths:
+      - '.github/workflows/poc-068-macos-image-diagnostic.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run real share export and classify missing image evidence privately
+        env:
+          SHARE_URL: https://chatgpt.com/share/6ae4dde6-93a0-83ed-820e-74d0e3f3c9e1
+        run: |
+          set -eu
+          umask 077
+          cd pocs/068-chatgpt-shared-link-export
+          npm ci --no-audit --no-fund
+          npm run check
+          node --test tests/localize-exact-captured-images.test.mjs tests/localize-first-party-images.test.mjs
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$browser"
+          mkdir -p "$RUNNER_TEMP/bin" "$RUNNER_TEMP/private"
+          cat > "$RUNNER_TEMP/bin/chromium" <<EOF
+          #!/bin/sh
+          exec "$browser" "\$@"
+          EOF
+          chmod +x "$RUNNER_TEMP/bin/chromium"
+          export PATH="$RUNNER_TEMP/bin:$PATH"
+          status=0
+          node export-offline.mjs "$SHARE_URL" "$RUNNER_TEMP/private/final" \
+            > "$RUNNER_TEMP/private/result.json" 2> "$RUNNER_TEMP/private/diagnostics.log" || status=$?
+          export EXPORT_STATUS="$status"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import {parseHTML} from 'linkedom';
+          import {captureImageIndex} from './inspect-offline-control-provenance.mjs';
+          const home=path.join(process.env.RUNNER_TEMP,'private');
+          const stages=fs.readdirSync(home).filter(name=>name.startsWith('.poc068-export-'));
+          const stage=stages.length===1?path.join(home,stages[0]):null;
+          const styled=stage&&path.join(stage,'styled','index.html');
+          const captures=stage?fs.readdirSync(stage)
+            .filter(name=>name==='original'||name.startsWith('more-images'))
+            .map(name=>path.join(stage,name))
+            .filter(dir=>fs.existsSync(path.join(dir,'events.jsonl'))):[];
+          const classify=url=>{
+            if(url.hostname==='chatgpt.com')return 'chatgpt-origin';
+            if(url.hostname.endsWith('.oaiusercontent.com'))return 'oaiusercontent';
+            if(url.hostname.endsWith('.openai.com'))return 'openai-origin';
+            return 'other-origin';
+          };
+          const results={captureRuns:captures.length,exportExit:Number(process.env.EXPORT_STATUS)};
+          if(styled&&fs.existsSync(styled)){
+            const index=captureImageIndex(captures);
+            const {document}=parseHTML(fs.readFileSync(styled,'utf8'));
+            const totals={};
+            for(const node of document.querySelectorAll('img[src]')){
+              const raw=node.getAttribute('src');
+              try{
+                const url=new URL(raw.replace(/&amp;/g,'&'));
+                if(url.protocol!=='https:')continue;
+                url.hash='';
+                const key=classify(url)+':'+(index.byUrl.has(url.href)?'verified':'missing');
+                totals[key]=(totals[key]||0)+1;
+              }catch{}
+            }
+            results.imageReferences=totals;
+            results.verifiedBodies=index.verifiedBodies;
+            results.conflicts=index.conflicts;
+            results.captureImageStatuses={};
+            for(const dir of captures){
+              for(const line of fs.readFileSync(path.join(dir,'events.jsonl'),'utf8').split(/\r?\n/).filter(Boolean)){
+                const event=JSON.parse(line);
+                if(event.kind!=='network.image-body')continue;
+                const status=event.status||'unspecified';
+                results.captureImageStatuses[status]=(results.captureImageStatuses[status]||0)+1;
+              }
+            }
+          }
+          // No source URLs, query tokens, conversation text, browser profiles or raw HTML.
+          console.log('PRIVATE-SAFE-IMAGE-EVIDENCE '+JSON.stringify(results));
+          NODE
+          if [ "$status" -ne 0 ]; then
+            echo "Export not published; private evidence stayed on this disposable runner"
+          fi
