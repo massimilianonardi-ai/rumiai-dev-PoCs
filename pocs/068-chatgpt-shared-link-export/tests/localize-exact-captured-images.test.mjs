@@ -110,6 +110,34 @@ test('unsupported mime/header combination is not written',()=>
    assert.equal(fs.existsSync(output),false);
  })
 );
+test('an unrelated decorative favicon conflict does not block content media',()=>
+ fixture(({source,cap,output,rows})=>{
+   fs.writeFileSync(path.join(source,'index.html'),htmlWith(
+     '<img src="'+url+'">'));
+   const secondUrl='https://www.google.com/s2/favicons?domain=example.net';
+   const secondImage=Buffer.concat([image,Buffer.from('another')]);
+   const secondHash=sha(secondImage);
+   fs.writeFileSync(path.join(cap,'images',secondHash+'.png'),secondImage);
+   const other=[
+     {kind:'network.image-response',sessionId:'session-b',requestId:'2',
+       initialUrl:secondUrl,requestUrl:secondUrl,responseUrl:secondUrl},
+     {kind:'network.image-body',sessionId:'session-b',requestId:'2',
+       status:'saved',file:'images/'+secondHash+'.png',
+       sha256:secondHash,bytes:secondImage.length,mimeType:'image/png'},
+     {kind:'network.image-response',sessionId:'session-b',requestId:'3',
+       initialUrl:secondUrl,requestUrl:secondUrl,responseUrl:secondUrl},
+     {kind:'network.image-body',sessionId:'session-b',requestId:'3',
+       status:'saved',file:rows[1].file,sha256:rows[1].sha256,
+       bytes:rows[1].bytes,mimeType:'image/png'}];
+   fs.writeFileSync(path.join(cap,'events.jsonl'),
+     [...rows,...other].map(JSON.stringify).join('\n')+'\n');
+   const result=localizeExactCapturedImages(source,output,[cap]);
+   assert.equal(result.imageReferencesLocalized,1);
+   assert.ok(fs.readFileSync(path.join(output,'index.html'),'utf8')
+     .includes('poc068-exact-'));
+ })
+);
+
 test('an existing output and a repeated localization are rejected',()=>
  fixture(({source,cap,output,root})=>{
    fs.writeFileSync(path.join(source,'index.html'),htmlWith(

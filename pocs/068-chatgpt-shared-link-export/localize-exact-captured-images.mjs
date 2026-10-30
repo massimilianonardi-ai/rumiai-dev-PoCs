@@ -119,8 +119,10 @@ export function localizeExactCapturedImages(linkedDir,newDir,captureDirs)
   const index=captureImageIndex(captureDirs);
   const images=captureHtmlImages(inputHtml);
   if(!images.length)throw Error('No remote IMG references in source archive');
-  if(index.conflicts)
-    throw Error('Conflicting or invalid saved image evidence');
+  // Ignore conflicts in image responses that are no longer referenced:
+  // citation/link icons have already been omitted from the HTML.
+  if(images.some(item=>index.conflictingUrls.has(item.url)))
+    throw Error('Conflicting saved image evidence for retained content');
   const prepared=new Map(),replacements=[];
   for(const item of images)
   {

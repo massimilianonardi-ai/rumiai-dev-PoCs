@@ -97,7 +97,7 @@ test('actual icon exclusion precedes image audit and prevents favicon retries',(
    ops.render=(_base,output)=>{
      fs.mkdirSync(output,{recursive:true});
      fs.writeFileSync(path.join(output,'index.html'),
-       '<html><head><meta content="script-src \\u0027none\\u0027"></head>'+
+       '<html><head><meta content="script-src \u0027none\u0027"></head>'+
        '<body><img src="https://www.google.com/s2/favicons?domain=x">'+
        '<p>Visible conversation text</p></body></html>');
      return {capturedTurnCount:1};
