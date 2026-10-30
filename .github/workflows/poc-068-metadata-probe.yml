@@ -15,6 +15,19 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run publication and metadata tests
+        run: |
+          set -eu
+          cd pocs/068-chatgpt-shared-link-export
+          npm ci --no-audit --no-fund
+          npm run check
+          node --check render-probe.mjs
+          node --check share-metadata.mjs
+          node --check publish-chat-archive.mjs
+          node --test tests/export-offline.test.mjs tests/share-metadata.test.mjs tests/publish-chat-archive.test.mjs
       - name: Fetch public share into private temporary file
         env:
           SHARE_URL: https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259
@@ -72,6 +85,13 @@ jobs:
               createTime:count('create_time'),createdAt:count('created_at'),
               shareTitle:count('conversation_title'),turboStream:count('streamController')}
           });
+          fs.writeFileSync('metadata-probe-result.json',JSON.stringify(report,null,2)+'\n');
+          const {extractChatMetadata}=await import('./pocs/068-chatgpt-shared-link-export/share-metadata.mjs');
+          const parsed=extractChatMetadata(html);
+          if(parsed.title!=='Integrare Chat e Work'||parsed.date!=='2026-10-08')
+            throw Error('Unexpected original title or first-message date');
+          report.verifiedOriginalMetadata={title:parsed.title,date:parsed.date};
+          report.testStatus='pass';
           fs.writeFileSync('metadata-probe-result.json',JSON.stringify(report,null,2)+'\n');
           console.log(JSON.stringify(report));
           NODE
