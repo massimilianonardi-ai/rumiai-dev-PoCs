@@ -112,21 +112,19 @@ jobs:
           chmod +x "$RUNNER_TEMP/poc068-bin/chromium"
           export PATH="$RUNNER_TEMP/poc068-bin:$PATH"
           cd pocs/068-chatgpt-shared-link-export
-          node export-offline.mjs "$SHARE_URL" "$RUNNER_TEMP/poc068-export/final" --keep-evidence \
+          node export-offline.mjs "$SHARE_URL" "$RUNNER_TEMP/poc068-export/final" --with-metadata \
             > "$RUNNER_TEMP/poc068-export/result.json"
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           import path from 'node:path';
           import assert from 'node:assert/strict';
-          import {readCapturedChatMetadata} from './share-metadata.mjs';
           const report=JSON.parse(fs.readFileSync(
             path.join(process.env.RUNNER_TEMP,'poc068-export/result.json'),'utf8'));
           assert.equal(report.status,'private-offline-export-created');
           assert.equal(report.originalScriptsDisabled,true);
           assert.equal(report.remoteImages,0);
-          assert.ok(report.evidenceDirectory);
-          const original=readCapturedChatMetadata(
-            path.join(report.evidenceDirectory,'original'),process.env.SHARE_URL);
+          const original=report.metadata;
+          assert.ok(original);
           assert.deepEqual({title:original.title,date:original.date},{
             title:'Integrare Chat e Work',date:'2026-10-08'});
           const out=JSON.parse(fs.readFileSync('../../metadata-probe-result.json','utf8'));
@@ -134,7 +132,6 @@ jobs:
           out.integratedRealChromeExport='pass';
           fs.writeFileSync('../../metadata-probe-result.json',
             JSON.stringify(out,null,2)+'\n');
-          fs.rmSync(report.evidenceDirectory,{recursive:true,force:true});
           console.log(JSON.stringify({
             status:'integrated-chrome-export-metadata-pass',
             originalDate:original.date,
