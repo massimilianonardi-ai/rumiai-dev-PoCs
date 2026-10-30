@@ -28,7 +28,7 @@ function fixture(corrupt = false)
   const events = [
     {kind:'turn.snapshot',sequence:1,turnId:'turn-test',messageIds:['message-test'],
       sha256:htmlHash,bytes:html.length,file:'turns/' + htmlHash + '.html'},
-    {kind:'network.static-body',sequence:2,status:'saved',mimeType:'text/css',
+    {kind:'network.static-body',sequence:2,status:'saved',resourceType:'Stylesheet',mimeType:'text/css',
       file:'static/' + cssHash + '.css',sha256:cssHash,bytes:css.length,
       originalUrl:'https://cdn.oaistatic.com/example.css'}
   ];
@@ -84,4 +84,28 @@ test('requires CSS bodies for original-style mode', () =>
       path.join(root, 'archive')), /No verified original CSS/);
   }
   finally {fs.rmSync(root, {recursive:true,force:true});}
+});
+
+
+test('does not feed privately captured original Document HTML to CSS materializer',()=>{
+  const {root,capture}=fixture();
+  try
+  {
+    const body=Buffer.from('<!doctype html><title>ChatGPT - Example</title>');
+    const digest=hash(body);
+    fs.writeFileSync(path.join(capture,'static',digest+'.html'),body);
+    const event={kind:'network.static-body',sequence:3,status:'saved',
+      resourceType:'Document',mimeType:'text/html',
+      file:'static/'+digest+'.html',sha256:digest,bytes:body.length,
+      originalUrl:'https://chatgpt.com/share/example'};
+    fs.appendFileSync(path.join(capture,'events.jsonl'),
+      JSON.stringify(event)+'\n');
+    const target=path.join(root,'archive');
+    const result=materializeSameSessionResources(capture,target);
+    assert.equal(result.css,1);
+    assert.equal(result.distinctBodies,1);
+    assert.doesNotMatch(fs.readFileSync(path.join(target,'resources.jsonl'),'utf8'),
+      /text\/html/);
+  }
+  finally{fs.rmSync(root,{recursive:true,force:true});}
 });
