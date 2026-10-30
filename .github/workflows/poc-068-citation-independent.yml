@@ -1,0 +1,66 @@
+name: PoC 068 Citation-independent Export Smoke
+
+on:
+  push:
+    paths:
+      - '.github/workflows/poc-068-citation-independent.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  offline-export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Node tests and Chrome provisioning
+        run: |
+          set -eu
+          cd pocs/068-chatgpt-shared-link-export
+          npm ci --no-audit --no-fund
+          npm run check
+          node --test tests/export-offline.test.mjs \
+            tests/share-metadata.test.mjs \
+            tests/publish-chat-archive.test.mjs \
+            tests/same-session-styled.test.mjs
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$browser"
+          mkdir -p "$RUNNER_TEMP/poc068-bin" "$RUNNER_TEMP/offline-test"
+          cat > "$RUNNER_TEMP/poc068-bin/chromium" <<EOF
+          #!/bin/sh
+          exec "$browser" "\$@"
+          EOF
+          chmod +x "$RUNNER_TEMP/poc068-bin/chromium"
+          "$browser" --version
+      - name: Full real-browser export of the requested m-context share
+        env:
+          SHARE_URL: https://chatgpt.com/share/6ae46210-ceac-83eb-bf52-09b707731aff
+        run: |
+          set -eu
+          umask 077
+          export PATH="$RUNNER_TEMP/poc068-bin:$PATH"
+          cd pocs/068-chatgpt-shared-link-export
+          node export-offline.mjs "$SHARE_URL" \
+            "$RUNNER_TEMP/offline-test/final" --with-metadata \
+            > "$RUNNER_TEMP/offline-test/result.json"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import assert from 'node:assert/strict';
+          const out=process.env.RUNNER_TEMP+'/offline-test';
+          const report=JSON.parse(fs.readFileSync(path.join(out,'result.json'),'utf8'));
+          const html=fs.readFileSync(path.join(out,'final/index.html'),'utf8');
+          assert.equal(report.status,'private-offline-export-created');
+          assert.equal(report.originalScriptsDisabled,true);
+          assert.equal(report.remoteImages,0);
+          assert.ok(report.metadata?.date&&report.metadata?.title);
+          assert.match(html,/script-src 'none'/);
+          assert.ok(html.length>1000);
+          console.log(JSON.stringify({result:'pass',topic:'m-context',
+            titleRecovered:true,date:report.metadata.date,
+            htmlBytes:Buffer.byteLength(html),citationLinkVerificationRequired:false}));
+          NODE
