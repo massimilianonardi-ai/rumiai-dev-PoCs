@@ -1,12 +1,30 @@
 {
-  "bytes": 1210161,
+  "bytes": 1210134,
   "htmlTitle": "ChatGPT - Integrare Chat e Work",
   "ogTitle": "Dai un&#x27;occhiata a questa chat",
   "adjacent": {
-    "title": [],
-    "createTime": [],
+    "title": [
+      {
+        "at": 53,
+        "nextType": "string",
+        "nextNumeric": null
+      }
+    ],
+    "createTime": [
+      {
+        "at": 54,
+        "nextType": "number",
+        "nextNumeric": 1792131317.466795
+      }
+    ],
     "createdAt": [],
-    "linearConversation": []
+    "linearConversation": [
+      {
+        "at": 85,
+        "nextType": "object",
+        "nextNumeric": null
+      }
+    ]
   },
   "hasDocumentTitle": true,
   "titleLength": 31,
@@ -44,4 +62,4 @@
     "shareTitle": 0,
     "turboStream": 4
   }
-}\n
+}
