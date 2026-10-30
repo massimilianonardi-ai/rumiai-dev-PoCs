@@ -4,6 +4,13 @@ Status: **Experimental — final operator-accepted milestone (2026-10-29).** Not
 
 ## GitHub Actions publication adapter (2026-10-30)
 
+**Current export contract:** citation buttons and grouped references may be
+visible but no external citation link target or click behavior is guaranteed.
+Missing HTTPS destination evidence must not block publication. Archive images,
+original conversation structure, safe local resources, and script disabling
+remain subject to their independent checks.
+
+
 The optional `share-metadata.mjs` reader extracts the **original chat title**
 from the original shared-page document title and the **first user message's**
 `create_time` from the React Router hydration stream, formatting the archive
@@ -36,10 +43,9 @@ workflow results; they cannot be inferred from component tests.
 
 ## Integrated Node.js command — validated on GitHub-hosted Linux (2026-10-29)
 
-The **operator-accepted archive** below remains unchanged. A new
-Node.js command composes its existing evidence-verified tools so a
-caller does not need to supply individual capture directories or
-source-group indices:
+The **previous operator-accepted linked archive** remains a separately
+validated PoC milestone. The current integrated Node.js command is
+intended for citation-independent offline archiving:
 
 ```sh
 cd pocs/068-chatgpt-shared-link-export
@@ -55,31 +61,33 @@ Chromium, Node.js 22+ and the current PoC npm dependencies must
 already be available. There is no input-file upload, ChatGPT login
 bypass, provider API access or source JavaScript replay.
 
-The command runs, in order: an original-CSS/image/DOM capture; an
-independent guarded +N source-card capture plus bounded retries for
-missing groups; source identity verification across sessions; original
-CSS and verified +N source reconstruction; exact SHA-256 image
-localization (one additional capture only if needed); two independent
-guarded singleton-popup-button captures; and native singleton
-link restoration. It publishes the final directory only when all
-available provenance and structural checks pass. **If a capture fails with the known transient
-`sweep-not-ready` exit status, it retries **once with a fresh isolated
-Chromium profile**, never bypassing the DOM readiness gate. No inferred or
-fabricated external link is substituted**. A failed invocation
-leaves its private `.poc068-export-*` work directory for debugging
-but never publishes a partial output. Successful runs erase those
-private intermediate captures unless `--keep-evidence` is supplied.
+**Current behavior (2026-10-30):** The operator explicitly removed
+citation link reachability/functionality as a requirement of exports.
+The integrated `export-offline.mjs` now performs one private
+original-CSS/image/DOM capture, renders the captured conversation,
+localizes exact captured image resources when necessary, and checks
+local image integrity and the script-blocking CSP. It preserves the
+original citation control appearance but **does not reconstruct or
+require verified destinations** for +N groups or singleton references.
+No fixed number or distribution of citations is required. Citation
+controls may therefore be inert in the archived document; their target
+URLs and external availability are not promised. The old guarded
+source-card and singleton restoration scripts remain standalone
+historical PoC tools, not prerequisites of the integrated exporter.
 
-This is an **integrated site-specific experimental command**, not
-yet a production-ready generic ChatGPT exporter. The current
-singleton restorer's verified contract is still the exact
-**eight-singleton / eight-+N-group / nineteen-group-link layout**
-of the accepted example. A conversation with another structure may
-be refused. Even a successful command does not prove full RAW
-conversation completeness or perfect visual fidelity. As accepted
-by the operator, the separate "Fonti" buttons remain inert and
-some singleton captions may wrap below their icons. No fixed
-previously captured private URLs or contents are shipped with it.
+The command retries a `sweep-not-ready` capture once with a fresh
+Chromium profile. Missing original turn markup, non-localized
+image assets and failed structural/CSP checks still prevent
+publication; missing citation destinations do not. Failed runs
+retain private diagnostics without creating a partial archive.
+Successful runs discard them unless `--keep-evidence` is set.
+
+This is still a site-specific experimental visible-HTML archive, not
+a certification of complete RAW conversation history or pixel-perfect
+visual equivalence. The old operator-approved linked archive and
+its revision-specific acceptance results are historical evidence for
+that earlier implementation, **not** promises about the current
+citation-independent exporter.
 
 **Fresh end-to-end Linux execution passed** on the GitHub-hosted
 Ubuntu runner in [PoC 068 Live Offline Export run 40954580470](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/40954580470)
