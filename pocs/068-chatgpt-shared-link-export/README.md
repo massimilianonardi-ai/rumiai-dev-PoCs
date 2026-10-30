@@ -12,6 +12,12 @@ title and is never used for naming. The original HTML response is saved only
 as SHA-256-verified *private* evidence by `render-probe.mjs` when static-body
 capture is enabled, and is not included in the final archive.
 
+To request the metadata through the integrated exporter, add `--with-metadata` to
+`node export-offline.mjs <share-url> <new-output-dir>`. Its success report then
+includes `metadata.title`, `metadata.createdAt` and `metadata.date`; the
+private original Document is discarded on success by default, so the
+publication adapter does not need raw capture access.
+
 The separate `publish-chat-archive.mjs` adapter accepts a private JSON request
 containing exactly `url` and `topic` and a local checkout of the
 `rumiai-dev` destination repository. It performs the accepted export with
