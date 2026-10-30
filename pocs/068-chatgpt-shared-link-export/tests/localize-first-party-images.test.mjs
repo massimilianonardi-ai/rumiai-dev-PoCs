@@ -23,6 +23,7 @@ test('localizes exact root-relative same-origin IMG with SHA-verified PNG and no
   try
   {
     const r=await localizeFirstPartyImages(f.dir,{fetcher:async(url,options)=>{
+      assert.match(options.headers?.['User-Agent']||'',/Chrome\/140/);
       urls.push({url,redirect:options.redirect});
       return new Response(image,{headers:{'content-type':'image/png'}});
     }});
