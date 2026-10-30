@@ -8,7 +8,6 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {parseHTML} from 'linkedom';
 import {exportOfflineShare,validatedShareUrl} from './export-offline.mjs';
-import {readCapturedChatMetadata} from './share-metadata.mjs';
 
 const file=fileURLToPath(import.meta.url);
 
@@ -114,7 +113,7 @@ function copyTree(from,to)
 }
 
 export async function publishChatArchive(request,repoRoot,
-  {exporter=exportOfflineShare,readMetadata=readCapturedChatMetadata}={})
+  {exporter=exportOfflineShare}={})
 {
   if(!request || typeof request!=='object' || Array.isArray(request) ||
      Object.keys(request).sort().join(',')!=='topic,url')
@@ -130,12 +129,12 @@ export async function publishChatArchive(request,repoRoot,
   try
   {
     const exported=path.join(scratch,'archive');
-    const result=await exporter(url,exported,{keepEvidence:true});
+    const result=await exporter(url,exported,{withMetadata:true});
     if(result.status!=='private-offline-export-created' ||
        !result.originalScriptsDisabled || result.remoteImages!==0 ||
-       !result.evidenceDirectory)
+       !result.metadata)
       throw Error('Original offline export did not pass provenance checks');
-    const metadata=readMetadata(path.join(result.evidenceDirectory,'original'),url);
+    const metadata=result.metadata;
     const dirname=chatDirectoryName(metadata);
     const parent=path.join(destination,'chats',topic);
     const target=path.join(parent,dirname);
