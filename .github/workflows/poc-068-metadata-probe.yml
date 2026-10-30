@@ -27,7 +27,7 @@ jobs:
           node --check render-probe.mjs
           node --check share-metadata.mjs
           node --check publish-chat-archive.mjs
-          node --test tests/export-offline.test.mjs tests/share-metadata.test.mjs tests/publish-chat-archive.test.mjs
+          node --test tests/export-offline.test.mjs tests/share-metadata.test.mjs tests/publish-chat-archive.test.mjs tests/same-session-styled.test.mjs
       - name: Fetch public share into private temporary file
         env:
           SHARE_URL: https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259
