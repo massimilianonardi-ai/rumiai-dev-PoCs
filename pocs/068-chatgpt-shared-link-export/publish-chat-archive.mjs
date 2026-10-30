@@ -66,7 +66,7 @@ function verifyLocalResources(archive)
     }
   }
   checkTree(home);
-  function localReference(base,reference)
+  function localReference(base,reference,source)
   {
     if(!reference || reference.startsWith('#') || reference.startsWith('data:') ||
        reference.startsWith('about:blank'))return;
@@ -76,7 +76,8 @@ function verifyLocalResources(archive)
     const target=path.resolve(base,clean);
     if(!target.startsWith(home+path.sep) || !fs.existsSync(target) ||
        !fs.statSync(target).isFile())
-      throw Error('Offline archive refers to a missing/outside local resource');
+      throw Error('Offline archive refers to a missing/outside local resource'+
+        ' ('+source+'): '+JSON.stringify(reference.slice(0,240)));
   }
   const {document}=parseHTML(html);
   for(const element of document.querySelectorAll(
@@ -84,13 +85,14 @@ function verifyLocalResources(archive)
   {
     const value=element.getAttribute('src') ||
       element.getAttribute('poster') || element.getAttribute('href');
-    localReference(home,value);
+    localReference(home,value,'HTML '+element.localName);
   }
   for(const filename of visited.filter(name=>name.endsWith('.css')))
   {
     const css=fs.readFileSync(filename,'utf8');
     for(const match of css.matchAll(/url\(\s*(['"]?)(.*?)\1\s*\)/giu))
-      localReference(path.dirname(filename),match[2]);
+      localReference(path.dirname(filename),match[2],
+        'CSS '+path.relative(home,filename));
   }
   return visited.length;
 }
