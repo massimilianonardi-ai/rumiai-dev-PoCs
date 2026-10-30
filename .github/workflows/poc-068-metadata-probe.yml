@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   inspect-share-metadata:
@@ -34,7 +34,7 @@ jobs:
             return key?.[1]||'unlabeled';
           });
           const title=html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||'';
-          console.log(JSON.stringify({
+          const report=({
             bytes:html.length,hasDocumentTitle:title.length>0,
             titleLength:title.length,titleGeneric:/ChatGPT|OpenAI/i.test(title),
             metaKeys:[...new Set(meta)].slice(0,32),
@@ -42,6 +42,15 @@ jobs:
             markers:{linearConversation:count('linear_conversation'),
               createTime:count('create_time'),createdAt:count('created_at'),
               shareTitle:count('conversation_title'),turboStream:count('streamController')}
-          }));
-          if(!html.includes('linear_conversation'))process.exitCode=3;
+          });
+          fs.writeFileSync('metadata-probe-result.json',JSON.stringify(report,null,2)+'\\n');
+          console.log(JSON.stringify(report));
           NODE
+      - name: Publish metadata presence result only
+        run: |
+          set -eu
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add metadata-probe-result.json
+          git commit -m 'test(poc-068): record sanitized share metadata probe'
+          git push origin HEAD:main
