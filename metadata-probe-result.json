@@ -1,5 +1,5 @@
 {
-  "bytes": 1209160,
+  "bytes": 1209518,
   "htmlTitle": "ChatGPT - Integrare Chat e Work",
   "ogTitle": "Dai un&#x27;occhiata a questa chat",
   "messageDates": [
@@ -128,5 +128,6 @@
     "title": "Integrare Chat e Work",
     "date": "2026-10-08"
   },
-  "testStatus": "pass"
+  "testStatus": "pass",
+  "integratedStageOutcome": "failure"
 }
