@@ -1,0 +1,39 @@
+{
+  "bytes": 1210257,
+  "hasDocumentTitle": true,
+  "titleLength": 31,
+  "titleGeneric": true,
+  "metaKeys": [
+    "unlabeled",
+    "viewport",
+    "text-scale",
+    "og:site_name",
+    "robots",
+    "og:title",
+    "og:description",
+    "og:image",
+    "og:image:secure_url",
+    "og:image:width",
+    "og:image:height",
+    "og:image:alt",
+    "twitter:card",
+    "twitter:image",
+    "twitter:image:alt",
+    "twitter:title",
+    "twitter:description",
+    "og:url",
+    "dd-trace-id",
+    "dd-trace-time",
+    "description",
+    "keyword"
+  ],
+  "hasOgTitle": true,
+  "hasDescription": true,
+  "markers": {
+    "linearConversation": 1,
+    "createTime": 1,
+    "createdAt": 4,
+    "shareTitle": 0,
+    "turboStream": 4
+  }
+}\n
