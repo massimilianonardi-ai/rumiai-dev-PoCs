@@ -26,7 +26,7 @@ jobs:
           cd pocs/068-chatgpt-shared-link-export
           npm ci --no-audit --no-fund
           npm run check
-          node --test tests/localize-exact-captured-images.test.mjs tests/localize-first-party-images.test.mjs
+          node --test tests/localize-exact-captured-images.test.mjs tests/localize-first-party-images.test.mjs tests/recover-google-favicons.test.mjs tests/export-offline.test.mjs
           browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           test -n "$browser"
           mkdir -p "$RUNNER_TEMP/bin" "$RUNNER_TEMP/private"
@@ -107,5 +107,19 @@ jobs:
           console.log('PRIVATE-SAFE-IMAGE-EVIDENCE '+JSON.stringify(results));
           NODE
           if [ "$status" -ne 0 ]; then
-            echo "Export not published; private evidence stayed on this disposable runner"
+            echo "Export not published; private evidence stayed on this disposable runner" >&2
+            exit 1
           fi
+          test -s "$RUNNER_TEMP/private/final/index.html"
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {inspectOfflineLinkControls} from './inspect-offline-link-controls.mjs';
+          const audit=inspectOfflineLinkControls(
+            process.env.RUNNER_TEMP+'/private/final');
+          assert.equal(audit.hasScriptBlocking,true);
+          assert.equal(audit.imageReferences.remote||0,0);
+          assert.equal(audit.imageReferences.absolute||0,0);
+          assert.equal(audit.imageReferences['local-missing']||0,0);
+          console.log('MACOS-EXPORT-VERIFIED '+JSON.stringify({
+            status:'success',scriptBlocked:true,remoteImages:0}));
+          NODE
