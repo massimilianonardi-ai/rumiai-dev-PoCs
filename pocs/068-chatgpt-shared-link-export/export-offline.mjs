@@ -1,28 +1,17 @@
 #!/usr/bin/env node
 'use strict';
-// Single-command orchestration of the existing PoC 068 evidence pipeline.
-// This is a strict site-specific adapter, not a general ChatGPT account export.
+// Offline ChatGPT share export. The original citation controls are preserved
+// visually, but external citation destinations are never a completeness gate.
 import fs from 'node:fs';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {captureSignatures,auditSourceGroupIdentity}
-  from './inspect-source-group-identity.mjs';
-import {collectTrustedSourceEvidence}
-  from './inspect-trusted-source-evidence.mjs';
-import {renderSameSessionStyled}
-  from './render-same-session-styled.mjs';
-import {localizeExactCapturedImages}
-  from './localize-exact-captured-images.mjs';
-import {materializeSingletonCitations}
-  from './restore-singleton-citations.mjs';
-import {inspectOfflineLinkControls}
-  from './inspect-offline-link-controls.mjs';
+import {renderSameSessionStyled} from './render-same-session-styled.mjs';
+import {localizeExactCapturedImages} from './localize-exact-captured-images.mjs';
+import {inspectOfflineLinkControls} from './inspect-offline-link-controls.mjs';
 import {readCapturedChatMetadata} from './share-metadata.mjs';
 
 const root=path.dirname(fileURLToPath(import.meta.url));
-const MAX_GROUPS=24;
-const MAX_SINGLETONS=8;
 
 export function validatedShareUrl(input)
 {
@@ -36,63 +25,31 @@ export function validatedShareUrl(input)
     throw Error('Expected https://chatgpt.com/share/<share-id> without query or fragment');
   return parsed.href;
 }
+
 function privateOutputPath(outputName)
 {
   if(typeof outputName!=='string'||!outputName.trim())
     throw Error('A new output directory is required');
   const output=path.resolve(outputName);
-  if(fs.existsSync(output))throw Error('Output already exists; never overwrite an archive');
+  if(fs.existsSync(output))
+    throw Error('Output already exists; never overwrite an archive');
   const parent=path.dirname(output);
   if(!fs.existsSync(parent)||!fs.statSync(parent).isDirectory())
     throw Error('Output parent directory must exist');
   return output;
 }
-function expectedSourceGroups(capture)
-{
-  const found=captureSignatures(capture);
-  const groups=[];
-  for(const [ordinal,entry] of found)
-    for(const pill of entry.pills)
-      groups.push({ordinal,index:pill.index,expectedSources:pill.count});
-  groups.sort((a,b)=>a.ordinal-b.ordinal||a.index-b.index);
-  const seen=new Set();
-  for(const group of groups)
-  {
-    const key=group.ordinal+':'+group.index;
-    if(seen.has(key)||group.expectedSources<2||group.expectedSources>12)
-      throw Error('Unusable source-group identity in original capture');
-    seen.add(key);
-  }
-  if(!groups.length||groups.length>MAX_GROUPS)
-    throw Error('Current share has no supported verified +N groups');
-  return groups;
-}
-export function remainingSourceGroups(expected,observed)
-{
-  const actual=new Map(observed.groups.map(group=>[
-    group.ordinal+':'+group.index,group]));
-  const keys=new Set(expected.map(group=>group.ordinal+':'+group.index));
-  if(observed.groups.some(group=>!keys.has(group.ordinal+':'+group.index)))
-    throw Error('Source evidence unexpectedly includes unrelated groups');
-  return expected.filter(group=>{
-    const row=actual.get(group.ordinal+':'+group.index);
-    if(row&&row.expectedSources!==group.expectedSources)
-      throw Error('Conflicting +N source count across captures');
-    return !row?.complete;
-  });
-}
+
 async function runCapture(url,directory,flags)
 {
-  const logDir=path.dirname(directory);
-  const label=path.basename(directory);
+  const logDir=path.dirname(directory),label=path.basename(directory);
   const stdout=fs.openSync(path.join(logDir,label+'.stdout.log'),'wx',0o600);
   const stderr=fs.openSync(path.join(logDir,label+'.stderr.log'),'wx',0o600);
   try
   {
     const code=await new Promise((resolve,reject)=>{
       const child=spawn(process.execPath,
-        [path.join(root,'render-probe.mjs'),url,directory,'--headless',
-          '--sweep',...flags],
+        [path.join(root,'render-probe.mjs'),url,directory,
+          '--headless','--sweep',...flags],
         {cwd:root,stdio:['ignore',stdout,stderr]});
       child.once('error',reject);
       child.once('exit',(exitCode,signal)=>{
@@ -108,47 +65,22 @@ async function runCapture(url,directory,flags)
     }
     const audit=JSON.parse(fs.readFileSync(
       path.join(directory,'summary.json'),'utf8'));
-    if(!audit.counts || audit.counts['sweep.finished']!==1 ||
-       !Number.isSafeInteger(audit.uniqueTurnSnapshots) ||
+    if(!audit.counts||audit.counts['sweep.finished']!==1||
+       !Number.isSafeInteger(audit.uniqueTurnSnapshots)||
        audit.uniqueTurnSnapshots<=0)
-      throw Error('Incomplete sweep for '+label);
+      throw Error('Incomplete conversation sweep for '+label);
     return audit;
   }finally{fs.closeSync(stdout);fs.closeSync(stderr);}
 }
-function verifySingletonCapture(directory)
-{
-  const events=fs.readFileSync(path.join(directory,'events.jsonl'),'utf8')
-    .split(/\r?\n/).filter(Boolean).map(JSON.parse);
-  const rows=events.filter(row=>
-    row.kind==='interaction.remaining-control-intent' &&
-    row.controlKind==='singleton' && row.status==='dispatched');
-  if(rows.length!==MAX_SINGLETONS)
-    throw Error('Unsupported singleton count: expected eight verified controls');
-  const uniq=new Set();
-  for(const row of rows)
-  {
-    const key=row.ordinal+':'+row.index;
-    if(uniq.has(key)||!row.panelObserved||
-       row.panelButtons!==1||row.panelAnchors!==0||
-       row.popupCardStatus!=='dispatched'||
-       (row.popupCardOpened||[]).length+
-         (row.popupCardAnchors||[]).length!==1)
-      throw Error('Incomplete or ambiguous singleton popup navigation');
-    uniq.add(key);
-  }
-  return uniq;
-}
+
 const realOperations={
   capture:runCapture,
-  sourceGroups:expectedSourceGroups,
-  sourceEvidence:collectTrustedSourceEvidence,
-  identity:auditSourceGroupIdentity,
+  metadata:readCapturedChatMetadata,
   render:renderSameSessionStyled,
   localize:localizeExactCapturedImages,
-  restore:materializeSingletonCitations,
-  inspect:inspectOfflineLinkControls,
-  verifySingletons:verifySingletonCapture
+  inspect:inspectOfflineLinkControls
 };
+
 export async function exportOfflineShare(urlInput,outputName,options={})
 {
   const url=validatedShareUrl(urlInput);
@@ -164,146 +96,111 @@ export async function exportOfflineShare(urlInput,outputName,options={})
     const capture=async(name,flags)=>{
       for(let attempt=0;attempt<2;attempt++){
         const label=attempt?name+'-readiness-retry':name;
-        const dir=path.join(stage,label);
+        const directory=path.join(stage,label);
         progress('Capturing '+label);
         try{
-          await ops.capture(url,dir,flags);
-          return dir;
+          await ops.capture(url,directory,flags);
+          return directory;
         }catch(error){
-          // The observed share occasionally exposes main but not its
-          // conversation hooks in one entire browser session. Retry once,
-          // in an isolated new profile, only for the documented exit 3.
           if(attempt===0&&error.captureExitCode===3){
-            progress('Expected conversation DOM not ready; retrying once');
+            progress('Conversation DOM not ready; retrying isolated Chrome profile');
             continue;
           }
           throw error;
         }
       }
-      throw Error('Capture readiness could not be recovered');
+      throw Error('Conversation DOM could not be captured');
     };
+
     const base=await capture('original',[
       '--observe-interactions','--capture-static-bodies',
       '--capture-image-bodies']);
-    const metadata=options.withMetadata===true?
-      readCapturedChatMetadata(base,url):null;
-    const expected=ops.sourceGroups(base);
-    const evidence=[];
-    evidence.push(await capture('sources',[
-      '--observe-interactions','--probe-trusted-source-card-actions',
-      '--capture-image-bodies']));
-    let observed=ops.sourceEvidence(evidence);
-    let missing=remainingSourceGroups(expected,observed);
-    if(missing.length>8)
-      throw Error('Too many incomplete +N groups for bounded trusted retries');
-    // Each additional run is targeted, bounded and evidence-backed.
-    for(const group of missing)
-    {
-      const id=group.ordinal+':'+group.index;
-      evidence.push(await capture('source-'+group.ordinal+'-'+group.index,[
-        '--observe-interactions','--probe-trusted-source-card-actions',
-        '--capture-image-bodies','--source-group',id]));
-      observed=ops.sourceEvidence(evidence);
-    }
-    missing=remainingSourceGroups(expected,observed);
-    if(missing.length)
-      throw Error('One or more +N source groups lack verified HTTPS targets');
-    const identity=ops.identity([base,...evidence],evidence);
-    if(!identity.safeToRestore||identity.stableGroups!==expected.length)
-      throw Error('Original source-card identity is not stable across captures');
+    const metadata=options.withMetadata===true?ops.metadata(base,url):null;
     const styled=path.join(stage,'styled');
-    progress('Rebuilding original CSS and verified +N links');
-    const rendering=ops.render(base,styled,evidence);
-    if(rendering.restoredSources!==expected.length ||
-       rendering.sourceLinks!==expected.reduce((n,x)=>n+x.expectedSources,0))
-      throw Error('Offline source groups were not restored completely');
-    const images=path.join(stage,'images-local');
-    let imagesDone=false;
-    let imageCaptures=[base,...evidence];
-    // A capture can miss some lazy-loaded favicons. Retry acquisition once
-    // without changing link identity; never silently fetch remote assets.
-    for(let attempt=0;attempt<2 && !imagesDone;attempt++)
-    {
-      try{
-        progress('Localizing SHA-verified image bodies');
-        ops.localize(styled,images,imageCaptures);
-        imagesDone=true;
-      }catch(error){
-        if(attempt!==0 ||
-           !/Unmatched remote image reference/.test(String(error.message)))
-          throw error;
-        imageCaptures=[...imageCaptures,await capture('more-images',[
-          '--capture-image-bodies'])];
-      }
-    }
-    if(!imagesDone)throw Error('Original image bytes are incomplete');
-    const originalRemaining=await capture('singletons-reference',[
-      '--observe-interactions','--probe-remaining-controls']);
-    const verifiedRemaining=await capture('singletons-verified',[
-      '--observe-interactions','--probe-remaining-controls']);
-    const referenceKeys=ops.verifySingletons(originalRemaining);
-    const targetKeys=ops.verifySingletons(verifiedRemaining);
-    if(referenceKeys.size!==MAX_SINGLETONS ||
-       targetKeys.size!==MAX_SINGLETONS ||
-       [...referenceKeys].some(key=>!targetKeys.has(key)))
-      throw Error('Singleton identities changed across captures');
+    progress('Rendering original HTML and CSS; citation targets are optional');
+    // Without trusted source-target evidence, the renderer retains the
+    // original citation controls and CSS; it does not fabricate links.
+    const rendering=ops.render(base,styled);
+    if(!Number.isSafeInteger(rendering.capturedTurnCount)||
+       rendering.capturedTurnCount<=0)
+      throw Error('Original conversation render has no captured turns');
+
     const final=path.join(stage,'archive');
-    progress('Restoring singleton links');
-    const restored=ops.restore(images,final,originalRemaining,verifiedRemaining);
-    if(restored.restoredSingletons!==MAX_SINGLETONS ||
-       restored.existingMultiSourceDetails!==expected.length)
-      throw Error('Private singleton restoration incomplete');
-    const checked=ops.inspect(final);
-    const expectedLinks=expected.reduce((n,group)=>n+group.expectedSources,0);
-    if(checked.sourceDetails!==expected.length||
-       checked.sourceLinks!==expectedLinks||
-       checked.hasScriptBlocking!==true||
-       (checked.imageReferences?.remote||0)>0)
-      throw Error('Final offline structural audit failed');
+    let checked=ops.inspect(styled);
+    if(checked.hasScriptBlocking!==true)
+      throw Error('Original scripts must remain blocked');
+    if((checked.imageReferences?.remote||0)>0)
+    {
+      let completed=false;
+      let captures=[base];
+      for(let attempt=0;attempt<2 && !completed;attempt++)
+      {
+        try{
+          progress('Localizing exact captured image resources');
+          ops.localize(styled,final,captures);
+          completed=true;
+        }catch(error){
+          if(attempt!==0||
+             !/Unmatched remote image reference/.test(String(error.message)))
+            throw error;
+          captures=[...captures,await capture('more-images',[
+            '--capture-image-bodies'])];
+        }
+      }
+      if(!completed)throw Error('Original image bytes are incomplete');
+    }
+    else
+    {
+      // No external image resources: reuse the already localized CSS/fonts.
+      fs.cpSync(styled,final,{recursive:true,force:false,errorOnExist:true});
+    }
+
+    checked=ops.inspect(final);
+    if(checked.hasScriptBlocking!==true||
+       (checked.imageReferences?.remote||0)>0||
+       (checked.imageReferences?.outside||0)>0||
+       (checked.imageReferences?.['local-missing']||0)>0)
+      throw Error('Final offline HTML or local images failed structural audit');
     fs.renameSync(final,output);
     published=true;
     return {status:'private-offline-export-created',output,
       ...(metadata?{metadata}:{}),
-      restoredGroups:checked.sourceDetails,
-      groupLinks:checked.sourceLinks,
-      singletonLinks:restored.restoredSingletons,
-      remoteImages:checked.imageReferences?.remote||0,
-      originalScriptsDisabled:checked.hasScriptBlocking,
+      restoredGroups:0,groupLinks:0,singletonLinks:0,
+      remoteImages:0,originalScriptsDisabled:true,
       evidenceDirectory:keepEvidence?stage:null,
       limitations:[
-        'Current site-specific capture layout requires exactly eight singleton links',
-        'Fonti buttons are intentionally inert; singleton labels may wrap below icons',
-        'Visible HTML capture does not certify completeness of the RAW conversation',
-        'Fresh end-to-end Chromium acceptance is required before production claims'
+        'Citation controls retain their visual representation; target URLs and click behavior are not guaranteed',
+        'Original site JavaScript is disabled in the offline archive',
+        'Visible HTML capture does not certify completeness of the RAW conversation'
       ]};
   }
   catch(error){
-    // Leave evidence private to diagnose failures; never publish the output.
     error.privateEvidenceDirectory=stage;
     throw error;
   }
   finally{
-    if(published && !keepEvidence)
+    if(published&&!keepEvidence)
       fs.rmSync(stage,{recursive:true,force:true});
   }
 }
+
 function usage()
 {
   console.error('Usage: node export-offline.mjs <https://chatgpt.com/share/ID> <new-private-output-dir> [--keep-evidence] [--with-metadata]');
 }
-if(process.argv[1]&&path.resolve(process.argv[1])===path.resolve(fileURLToPath(import.meta.url)))
+
+if(process.argv[1]&&path.resolve(process.argv[1])===
+   path.resolve(fileURLToPath(import.meta.url)))
 {
-  const args=process.argv.slice(2);
-  const options=args.slice(2);
+  const args=process.argv.slice(2),flags=args.slice(2);
   if(args.length<2||args.length>4||
-     options.some(value=>!['--keep-evidence','--with-metadata'].includes(value))||
-     new Set(options).size!==options.length){
-    usage();
-    process.exitCode=2;
+     flags.some(x=>!['--keep-evidence','--with-metadata'].includes(x))||
+     new Set(flags).size!==flags.length){
+    usage();process.exitCode=2;
   }else{
     exportOfflineShare(args[0],args[1],{
-      keepEvidence:args.includes('--keep-evidence'),
-      withMetadata:args.includes('--with-metadata'),
+      keepEvidence:flags.includes('--keep-evidence'),
+      withMetadata:flags.includes('--with-metadata'),
       progress:message=>console.error('[offline-export] '+message)
     }).then(result=>console.log(JSON.stringify(result,null,2)),
       error=>{
