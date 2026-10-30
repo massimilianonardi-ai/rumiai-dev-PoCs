@@ -21,7 +21,7 @@ function fixture()
       "<meta http-equiv=\"Content-Security-Policy\" content=\"script-src 'none'\">"+
       '<img src="./assets/icon.png">');
     return {status:'private-offline-export-created',
-      originalScriptsDisabled:true,remoteImages:0,evidenceDirectory:root};
+      originalScriptsDisabled:true,remoteImages:0,metadata};
   };
   return {root,repo,exporter,close:()=>fs.rmSync(root,{recursive:true,force:true})};
 }
@@ -37,7 +37,7 @@ test('publishes the complete unmodified HTML and assets',async()=>{
   try
   {
     const result=await publishChatArchive({url,topic:'Research'},f.repo,
-      {exporter:f.exporter,readMetadata:()=>metadata});
+      {exporter:f.exporter});
     assert.equal(result.archivePath,
       'chats/Research/2026-10-08 Integrare Chat e Work');
     const base=path.join(f.repo,result.archivePath);
@@ -45,7 +45,7 @@ test('publishes the complete unmodified HTML and assets',async()=>{
       /assets\/icon.png/);
     assert.equal(fs.readFileSync(path.join(base,'assets','icon.png'),'utf8'),'image');
     await assert.rejects(()=>publishChatArchive({url,topic:'Research'},f.repo,
-      {exporter:f.exporter,readMetadata:()=>metadata}),/already exists/);
+      {exporter:f.exporter}),/already exists/);
   }
   finally{f.close();}
 });
@@ -54,7 +54,7 @@ test('rejects unsafe request shapes without starting browser export',async()=>{
   try
   {
     await assert.rejects(()=>publishChatArchive({url,topic:'Research',
-      title:'Injected'},f.repo,{exporter:f.exporter,readMetadata:()=>metadata}),
+      title:'Injected'},f.repo,{exporter:f.exporter}),
     /Expected only/);
   }
   finally{f.close();}
@@ -70,7 +70,7 @@ test('fails closed if final archive references a missing local image',async()=>{
   try
   {
     await assert.rejects(()=>publishChatArchive({url,topic:'Research'},f.repo,
-      {exporter:bad,readMetadata:()=>metadata}),/missing\/outside/);
+      {exporter:bad}),/missing\/outside/);
     assert.equal(fs.existsSync(path.join(f.repo,'chats','Research',
       '2026-10-08 Integrare Chat e Work')),false);
   }
