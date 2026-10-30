@@ -54,9 +54,17 @@ jobs:
             .map(name=>path.join(stage,name))
             .filter(dir=>fs.existsSync(path.join(dir,'events.jsonl'))):[];
           const classify=url=>{
-            if(url.hostname==='chatgpt.com')return 'chatgpt-origin';
-            if(url.hostname.endsWith('.oaiusercontent.com'))return 'oaiusercontent';
-            if(url.hostname.endsWith('.openai.com'))return 'openai-origin';
+            const h=url.hostname;
+            if(h==='chatgpt.com')return 'chatgpt-origin';
+            if(h==='www.google.com'||h.endsWith('.google.com'))return 'google';
+            if(h==='gstatic.com'||h.endsWith('.gstatic.com'))return 'gstatic';
+            if(h==='googleusercontent.com'||h.endsWith('.googleusercontent.com'))return 'googleusercontent';
+            if(h==='oaiusercontent.com'||h.endsWith('.oaiusercontent.com'))return 'oaiusercontent';
+            if(h==='openai.com'||h.endsWith('.openai.com'))return 'openai-origin';
+            if(h==='githubusercontent.com'||h.endsWith('.githubusercontent.com'))return 'githubusercontent';
+            if(h==='github.com'||h.endsWith('.github.com'))return 'github';
+            if(h==='cdn.jsdelivr.net')return 'jsdelivr';
+            if(h==='favicon.ico'||h.endsWith('.favicon.ico'))return 'favicon-service';
             return 'other-origin';
           };
           const results={captureRuns:captures.length,exportExit:Number(process.env.EXPORT_STATUS)};
@@ -75,6 +83,14 @@ jobs:
               }catch{}
             }
             results.imageReferences=totals;
+            results.conflictingImageReferences=[...document.querySelectorAll('img[src]')]
+              .filter(node=>{
+                try{
+                  const u=new URL(node.getAttribute('src').replace(/&amp;/g,'&'));
+                  u.hash='';
+                  return index.conflictingUrls.has(u.href);
+                }catch{return false;}
+              }).length;
             results.verifiedBodies=index.verifiedBodies;
             results.conflicts=index.conflicts;
             results.captureImageStatuses={};
