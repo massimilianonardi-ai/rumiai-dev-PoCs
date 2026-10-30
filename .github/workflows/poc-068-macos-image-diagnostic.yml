@@ -26,7 +26,7 @@ jobs:
           cd pocs/068-chatgpt-shared-link-export
           npm ci --no-audit --no-fund
           npm run check
-          node --test tests/localize-exact-captured-images.test.mjs tests/localize-first-party-images.test.mjs tests/recover-google-favicons.test.mjs tests/export-offline.test.mjs
+          node --test tests/localize-exact-captured-images.test.mjs tests/localize-first-party-images.test.mjs tests/recover-google-favicons.test.mjs tests/omit-external-link-icons.test.mjs tests/export-offline.test.mjs
           browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           test -n "$browser"
           mkdir -p "$RUNNER_TEMP/bin" "$RUNNER_TEMP/private"
