@@ -96,7 +96,8 @@ export function materializeSameSessionResources(capture, target)
   }
   for (const event of events)
   {
-    if (event.kind === 'network.static-body' && event.status === 'saved')
+    if (event.kind === 'network.static-body' && event.status === 'saved' &&
+        (event.resourceType === 'Stylesheet' || event.resourceType === 'Font'))
     {
       const {bytes, extension} = verifiedBytes(capture, event, staticName, 8*1024*1024);
       if ((extension === 'css' && event.mimeType !== 'text/css') ||
