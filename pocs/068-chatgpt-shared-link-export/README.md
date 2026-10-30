@@ -78,7 +78,17 @@ historical PoC tools, not prerequisites of the integrated exporter.
 The command retries a `sweep-not-ready` capture once with a fresh
 Chromium profile. Missing original turn markup, non-localized
 image assets and failed structural/CSP checks still prevent
-publication; missing citation destinations do not. Failed runs
+publication; missing citation destinations do not.
+
+A real public-share export exposed a root-relative ChatGPT image such as
+`/images/ecosystem/apps/github/icon.png` that Chrome had not supplied as a
+saved image response. The integrated exporter now localizes such `img src`
+references using the **exact public `https://chatgpt.com` URL**: no external
+host, redirect or substituted icon is allowed; MIME, signature, size and
+SHA-256 identity are checked before the HTML is rewritten to a local asset.
+The validator still refuses missing relative files and unlocalized images.
+This bounded first-party retrieval is distinct from the network-free
+localization of already captured third-party image bodies. Failed runs
 retain private diagnostics without creating a partial archive.
 Successful runs discard them unless `--keep-evidence` is set.
 
