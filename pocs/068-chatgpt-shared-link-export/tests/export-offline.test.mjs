@@ -5,74 +5,59 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
-import {exportOfflineShare,validatedShareUrl,remainingSourceGroups}
-  from '../export-offline.mjs';
+import {exportOfflineShare,validatedShareUrl} from '../export-offline.mjs';
 
 const share='https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259';
+
 function sandbox(work)
 {
-  const root=fs.mkdtempSync(path.join(os.tmpdir(),'poc068-one-command-'));
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'poc068-export-test-'));
   return Promise.resolve().then(()=>work(root)).finally(()=>
     fs.rmSync(root,{recursive:true,force:true}));
 }
-const ref=(ordinal,index,expectedSources,complete=true)=>({
-  ordinal,index,expectedSources,complete});
-const group1=ref(2,0,2),group2=ref(4,0,2);
-function fixtureOps(calls,{failSource=false,failSingleton=false,
-  missingImageOnce=false}={})
+
+function fixtureOps(calls,{remoteImage=false,brokenImageOnce=false}={})
 {
-  let imageAttempt=0;
+  let localizationCalls=0;
   return {
     capture:async(_url,dir,flags)=>{
       calls.push(['capture',path.basename(dir),flags]);
       fs.mkdirSync(dir,{recursive:true});
-      fs.writeFileSync(path.join(dir,'events.jsonl'),'');
       return {counts:{'sweep.finished':1},uniqueTurnSnapshots:1};
     },
-    sourceGroups:()=>[group1,group2],
-    sourceEvidence:dirs=>{
-      if(failSource)return {groups:[group1,ref(4,0,2,false)]};
-      return {groups:dirs.length===1?
-        [group1,ref(4,0,2,false)]:[group1,group2]};
+    metadata:()=>({title:'m context',date:'2026-10-26',
+      createdAt:'2026-10-26T12:00:00.000Z'}),
+    render:(_base,output)=>{
+      calls.push(['render']);
+      fs.mkdirSync(output,{recursive:true});
+      fs.writeFileSync(path.join(output,'index.html'),
+        '<html><head><meta content="script-src \u0027none\u0027"></head>'+
+        '<body>Original source +4 without guaranteed destinations</body></html>');
+      return {capturedTurnCount:3,restoredSources:0,sourceLinks:0};
     },
-    identity:()=>({safeToRestore:true,stableGroups:2}),
-    render:(_base,output,evidence)=>{
-      calls.push(['render',evidence.length]);
-      fs.mkdirSync(output);
-      fs.writeFileSync(path.join(output,'index.html'),'offline');
-      return {restoredSources:2,sourceLinks:4};
-    },
-    localize:(_source,output,captures)=>{
+    localize:(_styled,final,captures)=>{
       calls.push(['localize',captures.length]);
-      imageAttempt++;
-      if(missingImageOnce && imageAttempt===1)
+      localizationCalls++;
+      if(brokenImageOnce&&localizationCalls===1)
         throw Error('Unmatched remote image reference in archive');
-      fs.mkdirSync(output);
-      fs.writeFileSync(path.join(output,'index.html'),'localized');
+      fs.mkdirSync(final,{recursive:true});
+      fs.writeFileSync(path.join(final,'index.html'),
+        '<html><meta content="script-src \u0027none\u0027"><body>offline</body></html>');
     },
-    verifySingletons:()=>{
-      calls.push(['verify-singletons']);
-      return failSingleton?new Set(['2:0']):new Set([
-        '2:0','4:0','4:1','6:0','6:1','6:2','8:0','8:1']);
-    },
-    restore:(_images,output)=>{
-      calls.push(['restore']);
-      fs.mkdirSync(output);
-      fs.writeFileSync(path.join(output,'index.html'),'accepted');
-      return {restoredSingletons:8,existingMultiSourceDetails:2};
-    },
-    inspect:()=>({sourceDetails:2,sourceLinks:4,
-      imageReferences:{remote:0},hasScriptBlocking:true})
+    inspect:directory=>{
+      calls.push(['inspect',path.basename(directory)]);
+      const staged=path.basename(directory)==='styled';
+      return {hasScriptBlocking:true,imageReferences:{
+        remote:remoteImage&&staged?1:0,local:0}};
+    }
   };
 }
-test('rejects bad URLs, unrelated services and nonempty output',async()=>
-{
+
+test('URL validation and CLI input remain bounded',async()=>{
   for(const url of ['http://chatgpt.com/share/fake',
     'https://evil.example/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259',
-    'https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259?token=private',
-    'https://chatgpt.com/','not a URL']){
+    share+'?token=private','https://chatgpt.com/','not a URL'])
     assert.throws(()=>validatedShareUrl(url));
-  }
   assert.equal(validatedShareUrl(share),share);
   await sandbox(async root=>{
     const already=path.join(root,'existing');
@@ -85,77 +70,77 @@ test('rejects bad URLs, unrelated services and nonempty output',async()=>
     assert.match(result.stderr,/Usage: node export-offline.mjs/);
   });
 });
-test('missing source group evidence is detected without guessing',()=>
-{
-  assert.deepEqual(remainingSourceGroups([group1,group2],
-    {groups:[group1,ref(4,0,2,false)]}),[group2]);
-  assert.throws(()=>remainingSourceGroups([group1],
-    {groups:[ref(2,0,3)]}),/Conflicting/);
-  assert.throws(()=>remainingSourceGroups([group1],
-    {groups:[ref(2,0,2),ref(6,0,2)]}),/unrelated/);
-});
-test('one command does complete bounded capture, retry and publishes only final archive',()=>
+
+test('archives original citation controls without source-click evidence',()=>
  sandbox(async root=>{
+   const calls=[],ops=fixtureOps(calls);
    const output=path.join(root,'archive');
-   const calls=[],ops=fixtureOps(calls,{missingImageOnce:true});
    const report=await exportOfflineShare(share,output,{operations:ops});
    assert.equal(report.status,'private-offline-export-created');
-   assert.equal(report.restoredGroups,2);
-   assert.equal(report.groupLinks,4);
-   assert.equal(report.singletonLinks,8);
+   assert.equal(report.restoredGroups,0);
+   assert.equal(report.groupLinks,0);
+   assert.equal(report.singletonLinks,0);
    assert.equal(report.originalScriptsDisabled,true);
-   assert.equal(fs.readFileSync(path.join(output,'index.html'),'utf8'),'accepted');
-   assert.equal(calls.filter(x=>x[0]==='capture').length,6);
-   assert.ok(calls.some(x=>x[1]==='source-4-0'));
-   assert.ok(calls.some(x=>x[1]==='more-images'));
-   assert.deepEqual(calls.filter(x=>x[0]==='render').map(x=>x[1]),[2]);
-   assert.deepEqual(calls.filter(x=>x[0]==='localize').map(x=>x[1]),[3,4]);
+   assert.match(fs.readFileSync(path.join(output,'index.html'),'utf8'),
+     /Original source \+4/);
+   assert.deepEqual(calls.filter(call=>call[0]==='capture')
+     .map(call=>call[1]),['original']);
+   assert.equal(calls.filter(call=>call[0]==='localize').length,0);
    assert.equal(fs.readdirSync(root).length,1,
-     'successful run removes transient private captures');
+     'successful run discards private browser evidence');
  })
 );
-test('failed provenance leaves no published output and retains private logs',()=>
+
+test('metadata is returned on request without requiring citation targets',()=>
  sandbox(async root=>{
-   const output=path.join(root,'archive');
-   const calls=[],ops=fixtureOps(calls,{failSource:true});
-   let failure;
-   try{await exportOfflineShare(share,output,{operations:ops});}
-   catch(error){failure=error;}
-   assert.ok(failure);
-   assert.match(failure.message,/lack verified HTTPS targets/);
-   assert.equal(fs.existsSync(output),false);
-   assert.ok(fs.existsSync(failure.privateEvidenceDirectory));
-   assert.equal(calls.filter(x=>x[0]==='restore').length,0);
+   const report=await exportOfflineShare(share,path.join(root,'archive'),{
+     withMetadata:true,operations:fixtureOps([])});
+   assert.equal(report.metadata.title,'m context');
+   assert.equal(report.metadata.date,'2026-10-26');
  })
 );
-test('the final directory is not published after a singleton mismatch',()=>
+
+test('localizes image bodies and retries missing images without source probes',()=>
  sandbox(async root=>{
-   const output=path.join(root,'archive');
-   const calls=[],ops=fixtureOps(calls,{failSingleton:true});
-   await assert.rejects(exportOfflineShare(share,output,{operations:ops}),
-     /Singleton identities changed/);
-   assert.equal(fs.existsSync(output),false);
+   const calls=[],ops=fixtureOps(calls,{
+     remoteImage:true,brokenImageOnce:true});
+   const report=await exportOfflineShare(share,path.join(root,'archive'),{
+     operations:ops});
+   assert.equal(report.remoteImages,0);
+   assert.deepEqual(calls.filter(call=>call[0]==='capture')
+     .map(call=>call[1]),['original','more-images']);
+   assert.deepEqual(calls.filter(call=>call[0]==='localize')
+     .map(call=>call[1]),[1,2]);
  })
 );
-test('keep-evidence option retains private capture directory on success',()=>
+
+test('failed rendering never publishes a partial archive',()=>
  sandbox(async root=>{
-   const output=path.join(root,'archive');
    const calls=[],ops=fixtureOps(calls);
-   const report=await exportOfflineShare(share,output,{
-     operations:ops,keepEvidence:true});
-   assert.equal(report.status,'private-offline-export-created');
-   assert.ok(report.evidenceDirectory);
-   assert.ok(fs.existsSync(report.evidenceDirectory));
-   assert.equal(fs.readFileSync(path.join(output,'index.html'),'utf8'),'accepted');
+   ops.render=()=>{throw Error('Missing original CSS');};
+   const output=path.join(root,'archive');
+   let error;
+   try{await exportOfflineShare(share,output,{operations:ops});}
+   catch(e){error=e;}
+   assert.match(error?.message||'',/Missing original CSS/);
+   assert.equal(fs.existsSync(output),false);
+   assert.ok(fs.existsSync(error.privateEvidenceDirectory));
  })
 );
 
-
-test('only readiness exit 3 retries once with a fresh private capture',()=>
+test('captured conversation must contain turns',()=>
  sandbox(async root=>{
-   const output=path.join(root,'archive'),calls=[];
-   const ops=fixtureOps(calls);
-   const originalCapture=ops.capture;
+   const ops=fixtureOps([]);
+   ops.render=()=>({capturedTurnCount:0});
+   await assert.rejects(exportOfflineShare(share,path.join(root,'out'),{
+     operations:ops}),/no captured turns/);
+ })
+);
+
+test('only readiness exit 3 causes an isolated retry',()=>
+ sandbox(async root=>{
+   const calls=[],ops=fixtureOps(calls);
+   const normal=ops.capture;
    let first=true;
    ops.capture=async(url,dir,flags)=>{
      if(first){
@@ -164,27 +149,32 @@ test('only readiness exit 3 retries once with a fresh private capture',()=>
        error.captureExitCode=3;
        throw error;
      }
-     return originalCapture(url,dir,flags);
+     return normal(url,dir,flags);
    };
-   const report=await exportOfflineShare(share,output,{operations:ops});
+   const report=await exportOfflineShare(share,path.join(root,'archive'),{
+     operations:ops});
    assert.equal(report.status,'private-offline-export-created');
-   assert.ok(calls.some(x=>x[1]==='original-readiness-retry'));
-   assert.ok(fs.existsSync(path.join(output,'index.html')));
+   assert.ok(calls.some(c=>c[1]==='original-readiness-retry'));
  })
 );
-test('other capture failures do not trigger retries or publish partial output',()=>
+
+test('other capture failures do not retry or publish',()=>
  sandbox(async root=>{
-   const output=path.join(root,'archive'),calls=[];
-   const ops=fixtureOps(calls);
-   ops.capture=async()=>{
-     calls.push('failed');
-     const error=Error('bad browser session');
-     error.captureExitCode=1;
-     throw error;
-   };
+   const ops=fixtureOps([]),output=path.join(root,'archive');
+   let attempts=0;
+   ops.capture=async()=>{attempts++;throw Error('browser failed');};
    await assert.rejects(exportOfflineShare(share,output,{operations:ops}),
-     /bad browser session/);
-   assert.deepEqual(calls,['failed']);
+     /browser failed/);
+   assert.equal(attempts,1);
    assert.equal(fs.existsSync(output),false);
+ })
+);
+
+test('keep-evidence preserves captures without depending on citation verification',()=>
+ sandbox(async root=>{
+   const report=await exportOfflineShare(share,path.join(root,'archive'),{
+     keepEvidence:true,operations:fixtureOps([])});
+   assert.ok(report.evidenceDirectory);
+   assert.ok(fs.existsSync(report.evidenceDirectory));
  })
 );
