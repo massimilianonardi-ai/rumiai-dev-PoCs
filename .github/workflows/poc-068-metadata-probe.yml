@@ -96,6 +96,8 @@ jobs:
           console.log(JSON.stringify(report));
           NODE
       - name: Real Chromium export and captured-document metadata check
+        id: integrated
+        continue-on-error: true
         shell: bash
         env:
           SHARE_URL: https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259
@@ -140,11 +142,28 @@ jobs:
             singletonLinks:report.singletonLinks
           }));
           NODE
+      - name: Record integrated Chromium outcome without private payloads
+        if: always()
+        env:
+          INTEGRATED_OUTCOME: ${{ steps.integrated.outcome }}
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const name='metadata-probe-result.json';
+          const report=JSON.parse(fs.readFileSync(name,'utf8'));
+          report.integratedStageOutcome=process.env.INTEGRATED_OUTCOME;
+          fs.writeFileSync(name,JSON.stringify(report,null,2)+'\n');
+          NODE
       - name: Publish metadata presence result only
         run: |
           set -eu
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin main
+          git merge --ff-only origin/main
           git add metadata-probe-result.json
           git commit -m 'test(poc-068): record sanitized share metadata probe'
           git push origin HEAD:main
+      - name: Fail CI if the integrated Chromium check failed
+        if: steps.integrated.outcome != 'success'
+        run: exit 1
