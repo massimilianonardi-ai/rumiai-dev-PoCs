@@ -171,8 +171,8 @@ export async function recoverGoogleFavicons(styledDir,captureDirs,outputDir,{fet
     fs.writeFileSync(path.join(stage,'events.jsonl'),
       events.map(JSON.stringify).join('\n')+'\n',{flag:'wx',mode:0o600});
     const verified=captureImageIndex([stage]);
-    if(verified.conflicts || verified.byUrl.size!==missing.size ||
-       verified.verifiedBodies!==missing.size)
+    if(verified.conflicts || verified.verifiedBodies!==missing.size ||
+       [...missing].some(url=>!verified.byUrl.has(url)))
       throw Error('Recovered Google icon evidence failed SHA verification');
     fs.renameSync(stage,output);
     committed=true;
