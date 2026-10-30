@@ -70,8 +70,10 @@ async function verifiedGoogleImage(url,fetcher)
       current=next;
       continue;
     }
-    if(!response.ok || (response.url && response.url!==current.href))
-      throw Error('Exact Google favicon URL was not retrievable');
+    if(!response.ok)
+      throw Error('Exact Google favicon returned HTTP '+response.status);
+    if(response.url && response.url!==current.href)
+      throw Error('Google favicon response URL changed outside approved redirects');
     const mime=(response.headers.get('content-type')||'')
       .split(';',1)[0].trim().toLowerCase();
     const format=formats[mime];

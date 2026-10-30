@@ -92,6 +92,6 @@ test('bad image body or unsuccessful response cannot publish evidence',async()=>
    assert.equal(fs.existsSync(ctx.recovered),false);
    await assert.rejects(recoverGoogleFavicons(ctx.styled,[ctx.capture],
      ctx.recovered,{fetcher:async()=>new Response('missing',{status:404})}),
-     /not retrievable/);
+     /returned HTTP 404/);
    assert.equal(fs.existsSync(ctx.recovered),false);
  }));
