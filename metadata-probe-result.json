@@ -1,5 +1,5 @@
 {
-  "bytes": 1210304,
+  "bytes": 1209160,
   "htmlTitle": "ChatGPT - Integrare Chat e Work",
   "ogTitle": "Dai un&#x27;occhiata a questa chat",
   "messageDates": [
@@ -123,5 +123,10 @@
     "createdAt": 4,
     "shareTitle": 0,
     "turboStream": 4
-  }
+  },
+  "verifiedOriginalMetadata": {
+    "title": "Integrare Chat e Work",
+    "date": "2026-10-08"
+  },
+  "testStatus": "pass"
 }
