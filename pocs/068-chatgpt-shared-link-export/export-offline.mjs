@@ -8,6 +8,7 @@ import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {renderSameSessionStyled} from './render-same-session-styled.mjs';
 import {localizeExactCapturedImages} from './localize-exact-captured-images.mjs';
+import {localizeFirstPartyImages} from './localize-first-party-images.mjs';
 import {inspectOfflineLinkControls} from './inspect-offline-link-controls.mjs';
 import {readCapturedChatMetadata} from './share-metadata.mjs';
 
@@ -78,6 +79,7 @@ const realOperations={
   metadata:readCapturedChatMetadata,
   render:renderSameSessionStyled,
   localize:localizeExactCapturedImages,
+  firstPartyImages:localizeFirstPartyImages,
   inspect:inspectOfflineLinkControls
 };
 
@@ -155,9 +157,13 @@ export async function exportOfflineShare(urlInput,outputName,options={})
       fs.cpSync(styled,final,{recursive:true,force:false,errorOnExist:true});
     }
 
+    // Cached same-origin IMG resources may retain root-relative paths. Resolve
+    // their exact public ChatGPT URLs before the final publication audit.
+    await ops.firstPartyImages(final);
     checked=ops.inspect(final);
     if(checked.hasScriptBlocking!==true||
        (checked.imageReferences?.remote||0)>0||
+       (checked.imageReferences?.absolute||0)>0||
        (checked.imageReferences?.outside||0)>0||
        (checked.imageReferences?.['local-missing']||0)>0)
       throw Error('Final offline HTML or local images failed structural audit');
