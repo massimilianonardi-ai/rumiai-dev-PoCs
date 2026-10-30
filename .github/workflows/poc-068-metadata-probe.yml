@@ -40,11 +40,28 @@ jobs:
             .map(m=>JSON.parse(m[1]));
           let values=[];
           try{values=JSON.parse(chunks.join('').split('\n')[0]);}catch{}
+
+          const index=values.indexOf('linear_conversation');
+          const refs=Array.isArray(values[index+1])?values[index+1]:[];
+          const field=(entry,name)=>{
+            if(!entry||Array.isArray(entry)||typeof entry!=='object')return undefined;
+            for(const [k,v] of Object.entries(entry)){
+              if(/^_\\d+$/.test(k)&&values[Number(k.slice(1))]===name)return values[v];
+            }
+          };
+          const messageDates=refs.slice(0,10).map(ref=>{
+            const message=field(values[ref],'message');
+            const role=field(field(message,'author'),'role');
+            return {role:role||null,createTime:field(message,'create_time')??null,
+              createdAt:field(message,'created_at')??null,
+              timestamp:field(message,'timestamp')??null};
+          });
           const adjacent=(key)=>values.flatMap((value,i)=>value===key?
             [{at:i,nextType:typeof values[i+1],nextNumeric:typeof values[i+1]==='number'?values[i+1]:null}]:[]);
 
           const report=({
             bytes:html.length,htmlTitle:title.slice(0,120),ogTitle:og.slice(0,120),
+            messageDates,
             adjacent:{title:adjacent('title').slice(0,10),createTime:adjacent('create_time').slice(0,10),
               createdAt:adjacent('created_at').slice(0,10),linearConversation:adjacent('linear_conversation').slice(0,3)},
             hasDocumentTitle:title.length>0,
