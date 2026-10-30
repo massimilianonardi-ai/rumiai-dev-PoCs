@@ -35,8 +35,19 @@ jobs:
             return key?.[1]||'unlabeled';
           });
           const title=html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||'';
+          const og=html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)/i)?.[1]||'';
+          const chunks=[...html.matchAll(/streamController\.enqueue\(("(?:\\.|[^"\\])*")\)/g)]
+            .map(m=>JSON.parse(m[1]));
+          let values=[];
+          try{values=JSON.parse(chunks.join('').split('\\n')[0]);}catch{}
+          const adjacent=(key)=>values.flatMap((value,i)=>value===key?
+            [{at:i,nextType:typeof values[i+1],nextNumeric:typeof values[i+1]==='number'?values[i+1]:null}]:[]);
+
           const report=({
-            bytes:html.length,hasDocumentTitle:title.length>0,
+            bytes:html.length,htmlTitle:title.slice(0,120),ogTitle:og.slice(0,120),
+            adjacent:{title:adjacent('title').slice(0,10),createTime:adjacent('create_time').slice(0,10),
+              createdAt:adjacent('created_at').slice(0,10),linearConversation:adjacent('linear_conversation').slice(0,3)},
+            hasDocumentTitle:title.length>0,
             titleLength:title.length,titleGeneric:/ChatGPT|OpenAI/i.test(title),
             metaKeys:[...new Set(meta)].slice(0,32),
             hasOgTitle:meta.includes('og:title'),hasDescription:meta.includes('description'),
