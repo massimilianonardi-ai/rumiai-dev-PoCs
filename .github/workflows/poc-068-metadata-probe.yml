@@ -46,7 +46,7 @@ jobs:
           const field=(entry,name)=>{
             if(!entry||Array.isArray(entry)||typeof entry!=='object')return undefined;
             for(const [k,v] of Object.entries(entry)){
-              if(/^_\\d+$/.test(k)&&values[Number(k.slice(1))]===name)return values[v];
+              if(/^_\d+$/.test(k)&&values[Number(k.slice(1))]===name)return values[v];
             }
           };
           const messageDates=refs.slice(0,10).map(ref=>{
