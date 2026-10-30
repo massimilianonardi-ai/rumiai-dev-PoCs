@@ -47,6 +47,28 @@ test('real exact Google favicon bytes become SHA-verified archive evidence',asyn
    assert.doesNotMatch(built,/src="https:/);
    assert.match(built,/poc068-exact-/);
  }));
+test('allowed Google redirect records the actual response URL as evidence',async()=>
+ fixture('<img src="'+google+'">',async ctx=>{
+   const target='https://t1.gstatic.com/faviconV2?url=example.com&size=32';
+   const visited=[];
+   await recoverGoogleFavicons(ctx.styled,[ctx.capture],ctx.recovered,{
+     fetcher:async url=>{
+       visited.push(url);
+       if(url===google)
+         return new Response(null,{status:302,headers:{location:target}});
+       return new Response(png,{headers:{'content-type':'image/png'}});
+     }
+   });
+   assert.deepEqual(visited,[google,target]);
+   const index=captureImageIndex([ctx.recovered]);
+   assert.equal(index.byUrl.has(google),true);
+   assert.equal(index.byUrl.has(target),true);
+   const events=fs.readFileSync(path.join(ctx.recovered,'events.jsonl'),'utf8')
+     .split('\n').filter(Boolean).map(JSON.parse);
+   assert.equal(events[0].responseUrl,target);
+   assert.equal(events[0].source,'direct-verified-https');
+ }));
+
 test('Google favicon redirect may reach only known Google favicon endpoint',async()=>
  fixture('<img src="'+google+'">',async ctx=>{
    await assert.rejects(recoverGoogleFavicons(ctx.styled,[ctx.capture],
