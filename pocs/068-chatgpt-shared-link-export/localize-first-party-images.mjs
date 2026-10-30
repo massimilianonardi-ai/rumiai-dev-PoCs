@@ -49,8 +49,12 @@ function sourceImageTags(html)
 
 async function verifiedImage(url,fetcher)
 {
+  // The public static image endpoint rejects Node's default undici UA (403),
+  // but serves its original PNG bytes with the ordinary Chromium UA (200).
   const response=await fetcher(url,{
-    redirect:'error',signal:AbortSignal.timeout(20000)
+    redirect:'error',signal:AbortSignal.timeout(20000),
+    headers:{'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) '+
+      'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'}
   });
   if(!response.ok || response.redirected ||
      (response.url && response.url!==url))
