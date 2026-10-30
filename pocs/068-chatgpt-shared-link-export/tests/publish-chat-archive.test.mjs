@@ -76,3 +76,23 @@ test('fails closed if final archive references a missing local image',async()=>{
   }
   finally{f.close();}
 });
+
+test('reports the exact CSS resource and refuses to publish',async()=>{
+  const f=fixture();
+  const bad=async(_url,output)=>{
+    const report=await f.exporter(_url,output);
+    fs.writeFileSync(path.join(output,'assets','original.css'),
+      'body { background: url("./missing-font.woff2"); }');
+    fs.appendFileSync(path.join(output,'index.html'),
+      '<link rel="stylesheet" href="./assets/original.css">');
+    return report;
+  };
+  try
+  {
+    await assert.rejects(
+      ()=>publishChatArchive({url,topic:'Research'},f.repo,{exporter:bad}),
+      /missing\/outside local resource \(CSS assets\/original.css\): "\.\/missing-font.woff2"/);
+    assert.equal(fs.existsSync(path.join(f.repo,'chats','Research')),false);
+  }
+  finally{f.close();}
+});
