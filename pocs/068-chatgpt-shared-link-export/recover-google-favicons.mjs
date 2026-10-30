@@ -101,13 +101,13 @@ async function verifiedGoogleImage(url,fetcher)
     const bytes=Buffer.concat(parts);
     if(bytes.length<12||!format.valid(bytes))
       throw Error('Google favicon bytes do not match image signature');
-    return {bytes,mime,ext:format.ext};
+    return {bytes,mime,ext:format.ext,finalUrl:current.href,
+      httpStatus:response.status};
   }
   throw Error('Google favicon exceeded bounded redirect count');
 }
 
-export async function recoverGoogleFavicons(styledDir,captureDirs,outputDir,
-  {fetcher=fetch}={})
+export async function recoverGoogleFavicons(styledDir,captureDirs,outputDir,{fetcher=fetch}={})
 {
   if(!Array.isArray(captureDirs)||!captureDirs.length)
     throw Error('Google favicon recovery requires prior browser captures');
@@ -161,7 +161,8 @@ export async function recoverGoogleFavicons(styledDir,captureDirs,outputDir,
       events.push({kind:'network.image-response',
         source:'direct-verified-https',sessionId:'google-favicon-recovery',
         requestId:id,initialUrl:target,requestUrl:target,
-        responseUrl:target,status:200,mimeType:asset.mime});
+        responseUrl:asset.finalUrl,status:asset.httpStatus,
+        mimeType:asset.mime});
       events.push({kind:'network.image-body',
         source:'direct-verified-https',sessionId:'google-favicon-recovery',
         requestId:id,status:'saved',file:filename,
