@@ -18,6 +18,7 @@ import {materializeSingletonCitations}
   from './restore-singleton-citations.mjs';
 import {inspectOfflineLinkControls}
   from './inspect-offline-link-controls.mjs';
+import {readCapturedChatMetadata} from './share-metadata.mjs';
 
 const root=path.dirname(fileURLToPath(import.meta.url));
 const MAX_GROUPS=24;
@@ -184,6 +185,8 @@ export async function exportOfflineShare(urlInput,outputName,options={})
     const base=await capture('original',[
       '--observe-interactions','--capture-static-bodies',
       '--capture-image-bodies']);
+    const metadata=options.withMetadata===true?
+      readCapturedChatMetadata(base,url):null;
     const expected=ops.sourceGroups(base);
     const evidence=[];
     evidence.push(await capture('sources',[
@@ -260,6 +263,7 @@ export async function exportOfflineShare(urlInput,outputName,options={})
     fs.renameSync(final,output);
     published=true;
     return {status:'private-offline-export-created',output,
+      ...(metadata?{metadata}:{}),
       restoredGroups:checked.sourceDetails,
       groupLinks:checked.sourceLinks,
       singletonLinks:restored.restoredSingletons,
@@ -285,18 +289,21 @@ export async function exportOfflineShare(urlInput,outputName,options={})
 }
 function usage()
 {
-  console.error('Usage: node export-offline.mjs <https://chatgpt.com/share/ID> <new-private-output-dir> [--keep-evidence]');
+  console.error('Usage: node export-offline.mjs <https://chatgpt.com/share/ID> <new-private-output-dir> [--keep-evidence] [--with-metadata]');
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===path.resolve(fileURLToPath(import.meta.url)))
 {
   const args=process.argv.slice(2);
-  if((args.length!==2&&args.length!==3)||
-     (args.length===3&&args[2]!=='--keep-evidence')){
+  const options=args.slice(2);
+  if(args.length<2||args.length>4||
+     options.some(value=>!['--keep-evidence','--with-metadata'].includes(value))||
+     new Set(options).size!==options.length){
     usage();
     process.exitCode=2;
   }else{
     exportOfflineShare(args[0],args[1],{
       keepEvidence:args.includes('--keep-evidence'),
+      withMetadata:args.includes('--with-metadata'),
       progress:message=>console.error('[offline-export] '+message)
     }).then(result=>console.log(JSON.stringify(result,null,2)),
       error=>{
