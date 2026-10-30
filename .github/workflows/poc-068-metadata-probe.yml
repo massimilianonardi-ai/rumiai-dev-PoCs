@@ -1,0 +1,47 @@
+name: PoC 068 Metadata Probe
+
+on:
+  push:
+    paths:
+      - '.github/workflows/poc-068-metadata-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-share-metadata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Fetch public share into private temporary file
+        env:
+          SHARE_URL: https://chatgpt.com/share/6ad1c0f5-7110-83eb-bc19-356d48fc1259
+        run: |
+          set -eu
+          umask 077
+          curl -fLsS --max-time 90 -A 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36' "$SHARE_URL" -o "$RUNNER_TEMP/share.html"
+          echo "HTML_BYTES=$(wc -c < "$RUNNER_TEMP/share.html")"
+      - name: Inspect metadata presence without leaking chat content
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const html=fs.readFileSync(process.env.RUNNER_TEMP+'/share.html','utf8');
+          const count=s=>(html.match(new RegExp(s,'gi'))||[]).length;
+          const meta=[...html.matchAll(/<meta\s+[^>]*>/gi)].map(m=>m[0]).map(t=>{
+            const key=t.match(/(?:name|property)\s*=\s*['"]([^'"]+)/i);
+            return key?.[1]||'unlabeled';
+          });
+          const title=html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||'';
+          console.log(JSON.stringify({
+            bytes:html.length,hasDocumentTitle:title.length>0,
+            titleLength:title.length,titleGeneric:/ChatGPT|OpenAI/i.test(title),
+            metaKeys:[...new Set(meta)].slice(0,32),
+            hasOgTitle:meta.includes('og:title'),hasDescription:meta.includes('description'),
+            markers:{linearConversation:count('linear_conversation'),
+              createTime:count('create_time'),createdAt:count('created_at'),
+              shareTitle:count('conversation_title'),turboStream:count('streamController')}
+          }));
+          if(!html.includes('linear_conversation'))process.exitCode=3;
+          NODE
