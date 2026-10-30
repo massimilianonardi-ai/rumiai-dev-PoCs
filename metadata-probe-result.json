@@ -1,5 +1,5 @@
 {
-  "bytes": 1210179,
+  "bytes": 1210304,
   "htmlTitle": "ChatGPT - Integrare Chat e Work",
   "ogTitle": "Dai un&#x27;occhiata a questa chat",
   "messageDates": [
@@ -10,56 +10,56 @@
       "timestamp": null
     },
     {
-      "role": null,
-      "createTime": null,
+      "role": "user",
+      "createTime": 1791457678.553,
       "createdAt": null,
       "timestamp": null
     },
     {
-      "role": null,
-      "createTime": null,
+      "role": "system",
+      "createTime": 1791457679.583613,
       "createdAt": null,
       "timestamp": null
     },
     {
-      "role": null,
-      "createTime": null,
+      "role": "system",
+      "createTime": 1791457679.589025,
       "createdAt": null,
       "timestamp": null
     },
     {
-      "role": null,
-      "createTime": null,
+      "role": "system",
+      "createTime": 1791457679.600379,
       "createdAt": null,
       "timestamp": null
     },
     {
-      "role": null,
-      "createTime": null,
+      "role": "system",
+      "createTime": 1791457679.604679,
       "createdAt": null,
       "timestamp": null
     },
     {
-      "role": null,
-      "createTime": null,
+      "role": "assistant",
+      "createTime": 1791457679.697408,
       "createdAt": null,
       "timestamp": null
     },
     {
-      "role": null,
-      "createTime": null,
+      "role": "system",
+      "createTime": 1791457679.799916,
       "createdAt": null,
       "timestamp": null
     },
     {
-      "role": null,
-      "createTime": null,
+      "role": "system",
+      "createTime": 1791457679.903301,
       "createdAt": null,
       "timestamp": null
     },
     {
-      "role": null,
-      "createTime": null,
+      "role": "assistant",
+      "createTime": 1791457685.747657,
       "createdAt": null,
       "timestamp": null
     }
