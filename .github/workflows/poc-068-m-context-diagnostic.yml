@@ -1,0 +1,79 @@
+name: PoC 068 m-context source evidence diagnostic
+
+on:
+  push:
+    paths:
+      - '.github/workflows/poc-068-m-context-diagnostic.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Inspect trusted citation acquisition using real Chromium
+        shell: bash
+        env:
+          SHARE_URL: https://chatgpt.com/share/6ae46210-ceac-83eb-bf52-09b707731aff
+        run: |
+          set -eu
+          umask 077
+          cd pocs/068-chatgpt-shared-link-export
+          npm ci --no-audit --no-fund
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$browser"
+          mkdir -p "$RUNNER_TEMP/bin" "$RUNNER_TEMP/private"
+          cat > "$RUNNER_TEMP/bin/chromium" <<EOF
+          #!/bin/sh
+          exec "$browser" "\$@"
+          EOF
+          chmod +x "$RUNNER_TEMP/bin/chromium"
+          export PATH="$RUNNER_TEMP/bin:$PATH"
+          node render-probe.mjs "$SHARE_URL" "$RUNNER_TEMP/private/original" \
+            --headless --sweep --observe-interactions \
+            > "$RUNNER_TEMP/private/original.log" 2>&1
+          node render-probe.mjs "$SHARE_URL" "$RUNNER_TEMP/private/sources" \
+            --headless --sweep --observe-interactions \
+            --probe-trusted-source-card-actions \
+            > "$RUNNER_TEMP/private/sources.log" 2>&1
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import {captureSignatures} from './inspect-source-group-identity.mjs';
+          import {collectTrustedSourceEvidence} from './inspect-trusted-source-evidence.mjs';
+          const root=process.env.RUNNER_TEMP+'/private';
+          const original=captureSignatures(path.join(root,'original'));
+          const expected=[];
+          for(const [ordinal,entry] of original)
+            for(const pill of entry.pills)
+              expected.push({ordinal,index:pill.index,count:pill.count});
+          const sourceDir=path.join(root,'sources');
+          const evidence=collectTrustedSourceEvidence([sourceDir]);
+          const data=fs.readFileSync(path.join(sourceDir,'events.jsonl'),'utf8')
+            .split('\n').filter(Boolean).map(JSON.parse);
+          const attempts=data.filter(e=>e.kind==='interaction.trusted-source-card-intents')
+            .map(e=>({
+              ordinal:e.ordinal,index:e.groupIndex,count:e.expectedSources,
+              cards:(e.attempts||[]).map(a=>({
+                index:a.index,status:a.status,
+                directIntents:(a.windowOpen||[]).length+(a.anchorClick||[]).length
+              }))
+            }));
+          console.log(JSON.stringify({
+            status:'private-safe-m-context-diagnostic',
+            originalGroups:expected,
+            observedGroups:evidence.groups.map(g=>({
+              ordinal:g.ordinal,index:g.index,count:g.expectedSources,
+              verifiedCards:g.verifiedCards,complete:g.complete
+            })),
+            dispatched:evidence.dispatched,
+            ambiguousCards:evidence.ambiguousCards,
+            attempts
+          }));
+          NODE
