@@ -9,6 +9,7 @@ import {fileURLToPath} from 'node:url';
 import {renderSameSessionStyled} from './render-same-session-styled.mjs';
 import {localizeExactCapturedImages} from './localize-exact-captured-images.mjs';
 import {localizeFirstPartyImages} from './localize-first-party-images.mjs';
+import {recoverGoogleFavicons} from './recover-google-favicons.mjs';
 import {inspectOfflineLinkControls} from './inspect-offline-link-controls.mjs';
 import {readCapturedChatMetadata} from './share-metadata.mjs';
 
@@ -80,6 +81,7 @@ const realOperations={
   render:renderSameSessionStyled,
   localize:localizeExactCapturedImages,
   firstPartyImages:localizeFirstPartyImages,
+  recoverGoogleFavicons,
   inspect:inspectOfflineLinkControls
 };
 
@@ -142,11 +144,21 @@ export async function exportOfflineShare(urlInput,outputName,options={})
           ops.localize(styled,final,captures);
           completed=true;
         }catch(error){
-          if(attempt!==0||
-             !/Unmatched remote image reference/.test(String(error.message)))
+          if(!/Unmatched remote image reference/.test(String(error.message)))
             throw error;
-          captures=[...captures,await capture('more-images',[
-            '--capture-image-bodies'])];
+          if(attempt===0)
+          {
+            captures=[...captures,await capture('more-images',[
+              '--capture-image-bodies'])];
+            continue;
+          }
+          // A second full browser capture still lacked some Google favicon
+          // responses. Fetch only the exact missing Google icon URLs and
+          // represent their verified HTTPS bodies as separate provenance.
+          const recovered=path.join(stage,'verified-google-icons');
+          await ops.recoverGoogleFavicons(styled,captures,recovered);
+          ops.localize(styled,final,[...captures,recovered]);
+          completed=true;
         }
       }
       if(!completed)throw Error('Original image bytes are incomplete');

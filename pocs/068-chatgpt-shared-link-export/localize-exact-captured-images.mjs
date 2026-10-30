@@ -14,7 +14,10 @@ const types={
     data.toString('ascii',0,4)==='RIFF' &&
     data.toString('ascii',8,12)==='WEBP'},
   gif:{mime:'image/gif',signature:data=>
-    ['GIF87a','GIF89a'].includes(data.toString('ascii',0,6))}
+    ['GIF87a','GIF89a'].includes(data.toString('ascii',0,6))},
+  ico:{mime:['image/x-icon','image/vnd.microsoft.icon'],signature:data=>
+    data.length>=6 && data[0]===0 && data[1]===0 &&
+    data[2]===1 && data[3]===0}
 };
 function normalizedHttps(value)
 {
@@ -88,7 +91,8 @@ function copyPrivateTree(source,target)
 function validImageBody(info)
 {
   const format=types[info.extension];
-  if(!format||format.mime!==info.mimeType)
+  if(!format || !(Array.isArray(format.mime) ?
+     format.mime.includes(info.mimeType) : format.mime===info.mimeType))
     throw Error('Captured image file has unsupported format');
   const data=fs.readFileSync(info.file);
   if(data.length<12||data.length>12*1024*1024||

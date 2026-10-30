@@ -7,7 +7,7 @@ import crypto from 'node:crypto';
 import {parseHTML} from 'linkedom';
 import {inspectOfflineLinkControls} from './inspect-offline-link-controls.mjs';
 
-const fileName=/^images\/([a-f0-9]{64})\.(png|jpg|webp|gif)$/;
+const fileName=/^images\/([a-f0-9]{64})\.(png|jpg|webp|gif|ico)$/;
 const sha=data=>crypto.createHash('sha256').update(data).digest('hex');
 const normalize=value=>String(value||'').normalize('NFKC')
   .replace(/\s+/g,' ').trim().toLowerCase();
