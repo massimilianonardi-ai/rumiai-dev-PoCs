@@ -1,0 +1,92 @@
+name: PoC 068 computer use readiness diagnostic
+
+on:
+  push:
+    paths:
+      - '.github/workflows/poc-068-computer-use-readiness.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Compare public share readiness in real isolated Chromium sessions
+        shell: bash
+        env:
+          TARGET_SHARE_URL: https://chatgpt.com/share/6ae59b8c-0420-83eb-83d7-247543f80b34
+          CONTROL_SHARE_URL: https://chatgpt.com/share/6ae4dde6-93a0-83ed-820e-74d0e3f3c9e1
+        run: |
+          set -eu
+          umask 077
+          cd pocs/068-chatgpt-shared-link-export
+          npm ci --no-audit --no-fund
+          node --check render-probe.mjs
+          node --check inspect-live-readiness.mjs
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$browser"
+          mkdir -p "$RUNNER_TEMP/poc068-bin" "$RUNNER_TEMP/private"
+          cat > "$RUNNER_TEMP/poc068-bin/chromium" <<EOF
+          #!/bin/sh
+          exec "$browser" "\$@"
+          EOF
+          chmod +x "$RUNNER_TEMP/poc068-bin/chromium"
+          export PATH="$RUNNER_TEMP/poc068-bin:$PATH"
+          for label in target-1 target-2 control; do
+            if [ "$label" = control ]; then
+              url="$CONTROL_SHARE_URL"
+            else
+              url="$TARGET_SHARE_URL"
+            fi
+            status=0
+            node render-probe.mjs "$url" "$RUNNER_TEMP/private/$label" \
+              --headless --readiness-only \
+              > "$RUNNER_TEMP/private/$label.stdout" \
+              2> "$RUNNER_TEMP/private/$label.stderr" || status=$?
+            printf '%s' "$status" > "$RUNNER_TEMP/private/$label.status"
+          done
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          const dir=path.join(process.env.RUNNER_TEMP,'private');
+          const result=[];
+          for(const label of ['target-1','target-2','control']){
+            const source=path.join(dir,label,'events.jsonl');
+            const events=fs.existsSync(source)?
+              fs.readFileSync(source,'utf8').split(/\r?\n/u).filter(Boolean)
+                .map(line=>JSON.parse(line)):[];
+            const observation=events.findLast(event=>
+              event.kind==='readiness.observed');
+            const normalized=shape=>{
+              if(!shape)return null;
+              return Object.fromEntries([
+                'readyState','hasScrollRoot','turnWrappers',
+                'conversationMarkers','messageMarkers','mainElements',
+                'roleMainElements','iframeElements','bodyChildElements',
+                'bodyTextCharacters','alternateScrollCandidates',
+                'navigationResponseStatus'
+              ].map(key=>[key,shape[key]??null]));
+            };
+            result.push({label,
+              exitCode:Number(fs.readFileSync(
+                path.join(dir,label+'.status'),'utf8')),
+              classification:observation?.classification||'not-observed',
+              validSamples:observation?.validSamples??0,
+              first:normalized(observation?.initialShape),
+              last:normalized(observation?.finalShape),
+              navigationEvents:events.filter(event=>
+                event.kind==='navigation.result').map(event=>
+                event.error?'error':'no-error').slice(0,2),
+              startupFailed:events.some(event=>event.kind==='browser.startup-failed')
+            });
+          }
+          // Only predeclared structural shapes; no chat text, page URLs,
+          // DOM snapshots, profiles, message identifiers or raw logs.
+          console.log('PRIVATE-SAFE-READINESS '+JSON.stringify(result));
+          NODE
