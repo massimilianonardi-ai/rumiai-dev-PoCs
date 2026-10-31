@@ -12,6 +12,7 @@ usage()
   cat <<'HELP'
 Usage:
   ext4-iso-test.sh prepare --mboot REPO --iso ISO --output EXISTING_DIR
+  ext4-iso-test.sh recover --disk PARTIAL_RAW --mboot REPO --iso ISO
   ext4-iso-test.sh boot --disk VERIFIED_RAW [--ram MIB]
 
 prepare makes an entirely NEW disposable 12 GiB GPT image from the published
@@ -20,6 +21,8 @@ changes ONLY the new image's partition 3 to ext4, and switches its copied ESP
 boot-media menu to load the GRUB ext2 module (ext2/3/4).
 It copies and SHA256-verifies the original Ubuntu ISO inside /m/boot/iso/.
 Never select a physical USB, loop/block device or existing output image.
+recover checks and finishes an interrupted image in place without recopying
+the Ubuntu ISO or repartitioning. It only modifies that image's ESP menu.
 
 boot uses QEMU x86_64 legacy BIOS, TCG, IDE and -snapshot; it needs a graphical
 session. Select Bootable media > Live systems and installers > Ubuntu ISO.
@@ -39,6 +42,65 @@ hash_file()
 {
   observed=$(sha256sum "$1" | awk '{print $1}') || fail "cannot hash: $1" 3
   [ "$observed" = "$2" ] || fail "SHA256 mismatch: $1 ($observed)" 4
+}
+
+# The source image is mounted through sudo; default VFAT umask can make
+# every file under the ESP unreadable to the unprivileged caller.  All
+# inspections must therefore be performed as root, not with shell [ -f ].
+finish_virtual_esp()
+{
+  sudo -n mount -t vfat -o umask=022 "$esppart" "$esp" ||
+    fail 'cannot mount disposable ESP' 39
+  esp_mounted=yes
+  menu="$esp/m/boot/loader/menu/boot-media"
+  if ! sudo -n test -f "$menu"
+  then
+    sudo -n ls -ld "$esp/m/boot/loader" "$esp/m/boot/loader/menu" || :
+    fail "missing ESP boot-media even as root: $menu" 40
+  fi
+  exfat_lines=$(sudo -n grep -c '^insmod exfat$' "$menu") || :
+  ext2_lines=$(sudo -n grep -c '^insmod ext2$' "$menu") || :
+  case "${exfat_lines:-}:${ext2_lines:-}" in
+    1:0) : ;;
+    0:1) : ;;  # A previously interrupted recovery can already be patched.
+    *) fail "unexpected GRUB filesystem modules in $menu: exfat=$exfat_lines ext2=$ext2_lines" 41 ;;
+  esac
+  for target in i386-pc x86_64-efi arm64-efi
+  do
+    sudo -n test -f "$esp/m/boot/loader/$target/ext2.mod" ||
+      fail "missing ext2.mod in virtual ESP for $target" 42
+  done
+  if [ "$exfat_lines" = 1 ]
+  then
+    sudo -n sed -i 's/^insmod exfat$/insmod ext2/' "$menu" ||
+      fail 'cannot activate ext4 support in virtual ESP' 43
+  fi
+  [ "$(sudo -n grep -xc 'insmod ext2' "$menu")" = 1 ] ||
+    fail 'virtual ESP ext2 module update not verified' 44
+  sudo -n umount "$esp" || fail 'cannot unmount virtual ESP' 45
+  esp_mounted=no
+}
+
+write_experiment_manifest()
+{
+  {
+    printf 'experiment=m-boot-ubuntu-ext4\n'
+    printf 'mboot_source=%s\n' "$mboot"
+    printf 'original_image_sha256=%s\n' "$raw_sha"
+    printf 'iso_source=%s\n' "$iso"
+    printf 'iso_sha256=%s\n' "$ISO_SHA256"
+    printf 'filesystem=ext4\nfirmware=bios\n'
+    printf 'mloader_change=disposable_ESP_boot_media_insmod_ext2_only\n'
+  } > "$work/experiment.txt"
+  printf '\nPREPARED: %s\n' "$disk"
+  printf 'Boot: %s boot --disk "%s"\n' "$0" "$disk"
+}
+
+cleanup()
+{
+  if [ "$esp_mounted" = yes ]; then sudo -n umount "$esp" || :; fi
+  if [ "$data_mounted" = yes ]; then sudo -n umount "$data" || :; fi
+  if [ -n "$loop" ]; then sudo -n losetup -d "$loop" || :; fi
 }
 
 [ "$(uname -s)" = Linux ] || fail 'Linux host required' 1
@@ -95,12 +157,6 @@ case "$mode" in
     loop=
     esp_mounted=no
     data_mounted=no
-    cleanup()
-    {
-      if [ "$esp_mounted" = yes ]; then sudo -n umount "$esp" || :; fi
-      if [ "$data_mounted" = yes ]; then sudo -n umount "$data" || :; fi
-      if [ -n "$loop" ]; then sudo -n losetup -d "$loop" || :; fi
-    }
     trap cleanup 0
     trap 'exit 130' 1 2 3 15
     # GNU dd sparse output conserves host space; independent raw SHA verifies
@@ -145,35 +201,100 @@ case "$mode" in
     [ "$copied" = "$ISO_SHA256" ] || fail 'copied ISO differs' 37
     sudo -n umount "$data" || fail 'cannot unmount ext4' 38
     data_mounted=no
-    sudo -n mount -t vfat "$esppart" "$esp" || fail 'cannot mount disposable ESP' 39
-    esp_mounted=yes
-    menu="$esp/m/boot/loader/menu/boot-media"
-    [ -f "$menu" ] || fail 'ESP does not contain m-loader boot-media' 40
-    [ "$(sudo -n grep -xc 'insmod exfat' "$menu")" = 1 ] ||
-      fail 'unexpected m-loader menu: no unique exfat line' 41
-    for target in i386-pc x86_64-efi arm64-efi; do
-      [ -f "$esp/m/boot/loader/$target/ext2.mod" ] ||
-        fail "missing ext2.mod in disposable ESP for $target" 42
-    done
-    sudo -n sed -i 's/^insmod exfat$/insmod ext2/' "$menu" ||
-      fail 'cannot activate GRUB ext2 in disposable ESP' 43
-    [ "$(sudo -n grep -xc 'insmod ext2' "$menu")" = 1 ] ||
-      fail 'GRUB ext2 menu change not verified' 44
-    sudo -n umount "$esp" || fail 'cannot unmount disposable ESP' 45
-    esp_mounted=no
+    finish_virtual_esp
     sudo -n losetup -d "$loop" || fail 'cannot detach disposable loop' 46
     loop=
-    {
-      printf 'experiment=m-boot-ubuntu-ext4\n'
-      printf 'mboot_source=%s\n' "$mboot"
-      printf 'original_image_sha256=%s\n' "$raw_sha"
-      printf 'iso_source=%s\n' "$iso"
-      printf 'iso_sha256=%s\n' "$ISO_SHA256"
-      printf 'filesystem=ext4\nfirmware=bios\n'
-      printf 'mloader_change=disposable_ESP_boot_media_insmod_ext2_only\n'
-    } > "$work/experiment.txt"
-    printf '\nPREPARED: %s\n' "$disk"
-    printf 'Boot: %s boot --disk "%s"\n' "$0" "$disk"
+    write_experiment_manifest
+    ;;
+  recover)
+    disk=
+    iso=
+    mboot=
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        --disk|--iso|--mboot)
+          [ "$#" -ge 2 ] && [ -n "$2" ] || fail "missing $1 value" 56
+          case "$1" in --disk) disk=$2 ;; --iso) iso=$2 ;; --mboot) mboot=$2 ;; esac
+          shift 2 ;;
+        *) fail "unexpected recover option: $1" 57 ;;
+      esac
+    done
+    [ -n "$disk" ] && [ -n "$iso" ] && [ -n "$mboot" ] ||
+      fail 'recover needs --disk, --mboot and --iso' 58
+    [ -f "$disk" ] && [ ! -L "$disk" ] && [ "$(basename -- "$disk")" = m-boot-ext4.raw ] ||
+      fail 'recover only accepts a regular disposable m-boot-ext4.raw file' 59
+    [ -f "$iso" ] && [ ! -L "$iso" ] && [ "$(basename -- "$iso")" = "$ISO_NAME" ] ||
+      fail 'recover requires the exact Ubuntu ISO input' 60
+    [ -d "$mboot" ] && [ ! -L "$mboot" ] || fail 'mboot directory invalid' 61
+    for cmd in sha256sum awk sudo losetup lsblk sgdisk blkid mount umount \
+      grep sed stat; do need "$cmd"; done
+    work=$(CDPATH= cd -- "$(dirname -- "$disk")" && pwd -P) ||
+      fail 'cannot resolve image parent' 62
+    case "$(basename -- "$work")" in
+      mboot-ext4.????????) ;;
+      *) fail 'image is not in a private mboot-ext4 experiment directory' 63 ;;
+    esac
+    [ -d "$work" ] && [ ! -L "$work" ] &&
+      [ -d "$work/esp" ] && [ -d "$work/ext4" ] ||
+      fail 'incomplete original experiment workspace' 64
+    [ "$(stat -c %u "$work")" = "$(id -u)" ] ||
+      fail 'experiment workspace is not owned by current user' 65
+    [ ! -e "$work/experiment.txt" ] ||
+      fail 'experiment is already recorded as completed; use boot' 66
+    disk="$work/m-boot-ext4.raw"
+    [ "$(stat -c %s "$disk")" = 12884901888 ] ||
+      fail 'expected the previous 12 GiB raw image' 67
+    iso=$(CDPATH= cd -- "$(dirname -- "$iso")" && pwd -P)/$(basename -- "$iso")
+    mboot=$(CDPATH= cd -- "$mboot" && pwd -P)
+    raw_sha=$(awk '$2 == "m-boot-combined.raw" {print $1}' "$mboot/images/RAW-SHA256SUMS") ||
+      fail 'cannot read original m-boot image manifest' 68
+    [ -n "$raw_sha" ] || fail 'missing original image checksum' 69
+    hash_file "$iso" "$ISO_SHA256"
+    sudo -v || fail 'sudo authorization required to verify disposable image' 70
+    esp="$work/esp"
+    data="$work/ext4"
+    loop=
+    esp_mounted=no
+    data_mounted=no
+    trap cleanup 0
+    trap 'exit 130' 1 2 3 15
+    loop=$(sudo -n losetup --find --show --partscan "$disk") ||
+      fail 'cannot attach existing image-backed loop' 71
+    case "$loop" in
+      /dev/loop*)
+        number=${loop#/dev/loop}
+        case "$number" in ''|*[!0-9]*) fail 'unexpected loop number' 72 ;; esac ;;
+      *) fail 'refusing non-loop device' 73 ;;
+    esac
+    backing=$(sudo -n cat "/sys/class/block/loop$number/loop/backing_file") ||
+      fail 'cannot verify loop backing file' 74
+    [ "$backing" = "$disk" ] || fail "loop backing mismatch: $backing" 75
+    [ "$(lsblk -dn -o TYPE "$loop" | tr -d '[:space:]')" = loop ] ||
+      fail 'unexpected loop block-device type' 76
+    partition="${loop}p3"
+    esppart="${loop}p2"
+    [ -b "$partition" ] && [ -b "$esppart" ] ||
+      fail 'expected partitions missing in disposable disk' 77
+    [ "$(sudo -n blkid -s TYPE -o value "$partition")" = ext4 ] ||
+      fail 'disposable data partition is not ext4' 78
+    [ "$(sudo -n blkid -s TYPE -o value "$esppart")" = vfat ] ||
+      fail 'disposable ESP is not FAT' 79
+    sudo -n mount -t ext4 -o ro,noload "$partition" "$data" ||
+      fail 'cannot mount disposable ext4 read-only' 80
+    data_mounted=yes
+    guest_iso="$data/m/boot/iso/$ISO_NAME"
+    sudo -n test -f "$guest_iso" || fail 'ISO missing from disposable ext4' 81
+    copied=$(sudo -n sha256sum "$guest_iso" | awk '{print $1}') ||
+      fail 'cannot hash copied ISO' 82
+    [ "$copied" = "$ISO_SHA256" ] || fail 'copied ISO checksum mismatch' 83
+    sudo -n umount "$data" || fail 'cannot unmount read-only ext4' 84
+    data_mounted=no
+    # The only write during recovery is the single GRUB module line on
+    # the virtual ESP, after the original ISO and filesystem are verified.
+    finish_virtual_esp
+    sudo -n losetup -d "$loop" || fail 'cannot detach disposable loop' 85
+    loop=
+    write_experiment_manifest
     ;;
   boot)
     disk=

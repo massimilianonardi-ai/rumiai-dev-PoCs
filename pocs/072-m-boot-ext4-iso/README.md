@@ -40,10 +40,46 @@ GPT third partition, formats it as ext4 with label `MBOOTDATA`, copies and
 re-hashes the ISO, and modifies only the **virtual ESP copy** of the menu
 (`insmod exfat` → `insmod ext2`). The BIOS embed area and the original FAT32
 ESP files are otherwise preserved from the exact published m-boot image.
+ESP checks use `sudo test` because FAT mount permissions inherited from
+`umask 077` may prevent ordinary unprivileged file probes.
 
 **Never pass physical devices to this script. It has no such option.** It
 never touches physical USB, existing `MBOOTDATA`, existing EFI partitions or
 user files. The original `m-boot` checkout is read-only to the script.
+
+## Recover the completed ext4/ISO image after ESP access failure
+
+The first real `prepare` on `vmdev` (2026-10-31) formatted **only the
+virtual disk** partition 3 as ext4, copied and SHA256-verified the ISO,
+then stopped with `ESP does not contain m-loader boot-media`. The
+published image's source revision does contain the menu; the initial PoC
+checked its presence with an unprivileged shell `[ -f ]` after `sudo mount`
+with `umask 077`, so this error can result from unreadable FAT mount
+permissions rather than a genuinely absent file. The PoC now checks ESP
+contents with `sudo test` and uses an explicit FAT mount mask.
+
+Do **not** run `prepare` again just to recover that image: the original ISO
+already occupies several gigabytes inside it. Instead:
+
+```sh
+git -C /m/src/git/rumiai-dev-PoCs pull --ff-only
+find /m/src/git/m-boot-ext4-test -maxdepth 2 -type f -name m-boot-ext4.raw -print
+
+/m/src/git/rumiai-dev-PoCs/pocs/072-m-boot-ext4-iso/ext4-iso-test.sh recover \
+  --disk /m/src/git/m-boot-ext4-test/mboot-ext4.XXXXXXXX/m-boot-ext4.raw \
+  --mboot /m/src/git/m-boot \
+  --iso /run/media/admino/MBOOTDATA/m/boot/iso/ubuntu-26.04.1-desktop-amd64.iso
+```
+
+Use the exact path printed by `find`. `recover` accepts only a regular
+12 GiB file inside the private PoC experiment directory, verifies the
+actual image-backed loop identity, FAT ESP, ext4, and the already copied
+ISO checksum, then changes only the **virtual** ESP's one GRUB module
+line and produces the missing `experiment.txt`. It does not format any
+partition or copy the large ISO again. Recovery rejects truly absent
+menu/module files with a more specific diagnostic instead of silently
+reconstructing or overwriting the loader from the source checkout.
+It closes its temporary mounts and loop device on completion.
 
 ## Run GUI boot and capture the actual outcome
 
