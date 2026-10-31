@@ -36,7 +36,7 @@ jobs:
           EOF
           chmod +x "$RUNNER_TEMP/poc068-bin/chromium"
           export PATH="$RUNNER_TEMP/poc068-bin:$PATH"
-          for mode in baseline media full; do
+          for mode in full; do
             status=0
             set -- --headless --sweep
             if [ "$mode" = media ] || [ "$mode" = full ]; then
@@ -57,7 +57,7 @@ jobs:
           import path from 'node:path';
           import readline from 'node:readline';
           const privateDir=path.join(process.env.RUNNER_TEMP,'private');
-          const modes=['baseline','media','full'];
+          const modes=['full'];
           const selected=[
             'session.ready','navigation.result','navigation.command-failed',
             'probe.installed','probe.instrumentation-failed',
@@ -69,12 +69,31 @@ jobs:
             const events=Object.fromEntries(selected.map(kind=>[kind,0]));
             const file=path.join(privateDir,mode,'events.jsonl');
             let summary=null;
+            const travel={};
+            const cleanStep=event=>Object.fromEntries(
+              ['before','after','height','viewport'].map(key=>[
+                key,Number.isFinite(event[key])?Math.round(event[key]):null
+              ]));
             if(fs.existsSync(file)){
               const input=fs.createReadStream(file,{encoding:'utf8'});
               for await(const line of readline.createInterface({input})){
                 if(!line.trim())continue;
                 const event=JSON.parse(line);
                 if(Object.hasOwn(events,event.kind))events[event.kind]++;
+                if(event.kind==='sweep.step'&&
+                   (event.direction===1||event.direction===-1)){
+                  const key=String(event.direction);
+                  const bucket=travel[key]||(travel[key]={first:null,last:null,
+                    steps:0,maximumScrollTop:0,maximumScrollHeight:0});
+                  const metrics=cleanStep(event);
+                  bucket.first??=metrics;
+                  bucket.last=metrics;
+                  bucket.steps++;
+                  bucket.maximumScrollTop=Math.max(bucket.maximumScrollTop,
+                    metrics.after??0);
+                  bucket.maximumScrollHeight=Math.max(bucket.maximumScrollHeight,
+                    metrics.height??0);
+                }
                 if(event.kind==='sweep.not-ready'){
                   const shape=event.pageShape||{};
                   summary={
@@ -94,7 +113,7 @@ jobs:
             const code=Number(fs.readFileSync(
               path.join(privateDir,mode+'.status'),'utf8'));
             console.log('PRIVATE-SAFE-CAPTURE-MODE '+JSON.stringify({
-              mode,exitCode:code,counts:events,notReadyShape:summary
+              mode,exitCode:code,counts:events,scrollTravel:travel,notReadyShape:summary
             }));
           }
           NODE
