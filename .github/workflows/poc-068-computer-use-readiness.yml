@@ -1,4 +1,4 @@
-name: PoC 068 computer use readiness diagnostic
+name: PoC 068 computer use capture-mode diagnostic
 
 on:
   push:
@@ -11,24 +11,22 @@ permissions:
 jobs:
   diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Compare public share readiness in real isolated Chromium sessions
+      - name: Compare read-only browser sweep capture modes
         shell: bash
         env:
           TARGET_SHARE_URL: https://chatgpt.com/share/6ae59b8c-0420-83eb-83d7-247543f80b34
-          CONTROL_SHARE_URL: https://chatgpt.com/share/6ae4dde6-93a0-83ed-820e-74d0e3f3c9e1
         run: |
           set -eu
           umask 077
           cd pocs/068-chatgpt-shared-link-export
           npm ci --no-audit --no-fund
           node --check render-probe.mjs
-          node --check inspect-live-readiness.mjs
           browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           test -n "$browser"
           mkdir -p "$RUNNER_TEMP/poc068-bin" "$RUNNER_TEMP/private"
@@ -38,55 +36,65 @@ jobs:
           EOF
           chmod +x "$RUNNER_TEMP/poc068-bin/chromium"
           export PATH="$RUNNER_TEMP/poc068-bin:$PATH"
-          for label in target-1 target-2 control; do
-            if [ "$label" = control ]; then
-              url="$CONTROL_SHARE_URL"
-            else
-              url="$TARGET_SHARE_URL"
-            fi
+          for mode in baseline media full; do
             status=0
-            node render-probe.mjs "$url" "$RUNNER_TEMP/private/$label" \
-              --headless --readiness-only \
-              > "$RUNNER_TEMP/private/$label.stdout" \
-              2> "$RUNNER_TEMP/private/$label.stderr" || status=$?
-            printf '%s' "$status" > "$RUNNER_TEMP/private/$label.status"
+            set -- --headless --sweep
+            if [ "$mode" = media ] || [ "$mode" = full ]; then
+              set -- "$@" --capture-static-bodies --capture-image-bodies
+            fi
+            if [ "$mode" = full ]; then
+              set -- "$@" --observe-interactions
+            fi
+            timeout --signal=INT --kill-after=5s 85s \
+              node render-probe.mjs "$TARGET_SHARE_URL" \
+              "$RUNNER_TEMP/private/$mode" "$@" \
+              > "$RUNNER_TEMP/private/$mode.stdout" \
+              2> "$RUNNER_TEMP/private/$mode.stderr" || status=$?
+            printf '%s' "$status" > "$RUNNER_TEMP/private/$mode.status"
           done
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           import path from 'node:path';
-          const dir=path.join(process.env.RUNNER_TEMP,'private');
-          const result=[];
-          for(const label of ['target-1','target-2','control']){
-            const source=path.join(dir,label,'events.jsonl');
-            const events=fs.existsSync(source)?
-              fs.readFileSync(source,'utf8').split(/\r?\n/u).filter(Boolean)
-                .map(line=>JSON.parse(line)):[];
-            const observation=events.findLast(event=>
-              event.kind==='readiness.observed');
-            const normalized=shape=>{
-              if(!shape)return null;
-              return Object.fromEntries([
-                'readyState','hasScrollRoot','turnWrappers',
-                'conversationMarkers','messageMarkers','mainElements',
-                'roleMainElements','iframeElements','bodyChildElements',
-                'bodyTextCharacters','alternateScrollCandidates',
-                'navigationResponseStatus'
-              ].map(key=>[key,shape[key]??null]));
-            };
-            result.push({label,
-              exitCode:Number(fs.readFileSync(
-                path.join(dir,label+'.status'),'utf8')),
-              classification:observation?.classification||'not-observed',
-              validSamples:observation?.validSamples??0,
-              first:normalized(observation?.initialShape),
-              last:normalized(observation?.finalShape),
-              navigationEvents:events.filter(event=>
-                event.kind==='navigation.result').map(event=>
-                event.error?'error':'no-error').slice(0,2),
-              startupFailed:events.some(event=>event.kind==='browser.startup-failed')
-            });
+          import readline from 'node:readline';
+          const privateDir=path.join(process.env.RUNNER_TEMP,'private');
+          const modes=['baseline','media','full'];
+          const selected=[
+            'session.ready','navigation.result','navigation.command-failed',
+            'probe.installed','probe.instrumentation-failed',
+            'turn.initial','turn.snapshot','turn.unidentified-snapshot',
+            'sweep.started','sweep.step','sweep.finished','sweep.timeout',
+            'sweep.not-ready','browser.startup-failed','dom.mutation'
+          ];
+          for(const mode of modes){
+            const events=Object.fromEntries(selected.map(kind=>[kind,0]));
+            const file=path.join(privateDir,mode,'events.jsonl');
+            let summary=null;
+            if(fs.existsSync(file)){
+              const input=fs.createReadStream(file,{encoding:'utf8'});
+              for await(const line of readline.createInterface({input})){
+                if(!line.trim())continue;
+                const event=JSON.parse(line);
+                if(Object.hasOwn(events,event.kind))events[event.kind]++;
+                if(event.kind==='sweep.not-ready'){
+                  const shape=event.pageShape||{};
+                  summary={
+                    readyState:['loading','interactive','complete']
+                      .includes(shape.readyState)?shape.readyState:null,
+                    hasScrollRoot:shape.hasScrollRoot===true,
+                    turnWrappers:Number.isInteger(shape.turnWrappers)?
+                      shape.turnWrappers:null,
+                    conversationMarkers:Number.isInteger(shape.conversationMarkers)?
+                      shape.conversationMarkers:null,
+                    mainElements:Number.isInteger(shape.mainElements)?
+                      shape.mainElements:null
+                  };
+                }
+              }
+            }
+            const code=Number(fs.readFileSync(
+              path.join(privateDir,mode+'.status'),'utf8'));
+            console.log('PRIVATE-SAFE-CAPTURE-MODE '+JSON.stringify({
+              mode,exitCode:code,counts:events,notReadyShape:summary
+            }));
           }
-          // Only predeclared structural shapes; no chat text, page URLs,
-          // DOM snapshots, profiles, message identifiers or raw logs.
-          console.log('PRIVATE-SAFE-READINESS '+JSON.stringify(result));
           NODE
