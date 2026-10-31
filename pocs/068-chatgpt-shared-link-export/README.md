@@ -76,7 +76,12 @@ source-card and singleton restoration scripts remain standalone
 historical PoC tools, not prerequisites of the integrated exporter.
 
 The command retries a `sweep-not-ready` capture once with a fresh
-Chromium profile. **Citation and external-link decorative IMG icons are
+Chromium profile. A completed but oversized virtualized scroll is a
+different failure: the probe records `sweep.timeout` and exits with code 5
+rather than misreporting missing page hooks. The bounded sweep advances
+by no more than 85% of the visible scroll viewport per step and samples
+after a 220 ms settlement window, preserving overlap between observations
+while reducing the time required by long chats. **Citation and external-link decorative IMG icons are
 ignored** before image localization: original HTML/CSS bytes outside those
 small image tags, the visible citation text and substantive conversation
 images are retained. Images inside citation controls, known Google favicon

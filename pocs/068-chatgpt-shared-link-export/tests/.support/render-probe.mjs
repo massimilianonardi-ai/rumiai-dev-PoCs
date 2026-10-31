@@ -114,7 +114,8 @@ try {
     fs.readFileSync(path.join(out, e.file), 'utf8').includes('<img')),
     'image-only turn snapshot missing image markup');
   const turns=new Set(records.filter(e=>e.kind==='turn.snapshot').map(e=>e.turnId));
-  assert(turns.has('turn-0')&&turns.has('turn-15'),'sweep did not capture both ends');
+  for(let i=0;i<16;i++)
+    assert(turns.has('turn-'+i),'overlapping sweep skipped fixture turn '+i);
   for(const row of records.filter(e=>e.kind==='turn.snapshot')){
     assert(fs.existsSync(path.join(out,row.file)),'snapshot missing');
     assert(fs.readFileSync(path.join(out,row.file),'utf8').includes('data-message-id'));

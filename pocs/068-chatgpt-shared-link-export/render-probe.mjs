@@ -574,7 +574,10 @@ async function sweep(cdp, sid, record, onSample = null, onProgress = null,
       try {
         const expr = "(() => {const e=document.querySelector('[data-scroll-root]');" +
           "if(!e)return {missing:true}; const before=e.scrollTop;" +
-          "e.scrollTop+=" + direction + "*Math.max(240,e.clientHeight*.65);" +
+          // Move less than one viewport to keep each virtualized region
+          // observable on consecutive samples; long chats need fewer steps.
+          "const stride=Math.max(1,Math.floor(e.clientHeight*.85));" +
+          "e.scrollTop+=" + direction + "*stride;" +
           "return {before,after:e.scrollTop,height:e.scrollHeight,viewport:e.clientHeight};})()";
         const r = await cdp.send('Runtime.evaluate', {expression: expr, returnByValue: true}, sid);
         value = r.result?.value || {};
@@ -582,14 +585,20 @@ async function sweep(cdp, sid, record, onSample = null, onProgress = null,
       record({kind:'sweep.step',direction,...value});
       if (value.missing) break;
       stable = value.before === value.after ? stable + 1 : 0;
-      await pause(350);
+      // Allow native intersection and React frame updates without making
+      // very long public conversations hit the bounded sweep deadline.
+      await pause(220);
       await sampleWithoutMovingCursor(value.after);
       if (stable >= 5) break;
     }
   }
   if(shouldStop())return {ready:false,interrupted:true};
-  if(cdp.closed || performance.now()>=deadline) {
-    record({kind:'sweep.timeout',reason:'browser-disconnected-or-deadline'});
+  if(cdp.closed) {
+    record({kind:'sweep.browser-disconnected'});
+    return {ready:false,disconnected:true};
+  }
+  if(performance.now()>=deadline) {
+    record({kind:'sweep.timeout',deadlineMs:360000});
     return {ready:false,timedOut:true};
   }
   await pause(1200);
@@ -847,7 +856,18 @@ async function run(args) {
         return 130;
       }
       if (!observation.ready) {
-        process.stdout.write(JSON.stringify(await stop('sweep-not-ready'))+'\n');
+        const reason=observation.timedOut?'sweep-timeout':
+          observation.disconnected?'sweep-browser-disconnected':'sweep-not-ready';
+        process.stdout.write(JSON.stringify(await stop(reason))+'\n');
+        if(observation.timedOut){
+          process.stderr.write('Conversation sweep exceeded the bounded scroll deadline; '+
+            'check private sweep.step progress and sweep.timeout evidence.\n');
+          return 5;
+        }
+        if(observation.disconnected){
+          process.stderr.write('Browser disconnected during conversation sweep.\n');
+          return 6;
+        }
         process.stderr.write('Page not ready for turn extraction: missing expected DOM hooks; '+
           'check sanitized sweep.not-ready pageShape in private events.jsonl.\n');
         return 3;

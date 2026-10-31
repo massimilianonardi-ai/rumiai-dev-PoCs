@@ -1,23 +1,24 @@
-name: PoC 068 computer use capture-mode diagnostic
+name: PoC 068 computer use long-sweep acceptance
 
 on:
   push:
     paths:
       - '.github/workflows/poc-068-computer-use-readiness.yml'
+      - 'pocs/068-chatgpt-shared-link-export/render-probe.mjs'
 
 permissions:
   contents: read
 
 jobs:
-  diagnose:
+  acceptance:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Compare read-only browser sweep capture modes
+      - name: Exercise the real offline exporter on computer use share
         shell: bash
         env:
           TARGET_SHARE_URL: https://chatgpt.com/share/6ae59b8c-0420-83eb-83d7-247543f80b34
@@ -26,94 +27,67 @@ jobs:
           umask 077
           cd pocs/068-chatgpt-shared-link-export
           npm ci --no-audit --no-fund
+          npm run check
           node --check render-probe.mjs
+          node --test tests/export-offline.test.mjs tests/omit-external-link-icons.test.mjs
           browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           test -n "$browser"
-          mkdir -p "$RUNNER_TEMP/poc068-bin" "$RUNNER_TEMP/private"
-          cat > "$RUNNER_TEMP/poc068-bin/chromium" <<EOF
+          mkdir -p "$RUNNER_TEMP/bin" "$RUNNER_TEMP/private"
+          cat > "$RUNNER_TEMP/bin/chromium" <<EOF
           #!/bin/sh
           exec "$browser" "\$@"
           EOF
-          chmod +x "$RUNNER_TEMP/poc068-bin/chromium"
-          export PATH="$RUNNER_TEMP/poc068-bin:$PATH"
-          for mode in full; do
-            status=0
-            set -- --headless --sweep
-            if [ "$mode" = media ] || [ "$mode" = full ]; then
-              set -- "$@" --capture-static-bodies --capture-image-bodies
-            fi
-            if [ "$mode" = full ]; then
-              set -- "$@" --observe-interactions
-            fi
-            timeout --signal=INT --kill-after=5s 85s \
-              node render-probe.mjs "$TARGET_SHARE_URL" \
-              "$RUNNER_TEMP/private/$mode" "$@" \
-              > "$RUNNER_TEMP/private/$mode.stdout" \
-              2> "$RUNNER_TEMP/private/$mode.stderr" || status=$?
-            printf '%s' "$status" > "$RUNNER_TEMP/private/$mode.status"
-          done
+          chmod +x "$RUNNER_TEMP/bin/chromium"
+          export PATH="$RUNNER_TEMP/bin:$PATH"
+          status=0
+          node export-offline.mjs "$TARGET_SHARE_URL" "$RUNNER_TEMP/private/archive" \
+            --with-metadata --keep-evidence \
+            > "$RUNNER_TEMP/private/result.json" \
+            2> "$RUNNER_TEMP/private/diagnostic.log" || status=$?
+          export EXPORT_STATUS="$status"
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           import path from 'node:path';
-          import readline from 'node:readline';
-          const privateDir=path.join(process.env.RUNNER_TEMP,'private');
-          const modes=['full'];
-          const selected=[
-            'session.ready','navigation.result','navigation.command-failed',
-            'probe.installed','probe.instrumentation-failed',
-            'turn.initial','turn.snapshot','turn.unidentified-snapshot',
-            'sweep.started','sweep.step','sweep.finished','sweep.timeout',
-            'sweep.not-ready','browser.startup-failed','dom.mutation'
-          ];
-          for(const mode of modes){
-            const events=Object.fromEntries(selected.map(kind=>[kind,0]));
-            const file=path.join(privateDir,mode,'events.jsonl');
-            let summary=null;
-            const travel={};
-            const cleanStep=event=>Object.fromEntries(
-              ['before','after','height','viewport'].map(key=>[
-                key,Number.isFinite(event[key])?Math.round(event[key]):null
-              ]));
-            if(fs.existsSync(file)){
-              const input=fs.createReadStream(file,{encoding:'utf8'});
-              for await(const line of readline.createInterface({input})){
-                if(!line.trim())continue;
-                const event=JSON.parse(line);
-                if(Object.hasOwn(events,event.kind))events[event.kind]++;
-                if(event.kind==='sweep.step'&&
-                   (event.direction===1||event.direction===-1)){
-                  const key=String(event.direction);
-                  const bucket=travel[key]||(travel[key]={first:null,last:null,
-                    steps:0,maximumScrollTop:0,maximumScrollHeight:0});
-                  const metrics=cleanStep(event);
-                  bucket.first??=metrics;
-                  bucket.last=metrics;
-                  bucket.steps++;
-                  bucket.maximumScrollTop=Math.max(bucket.maximumScrollTop,
-                    metrics.after??0);
-                  bucket.maximumScrollHeight=Math.max(bucket.maximumScrollHeight,
-                    metrics.height??0);
-                }
-                if(event.kind==='sweep.not-ready'){
-                  const shape=event.pageShape||{};
-                  summary={
-                    readyState:['loading','interactive','complete']
-                      .includes(shape.readyState)?shape.readyState:null,
-                    hasScrollRoot:shape.hasScrollRoot===true,
-                    turnWrappers:Number.isInteger(shape.turnWrappers)?
-                      shape.turnWrappers:null,
-                    conversationMarkers:Number.isInteger(shape.conversationMarkers)?
-                      shape.conversationMarkers:null,
-                    mainElements:Number.isInteger(shape.mainElements)?
-                      shape.mainElements:null
-                  };
-                }
-              }
+          const dir=path.join(process.env.RUNNER_TEMP,'private');
+          const resultFile=path.join(dir,'result.json');
+          const result=Number(process.env.EXPORT_STATUS)===0?
+            JSON.parse(fs.readFileSync(resultFile,'utf8')):null;
+          const log=fs.readFileSync(path.join(dir,'diagnostic.log'),'utf8');
+          const stages=fs.readdirSync(dir).filter(n=>n.startsWith('.poc068-export-'));
+          const evidence=stages.length===1?path.join(dir,stages[0],'original','events.jsonl'):null;
+          const counts={};
+          const ids=new Set(),captured=new Set();
+          if(evidence&&fs.existsSync(evidence))
+            for(const line of fs.readFileSync(evidence,'utf8').split(/\r?\n/u).filter(Boolean)){
+              const e=JSON.parse(line);
+              if(['turn.initial','turn.snapshot','sweep.started','sweep.finished',
+                  'sweep.timeout','sweep.not-ready','sweep.browser-disconnected']
+                .includes(e.kind))counts[e.kind]=(counts[e.kind]||0)+1;
+              if(e.kind==='turn.initial'&&typeof e.turnId==='string')ids.add(e.turnId);
+              if(e.kind==='turn.snapshot'&&typeof e.turnId==='string')captured.add(e.turnId);
             }
-            const code=Number(fs.readFileSync(
-              path.join(privateDir,mode+'.status'),'utf8'));
-            console.log('PRIVATE-SAFE-CAPTURE-MODE '+JSON.stringify({
-              mode,exitCode:code,counts:events,scrollTravel:travel,notReadyShape:summary
-            }));
+          let renderedTurns=null,missingOrdinals=null;
+          if(result){
+            const audit=JSON.parse(fs.readFileSync(
+              path.join(dir,'archive','audit.json'),'utf8'));
+            renderedTurns=Array.isArray(audit.turns)?audit.turns.length:null;
+            missingOrdinals=Array.isArray(audit.missingOrdinals)?
+              audit.missingOrdinals.length:null;
           }
+          const knownErrors=['Chromium capture original failed with exit 5',
+            'Chromium capture original failed with exit 6',
+            'Chromium capture original-readiness-retry failed with exit 3',
+            'Unmatched remote image reference in archive',
+            'Missing original CSS',
+            'Incomplete conversation sweep'];
+          console.log('PRIVATE-SAFE-LONG-SWEEP '+JSON.stringify({
+            exportExit:Number(process.env.EXPORT_STATUS),
+            counters:counts,observedWrappers:ids.size,
+            capturedWrappers:captured.size,
+            renderedTurns,missingOrdinals,
+            remoteImages:result?.remoteImages??null,
+            scriptBlocked:result?.originalScriptsDisabled??null,
+            classifiedError:knownErrors.find(x=>log.includes(x))||null
+          }));
           NODE
+          test "$status" -eq 0
