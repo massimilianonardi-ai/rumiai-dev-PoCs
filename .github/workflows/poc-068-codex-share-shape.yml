@@ -67,7 +67,16 @@ jobs:
                   attrs.set(a,(attrs.get(a)||0)+1);
             }
             const n=selector=>q(selector);
-            report[kind]={bytes:html.length,
+            const title=(document.querySelector('title')?.textContent||'').trim();
+            const text=((document.querySelector('h1')?.textContent||'')+' '+title).toLowerCase();
+            const accessGuard={
+              cloudflare:html.includes('cf-chl')||html.includes('challenges.cloudflare.com'),
+              justMoment:text.includes('just a moment'),
+              accessDenied:text.includes('access denied')||text.includes('forbidden'),
+              chromeError:html.includes('chrome-error://')||html.includes('chromewebdata'),
+              loginRequired:text.includes('log in')||text.includes('sign in')
+            };
+            report[kind]={bytes:html.length,accessGuard,
               titleLength:(document.querySelector('title')?.textContent||'').length,
               genericTitle:/^(chatgpt|openai|codex)(\s|$)/i.test((document.querySelector('title')?.textContent||'').trim()),
               metas:[...new Set(meta)].sort().slice(0,36),
