@@ -1,0 +1,22 @@
+<!doctype html><html lang="it"><meta charset="utf-8"><title>Laboratorio Document2D</title>
+<style>body{font:18px system-ui;max-width:48rem;margin:3rem auto;padding:0 1rem}button{padding:.6rem;margin:.2rem}pre,output{display:block;background:#eee;color:#222;padding:1rem;white-space:pre-wrap}</style>
+<h1>Document2D · laboratorio del fold</h1>
+<p>Leggi la finestra, poi prova a modificare B. Se apri il fold dopo la lettura, la stessa richiesta usa coordinate scadute.</p>
+<button id="read">Leggi [2,5)</button><button id="fold">Apri / chiudi fold</button><button id="edit">Sostituisci con X</button><button id="note">Tocca la nota</button><button onclick="location.reload()">Ripristina</button>
+<h2>Vista</h2><pre id="grid"></pre><h2>Sorgente esatta</h2><pre id="src"></pre><output id="msg" aria-live="polite"></output><p>Test automatici: <strong id="tests"></strong></p>
+<script src="stack.js"></script><script src="tests/tests.js"></script><script>
+const {raw,projection,view}=fixture(), el=id=>document.getElementById(id);
+let version=view.snapshot();
+function render(){
+  el('src').textContent=JSON.stringify(raw.text);
+  el('grid').textContent=Array.from({length:projection.closed?2:3},(_,r)=>{
+    const text=view.line(r).map(t=>t.text==='\t'?'·'.repeat(t.right-t.left):t.text).join('');
+    return view.noteAt(r,8)?text.padEnd(8)+'▒▒▒▒':text;
+  }).join('\n');
+}
+el('read').onclick=()=>{version=view.snapshot();el('msg').textContent=view.window(0,2,5).map(t=>JSON.stringify(t.text)+' ['+t.left+','+t.right+')').join(' · ')||'Finestra vuota';};
+el('fold').onclick=()=>{projection.toggle();render();el('msg').textContent=projection.closed?'Fold chiuso':'Fold aperto';};
+el('edit').onclick=()=>{try{view.apply(version,[{row:0,start:4,end:5,text:'X'}]);render();el('msg').textContent='Commit eseguito';}catch(e){el('msg').textContent=e.message;}};
+el('note').onclick=()=>{el('msg').textContent=view.noteAt(1,9)+' · evidenziabile, zero bersagli fisici';};
+render();el('read').click();el('tests').textContent=runTests();
+</script></html>
