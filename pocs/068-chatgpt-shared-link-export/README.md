@@ -2,6 +2,39 @@
 
 Status: **Experimental — final operator-accepted milestone (2026-10-29).** Not a published RumiAI command/package.
 
+## Codex shared-snapshot investigation (2026-11-02)
+
+The experimental read-only `codex-share-probe.mjs` recognizes only
+`https://chatgpt.com/s/cx_<32-hex-id>`. From a Linux machine with Chromium
+and the PoC dependencies installed, run:
+
+```sh
+node codex-share-probe.mjs 'https://chatgpt.com/s/cx_6ae86b0755a08191a57b79dc77833361'
+```
+
+The probe starts a temporary isolated Chrome profile, removes it when done,
+and prints **only** safe structural counts/attribute names and explicit
+access/readiness classifications. It never prints or publishes the rendered
+conversation, link tokens, HTML or browser profile. Exit 3 means the page was
+not capturable (for example an access challenge), not that the link is invalid.
+Exit 0 means only *rendered candidate observed*: it is **not** full transcript
+or offline-archive verification. Set `CODEX_CHROME_BIN` when the browser is
+not on PATH.
+
+The public link used for this investigation returned a Cloudflare verification
+page on GitHub-hosted Chromium, so original Codex markup, stable message IDs,
+source title/first-message time and image/CSS capture could not be verified.
+Tests cover strict URL syntax, Cloudflare refusal, no raw content disclosure,
+and synthetic candidate DOM classification. Run
+`node --test tests/codex-share-probe.test.mjs` for the focused tests.
+GitHub Actions run 41435686239 PASS exercised those four tests and the
+actual browser's refusal; **this is not a successful Codex export**.
+
+Do not route Codex links through the accepted ChatGPT /share exporter solely
+by widening its URL regex. The separate Codex renderer/provenance and full
+offline-asset fidelity still require trustworthy actual-page evidence before
+publication can be enabled. Existing `/share/` workflow remains unchanged.
+
 ## GitHub Actions publication adapter (2026-10-30)
 
 **Current export contract:** citation buttons and grouped references may be
