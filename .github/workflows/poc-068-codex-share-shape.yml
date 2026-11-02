@@ -27,6 +27,8 @@ jobs:
           umask 077
           cd pocs/068-chatgpt-shared-link-export
           npm ci --no-audit --no-fund >/dev/null
+          node --check codex-share-probe.mjs
+          node --test tests/codex-share-probe.test.mjs
           browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           test -n "$browser"
           echo "Browser: $("$browser" --version)"
@@ -91,6 +93,7 @@ jobs:
           }
           console.log(JSON.stringify(report,null,2));
           NODE
+          CODEX_CHROME_BIN="$browser" node codex-share-probe.mjs "$CODEX_URL" || test "$?" -eq 3
           rm -rf "$RUNNER_TEMP/codex-probe-profile" \
             "$RUNNER_TEMP/codex-static.html" "$RUNNER_TEMP/codex-rendered.html" \
             "$RUNNER_TEMP/codex-curl-error.log" "$RUNNER_TEMP/codex-chrome-error.log"
