@@ -1,0 +1,32 @@
+name: PoC 073 Java classpath symlink views
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'pocs/073-context-library-projections/**'
+      - '.github/workflows/poc-073-library-paths.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  classpath:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Exercise real JVM class loading from symlinked JAR views
+        shell: sh
+        run: sh pocs/073-context-library-projections/tests/java-classpath.sh
