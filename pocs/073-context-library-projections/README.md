@@ -28,6 +28,23 @@ Loose `.class` files require a distinct class-root classpath entry; a JVM
 module path is separate. Merely adding a directory containing JARs without
 a wildcard is insufficient.
 
+## Local validation evidence (2026-11-02)
+
+Executed on the provided Linux container with OpenJDK
+`21.0.12.1`, using `sh tests/java-classpath.sh`.
+POSIX shell parse checks also passed for `sh` and `dash`.
+Observed output:
+
+```text
+PASS: JAR symlink projections A/B/A; left-to-right precedence A/B; explicit -cp overrides CLASSPATH
+```
+
+This verifies real Java compilation and runtime loading from symlink
+directories for the experiment; it does not exercise `m`, package
+installation, or an application-managed Java class loader. The hosted
+Ubuntu/macOS workflow is published but no finished hosted run result
+has yet been inspected.
+
 ## What this does not establish
 
 - No new RumiAI package descriptor, installation projection or `context`
