@@ -60,8 +60,23 @@ has yet been inspected.
   not equivalent to bare `PYTHONPATH` (see existing PoC 043).
 - No generic `LIB_PATH` or global `LD_LIBRARY_PATH` is implied.
 
-The proposed architectural boundary is a *single selected concrete/provider
-graph* with runtime-specific, pre-materialized read-only projections and
-consumer-specific runtime adapter/application. Existing facility environment
-descriptors may already represent some selected paths; assess that existing
-responsibility before creating another package-local metadata format.
+## Corrected architectural interpretation (2026-11-02)
+
+The user clarified that the intended analogy is **ordinary package commands
+and their published `cmd` symlinks searched through `PATH`**, not facility
+contracts or provider-realization metadata. Libraries should be independently
+publishable from concrete installed packages, through similarly reusable
+package-owned symlink views. The selected context composes the corresponding
+runtime-specific library search path, just as it composes command paths.
+A package need not declare a facility in order to share a library.
+
+The underlying package-concrete selections must remain coherent across both
+command and library views. Facility bindings may independently participate
+when a consumer actually depends on a facility, but they are neither a
+prerequisite nor the naming/ownership model for ordinary shared libraries.
+
+This PoC verifies the **Java lookup mechanism only**. It does not prescribe
+physical view directory names, package library export metadata, a new
+`context` operand grammar or changes to `loadlib`. Any such product API
+requires separate evaluation of existing package responsibilities and normal
+consumer scenarios.
