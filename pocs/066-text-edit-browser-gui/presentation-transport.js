@@ -67,10 +67,66 @@ function packRows(rows)
   });
 }
 
+// A PoC-only advertised presentation encoding: exactly one UTF-16 code
+// unit per unit column. This is NOT Unicode grapheme segmentation, nor
+// a hint to the GUI about physical storage. The record declares its own
+// unit boundaries and the codec validates the declaration.
+function unpackImplicit(region)
+{
+  const start=region.start;
+  const end=region.end;
+  const count=region.text?.length;
+
+  if(region.kind!=='text' || typeof region.text!=='string' ||
+    !start || !end ||
+    !Number.isSafeInteger(start.row) || start.row<0 ||
+    !Number.isSafeInteger(start.col) || start.col<0 ||
+    end.row!==start.row ||
+    !Number.isSafeInteger(end.col) || end.col<start.col ||
+    !Number.isSafeInteger(count) || count<1 ||
+    end.col-start.col!==count)
+  {
+    throw new RangeError('invalid implicit UTF-16 unit extent');
+  }
+
+  const glyphs=new Map();
+  for(const entry of region.glyphs||[])
+  {
+    if(!Array.isArray(entry) || entry.length!==2 ||
+      !Number.isSafeInteger(entry[0]) ||
+      entry[0]<0 || entry[0]>=count ||
+      typeof entry[1]!=='string' || glyphs.has(entry[0]))
+    {
+      throw new RangeError('invalid implicit UTF-16 glyph override');
+    }
+    glyphs.set(entry[0],entry[1]);
+  }
+
+  return Array.from({length:count},(_,index)=>
+  {
+    const col=start.col+index;
+    const text=region.text.slice(index,index+1);
+    const result={
+      kind:'text',text,start:{row:start.row,col},
+      end:{row:start.row,col:col+1}
+    };
+    if(glyphs.has(index)) result.displayText=glyphs.get(index);
+    return result;
+  });
+}
+
 function unpackRows(rows)
 {
   return rows.map(regions=>regions.flatMap(region=>
   {
+    if(region.unitEncoding!==undefined)
+    {
+      if(region.unitEncoding!=='utf16')
+      {
+        throw new RangeError('unknown presentation unit encoding');
+      }
+      return unpackImplicit(region);
+    }
     if(region.kind!=='text' || !Array.isArray(region.cells))
     {
       return [region];

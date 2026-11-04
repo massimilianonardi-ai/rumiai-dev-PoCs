@@ -52,5 +52,38 @@ function packRawRows(rows)
     return packed;
   }));
 }
-globalThis.__presentationDirect=Object.freeze({packRawRows});
+// Experimental record with an explicit UTF-16-unit presentation encoding.
+// No per-unit boundary arrays or intermediate per-unit region objects exist.
+// The decoder, not the GUI, reconstructs one visible unit per code unit.
+function packRawImplicitRows(rows)
+{
+  return rows.map(regions=>regions.map(region=>
+  {
+    if(region.kind!=='text' || region.start.row!==region.end.row ||
+      region.text.length!==region.end.col-region.start.col ||
+      region.text.length===0)
+    {
+      throw new RangeError('invalid aggregate Raw region for implicit units');
+    }
+
+    const result={
+      kind:'text',text:region.text,
+      start:{...region.start},end:{...region.end},
+      unitEncoding:'utf16'
+    };
+    const glyphs=[];
+
+    for(let index=0;index<region.text.length;index++)
+    {
+      const unit=region.text[index];
+      const glyph=display(unit);
+      if(glyph!==unit) glyphs.push([index,glyph]);
+    }
+
+    if(glyphs.length) result.glyphs=glyphs;
+    return result;
+  }));
+}
+
+globalThis.__presentationDirect=Object.freeze({packRawRows,packRawImplicitRows});
 })();

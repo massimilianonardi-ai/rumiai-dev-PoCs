@@ -28,6 +28,7 @@ let unsubscribe=null;
 let paints=0;
 let scheduled=false;
 let lastEvent=null;
+let viewportColStart=0;
 
 // This prototype is installed by the document composer, BEFORE handing a
 // view to the GUI. It changes only getRegions, preserves exact region.text,
@@ -141,6 +142,28 @@ function prototypeRawDirect(input)
   });
 }
 
+function prototypeRawImplicit(input)
+{
+  return new Proxy(input,
+  {
+    get(target,key)
+    {
+      if(key==='getRegions')
+      {
+        return (...args)=>globalThis.__presentationDirect.packRawImplicitRows(
+          target.getRegions(...args)
+        );
+      }
+      const value=Reflect.get(target,key,target);
+      return typeof value==='function' ? value.bind(target) : value;
+    },
+    set(target,key,value)
+    {
+      return Reflect.set(target,key,value,target);
+    }
+  });
+}
+
 function readRegions(...args)
 {
   return globalThis.__presentationTransport.unpackRows(
@@ -163,7 +186,8 @@ function configure()
   const mode=$('mode').value;
   const directOption=$('transport').querySelector('[value="direct"]');
   directOption.disabled=mode!=='raw';
-  if(mode!=='raw' && $('transport').value==='direct')
+  $('transport').querySelector('[value="implicit"]').disabled=mode!=='raw';
+  if(mode!=='raw' && ['direct','implicit'].includes($('transport').value))
   {
     $('transport').value='compact';
   }
@@ -226,6 +250,7 @@ function configure()
   }
   if($('transport').value==='compact') view=prototypeCompact(view);
   if($('transport').value==='direct') view=prototypeRawDirect(raw);
+  if($('transport').value==='implicit') view=prototypeRawImplicit(raw);
 
   view.setSelections([{start:{row:0,col:0},end:{row:0,col:0},forward:true}]);
   unsubscribe=view.subscribe(event=>
@@ -236,6 +261,7 @@ function configure()
   });
   paints=0;
   lastEvent=null;
+  viewportColStart=0;
   scroller.scrollLeft=0;
   $('message').textContent='Clic su una unità, frecce sinistra/destra e digitazione.';
   schedule();
@@ -248,7 +274,7 @@ function render()
 
   const revision=view.revision;
   const rowCount=Math.min(view.rowCount,3);
-  const regionRows=readRegions(0,0,rowCount,100);
+  const regionRows=readRegions(0,viewportColStart,rowCount,viewportColStart+100);
   const selections=view.getSelections();
   const fragment=document.createDocumentFragment();
 
@@ -347,7 +373,7 @@ function render()
   }
   paints++;
   $('status').textContent=
-    'Colonne: '+view.getRowWidth(0)+' · Regioni riga 1: '+
+    'Vista da: '+viewportColStart+' · Colonne: '+view.getRowWidth(0)+' · Regioni riga 1: '+
     (regionRows[0]?.length||0)+' · Righe: '+view.rowCount+
     ' · Revisione: '+revision+' · Render: '+paints;
 }
@@ -387,6 +413,30 @@ scroller.addEventListener('click',event=>
     $('message').textContent='Posizione respinta: '+error.message;
   }
 });
+
+// A real Shift+wheel gesture pages the bounded Raw viewport over one
+// long source row. No document-sized DOM/spacer or full-row read is built.
+scroller.addEventListener('wheel',event=>
+{
+  if(!event.shiftKey || !view ||
+    $('fixture').value!=='long' || $('mode').value!=='raw')
+  {
+    return;
+  }
+  const delta=event.deltaY||event.deltaX;
+  if(!delta) return;
+
+  const pages=Math.max(1,Math.ceil(Math.abs(delta)/100));
+  const maxStart=Math.max(0,view.getRowWidth(0)-100);
+  const next=Math.max(0,Math.min(maxStart,
+    viewportColStart+Math.sign(delta)*pages*100));
+  if(next===viewportColStart) return;
+
+  event.preventDefault();
+  viewportColStart=next;
+  scroller.scrollLeft=0;
+  schedule();
+},{passive:false});
 
 scroller.addEventListener('keydown',event=>
 {
@@ -581,7 +631,7 @@ globalThis.__presentationProbe=Object.freeze(
   },
   benchmarkDirect:(mode,width,repeats=16)=>
   {
-    if(!['aggregate','expanded','packed','direct'].includes(mode) ||
+    if(!['aggregate','expanded','packed','direct','implicit'].includes(mode) ||
       !Number.isSafeInteger(width) || width<1 || width>4096 ||
       !Number.isSafeInteger(repeats) || repeats<1 || repeats>64)
     {
@@ -596,7 +646,8 @@ globalThis.__presentationProbe=Object.freeze(
     const expanded=()=>units.getRegions(...window);
     const packed=()=>globalThis.__presentationTransport.packRows(expanded());
     const direct=()=>globalThis.__presentationDirect.packRawRows(aggregate());
-    const methods={aggregate,expanded,packed,direct};
+    const implicit=()=>globalThis.__presentationDirect.packRawImplicitRows(aggregate());
+    const methods={aggregate,expanded,packed,direct,implicit};
     const normalized=rows=>globalThis.__presentationTransport
       .unpackRows(rows)[0].map(r=>[
         r.text,r.start.col,r.end.col,r.displayText??r.text
@@ -750,7 +801,7 @@ globalThis.__presentationProbe=Object.freeze(
     carets:Array.from(rows.querySelectorAll('.caret')).map(e=>({
       row:Number(e.closest('.row').dataset.row),left:e.style.left
     })),
-    paints,lastEvent,
+    paints,lastEvent,viewportColStart,
     message:$('message').textContent
   })
 });
