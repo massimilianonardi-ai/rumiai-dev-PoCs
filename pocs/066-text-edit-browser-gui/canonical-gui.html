@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PoC 066 · GUI con Document2D canonico</title>
+<style>
+:root{font:15px/1.5 system-ui,sans-serif;background:#f4f6fa;color:#263447}
+*{box-sizing:border-box}
+body{max-width:1000px;margin:24px auto;padding:0 20px}
+h1{font-size:1.5rem}
+.toolbar{display:flex;flex-wrap:wrap;gap:12px;margin:18px 0;align-items:center}
+select,button{font:inherit;padding:7px}
+#scroller{border:1px solid #a3b3c8;background:#fff;overflow:auto;min-height:100px;padding:12px;outline:0}
+#scroller:focus-visible{outline:3px solid #3384d6}
+.row{display:flex;align-items:stretch;min-height:32px;font:18px/30px ui-monospace,Consolas,monospace;white-space:pre}
+.content{display:flex;position:relative;min-height:32px;white-space:pre}
+.unit{display:inline-flex;box-sizing:border-box;align-items:center;justify-content:center;
+ white-space:pre;flex:none;height:32px;border-right:1px dotted #ccd6e5;overflow:visible;
+ font-variant-ligatures:none;unicode-bidi:isolate;cursor:text}
+.unit[data-kind="tab"]{background:#f1f5fb}
+.unit[data-kind="fold"],.unit[data-kind="substitution"]{background:#fff0bc;color:#604300;border-radius:3px}
+.annotation{position:absolute;top:0;transform:translateX(-50%);font:12px/14px sans-serif;
+ color:#a02981;pointer-events:none;z-index:1}
+.caret{position:absolute;top:0;width:2px;height:32px;background:#0756b1;pointer-events:none}
+#message{min-height:1.6em;color:#264f79}
+#status{font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<h1>GUI su Document2D canonico</h1>
+<p>Prototipo di contratto: la GUI riceve il Document2D composto, senza distinguere
+lo storage, riscrivere Raw o segmentare Unicode. Non usa codec di trasporto.
+Per il comportamento di input e navigazione si prosegue con le unità G02–G04.</p>
+<p><a href="./presentation.html">Laboratorio sperimentale dei trasporti</a> ·
+<a href="./index.html">TextEdit 0.8.2 originale</a></p>
+<div class="toolbar">
+<label>Rappresentazione <select id="mode">
+<option value="cell">Cell</option><option value="nested">Cell su Cell</option>
+<option value="annotation">Annotation</option>
+<option value="fold">Fold</option><option value="substitution">Substitution</option>
+</select></label>
+<label>Storage <select id="backend">
+<option value="flat">FlatDocument</option><option value="piece">PieceDocument</option>
+</select></label>
+<button id="reset" type="button">Ripristina</button>
+</div>
+<div id="message" role="status"></div>
+<div id="scroller" role="textbox" aria-multiline="true"
+ aria-label="Vista canonica Document2D" tabindex="0"><div id="rows"></div></div>
+<div id="status"></div>
+<script src="../../../../lib/sys/js/core/document2d-browser.generated.js"></script>
+<script src="./canonical-gui.js"></script>
+</body>
+</html>

@@ -12,6 +12,27 @@ The same renderer accepts this experimental Raw view, real `CellDocument2D` over
 
 The PoC deliberately tests one physical row with `A😀Be\u0301\tZ`. Raw presentation uses independent `H`/`L` diagnostic placeholders for the emoji's two UTF-16 surrogates and a dotted-circle prefix for an isolated combining mark. The Cell view recomposes the actual emoji and combining grapheme, and its TAB occupies columns through the next stop. The same real Flat/Piece source supports genuine mouse click, caret arrows and single-character editing. The auxiliary Chromium test `tests/presentation-browser.mjs` exercises both backends and three modes, exact-data preservation, real composed Cell resegmentation, visual span non-clipping and actual keyboard/mouse behavior.
 
+### Canonical GUI/Document2D contract pilot (G01)
+
+`canonical-gui.html` and `canonical-gui.js` are a separate browser
+prototype that composes actual `RawDocument2D → CellDocument2D` (and
+optional nested Cell/Annotation/Fold/Substitution) **without any
+`getRegions` modification or compact-transport codec**. Its renderer
+receives only the outermost nominal `Document2D`, uses public region
+boundaries, supports the existing TAB advance and displays annotations
+as zero-width overlays. The source is visible only to a separate
+diagnostic probe, never to renderer code. The existing transport
+experiment pages remain untouched.
+
+`tests/canonical-gui-browser.mjs` exercises real Chromium on the
+unmodified pinned jsc-compiled core across Flat/Piece × five views.
+It asserts whole ZWJ/combining graphemes, tab width, unchanged
+aggregated Raw, synthetic regions, DOM geometry and source preservation.
+G01 is initial-display acceptance; pointer, key editing, windowing
+and physical host acceptance belong to G02–G07. The execution plan
+and authoritative task state live solely in
+`rumiai-dev/handoff/browser-column-editor.md`.
+
 ### Generic incremental and direct Cell packers (strictly experimental)
 
 The current published `Document2D.getRegions` interface returns complete
