@@ -20,7 +20,7 @@ jobs:
       matrix:
         include:
           - name: proxmox-ve-9.2-1-x64
-            url: https://download.proxmox.com/iso/proxmox-ve_9.2-1.iso
+            url: https://enterprise.cdn.proxmox.com/iso/proxmox-ve_9.2-1.iso
             sha256: 4e88fe416df9b527624a175f24c9aa07c714d3332afb1ee3dbf3879573ef2c6c
           - name: truenas-scale-25.10.7-x64
             url: https://download.truenas.com/TrueNAS-SCALE-Goldeye/25.10.7/TrueNAS-SCALE-25.10.7.iso
@@ -44,6 +44,23 @@ jobs:
             --name '${{ matrix.name }}' \
             --max-bytes 33554432 \
             --out "$RUNNER_TEMP/${{ matrix.name }}-metadata.json"
+      - name: Summarize observed vendor boot configuration (read-only)
+        shell: sh
+        run: |
+          set -eu
+          python3 - "$RUNNER_TEMP/${{ matrix.name }}-metadata.json" <<'PY'
+          import json,sys
+          data=json.load(open(sys.argv[1]))
+          if data['inspection_status']!='metadata_observed':
+              raise SystemExit('No vendor boot configuration evidence')
+          for entry in data.get('boot_configuration_files',[])[:8]:
+              print('BOOT_CONFIG_PATH='+entry['path'])
+              print('BOOT_CONFIG_TEXT_BEGIN')
+              print(entry.get('utf8_excerpt','<not collected>')[:4500])
+              print('BOOT_CONFIG_TEXT_END')
+          for x in data.get('boot_file_prefixes',[]):
+              print('BOOT_FILE_SIGNATURE '+x['path']+' '+str(x['byte_length'])+' '+x['prefix_hex'])
+          PY
       - name: Preserve bounded range ledger and exact observed boot metadata
         if: always()
         uses: actions/upload-artifact@v4
