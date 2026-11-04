@@ -1,0 +1,96 @@
+name: PoC 076 GRUB-to-Linux EFI runtime block map
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/poc-076-grub-efi-linux-handoff.yml'
+      - 'pocs/076-grub-efi-linux-handoff/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-grub-efi-linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Fetch exact experimental fork, never product/default branch
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/Ventoy
+          ref: m-boot-secondary-uefi
+          path: fork
+          persist-credentials: false
+      - name: Verify pinned current fork source revision
+        shell: sh
+        run: |
+          set -eu
+          cd fork
+          test "$(git rev-parse HEAD)" = 'b3949db568d9bb71637929fd8b63bf36c1c3eb9e' || {
+            echo 'Experimental fork changed: review before testing' >&2
+            exit 2
+          }
+          echo "ventoy_probe_revision=$(git rev-parse HEAD)"
+      - name: Install genuine Ubuntu kernel and stock GRUB 2.12 sources
+        shell: sh
+        run: |
+          set -eu
+          sudo sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/ubuntu.sources
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            grub-common grub-efi-amd64-bin dpkg-dev build-essential automake \
+            autoconf gettext bison flex python3 patch file busybox-static cpio \
+            dmsetup gdisk dosfstools e2fsprogs mtools xorriso qemu-system-x86 \
+            ovmf linux-image-generic linux-modules-extra-generic zstd kmod
+          sudo DEBIAN_FRONTEND=noninteractive apt-get build-dep -y -qq grub2
+          source_pkg=$(dpkg-query -W -f='${source:Package}' grub-common)
+          source_ver=$(dpkg-query -W -f='${Version}' grub-common)
+          mkdir -p "$RUNNER_TEMP/grub-source"
+          cd "$RUNNER_TEMP/grub-source"
+          apt-get source "$source_pkg=$source_ver"
+          distro=$(find "$PWD" -mindepth 1 -maxdepth 1 -type d -name 'grub2-*' -print -quit)
+          test -s "$distro/configure.ac"
+          printf '%s\n' "$distro" > "$RUNNER_TEMP/grub-source-path"
+      - name: Compile original Ventoy extent-ABI GRUB module, no GRUB core patch
+        shell: sh
+        run: |
+          set -eu
+          cd fork
+          sh -n GRUB2/port/probe-standalone-module.sh
+          sh -n GRUB2/port/probe-standalone-uefi.sh
+          sh -n GRUB2/port/build-linux-handoff-initrd.sh
+          sh GRUB2/port/probe-standalone-module.sh \
+            "$(cat "$RUNNER_TEMP/grub-source-path")" \
+            "$RUNNER_TEMP/standalone-source-probe"
+      - name: Build initramfs for distribution's original Linux kernel
+        shell: sh
+        run: |
+          set -eu
+          cd fork
+          sudo sh GRUB2/port/build-linux-handoff-initrd.sh "$RUNNER_TEMP/linux-handoff"
+      - name: Real QEMU OVMF stock GRUB to unchanged Linux kernel dm-linear
+        shell: sh
+        run: |
+          set -eu
+          cd fork
+          VTOY_LINUX_KERNEL="$RUNNER_TEMP/linux-handoff/vmlinuz" \
+          VTOY_LINUX_INITRD="$RUNNER_TEMP/linux-handoff/initrd.img" \
+          sh GRUB2/port/probe-standalone-uefi.sh \
+            "$RUNNER_TEMP/standalone-source-probe/source/grub-core/ventoy_source_probe.mod" \
+            "$RUNNER_TEMP/linux-qemu-test" ext4-gpt3 '' linux-handoff
+      - name: Attach provenance and serial log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-076-grub-efi-linux-handoff
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            ${{ runner.temp }}/standalone-source-probe/build.log
+            ${{ runner.temp }}/standalone-source-probe/result.txt
+            ${{ runner.temp }}/linux-handoff/provenance.txt
+            ${{ runner.temp }}/linux-qemu-test/runtime-result.txt
+            ${{ runner.temp }}/linux-qemu-test/qemu.log
+            ${{ runner.temp }}/linux-qemu-test/iso-map-verification.txt
