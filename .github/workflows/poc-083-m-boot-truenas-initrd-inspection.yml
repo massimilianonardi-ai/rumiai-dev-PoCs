@@ -1,0 +1,105 @@
+name: PoC 083 inspect actual TrueNAS 25.10.7 initrd read-only
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/poc-083-m-boot-truenas-initrd-inspection.yml'
+      - 'pocs/083-m-boot-truenas-initrd-readonly/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-real-initrd:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install initramfs archive INSPECTION tools only
+        shell: sh
+        run: |
+          set -eu
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            initramfs-tools-core zstd cpio file
+          python3 -m py_compile \
+            pocs/082-m-boot-vendor-iso-readonly/iso_range_inspect.py \
+            pocs/083-m-boot-truenas-initrd-readonly/extract_initrd_range.py
+      - name: Fetch exactly 39,732,437 bytes of original TrueNAS initramfs
+        shell: sh
+        run: |
+          set -eu
+          mkdir -p "$RUNNER_TEMP/truenas-25.10.7"
+          python3 pocs/083-m-boot-truenas-initrd-readonly/extract_initrd_range.py \
+            --url https://download.truenas.com/TrueNAS-SCALE-Goldeye/25.10.7/TrueNAS-SCALE-25.10.7.iso \
+            --source-sha256 54ce9441ce66966a392e28f63604ca3c2c083d0bec4db7bb5af2f74f7a007c8e \
+            --target INITRD.IMG \
+            --expect-bytes 39732437 \
+            --output "$RUNNER_TEMP/truenas-25.10.7/initrd.img" \
+            --manifest "$RUNNER_TEMP/truenas-25.10.7/range-provenance.json"
+          file "$RUNNER_TEMP/truenas-25.10.7/initrd.img"
+          zstd -t "$RUNNER_TEMP/truenas-25.10.7/initrd.img"
+      - name: List and extract initramfs as DATA without executing any vendor code
+        shell: sh
+        run: |
+          set -eu
+          cd "$RUNNER_TEMP/truenas-25.10.7"
+          lsinitramfs initrd.img > initrd-file-list.txt
+          test -s initrd-file-list.txt
+          mkdir -p extracted
+          unmkinitramfs initrd.img extracted
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,re
+          root=Path('extracted')
+          listing=Path('initrd-file-list.txt').read_text().splitlines()
+          patterns=re.compile(r'(^|/)(init|scripts|conf|live|hook|mountroot|cdrom|.*\.service)$',re.I)
+          relevant=[]
+          for p in root.rglob('*'):
+              if not p.is_file() or p.is_symlink():
+                  continue
+              r=p.relative_to(root).as_posix()
+              if len(relevant)>75:
+                  break
+              if p.stat().st_size > 256*1024:
+                  continue
+              if ('/init' not in '/'+r and
+                  'scripts/' not in r and '/live/' not in '/'+r and
+                  '/conf/' not in '/'+r and
+                  not r.endswith('.service')):
+                  continue
+              b=p.read_bytes()
+              if b'\x00' in b[:256]:
+                  continue
+              txt=b.decode('utf-8','replace')
+              hits=[line.strip()[:320] for line in txt.splitlines()
+                    if re.search(r'mountroot|LIVEMEDIA|LIVE_MEDIA|FROMISO|toram|filesystem\.squashfs|/dev/mapper|/cdrom|/init',line,re.I)]
+              if hits or r.rsplit('/',1)[-1]=='init':
+                  relevant.append({'path':r,'size':len(b),'matches':hits[:30],
+                                   'script_head':txt[:3500] if r.endswith('/init') or r=='init' else ''})
+          report={'file_count':len(listing),'selected_paths':[p for p in listing
+                   if re.search(r'(^|/)(init|scripts/live|scripts/local|conf|live)',p,re.I)][:120],
+                  'relevant_scripts':relevant[:75]}
+          Path('initrd-inspection.json').write_text(json.dumps(report,indent=2)+'\n')
+          print('TRUE_NAS_REAL_INITRAMFS_READONLY_INSPECTION_PASS')
+          print('archive_entries='+str(len(listing)))
+          for entry in report['relevant_scripts'][:25]:
+              print('SCRIPT '+entry['path']+' size='+str(entry['size']))
+              for line in entry['matches'][:12]:
+                  print('  '+line)
+          PY
+      - name: Preserve only provenance and inspection text, NOT vendor binary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-083-real-truenas-initrd-readonly
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/truenas-25.10.7/range-provenance.json
+            ${{ runner.temp }}/truenas-25.10.7/initrd-file-list.txt
+            ${{ runner.temp }}/truenas-25.10.7/initrd-inspection.json
