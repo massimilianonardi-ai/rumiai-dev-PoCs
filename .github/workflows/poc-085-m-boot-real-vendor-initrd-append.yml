@@ -1,0 +1,122 @@
+name: PoC 085 original vendor kernel and append-only initramfs boot test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/poc-085-m-boot-real-vendor-initrd-append.yml'
+      - 'pocs/085-vendor-initrd-cpio-boot/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  original-kernel-append-only-initrd:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: proxmox-ve-9.2-1
+            url: https://enterprise.proxmox.com/iso/proxmox-ve_9.2-1.iso
+            iso_sha256: 4e88fe416df9b527624a175f24c9aa07c714d3332afb1ee3dbf3879573ef2c6c
+            kernel: BOOT/LINUX26
+            initrd: BOOT/INITRD.IMG
+            initrd_bytes: 55878409
+            kernel_args: ro ramdisk_size=16777216 rw splash=verbose proxtui console=ttyS0,115200
+          - name: truenas-scale-25.10.7
+            url: https://download.truenas.com/TrueNAS-SCALE-Goldeye/25.10.7/TrueNAS-SCALE-25.10.7.iso
+            iso_sha256: 54ce9441ce66966a392e28f63604ca3c2c083d0bec4db7bb5af2f74f7a007c8e
+            kernel: VMLINUZ
+            initrd: INITRD.IMG
+            initrd_bytes: 39732437
+            kernel_args: quiet nomodeset boot=live toram=filesystem.squashfs console=ttyS0,115200
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install only sandbox inspection and QEMU kernel boot tools
+        shell: sh
+        run: |
+          set -eu
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            cpio zstd initramfs-tools-core fakeroot qemu-system-x86 file
+          python3 -m py_compile \
+            pocs/082-m-boot-vendor-iso-readonly/iso_range_inspect.py \
+            pocs/083-m-boot-truenas-initrd-readonly/extract_initrd_range.py \
+            pocs/085-vendor-initrd-cpio-boot/extract_kernel_range.py
+          sh -n pocs/085-vendor-initrd-cpio-boot/make_append_only_probe.sh
+      - name: Retrieve only actual vendor kernel and initrd from exact ISO
+        shell: bash
+        env:
+          SOURCE_URL: ${{ matrix.url }}
+          SOURCE_SHA: ${{ matrix.iso_sha256 }}
+          KERNEL_PATH: ${{ matrix.kernel }}
+          INITRD_PATH: ${{ matrix.initrd }}
+          INITRD_BYTES: ${{ matrix.initrd_bytes }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/vt085"
+          python3 pocs/085-vendor-initrd-cpio-boot/extract_kernel_range.py \
+            --url "$SOURCE_URL" --source-sha256 "$SOURCE_SHA" \
+            --target "$KERNEL_PATH" --output "$RUNNER_TEMP/vt085/vendor-vmlinuz" \
+            --manifest "$RUNNER_TEMP/vt085/kernel-range.json"
+          python3 pocs/083-m-boot-truenas-initrd-readonly/extract_initrd_range.py \
+            --url "$SOURCE_URL" --source-sha256 "$SOURCE_SHA" \
+            --target "$INITRD_PATH" --expect-bytes "$INITRD_BYTES" \
+            --output "$RUNNER_TEMP/vt085/vendor-initrd.img" \
+            --manifest "$RUNNER_TEMP/vt085/initrd-range.json"
+          file "$RUNNER_TEMP/vt085/vendor-vmlinuz" "$RUNNER_TEMP/vt085/vendor-initrd.img"
+      - name: Append bounded newc probe to genuine unchanged vendor zstd stream
+        shell: sh
+        run: |
+          set -eu
+          sh pocs/085-vendor-initrd-cpio-boot/make_append_only_probe.sh \
+            "$RUNNER_TEMP/vt085/vendor-initrd.img" "$RUNNER_TEMP/vt085/composed"
+      - name: Boot exact original kernel with vendor initrd prefix and cpio trailer
+        shell: bash
+        env:
+          VENDOR_KERNEL_ARGS: ${{ matrix.kernel_args }}
+        run: |
+          set -euo pipefail
+          set +e
+          timeout --signal=TERM --kill-after=5 95 qemu-system-x86_64 \
+            -machine q35,accel=tcg -m 2048 -smp 2 \
+            -nodefaults -no-user-config -no-reboot -nographic \
+            -serial stdio -monitor none -net none \
+            -kernel "$RUNNER_TEMP/vt085/vendor-vmlinuz" \
+            -initrd "$RUNNER_TEMP/vt085/composed/composed-initrd.img" \
+            -append "$VENDOR_KERNEL_ARGS rdinit=/init" \
+            > "$RUNNER_TEMP/vt085/serial.log" 2>&1
+          status=$?
+          set -e
+          echo "qemu_exit=$status"
+          grep -E 'Linux version|VT085_|Kernel panic|Failed to execute|No working init found' \
+            "$RUNNER_TEMP/vt085/serial.log" | tail -n 80 || :
+          if ! grep -q 'Linux version' "$RUNNER_TEMP/vt085/serial.log" ||
+             ! grep -q 'VT085_APPENDED_CPIO_INIT_EXECUTED' "$RUNNER_TEMP/vt085/serial.log" ||
+             ! grep -q 'VT085_EXEC_ORIGINAL_VENDOR_INIT' "$RUNNER_TEMP/vt085/serial.log"; then
+            echo 'VT085_VENDOR_CPIO_KERNEL_HANDOFF_FAILED' >&2
+            tail -n 130 "$RUNNER_TEMP/vt085/serial.log" >&2
+            exit 8
+          fi
+          echo 'VT085_VENDOR_CPIO_KERNEL_HANDOFF_PASS'
+          echo 'boundary=direct-QEMU-kernel-only; NOT original EFI loader or media success'
+          sha256sum --check --status "$RUNNER_TEMP/vt085/composed/sha256sums.txt"
+      - name: Preserve vendor byte ranges, checksums and serial evidence only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-085-${{ matrix.name }}-kernel-cpio
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/vt085/kernel-range.json
+            ${{ runner.temp }}/vt085/initrd-range.json
+            ${{ runner.temp }}/vt085/composed/sha256sums.txt
+            ${{ runner.temp }}/vt085/composed/cpio.log
+            ${{ runner.temp }}/vt085/composed/unmkinitramfs.log
+            ${{ runner.temp }}/vt085/serial.log
