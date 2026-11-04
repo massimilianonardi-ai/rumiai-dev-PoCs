@@ -1,0 +1,71 @@
+name: PoC 084 inspect exact Proxmox VE 9.2-1 initrd read-only
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/poc-084-m-boot-proxmox-initrd-inspection.yml'
+      - 'pocs/084-m-boot-proxmox-initrd-readonly/**'
+      - 'pocs/083-m-boot-truenas-initrd-readonly/extract_initrd_range.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-proxmox:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install data-only initramfs inspection tooling
+        shell: sh
+        run: |
+          set -eu
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            initramfs-tools-core zstd cpio file
+          python3 -m py_compile \
+            pocs/082-m-boot-vendor-iso-readonly/iso_range_inspect.py \
+            pocs/083-m-boot-truenas-initrd-readonly/extract_initrd_range.py \
+            pocs/084-m-boot-proxmox-initrd-readonly/inspect_installer_initrd.py
+      - name: Fetch original 55,878,409-byte /boot/initrd.img by strict HTTPS Range
+        shell: sh
+        run: |
+          set -eu
+          mkdir -p "$RUNNER_TEMP/proxmox-9.2-1"
+          python3 pocs/083-m-boot-truenas-initrd-readonly/extract_initrd_range.py \
+            --url https://enterprise.proxmox.com/iso/proxmox-ve_9.2-1.iso \
+            --source-sha256 4e88fe416df9b527624a175f24c9aa07c714d3332afb1ee3dbf3879573ef2c6c \
+            --target BOOT/INITRD.IMG \
+            --expect-bytes 55878409 \
+            --output "$RUNNER_TEMP/proxmox-9.2-1/initrd.img" \
+            --manifest "$RUNNER_TEMP/proxmox-9.2-1/range-provenance.json"
+          file "$RUNNER_TEMP/proxmox-9.2-1/initrd.img"
+          zstd -t "$RUNNER_TEMP/proxmox-9.2-1/initrd.img"
+      - name: Inspect delivered early-userspace scripts as data
+        shell: sh
+        run: |
+          set -eu
+          cd "$RUNNER_TEMP/proxmox-9.2-1"
+          lsinitramfs initrd.img > initrd-file-list.txt
+          test -s initrd-file-list.txt
+          mkdir -p extracted
+          unmkinitramfs initrd.img extracted
+          cd "$GITHUB_WORKSPACE"
+          python3 pocs/084-m-boot-proxmox-initrd-readonly/inspect_installer_initrd.py \
+            "$RUNNER_TEMP/proxmox-9.2-1/extracted" \
+            "$RUNNER_TEMP/proxmox-9.2-1/script-inspection.json"
+      - name: Preserve inspection metadata, not upstream installer binary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-084-real-proxmox-9.2-1-initrd-readonly
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/proxmox-9.2-1/range-provenance.json
+            ${{ runner.temp }}/proxmox-9.2-1/initrd-file-list.txt
+            ${{ runner.temp }}/proxmox-9.2-1/script-inspection.json
