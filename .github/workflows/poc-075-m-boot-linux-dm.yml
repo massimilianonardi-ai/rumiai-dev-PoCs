@@ -1,0 +1,31 @@
+name: PoC 075 m-boot Linux ISO device mapper
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'pocs/075-m-boot-linux-dm/**'
+      - '.github/workflows/poc-075-m-boot-linux-dm.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux-dm:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install genuine kernel-device experiment dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gdisk dmsetup xorriso e2fsprogs
+      - name: Parse and compile-check PoC inputs
+        run: |
+          sh -n pocs/075-m-boot-linux-dm/run-linux.sh
+          python3 -m py_compile pocs/075-m-boot-linux-dm/extent_handoff.py
+      - name: Real disposable GPT3 ext4 ISO mapping through Linux dm-linear
+        run: sudo sh pocs/075-m-boot-linux-dm/run-linux.sh
