@@ -38,12 +38,23 @@ jobs:
         shell: sh
         run: |
           set -eu
-          python3 pocs/082-m-boot-vendor-iso-readonly/iso_range_inspect.py \
-            --url '${{ matrix.url }}' \
-            --sha256 '${{ matrix.sha256 }}' \
-            --name '${{ matrix.name }}' \
-            --max-bytes 33554432 \
-            --out "$RUNNER_TEMP/${{ matrix.name }}-metadata.json"
+          for attempt in 1 2 3; do
+            if python3 pocs/082-m-boot-vendor-iso-readonly/iso_range_inspect.py \
+                --url '${{ matrix.url }}' \
+                --sha256 '${{ matrix.sha256 }}' \
+                --name '${{ matrix.name }}' \
+                --max-bytes 33554432 \
+                --out "$RUNNER_TEMP/${{ matrix.name }}-metadata.json"; then
+              break
+            fi
+            # Retry only transient transport failure. Never relax TLS or 206.
+            if ! grep -Eq 'Connection reset by peer|timed out|HTTP 50[234]' \
+                "$RUNNER_TEMP/${{ matrix.name }}-metadata.json"; then
+              exit 5
+            fi
+            test "$attempt" -lt 3 || exit 5
+            sleep "$attempt"
+          done
       - name: Summarize observed vendor boot configuration (read-only)
         shell: sh
         run: |
@@ -60,6 +71,8 @@ jobs:
               print('BOOT_CONFIG_TEXT_END')
           for x in data.get('boot_file_prefixes',[]):
               print('BOOT_FILE_SIGNATURE '+x['path']+' '+str(x['byte_length'])+' '+x['prefix_hex'])
+          for x in data.get('media_identity_files',[]):
+              print('BOOT_MEDIA_IDENTITY '+x['path']+' '+repr(x['utf8_excerpt'][:250]))
           PY
       - name: Preserve bounded range ledger and exact observed boot metadata
         if: always()
