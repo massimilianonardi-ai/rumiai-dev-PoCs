@@ -38,21 +38,28 @@ mount "${LOOP}p3" "$TEMP/fs"
 python3 - "$TEMP/source.iso" "$TEMP/fs/fixture.iso" "$TEMP/fs" <<'PY'
 import os, sys
 src, target, directory = sys.argv[1:]
-with open(src, 'rb') as inp, open(target, 'wb') as out:
-    n = 0
-    while True:
-        block = inp.read(1024 * 1024)
-        if not block:
-            break
-        out.write(block)
-        out.flush()
-        os.fsync(out.fileno())
+# Preallocate logical chunks in reverse order. This avoids ext4's delayed
+# allocation merging sequential writes back into a single physical extent.
+step = 1024 * 1024
+length = os.path.getsize(src)
+with open(target, 'wb+') as out:
+    out.truncate(length)
+    for n in reversed(range((length + step - 1) // step)):
+        offset = n * step
+        os.posix_fallocate(out.fileno(), offset, min(step, length - offset))
         filler = f'{directory}/filler-{n:03d}.bin'
         with open(filler, 'wb') as waste:
-            waste.write(os.urandom(2 * 1024 * 1024))
+            waste.write(os.urandom(8 * 1024 * 1024))
             waste.flush()
             os.fsync(waste.fileno())
-        n += 1
+    with open(src, 'rb') as inp:
+        while True:
+            data = inp.read(step)
+            if not data:
+                break
+            out.write(data)
+    out.flush()
+    os.fsync(out.fileno())
 PY
 sync
 python3 "$HERE/extent_handoff.py" emit \
