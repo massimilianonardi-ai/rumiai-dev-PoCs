@@ -34,21 +34,29 @@ def main():
     if desc[:7] != b"\x01CD001\x01":
         raise ValueError("Primary volume descriptor absent or invalid")
     root, _ = iso_record(desc, 156)
-    if root["bytes"] <= 0 or root["bytes"] > 512 * 1024:
-        raise ValueError("Unexpected primary root directory extent")
-    data = iso.read(root["extent_lba"] * SECTOR, root["bytes"], "PVD root directory")
-    offset = 0
-    matches = []
-    while offset < len(data):
-        if not data[offset]:
-            offset = (offset // SECTOR + 1) * SECTOR
-            continue
-        r, offset = iso_record(data, offset)
-        if r and r["name"].casefold() == args.target.casefold():
-            matches.append(r)
-    if len(matches) != 1 or matches[0]["directory"]:
-        raise ValueError("Expected exactly one regular initramfs in original ISO root")
-    record = matches[0]
+    parts = args.target.strip("/").split("/")
+    if not parts or len(parts) > 5 or any(not p or p in (".", "..") for p in parts):
+        raise ValueError("Unsafe or excessive vendor ISO target path")
+    record = root
+    for index, name in enumerate(parts):
+        if not record["directory"] or record["bytes"] <= 0 or record["bytes"] > 512 * 1024:
+            raise ValueError("Unsupported vendor ISO directory extent")
+        data = iso.read(record["extent_lba"] * SECTOR, record["bytes"],
+                        "ISO9660 directory " + "/".join(parts[:index]))
+        offset = 0
+        matches = []
+        while offset < len(data):
+            if not data[offset]:
+                offset = (offset // SECTOR + 1) * SECTOR
+                continue
+            r, offset = iso_record(data, offset)
+            if r and r["name"].casefold() == name.casefold():
+                matches.append(r)
+        if len(matches) != 1:
+            raise ValueError("Expected one ISO directory entry: " + name)
+        record = matches[0]
+        if record["directory"] == (index == len(parts) - 1):
+            raise ValueError("Vendor ISO path type mismatch: " + name)
     if record["bytes"] != args.expect_bytes:
         raise ValueError(f'Vendor initramfs size changed: {record["bytes"]}')
     hasher = hashlib.sha256()
