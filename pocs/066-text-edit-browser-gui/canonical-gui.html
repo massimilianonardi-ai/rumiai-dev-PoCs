@@ -13,6 +13,8 @@ h1{font-size:1.5rem}
 select,button{font:inherit;padding:7px}
 #scroller{border:1px solid #a3b3c8;background:#fff;overflow:auto;height:156px;padding:12px;outline:0}
 #scroller:focus-visible{outline:3px solid #3384d6}
+.selection-mark{position:absolute;top:0;height:32px;background:rgba(36,108,189,.3);
+ pointer-events:none;z-index:2}
 .row{display:flex;align-items:stretch;min-height:32px;font:18px/30px ui-monospace,Consolas,monospace;white-space:pre}
 .content{display:flex;position:relative;min-height:32px;white-space:pre}
 .unit{display:inline-flex;box-sizing:border-box;align-items:center;justify-content:center;
@@ -22,7 +24,7 @@ select,button{font:inherit;padding:7px}
 .unit[data-kind="fold"],.unit[data-kind="substitution"]{background:#fff0bc;color:#604300;border-radius:3px}
 .annotation{position:absolute;top:0;transform:translateX(-50%);font:12px/14px sans-serif;
  color:#a02981;pointer-events:none;z-index:1}
-.caret{position:absolute;top:0;width:2px;height:32px;background:#0756b1;pointer-events:none}
+.caret{position:absolute;top:0;width:2px;height:32px;background:#0756b1;pointer-events:none;z-index:3}
 #message{min-height:1.6em;color:#264f79}
 #status{font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap}
 </style>
@@ -31,7 +33,7 @@ select,button{font:inherit;padding:7px}
 <h1>GUI su Document2D canonico</h1>
 <p>Prototipo di contratto: la GUI riceve il Document2D composto, senza distinguere
 lo storage, riscrivere Raw o segmentare Unicode. Non usa codec di trasporto.
-Clic, frecce e digitazione passano attraverso Document2D. G04:
+Clic, frecce, Maiusc+frecce (selezione orizzontale) e digitazione passano attraverso Document2D. G04:
 rotella verticale per paginare le righe, Maiusc+rotella per paginare
 le colonne, PgSu/PgGiù per le righe. La vista DOM resta limitata
 a tre righe e cento colonne richieste; questo è paging logico, non
@@ -59,6 +61,7 @@ una scrollbar nativa dell'intero documento. IME resta separato.</p>
  aria-label="Vista canonica Document2D" tabindex="0"><div id="rows"></div></div>
 <div id="status"></div>
 <script src="../../../../lib/sys/js/core/document2d-browser.generated.js"></script>
+<script src="./canonical-region-renderer.js"></script>
 <script src="./canonical-gui.js"></script>
 </body>
 </html>

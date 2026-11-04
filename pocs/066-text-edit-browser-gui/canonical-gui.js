@@ -23,8 +23,10 @@ const manySample=Array.from
 const VISIBLE_ROWS=3;
 const VISIBLE_COLS=100;
 const rows=$('rows');
-const metrics=document.createElement('canvas').getContext('2d');
-const CELL_PX=20;
+const renderer=new globalThis.CanonicalRegionRenderer
+(
+  rows,VISIBLE_ROWS,VISIBLE_COLS
+);
 let source=null;
 let view=null;
 let layers=[];
@@ -113,126 +115,6 @@ function compose(Backend,mode)
   }
 }
 
-function renderDocument(document2D,element,rowStart,colStart)
-{
-  const revision=document2D.revision;
-  const rowEnd=Math.min(rowStart+VISIBLE_ROWS,document2D.rowCount);
-  const colEnd=colStart+VISIBLE_COLS;
-  regionReads++;
-  const visible=document2D.getRegions
-  (
-    rowStart,colStart,rowEnd,colEnd
-  );
-  const selections=document2D.getSelections();
-  const fragment=globalThis.document.createDocumentFragment();
-  const measurements=[];
-  const style=getComputedStyle(element);
-  metrics.font='18px '+(style.fontFamily||'monospace');
-
-  for(let row=rowStart;row<rowEnd;row++)
-  {
-    const line=globalThis.document.createElement('div');
-    line.className='row';
-    line.dataset.row=String(row);
-    const content=globalThis.document.createElement('div');
-    content.className='content';
-    content.dataset.row=String(row);
-    const units=[];
-    const notes=[];
-
-    for(const region of visible[row-rowStart]||[])
-    {
-      if(region.kind==='annotation')
-      {
-        notes.push(region);
-        continue;
-      }
-
-      // A displayed TAB symbol is a GUI glyph choice; logical width
-      // comes only from region.end.col-region.start.col.
-      const glyph=region.kind==='tab'?'⇥':region.text;
-      const width=Math.ceil(Math.max
-      (
-        CELL_PX*(region.end.col-region.start.col),
-        metrics.measureText(glyph).width+12
-      ));
-      const span=globalThis.document.createElement('span');
-      span.className='unit';
-      span.dataset.kind=region.kind;
-      span.dataset.row=String(row);
-      span.dataset.start=String(region.start.col);
-      span.dataset.end=String(region.end.col);
-      span.style.width=width+'px';
-      span.textContent=glyph;
-      content.appendChild(span);
-      units.push({span,start:region.start.col,end:region.end.col});
-    }
-
-    line.appendChild(content);
-    fragment.appendChild(line);
-    measurements.push({row,content,units,notes});
-  }
-
-  element.replaceChildren(fragment);
-  for(const {row,content,units,notes} of measurements)
-  {
-    const positions=new Map([[colStart,0]]);
-    let left=0;
-
-    for(const unit of units)
-    {
-      if(unit.span.scrollWidth>unit.span.clientWidth)
-      {
-        unit.span.style.width=(unit.span.scrollWidth+12)+'px';
-      }
-      positions.set(unit.start,left);
-      left+=unit.span.getBoundingClientRect().width;
-      positions.set(unit.end,left);
-    }
-
-    for(const region of notes)
-    {
-      const x=positions.get(region.start.col);
-      if(x===undefined) continue;
-      const note=globalThis.document.createElement('span');
-      note.className='annotation';
-      note.dataset.id=region.id;
-      note.dataset.row=String(row);
-      note.dataset.col=String(region.start.col);
-      note.title=region.text;
-      note.textContent='●';
-      note.style.left=x+'px';
-      content.appendChild(note);
-    }
-
-    for(const selection of selections)
-    {
-      const point=selection.forward?selection.end:selection.start;
-      if(point.row!==row || !positions.has(point.col)) continue;
-      const caret=globalThis.document.createElement('span');
-      caret.className='caret';
-      caret.dataset.row=String(row);
-      caret.dataset.col=String(point.col);
-      caret.style.left=positions.get(point.col)+'px';
-      content.appendChild(caret);
-    }
-  }
-  if(revision!==document2D.revision)
-  {
-    // A revision invalidated the drawn geometry; request another frame.
-    schedule();
-    return;
-  }
-  paints++;
-  lastRendered={
-    revision,visible,rowStart,rowEnd,colStart,colEnd,generation
-  };
-  $('status').textContent=
-    'Vista righe '+rowStart+'–'+rowEnd+
-    ' · colonne '+colStart+'–'+colEnd+
-    ' · righe totali '+document2D.rowCount+
-    ' · revisione '+revision+' · render '+paints;
-}
 
 function render()
 {
@@ -241,7 +123,20 @@ function render()
   (
     firstRow,Math.max(0,view.rowCount-VISIBLE_ROWS)
   );
-  renderDocument(view,rows,firstRow,firstCol);
+  regionReads++;
+  const painted=renderer.render(view,firstRow,firstCol);
+  if(!painted)
+  {
+    schedule();
+    return;
+  }
+  paints++;
+  lastRendered={...painted,generation};
+  $('status').textContent=
+    'Vista righe '+painted.rowStart+'–'+painted.rowEnd+
+    ' · colonne '+painted.colStart+'–'+painted.colEnd+
+    ' · righe totali '+view.rowCount+
+    ' · revisione '+painted.revision+' · render '+paints;
 }
 
 function schedule()
@@ -312,39 +207,59 @@ function configure()
 // The editor only receives the outermost Document2D. The public visible
 // regions declare all legal cell boundaries. The GUI never segments text,
 // infers source coordinates or edits the backing physical Document.
-function moveCaret(row,col)
+function setRange(anchor,cursor)
 {
-  const point={row,col};
+  const forward=anchor.row<cursor.row ||
+    (anchor.row===cursor.row && anchor.col<=cursor.col);
+  const start=forward?anchor:cursor;
+  const end=forward?cursor:anchor;
   view.setSelections
   (
-    [{start:point,end:{...point},forward:true}]
+    [{start:{...start},end:{...end},forward}]
   );
-  if(row<firstRow || row>=firstRow+VISIBLE_ROWS)
+  if(cursor.row<firstRow || cursor.row>=firstRow+VISIBLE_ROWS)
   {
     firstRow=Math.max
     (
-      0,Math.min(row,view.rowCount-VISIBLE_ROWS)
+      0,Math.min(cursor.row,view.rowCount-VISIBLE_ROWS)
     );
   }
-  if(col<firstCol || col>firstCol+VISIBLE_COLS)
+  if(cursor.col<firstCol || cursor.col>firstCol+VISIBLE_COLS)
   {
-    firstCol=Math.floor(col/VISIBLE_COLS)*VISIBLE_COLS;
+    firstCol=Math.floor(cursor.col/VISIBLE_COLS)*VISIBLE_COLS;
   }
   schedule();
 }
 
-function moveHorizontal(direction)
+function moveCaret(row,col)
+{
+  const point={row,col};
+  setRange(point,point);
+}
+
+function moveHorizontal(direction,extend=false)
 {
   const selection=view.getSelections()[0];
   if(!selection) return;
 
+  // Ordinary unshifted arrow collapses the existing selected interval,
+  // matching the current TextEdit 0.8.2 browser interaction.
+  const selected=selection.start.row!==selection.end.row ||
+    selection.start.col!==selection.end.col;
+  if(selected && !extend)
+  {
+    const target=direction<0?selection.start:selection.end;
+    moveCaret(target.row,target.col);
+    return;
+  }
+
+  const anchor=selection.forward?selection.start:selection.end;
   const point=selection.forward?selection.end:selection.start;
   const at=point.col+(direction<0?-1:0);
   if(at<0) return;
 
-  // The public bounded query returns the *whole* intersecting region,
-  // including an indivisible TAB or substitution at a viewport edge.
-  // There is no Unicode segmentation or source-storage mapping here.
+  // A bounded one-column public read returns the whole intersecting
+  // grapheme/TAB; no source offsets or GUI-side Unicode segmentation.
   const next=view.getRegions
   (
     point.row,at,point.row+1,at+1
@@ -354,10 +269,16 @@ function moveHorizontal(direction)
       region.start.col<=at && region.end.col>at
   );
   if(!next) return;
-  moveCaret
-  (
-    point.row,direction<0?next.start.col:next.end.col
-  );
+
+  const cursor={row:point.row,col:direction<0?next.start.col:next.end.col};
+  if(extend)
+  {
+    setRange(anchor,cursor);
+  }
+  else
+  {
+    moveCaret(cursor.row,cursor.col);
+  }
 }
 
 function moveVertical(direction)
@@ -519,7 +440,7 @@ scroller.addEventListener('keydown',event=>
     event.preventDefault();
     try
     {
-      moveHorizontal(event.key==='ArrowLeft'?-1:1);
+      moveHorizontal(event.key==='ArrowLeft'?-1:1,event.shiftKey);
     }
     catch(error)
     {
@@ -727,6 +648,12 @@ globalThis.__canonicalGuiProbe=Object.freeze
           kind:item.dataset.kind,row:Number(item.dataset.row),
           start:Number(item.dataset.start),end:Number(item.dataset.end),
           text:item.textContent,clipped:item.scrollWidth>item.clientWidth,
+          width:item.getBoundingClientRect().width
+        })),
+        domMarks:Array.from(rows.querySelectorAll('.selection-mark'),item=>({
+          row:Number(item.dataset.row),
+          start:Number(item.dataset.start),end:Number(item.dataset.end),
+          x:item.getBoundingClientRect().x,
           width:item.getBoundingClientRect().width
         })),
         domNotes:Array.from(rows.querySelectorAll('.annotation'),item=>({

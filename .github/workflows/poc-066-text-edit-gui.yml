@@ -42,6 +42,7 @@ jobs:
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/document2d.js
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/presentation.js
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/canonical-gui.js
+          node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/canonical-region-renderer.js
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/presentation-transport.js
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/presentation-direct.js
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/presentation-direct.mjs
@@ -51,6 +52,7 @@ jobs:
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/canonical-interaction-browser.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/canonical-protected-browser.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/canonical-viewport-browser.mjs
+          node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/canonical-parity-browser.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/presentation-contract.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/presentation-compact.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/grapheme-stream.mjs
@@ -83,6 +85,7 @@ jobs:
           node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/canonical-interaction-browser.mjs
           node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/canonical-protected-browser.mjs
           node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/canonical-viewport-browser.mjs
+          node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/canonical-parity-browser.mjs
           node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/presentation-contract.mjs
           node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/presentation-compact.mjs
           node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/presentation-direct.mjs

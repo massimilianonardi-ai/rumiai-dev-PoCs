@@ -46,6 +46,44 @@ synthetic views on the unmodified, compiled core. This remains scoped G03
 evidence, **not** complete deletion/selection/IME behavior. G04
 scrolling/viewport and physical-host acceptance remain open.
 
+### G06 canonical renderer boundary and 0.8.2 comparison
+
+The canonical GUI remains a **separate PoC-only page**.
+`canonical-region-renderer.js` owns public `Document2D.getRegions` /
+`getSelections` → DOM glyph, annotation, selection and caret geometry.
+`canonical-gui.js` owns the composed view lifecycle,
+mouse/keyboard gesture interpretation, bounded paging and diagnostics.
+The renderer does not inspect Flat/Piece/Raw/Cell identities, source offsets,
+backing objects or Unicode segmentation.
+
+In the scoped behavior shared with TextEdit 0.8.2, unshifted left/right
+arrows collapse a selected range and Shift+left/right extends or reverses
+a **whole-unit, same-row selection**; the canonical renderer paints the
+selected interval using public region boundaries. This does **not** add
+drag, rectangle, multiline, IME or system clipboard equivalence.
+
+`tests/canonical-parity-browser.mjs` drives **both actual
+browser GUI pages** in hosted Chromium using the original TextEdit 0.8.2
+and the pinned real compiled `Document2D`. The old GUI uses source
+UTF-16 caret columns while the canonical GUI uses visual cell columns;
+the test checks **the same physical source result** across those
+different coordinate spaces. It records unimplemented disparities
+rather than asserting full GUI parity.
+
+**Developer reproduction**: check out `rumiai-os` with
+`rumiai-dev-PoCs` nested under `rumiai-os/src/rumiai-dev-PoCs`.
+From the `rumiai-os` root run:
+
+```sh
+node lib/sys/js/jsc.lib.js lib/sys/js/core/modules-js.json lib/sys/js/core/document2d-browser.generated.js
+python3 -m http.server 8765 --bind 127.0.0.1
+```
+
+Open `http://127.0.0.1:8765/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/canonical-gui.html`
+and sibling `index.html` in separate browser tabs. The original
+0.8.2 GUI remains unchanged. Revisions and CI must be read from the
+specific workflow run rather than assuming the current HEAD was exercised.
+
 ### G04 canonical bounded-viewport prototype
 
 The same `canonical-gui.html` page now has `basic`, `long`
