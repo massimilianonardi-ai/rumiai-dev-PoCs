@@ -45,6 +45,49 @@ serialisation sizes and descriptive `performance.now()` timings. These are
 not measured resident heap, stable throughput targets or production runtime
 claims; absolute latency and memory require later controlled validation.
 
+### Real Chromium compact-format outcome and ZWJ composition blocker
+
+The **same GUI** now consumes the experimental compact format rather than
+merely comparing serialized object sizes. CI [41841068874](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/41841068874)
+passed on the actual pinned jsc-compiled core, headless Chromium 141,
+Ubuntu 24.04 x64. The new `tests/presentation-compact.mjs` compares
+**24 real-browser initial-state combinations**: six Raw/Cell/nested/annotation/
+fold/substitution view modes, two Flat/Piece backends and two fixtures
+(including combining marks, control code, TAB, emoji and ZWJ). It also
+exercises actual mouse+keyboard editing, source text preservation,
+annotation/fold/substitution metadata, and atomic protected-edit rejection.
+The compact decoder reconstructs **only explicitly provided boundaries**;
+it does not segment Unicode or inspect whether the document is Raw or Cell.
+
+A separate real 105000-UTF-16-unit PieceDocument benchmark at a bounded
+2048-column viewport measured UTF-8 JSON serialization sizes:
+Raw expanded **212214 bytes**, Raw packed **42349 bytes**; Cell expanded
+**143901 bytes**, Cell packed **44423 bytes**. These are byte counts of
+**JSON payloads, not resident memory** or production transport. The
+timings use uncalibrated `performance.now()` samples and are *descriptive
+only*. They exclude whole-GUI steady-state memory, OS and physical host
+metrics. The packed producer itself still materializes the expanded
+regions first; the experiment therefore proves transport/consumer
+feasibility and size savings, **not a reduction in underlying engine
+allocation cost**.
+
+**Confirmed, unresolved composition mismatch:** on the pinned real
+core, `CellDocument2D` over **ordinary aggregated** `RawDocument2D`
+publishes `👩‍💻` as one grapheme. When its input is instead the
+experimental **one-UTF-16-unit-per-region** Raw projection, it publishes
+`👩‍` and `💻` as two cells, even though the source and all concatenated
+display text are unchanged. The existing scanner flushes after every
+incoming text region and can prematurely commit a grapheme before seeing
+the next surrogate code unit. Thus the compact format has proven
+**faithful to upstream region boundaries**, but the *proposed atomic Raw
+region contract is not composition-safe with the present Cell scanner*.
+The PoC test makes that mismatch observable and explicitly does not
+claim whole-ZWJ grapheme correctness. Do not promote the atomic Raw
+`getRegions` shape into the canonical `Document2D` specification or
+product until this issue is corrected and covered by real product tests.
+The experimental `cells`/`glyphs` wire fields likewise remain
+candidate-only, with no product/API authorization inferred from CI PASS.
+
 ### Synthetic regions and bounded-output benchmark (experiment extension)
 
 The same `presentation.html` renderer also accepts real composed
