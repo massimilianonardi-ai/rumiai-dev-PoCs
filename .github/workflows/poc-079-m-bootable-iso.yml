@@ -38,7 +38,12 @@ jobs:
           kernel=$(find /boot -maxdepth 1 -name 'vmlinuz-*generic' -type f | sort -V | tail -n 1)
           test -n "$kernel" && test -s "$kernel"
           echo "original_linux_kernel=$kernel"
-          sh pocs/079-m-bootable-iso/build-bootable-iso.sh "$RUNNER_TEMP/vt079" "$kernel"
+          sudo install -m 0644 "$kernel" "$RUNNER_TEMP/unchanged-vmlinuz"
+          original=$(sudo sha256sum "$kernel" | awk '{print $1}')
+          copy=$(sha256sum "$RUNNER_TEMP/unchanged-vmlinuz" | awk '{print $1}')
+          test "$original" = "$copy"
+          echo "unmodified_kernel_sha256=$copy"
+          sh pocs/079-m-bootable-iso/build-bootable-iso.sh "$RUNNER_TEMP/vt079" "$RUNNER_TEMP/unchanged-vmlinuz"
           file "$RUNNER_TEMP/vt079/BOOTX64.EFI"
           file "$RUNNER_TEMP/vt079/bootable.iso"
       - name: OVMF boot original ISO EFI loader and unchanged Linux kernel
