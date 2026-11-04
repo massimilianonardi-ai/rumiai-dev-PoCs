@@ -28,8 +28,13 @@ experiment pages remain untouched.
 unmodified pinned jsc-compiled core across Flat/Piece × five views.
 It asserts whole ZWJ/combining graphemes, tab width, unchanged
 aggregated Raw, synthetic regions, DOM geometry and source preservation.
-G01 is initial-display acceptance; pointer, key editing, windowing
-and physical host acceptance belong to G02–G07. The execution plan
+G01 is initial-display acceptance. G02 adds pointer hit-test, valid
+whole-region caret boundaries (including multi-column TAB), left/right
+navigation and simple-key `insert`, still using only the outermost
+`Document2D`. Its separate real Chromium test checks source revision,
+one content notification and actual repaint on Flat/Piece.
+G03 protected-region interaction, G04 scrolling/viewport, IME and
+physical host acceptance remain outside the G02 claim. The execution plan
 and authoritative task state live solely in
 `rumiai-dev/handoff/browser-column-editor.md`.
 

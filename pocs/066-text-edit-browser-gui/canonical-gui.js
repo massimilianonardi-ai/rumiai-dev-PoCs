@@ -24,6 +24,9 @@ let unsubscribe=null;
 let paints=0;
 let scheduled=false;
 let lastEvent=null;
+let lastContentEvent=null;
+let contentEvents=0;
+let selectionEvents=0;
 let lastRendered=null;
 
 function destroy()
@@ -219,6 +222,9 @@ function configure()
   destroy();
   paints=0;
   lastEvent=null;
+  lastContentEvent=null;
+  contentEvents=0;
+  selectionEvents=0;
   lastRendered=null;
   const Backend=$('backend').value==='piece'?
     D.PieceDocument:D.FlatDocument;
@@ -233,11 +239,135 @@ function configure()
       type:event.type,revision:event.revision,
       invalidation:event.invalidation?.all===true
     };
+    if(event.type==='content')
+    {
+      contentEvents++;
+      lastContentEvent=lastEvent;
+    }
+    if(event.type==='selection') selectionEvents++;
     schedule();
   });
-  $('message').textContent='Vista canonica pronta; interazioni in G02.';
+  $('message').textContent=
+    'Clic sulla metà sinistra/destra di un elemento, frecce e digitazione.';
   schedule();
 }
+
+
+// The editor only receives the outermost Document2D. The public visible
+// regions declare all legal cell boundaries. The GUI never segments text,
+// infers source coordinates or edits the backing physical Document.
+function moveCaret(row,col)
+{
+  const point={row,col};
+  view.setSelections
+  (
+    [{start:point,end:{...point},forward:true}]
+  );
+  schedule();
+}
+
+function moveHorizontal(direction)
+{
+  const selection=view.getSelections()[0];
+  if(!selection || !lastRendered ||
+    lastRendered.revision!==view.revision)
+  {
+    schedule();
+    return;
+  }
+
+  const point=selection.forward?selection.end:selection.start;
+  const regions=lastRendered.visible[point.row];
+  if(!regions) return;
+
+  // This first interaction prototype stays inside the G01 100-column
+  // visible window; full horizontal/vertical navigation belongs to G04.
+  const width=view.getRowWidth(point.row);
+  const boundaries=new Set([0]);
+  if(width<=100) boundaries.add(width);
+
+  for(const region of regions)
+  {
+    if(region.kind==='annotation') continue;
+    boundaries.add(region.start.col);
+    boundaries.add(region.end.col);
+  }
+
+  const sorted=Array.from(boundaries).sort((a,b)=>a-b);
+  const next=direction<0 ?
+    sorted.filter(col=>col<point.col).at(-1) :
+    sorted.find(col=>col>point.col);
+
+  if(next!==undefined)
+  {
+    moveCaret(point.row,next);
+  }
+}
+
+const scroller=$('scroller');
+scroller.addEventListener('click',event=>
+{
+  const target=event.target;
+  if(!(target instanceof Element)) return;
+  const unit=target.closest('.unit');
+  if(!unit || !rows.contains(unit)) return;
+
+  const rect=unit.getBoundingClientRect();
+  const row=Number(unit.dataset.row);
+  const col=event.clientX-rect.left<rect.width/2 ?
+    Number(unit.dataset.start) : Number(unit.dataset.end);
+
+  try
+  {
+    moveCaret(row,col);
+    scroller.focus();
+    $('message').textContent='Cursore alla colonna '+col;
+  }
+  catch(error)
+  {
+    $('message').textContent='Posizione respinta: '+error.message;
+  }
+});
+
+scroller.addEventListener('keydown',event=>
+{
+  if(!view || event.ctrlKey || event.altKey || event.metaKey ||
+    event.isComposing)
+  {
+    return;
+  }
+
+  if(event.key==='ArrowLeft' || event.key==='ArrowRight')
+  {
+    event.preventDefault();
+    try
+    {
+      moveHorizontal(event.key==='ArrowLeft'?-1:1);
+    }
+    catch(error)
+    {
+      $('message').textContent='Navigazione respinta: '+error.message;
+    }
+    return;
+  }
+
+  // G02 handles ordinary non-composing one-key text input. IME,
+  // paste, Enter, deletion and multi-key composed text are separate work.
+  if(event.key.length===1 && !/[\x00-\x1f\x7f]/u.test(event.key))
+  {
+    event.preventDefault();
+    try
+    {
+      view.insert(event.key);
+      $('message').textContent='Inserimento tramite Document2D';
+      schedule();
+    }
+    catch(error)
+    {
+      $('message').textContent='Inserimento respinto: '+error.message;
+    }
+  }
+});
 
 $('mode').addEventListener('change',configure);
 $('backend').addEventListener('change',configure);
@@ -248,6 +378,31 @@ $('reset').addEventListener('click',configure);
 globalThis.__canonicalGuiProbe=Object.freeze
 (
   {
+    // Diagnostic probe: exercises the real public selection method.
+    // Invalid in-token positions are not produced by GUI pointer/keys.
+    attemptSelectionAt:(row,col)=>
+    {
+      const before=JSON.stringify(view.getSelections());
+      const revision=view.revision;
+      const sourceRevision=source.revision;
+      let rejected=false;
+      let reason='';
+      try
+      {
+        moveCaret(row,col);
+      }
+      catch(error)
+      {
+        rejected=true;
+        reason=error.message;
+      }
+      return {
+        rejected,reason,
+        selectionUnchanged:JSON.stringify(view.getSelections())===before,
+        revisionUnchanged:view.revision===revision,
+        sourceUnchanged:source.revision===sourceRevision
+      };
+    },
     snapshot:()=>
     {
       const visible=lastRendered?.visible||[];
@@ -260,6 +415,8 @@ globalThis.__canonicalGuiProbe=Object.freeze
         rawRegions:layers[0]?.getRegions(0,0,1,100)[0],
         regionsByRow:visible,
         selections:view?.getSelections(),lastEvent,
+        lastContentEvent,contentEvents,selectionEvents,
+        focused:document.activeElement===scroller,
         domUnits:Array.from(rows.querySelectorAll('.unit'),item=>({
           kind:item.dataset.kind,row:Number(item.dataset.row),
           start:Number(item.dataset.start),end:Number(item.dataset.end),
