@@ -1,0 +1,139 @@
+name: PoC 078 genuine Ventoy EFI BlockIo ISO overlay
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/poc-078-m-boot-efi-overlay.yml'
+      - 'pocs/078-m-boot-efi-overlay/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  original-efi-overlay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out pinned experimental Ventoy branch (never master)
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/Ventoy
+          ref: d3225501f122e043cba9578c536057dc22b7817f
+          path: fork
+          persist-credentials: false
+      - name: Verify exact experimental source revision
+        shell: sh
+        run: |
+          set -eu
+          actual=$(git -C fork rev-parse HEAD)
+          test "$actual" = d3225501f122e043cba9578c536057dc22b7817f
+          printf 'ventoy_probe_revision=%s\n' "$actual"
+      - name: Install native GRUB EDK2 and firmware test dependencies
+        shell: sh
+        run: |
+          set -eu
+          sudo sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/ubuntu.sources
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            grub-common grub-efi-amd64-bin dpkg-dev automake autoconf gettext \
+            bison flex patch build-essential nasm acpica-tools uuid-dev curl \
+            unzip file python3 gdisk dosfstools e2fsprogs mtools xorriso \
+            qemu-system-x86 ovmf
+          sudo DEBIAN_FRONTEND=noninteractive apt-get build-dep -y -qq grub2
+      - name: Obtain matching unmodified distribution GRUB source
+        shell: sh
+        run: |
+          set -eu
+          source_pkg=$(dpkg-query -W -f='${source:Package}' grub-common)
+          source_ver=$(dpkg-query -W -f='${Version}' grub-common)
+          mkdir -p "$RUNNER_TEMP/grub-input"
+          cd "$RUNNER_TEMP/grub-input"
+          apt-get source "$source_pkg=$source_ver"
+          distro=$(find "$PWD" -mindepth 1 -maxdepth 1 -type d -name 'grub2-*' -print -quit)
+          test -s "$distro/configure.ac"
+          printf '%s\n' "$distro" > "$RUNNER_TEMP/grub-path"
+      - name: Build external module against original distribution GRUB core
+        shell: sh
+        run: |
+          set -eu
+          cd fork
+          sh -n GRUB2/port/probe-standalone-module.sh
+          sh -n GRUB2/port/probe-standalone-uefi.sh
+          sh GRUB2/port/probe-standalone-module.sh \
+            "$(cat "$RUNNER_TEMP/grub-path")" \
+            "$RUNNER_TEMP/efi-source-module"
+      - name: Obtain pinned EDK2 2019 baseline with Ventoy application overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          revision=bd85bf54c268204c7a698a96f3ccd96cd77952cd
+          mkdir -p "$RUNNER_TEMP/edk2-input"
+          curl --fail --location --retry 3 \
+            "https://codeload.github.com/tianocore/edk2/zip/$revision" \
+            -o "$RUNNER_TEMP/edk2-input/edk2.zip"
+          unzip -q "$RUNNER_TEMP/edk2-input/edk2.zip" -d "$RUNNER_TEMP/edk2-input"
+          src="$RUNNER_TEMP/edk2-input/edk2-$revision"
+          test -s "$src/MdeModulePkg/MdeModulePkg.dsc"
+          cp -a fork/EDK2/edk2_mod/edk2-edk2-stable201911/. "$src/"
+          python3 - "$src/BaseTools/Source/Python/Common/Misc.py" <<'PY'
+          from pathlib import Path
+          import sys
+          path=Path(sys.argv[1])
+          s=path.read_text()
+          old="ByteArray.tostring() != b'PE\\0\\0'"
+          new="ByteArray.tobytes() != b'PE\\0\\0'"
+          assert s.count(old)==1, 'unknown EDK2 BaseTools version'
+          path.write_text(s.replace(old,new))
+          PY
+          echo "EDK2_SRC=$src" >> "$GITHUB_ENV"
+      - name: Build actual original Ventoy EFI entrypoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$EDK2_SRC"
+          make -C BaseTools -j4 EXTRA_OPTFLAGS=-Wno-error > "$RUNNER_TEMP/basetools.log" 2>&1 || {
+            grep -n -B3 -A5 'error:' "$RUNNER_TEMP/basetools.log" | tail -n 95 || :
+            tail -n 65 "$RUNNER_TEMP/basetools.log"
+            exit 6
+          }
+          export WORKSPACE="$EDK2_SRC"
+          set +u
+          source edksetup.sh --reconfig
+          set -u
+          build -p MdeModulePkg/MdeModulePkg.dsc \
+            -m MdeModulePkg/Application/Ventoy/Ventoy.inf \
+            -a X64 -b RELEASE -t GCC5 > "$RUNNER_TEMP/edk2-build.log" 2>&1 || {
+            grep -n -B3 -A6 'error:' "$RUNNER_TEMP/edk2-build.log" | tail -n 100 || :
+            tail -n 65 "$RUNNER_TEMP/edk2-build.log"
+            exit 7
+          }
+          binary=$(find "$EDK2_SRC/Build/MdeModule" -type f \
+            -path '*/Application/Ventoy/Ventoy/OUTPUT/Ventoy.efi' -print)
+          test -s "$binary"
+          file "$binary" | grep -q 'PE32+.*EFI application'
+          cp "$binary" "$RUNNER_TEMP/Ventoy-original-X64.EFI"
+      - name: Real OVMF GRUB-to-original-Ventoy virtual ISO overlay
+        shell: sh
+        run: |
+          set -eu
+          cd fork
+          sh GRUB2/port/probe-standalone-uefi.sh \
+            "$RUNNER_TEMP/efi-source-module/source/grub-core/ventoy_source_probe.mod" \
+            "$RUNNER_TEMP/efi-overlay-qemu" ext4-gpt3 \
+            "$RUNNER_TEMP/Ventoy-original-X64.EFI" original-overlay
+      - name: Preserve trace, diagnostics, provenance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-078-efi-overlay
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            ${{ runner.temp }}/efi-source-module/build.log
+            ${{ runner.temp }}/efi-source-module/result.txt
+            ${{ runner.temp }}/edk2-build.log
+            ${{ runner.temp }}/efi-overlay-qemu/qemu.log
+            ${{ runner.temp }}/efi-overlay-qemu/runtime-result.txt
+            ${{ runner.temp }}/efi-overlay-qemu/iso-map-verification.txt
