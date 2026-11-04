@@ -1,0 +1,55 @@
+name: PoC 082 bounded actual Proxmox and TrueNAS installer ISO inspection
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/poc-082-real-installer-iso-inspection.yml'
+      - 'pocs/082-real-installer-iso-inspection/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  official-images-range-inspection:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - slug: proxmox-ve-9.2-1
+            label: Proxmox VE 9.2-1 x86_64
+            url: https://download.proxmox.com/iso/proxmox-ve_9.2-1.iso
+          - slug: truenas-scale-25.10.7
+            label: TrueNAS SCALE 25.10.7 x86_64
+            url: https://download.truenas.com/TrueNAS-SCALE-Goldeye/25.10.7/TrueNAS-SCALE-25.10.7.iso
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify exact code and no-full-ISO restrictions
+        run: |
+          python3 -m py_compile pocs/082-real-installer-iso-inspection/inspect_remote_iso.py
+          grep -q 'READ_BUDGET = 12 \* 1024 \* 1024' pocs/082-real-installer-iso-inspection/inspect_remote_iso.py
+      - name: Inspect remote vendor ISO strictly using bounded HTTP Range
+        shell: bash
+        env:
+          ISO_LABEL: \${{ matrix.label }}
+          ISO_URL: \${{ matrix.url }}
+          ISO_SLUG: \${{ matrix.slug }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/poc082"
+          python3 pocs/082-real-installer-iso-inspection/inspect_remote_iso.py \
+            --label "$ISO_LABEL" --url "$ISO_URL" \
+            --output "$RUNNER_TEMP/poc082/$ISO_SLUG.json"
+      - name: Preserve exact read-only remote inspection output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-082-\${{ matrix.slug }}-iso-metadata
+          if-no-files-found: warn
+          retention-days: 14
+          path: \${{ runner.temp }}/poc082/*.json
