@@ -283,7 +283,8 @@ globalThis.__presentationProbe=Object.freeze(
       text:element.textContent,
       start:Number(element.dataset.start),end:Number(element.dataset.end),
       kind:element.dataset.kind,
-      clipped:element.scrollWidth>element.clientWidth+1
+      clipped:element.scrollWidth>element.clientWidth+1,
+      scrollWidth:element.scrollWidth,clientWidth:element.clientWidth
     })),
     paints,lastEvent,
     message:$('message').textContent

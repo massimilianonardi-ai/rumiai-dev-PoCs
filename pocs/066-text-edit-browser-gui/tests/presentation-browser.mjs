@@ -58,7 +58,8 @@ try
       assert.equal(s.sourceRevision,0);
       assert.equal(s.regions.length,mode==='raw'?8:6);
       assert.equal(s.rendered.length,s.regions.length);
-      assert.ok(s.rendered.every(r=>!r.clipped),'no rendered unit clipped');
+      assert.deepEqual(s.rendered.filter(r=>r.clipped),[],
+        'no rendered unit clipped: '+mode+'/'+backend);
       assert.equal(s.selections[0].start.col,0);
 
       if(mode==='raw')
