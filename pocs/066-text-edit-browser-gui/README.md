@@ -12,6 +12,36 @@ The same renderer accepts this experimental Raw view, real `CellDocument2D` over
 
 The PoC deliberately tests one physical row with `A😀Be\u0301\tZ`. Raw presentation uses independent `H`/`L` diagnostic placeholders for the emoji's two UTF-16 surrogates and a dotted-circle prefix for an isolated combining mark. The Cell view recomposes the actual emoji and combining grapheme, and its TAB occupies columns through the next stop. The same real Flat/Piece source supports genuine mouse click, caret arrows and single-character editing. The auxiliary Chromium test `tests/presentation-browser.mjs` exercises both backends and three modes, exact-data preservation, real composed Cell resegmentation, visual span non-clipping and actual keyboard/mouse behavior.
 
+### Declared implicit Raw units and Shift+wheel paging (PoC-only)
+
+This second Raw-only transport experiment keeps the **published** aggregated
+`RawDocument2D.getRegions` exactly unchanged. `presentation-direct.js` can
+emit an `unitEncoding:'utf16'` record: one exposed UTF-16 code-unit
+boundary per occupied Raw column is declared by this encoding, instead of
+serializing redundant per-unit `cells:[[i,i],...]` pairs. Sparse `glyphs`
+keep the same diagnostic presentation of surrogate halves, marks, controls,
+and ZWJ as the existing PoC. The codec validates row/column/text extents,
+rejects unknown encodings and invalid glyph indexes, then reconstructs
+the same whole visual units for the unchanged GUI. **This is a PoC-only
+transport encoding**, not a public `Document2D` value/contract.
+
+A Raw-only long-line GUI scenario lets a real Shift+wheel event move the
+bounded 100-column reading window across a >100k UTF-16 source row. The
+test verifies actual start/end cell columns, exactly 100 mounted DOM
+units, equality across expanded/paired/direct/implicit transport variants,
+and editing after moving the viewport.
+
+`tests/presentation-sparse.mjs` compares the true compiled Raw/Piece
+source, 24 retained 4096-column results for the five format modes,
+Chromium DevTools JS heap sampled before, immediately after evaluation
+and after GC, and Linux child-process-tree RSS from `ps` with a 25-ms
+sampled high-water. RSS sums **double-count shared mappings**, sampled
+high-water can miss transients, post-evaluation heap is not a guaranteed
+within-operation peak, and timings are not calibrated throughput. Hosted
+Chromium x64 and these outputs are experimental, not physical reference
+host validation. Direct compact production for transformed Cell views
+remains outside this experiment.
+
 ### Direct Raw compact producer and real Chromium heap benchmark (PoC-only)
 
 A new direct Raw-only producer in presentation-direct.js reads bounded, aggregated
