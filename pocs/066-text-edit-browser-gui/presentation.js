@@ -144,8 +144,7 @@ function render()
 
   const style=getComputedStyle(element);
   metrics.font=style.fontSize+' '+style.fontFamily;
-  const boundaries=new Map([[0,0]]);
-  let pixel=0;
+  const measured=[];
   for(const region of regionRows[0]||[])
   {
     if(region.kind==='annotation') continue;
@@ -166,9 +165,26 @@ function render()
     span.textContent=text;
     content.appendChild(span);
 
-    boundaries.set(region.start.col,pixel);
-    pixel+=width;
-    boundaries.set(region.end.col,pixel);
+    measured.push({span,start:region.start.col,end:region.end.col});
+  }
+
+  element.appendChild(content);
+  rows.replaceChildren(element);
+
+  // Canvas measurements can underestimate fallback emoji glyphs. Mount the
+  // real DOM units, enlarge overflowing boxes, then measure their actual
+  // advances BEFORE locating carets. Never reshape or split region.text.
+  const boundaries=new Map([[0,0]]);
+  let pixel=0;
+  for(const item of measured)
+  {
+    if(item.span.scrollWidth>item.span.clientWidth)
+    {
+      item.span.style.width=(item.span.scrollWidth+8)+'px';
+    }
+    boundaries.set(item.start,pixel);
+    pixel+=item.span.getBoundingClientRect().width;
+    boundaries.set(item.end,pixel);
   }
 
   for(const selection of selections)
@@ -180,8 +196,6 @@ function render()
     caret.style.left=boundaries.get(point.col)+'px';
     content.appendChild(caret);
   }
-  element.appendChild(content);
-  rows.replaceChildren(element);
   paints++;
   $('status').textContent=
     'Colonne: '+view.getRowWidth(0)+' · Regioni: '+(regionRows[0]?.length||0)+
