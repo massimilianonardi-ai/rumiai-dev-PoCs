@@ -96,7 +96,10 @@ jobs:
           echo "qemu_exit=$status"
           grep -E 'Linux version|VT085_|Kernel panic|Failed to execute|No working init found' \
             "$RUNNER_TEMP/vt085/serial.log" | tail -n 80 || :
-          if ! grep -q 'Linux version' "$RUNNER_TEMP/vt085/serial.log" ||
+          # Vendor quiet/splash policy may suppress "Linux version".
+          # The two distinct init-script sentinels establish real kernel
+          # unpack/exec more directly than a kernel banner does.
+          if grep -q 'Initramfs unpacking failed' "$RUNNER_TEMP/vt085/serial.log" ||
              ! grep -q 'VT085_APPENDED_CPIO_INIT_EXECUTED' "$RUNNER_TEMP/vt085/serial.log" ||
              ! grep -q 'VT085_EXEC_ORIGINAL_VENDOR_INIT' "$RUNNER_TEMP/vt085/serial.log"; then
             echo 'VT085_VENDOR_CPIO_KERNEL_HANDOFF_FAILED' >&2
