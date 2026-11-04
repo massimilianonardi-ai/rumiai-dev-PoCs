@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   chromium-gui:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Check out real TextEdit 0.8.2 and current m.text.document
