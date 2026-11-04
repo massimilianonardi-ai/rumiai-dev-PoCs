@@ -92,6 +92,13 @@ jobs:
               for line in entry['matches'][:12]:
                   print('  '+line)
           PY
+      - name: Trace actual live-boot mount flow without executing vendor code
+        shell: sh
+        run: |
+          set -eu
+          python3 pocs/083-m-boot-truenas-initrd-readonly/inspect_mount_flow.py \
+            "$RUNNER_TEMP/truenas-25.10.7/extracted" \
+            "$RUNNER_TEMP/truenas-25.10.7/live-boot-flow.json"
       - name: Preserve only provenance and inspection text, NOT vendor binary
         if: always()
         uses: actions/upload-artifact@v4
@@ -103,3 +110,4 @@ jobs:
             ${{ runner.temp }}/truenas-25.10.7/range-provenance.json
             ${{ runner.temp }}/truenas-25.10.7/initrd-file-list.txt
             ${{ runner.temp }}/truenas-25.10.7/initrd-inspection.json
+            ${{ runner.temp }}/truenas-25.10.7/live-boot-flow.json
