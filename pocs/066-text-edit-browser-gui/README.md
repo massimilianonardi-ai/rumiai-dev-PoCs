@@ -29,8 +29,10 @@ post-GC JS heap before and after retaining 24 window results in a *fresh
 page for each method/width*, with descriptive timings and UTF-8 payload
 sizes. Results describe **retained JS heap**, not peak/transient allocation,
 process RSS, calibration-grade speed or physical Ubuntu ARM64 validation.
-The normal GUI remains bounded to 100 visible columns; its mounted DOM count
-is measured separately, not conflated with the 4096-column data benchmark.
+The GUI additionally verifies a Raw-only long mixed-Unicode source row
+(>100000 UTF-16 units), confirming exactly 100 mounted unit spans and one
+row across all three transport modes with identical visible geometry.
+The 4096-column data benchmark does not mount 4096 DOM spans.
 Only the Raw-specific direct producer is evaluated; composing a direct
 Cell/Annotation/Fold/Substitution producer remains open.
 

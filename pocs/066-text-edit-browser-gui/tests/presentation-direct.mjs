@@ -93,6 +93,44 @@ try
       assert.equal(item.mountedUnits,comparable[0].mountedUnits);
       assert.equal(item.mountedRows,comparable[0].mountedRows);
     }
+    // A source longer than 100000 UTF-16 units must still only mount
+    // the current 100-column GUI viewport, identically in all transports.
+    await page.locator('#fixture').selectOption('long');
+    const longComparable=[];
+    for(const choice of ['expanded','compact','direct'])
+    {
+      await page.locator('#transport').selectOption(choice);
+      await page.waitForFunction(
+        choice=>{
+          const s=window.__presentationProbe?.snapshot();
+          return s?.fixture==='long' && s.transport===choice && s.paints>0;
+        },choice
+      );
+      const s=await page.evaluate(()=>window.__presentationProbe.snapshot());
+      assert.ok(s.sourceText.length>=100000);
+      const mountedUnits=await page.locator('#rows .unit').count();
+      const mountedRows=await page.locator('#rows .row').count();
+      assert.equal(mountedUnits,100);
+      assert.equal(mountedRows,1);
+      assert.deepEqual(s.rendered.filter(unit=>unit.clipped),[]);
+      longComparable.push({
+        choice,mountedUnits,mountedRows,
+        units:s.regions.map(r=>[
+          r.kind,r.text,r.start.col,r.end.col,r.displayText??r.text
+        ]),
+        dom:s.rendered.map(r=>[r.text,r.start,r.end,r.kind])
+      });
+    }
+    for(const item of longComparable.slice(1))
+    {
+      assert.deepEqual(item.units,longComparable[0].units);
+      assert.deepEqual(item.dom,longComparable[0].dom);
+    }
+    await page.locator('#fixture').selectOption('mixed');
+    await page.waitForFunction(
+      ()=>window.__presentationProbe?.snapshot()?.fixture==='mixed' &&
+        window.__presentationProbe.snapshot().paints>0
+    );
     await page.locator('#transport').selectOption('direct');
     await page.locator('.unit').nth(2).click();
     await page.locator('#scroller').focus();
@@ -109,6 +147,9 @@ try
       status:'PASS',scope:'candidate direct Raw producer + unchanged DOM GUI',
       comparisons:results,
       gui:comparable.map(({choice,mountedUnits,mountedRows})=>({
+        choice,mountedUnits,mountedRows
+      })),
+      guiLong:longComparable.map(({choice,mountedUnits,mountedRows})=>({
         choice,mountedUnits,mountedRows
       })),
       caveat:'Post-GC retained Chromium JS heap for 24 windows; not peak allocations, RSS or physical-host evidence. Timings uncalibrated.'

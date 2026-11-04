@@ -15,6 +15,7 @@ if(!D?.RawDocument2D || !D?.CellDocument2D)
 
 const original='A😀Be\u0301\tZ';
 const mixed='A😀Be\u0301\tZ\u0001👩‍💻';
+const long=mixed.repeat(8000);
 const rows=$('rows');
 const scroller=$('scroller');
 const canvas=document.createElement('canvas');
@@ -167,7 +168,14 @@ function configure()
     $('transport').value='compact';
   }
   const Backend=$('backend').value==='piece'?D.PieceDocument:D.FlatDocument;
-  const text=$('fixture').value==='mixed'?mixed:original;
+  const longOption=$('fixture').querySelector('[value="long"]');
+  longOption.disabled=mode!=='raw';
+  if(mode!=='raw' && $('fixture').value==='long')
+  {
+    $('fixture').value='mixed';
+  }
+  const text=$('fixture').value==='long'?long:
+    $('fixture').value==='mixed'?mixed:original;
   source=new Backend(
     ['fold','substitution','annotation'].includes(mode)?
       text+'\nHIDDEN\nTAIL':text
