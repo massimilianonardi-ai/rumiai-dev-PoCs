@@ -40,6 +40,8 @@ jobs:
         run: |
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/gui.js
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/document2d.js
+          node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/presentation.js
+          node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/presentation-browser.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/document2d-browser.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/browser.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/region-geometry.js
@@ -56,3 +58,4 @@ jobs:
           node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/browser.mjs
           node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/regions.mjs
           node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/document2d-browser.mjs
+          node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/presentation-browser.mjs

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PoC 066 · Document2D: unità di presentazione</title>
+<style>
+:root{font:15px/1.5 system-ui,sans-serif;background:#f4f6fa;color:#263447}
+*{box-sizing:border-box}
+body{max-width:1000px;margin:24px auto;padding:0 20px}
+h1{font-size:1.5rem}
+.toolbar{display:flex;flex-wrap:wrap;gap:12px;margin:18px 0;align-items:center}
+select,button{font:inherit;padding:7px}
+#scroller{border:1px solid #a3b3c8;background:#fff;overflow:auto;min-height:100px;padding:12px;outline:0}
+#scroller:focus-visible{outline:3px solid #3384d6}
+.row{display:flex;align-items:stretch;min-height:32px;font:18px/30px ui-monospace,Consolas,monospace;white-space:pre}
+.content{display:flex;position:relative;min-height:32px;white-space:pre}
+.unit{display:inline-flex;box-sizing:border-box;align-items:center;justify-content:center;
+ white-space:pre;flex:none;height:32px;border-right:1px dotted #ccd6e5;overflow:visible;
+ font-variant-ligatures:none;unicode-bidi:isolate;cursor:text}
+.unit[data-kind="tab"]{background:#f1f5fb}
+.caret{position:absolute;top:0;width:2px;height:32px;background:#0756b1;pointer-events:none}
+#message{min-height:1.6em;color:#264f79}
+#status{font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap}
+p{max-width:95ch}
+</style>
+</head>
+<body>
+<h1>Document2D: unità di presentazione</h1>
+<p>Esperimento separato: stesso renderer, sorgenti reali Raw/Cell/Cell annidato. Una proiezione
+temporanea di <code>getRegions()</code> prova il candidato di contratto: unità Raw indipendenti,
+grafemi Cell indivisibili. Il contenuto originale non viene trasformato.</p>
+<p><a href="./document2d.html">Integrazione Document2D precedente</a> ·
+<a href="./index.html">GUI TextEdit 0.8.2</a></p>
+<div class="toolbar">
+<label>Rappresentazione
+<select id="mode">
+<option value="raw">Raw (unità UTF-16)</option>
+<option value="cell">Cell (grafemi)</option>
+<option value="nested">Cell su Cell</option>
+</select></label>
+<label>Storage
+<select id="backend"><option value="flat">FlatDocument</option><option value="piece">PieceDocument</option></select></label>
+<button id="reset" type="button">Ripristina</button>
+</div>
+<p id="message" role="status"></p>
+<div id="scroller" role="textbox" aria-multiline="true" aria-label="Vista Document2D sperimentale" tabindex="0">
+<div id="rows"></div>
+</div>
+<p id="status"></p>
+<script src="../../../../lib/sys/js/core/document2d-browser.generated.js"></script>
+<script src="./presentation.js"></script>
+</body>
+</html>

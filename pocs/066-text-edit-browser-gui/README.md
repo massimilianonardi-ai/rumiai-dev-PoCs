@@ -2,6 +2,18 @@
 
 This experiment exercises rendering, viewport, pixel hit-testing, font metrics, scrolling, keyboard input and mouse/drag using the **existing TextEdit library**. It deliberately contains no alternate document or selection engine.
 
+## Experimental Document2D presentation-unit contract (not product API)
+
+Open [presentation.html](presentation.html) after compiling the actual m core browser script as described below. This is a **separate experiment** alongside `document2d.html`; the established TextEdit 0.8.2 GUI and the actual `RawDocument2D` and `CellDocument2D` sources remain untouched.
+
+The page's **document composer** wraps the real `RawDocument2D` in a PoC-only proxy that changes **only** its public `getRegions` *presentation response*: one `kind:'text'` region per UTF-16 code unit, preserving each exact `region.text`, and an illustrative optional `displayText` for isolated surrogate halves, combining marks and TABs. It forwards the real public selection, editing, reading, revision, subscription and lifecycle methods. This is **not** the behavior of product `RawDocument2D.getRegions` today: the real product currently returns bounded aggregated Raw text runs and its permanent tests explicitly cover that contract.
+
+The same renderer accepts this experimental Raw view, real `CellDocument2D` over it, and an additional nested Cell. It reads only the resulting public `Document2D` `getRegions` / `getSelections` / `setSelections` / `insert` / `subscribe` surface. It never inspects the backing source, calls `Intl.Segmenter`, interprets UTF-16 units or switches on the implementation type. Its visible unit spans use browser-measured font advances; pointer and keyboard navigation use only published region boundaries. Actual source text appears **only** in the separate diagnostic probe, to verify that display placeholders did not corrupt it. Rendering `displayText` (if present) does not alter `getRect`, selected `read`, source edits or `region.text`.
+
+The PoC deliberately tests one physical row with `A😀Be\u0301\tZ`. Raw presentation uses independent `H`/`L` diagnostic placeholders for the emoji's two UTF-16 surrogates and a dotted-circle prefix for an isolated combining mark. The Cell view recomposes the actual emoji and combining grapheme, and its TAB occupies columns through the next stop. The same real Flat/Piece source supports genuine mouse click, caret arrows and single-character editing. The auxiliary Chromium test `tests/presentation-browser.mjs` exercises both backends and three modes, exact-data preservation, real composed Cell resegmentation, visual span non-clipping and actual keyboard/mouse behavior.
+
+**Decision boundary:** This validates an experimental *candidate* public presentation contract, not a new accepted API. In particular `displayText` is a provisional name and plain isolated spans may or may not suffice across browsers. Any promotion requires agreement on the visual-unit and synthetic-region semantics, Unicode diagnostic representation, bounded-output cost, current-spec/test changes, and product authorization. The current `Document2D.getRegions` contract remains in force until that work.
+
 ## Separate browser integration on the real Document2D core
 
 The additional [document2d.html](document2d.html) page does **not** change
