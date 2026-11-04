@@ -69,9 +69,11 @@ assert sidecar.startswith(b'070701'), 'unexpected cpio header'
 Path(sys.argv[3]).write_bytes(original + b'\0' * pad + sidecar)
 print(f'VT085_CPIO_4_BYTE_ALIGNMENT_PAD={pad}')
 PYPAD
+source_bytes=$(wc -c < "$source")
+extra_bytes=$(wc -c < "$output/append-only-hook.cpio")
+pad_bytes=$(( (4 - source_bytes % 4) % 4 ))
 test "$(wc -c < "$output/composed-initrd.img")" -eq \
-  "$(($(wc -c < "$source") + (4 - $(wc -c < "$source") % 4) % 4 + $(wc -c < "$output/append-only-hook.cpio")))" ||
-  exit 7
+  "$((source_bytes + pad_bytes + extra_bytes))" || exit 7
 python3 - "$source" "$output/composed-initrd.img" <<'PY'
 import hashlib
 import sys
