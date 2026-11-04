@@ -53,6 +53,19 @@ for name in proxmox-ve_9.2-1.iso TrueNAS-SCALE-25.10.7.iso; do
     -o "$out/root/m/boot/iso/$name" "$out/efi/iso" > "$out/xorriso-$name.log" 2>&1
   xorriso -indev "$out/root/m/boot/iso/$name" -report_el_torito plain \
     >> "$out/xorriso-$name.log" 2>&1
+  # xorriso may leave ISO9660's first 32 KiB (reserved System Area)
+  # sparse. Populate ONLY this disposable fixture's reserved bytes so
+  # mkfs.ext4 -d does not create holes in the source file's block map.
+  # Never perform this mutation on a real vendor ISO.
+  python3 - "$out/root/m/boot/iso/$name" <<'PYSYSTEM'
+import hashlib
+import sys
+with open(sys.argv[1], "r+b") as stream:
+    for index in range(1024):
+        stream.write(hashlib.sha256(index.to_bytes(4, "big")).digest())
+    stream.seek(16 * 2048)
+    assert stream.read(7) == b"\x01CD001\x01", "fixture PVD damaged"
+PYSYSTEM
 done
 
 # All host media are temporary regular files. The original USB is never opened.
