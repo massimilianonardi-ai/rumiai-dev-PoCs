@@ -1,0 +1,126 @@
+name: PoC 086 x86_64 UEFI boot image for two vendor ISO names on real USB
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/poc-086-m-boot-dual-physical-usb.yml'
+      - 'pocs/086-m-boot-dual-physical-usb-uefi/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dual-boot-image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Retrieve pinned experimental Ventoy EFI and stock GRUB bundle
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/Ventoy
+          ref: ceff79ca92d246928f86362a569f86c6d2ac130f
+          path: fork
+          persist-credentials: false
+      - name: Verify both exact revisions and tests
+        shell: sh
+        run: |
+          set -eu
+          test "$(git -C fork rev-parse HEAD)" = ceff79ca92d246928f86362a569f86c6d2ac130f
+          for f in boot-disk.raw.gz SHA256SUMS RAW-SHA256SUMS BUILD-INFO.txt test-result.txt; do
+            test -s "fork/GRUB2/dist/secondary-usb-uefi/$f"
+          done
+          grep -Fx 'synthetic_ext4_gpt_source_efi_startimage=passed' fork/GRUB2/dist/secondary-usb-uefi/test-result.txt
+          bash -n fork/GRUB2/port/run-physical-usb-uefi.sh
+          bash -n pocs/086-m-boot-dual-physical-usb-uefi/build-dual-boot-image.sh
+          bash -n pocs/086-m-boot-dual-physical-usb-uefi/test-dual-uefi.sh
+      - name: Install stock EFI, GPT, FAT, ext4 and QEMU tools
+        shell: sh
+        run: |
+          set -eu
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            grub-common grub-efi-amd64-bin gdisk dosfstools mtools \
+            xorriso e2fsprogs qemu-system-x86 ovmf file acl
+      - name: Build NEW disk image with two distinct menu entries
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/vt086"
+          bash pocs/086-m-boot-dual-physical-usb-uefi/build-dual-boot-image.sh \
+            fork/GRUB2/dist/secondary-usb-uefi "$RUNNER_TEMP/vt086/image"
+          file "$RUNNER_TEMP/vt086/image/boot-disk.raw"
+      - name: Boot each entry under genuine OVMF through original Ventoy EFI
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash pocs/086-m-boot-dual-physical-usb-uefi/test-dual-uefi.sh \
+            "$RUNNER_TEMP/vt086/image" "$RUNNER_TEMP/vt086/test"
+          for name in proxmox truenas; do
+            grep -Fq 'VT086_NESTED_ISO_EFI_CHAIN_SUCCESS' "$RUNNER_TEMP/vt086/test/qemu-$name.log"
+          done
+          printf '%s\n' \
+            'synthetic_ext4_gpt_source_efi_startimage=passed' \
+            'dual_proxmox_synthetic_grub_startimage=passed' \
+            'dual_truenas_synthetic_grub_startimage=passed' \
+            'vendor_proxmox_real_installer=not-tested' \
+            'vendor_truenas_real_installer=not-tested' \
+            > "$RUNNER_TEMP/vt086/image/test-result.txt"
+      - name: Validate hashes and package guarded ARM64-host launcher
+        shell: bash
+        run: |
+          set -euo pipefail
+          src="$RUNNER_TEMP/vt086/image"
+          dst="$RUNNER_TEMP/vt086-delivery"
+          mkdir -p "$dst"
+          (cd "$src" && sha256sum -c SHA256SUMS && sha256sum -c RAW-SHA256SUMS)
+          cp "$src/boot-disk.raw.gz" "$src/SHA256SUMS" "$src/RAW-SHA256SUMS" \
+             "$src/BUILD-INFO.txt" "$src/test-result.txt" "$src/runtime.cfg" "$dst/"
+          cp fork/GRUB2/port/run-physical-usb-uefi.sh "$dst/run-physical-usb-uefi.sh"
+          cp pocs/086-m-boot-dual-physical-usb-uefi/README.md "$dst/README.md"
+          cp "$RUNNER_TEMP/vt086/test/qemu-proxmox.log" "$dst/qemu-synthetic-proxmox.log"
+          cp "$RUNNER_TEMP/vt086/test/qemu-truenas.log" "$dst/qemu-synthetic-truenas.log"
+          python3 - "$dst/run-physical-usb-uefi.sh" <<'PY'
+          from pathlib import Path
+          import sys
+          p=Path(sys.argv[1])
+          text=p.read_text()
+          old='set -- -machine q35 -accel tcg -m 3072 -smp 2'
+          new='set -- -machine q35 -accel tcg -m "$MBOOT_TEST_RAM_MIB" -smp 2'
+          assert text.count(old)==1
+          marker='set -euo pipefail\n'
+          assert text.count(marker)==1
+          inject=('set -euo pipefail\nMBOOT_TEST_RAM_MIB="$' +
+                  '{MBOOT_TEST_RAM_MIB:-6144}"\n' +
+                  '[[ "$MBOOT_TEST_RAM_MIB" =~ ^[0-9]+$ ]] && ' +
+                  '(( MBOOT_TEST_RAM_MIB >= 2048 && MBOOT_TEST_RAM_MIB <= 16384 )) || ' +
+                  '{ echo "Invalid MBOOT_TEST_RAM_MIB" >&2; exit 2; }\n')
+          p.write_text(text.replace(marker,inject).replace(old,new))
+          PY
+          bash -n "$dst/run-physical-usb-uefi.sh"
+          grep -Fx 'source_iso_guest_path=/m/boot/iso/proxmox-ve_9.2-1.iso' "$dst/BUILD-INFO.txt"
+          grep -Fx 'source_iso_guest_path=/m/boot/iso/TrueNAS-SCALE-25.10.7.iso' "$dst/BUILD-INFO.txt"
+          {
+            echo "poc_source_revision=$(git rev-parse HEAD)"
+            echo "ventoy_experiment_revision=$(git -C fork rev-parse HEAD)"
+            sed -n 's/^build_source_revision=/pinned_original_binary_source_revision=/p' \
+              fork/GRUB2/dist/secondary-usb-uefi/BUILD-INFO.txt
+            echo "real_usb_writes=no"
+            echo "real_vendor_installer_test=operator-required"
+          } > "$dst/PROVENANCE.txt"
+          (cd "$dst" && sha256sum -c SHA256SUMS && \
+            sha256sum boot-disk.raw.gz runtime.cfg run-physical-usb-uefi.sh > DELIVERY-SHA256SUMS)
+          du -h "$dst/"*
+      - name: Publish verified boot image, ARM64 host script and firmware logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-086-dual-uefi-physical-usb
+          retention-days: 14
+          if-no-files-found: warn
+          compression-level: 6
+          path: ${{ runner.temp }}/vt086-delivery/*
