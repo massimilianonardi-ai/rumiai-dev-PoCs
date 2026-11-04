@@ -12,6 +12,32 @@ The same renderer accepts this experimental Raw view, real `CellDocument2D` over
 
 The PoC deliberately tests one physical row with `A😀Be\u0301\tZ`. Raw presentation uses independent `H`/`L` diagnostic placeholders for the emoji's two UTF-16 surrogates and a dotted-circle prefix for an isolated combining mark. The Cell view recomposes the actual emoji and combining grapheme, and its TAB occupies columns through the next stop. The same real Flat/Piece source supports genuine mouse click, caret arrows and single-character editing. The auxiliary Chromium test `tests/presentation-browser.mjs` exercises both backends and three modes, exact-data preservation, real composed Cell resegmentation, visual span non-clipping and actual keyboard/mouse behavior.
 
+### Generic incremental and direct Cell packers (strictly experimental)
+
+The current published `Document2D.getRegions` interface returns complete
+detached region arrays; the existing PoC `presentation-transport.packRows`
+first requests all exposed units. To evaluate direct production without a
+public interface change, two **explicitly separate** PoC candidates are
+being compared.
+
+The generic `presentation-bounded.js` producer requests a sequence of
+small bounded `getRegions` windows on the **actual composed views**. It
+incrementally appends original regions to compact records, handles whole
+indivisible regions repeated at chunk edges and preserves ordered zero-width
+annotations. It never builds the full expanded result for the total window,
+but each chunk still allocates normal `getRegions` objects and transformed
+Cell views may repeatedly rescan from row start. Thus it is not true
+zero-intermediate-object direct production.
+
+The `prepare-cell-packed-candidate.mjs` script modifies **only a disposable
+copy** of the pinned real `CellDocument2D.js`. A PoC-specific
+`__pocPackRegions` method consumes the actual private `#scanRow`
+visitor and directly accumulates compatible `cells` pairs, leaving the
+normal public method and original product intact. The scanner itself still
+allocates its internal cell records. This instrumentation proves a narrower
+Core Cell path and is not a general direct API for Fold/Substitution.
+Results of browser tests must explicitly distinguish the two paths.
+
 ### Declared implicit Raw units and Shift+wheel paging (PoC-only)
 
 This second Raw-only transport experiment keeps the **published** aggregated

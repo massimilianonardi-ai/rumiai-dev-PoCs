@@ -50,6 +50,8 @@ jobs:
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/presentation-compact.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/grapheme-stream.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/prepare-grapheme-candidate.mjs
+          node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/prepare-cell-packed-candidate.mjs
+          node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/presentation-bounded.js
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/grapheme-candidate-browser.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/document2d-browser.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/browser.mjs
@@ -79,6 +81,7 @@ jobs:
         run: |
           cp -R rumiai-os/lib/sys/js/core "$RUNNER_TEMP/text-edit-candidate-core"
           node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/prepare-grapheme-candidate.mjs "$RUNNER_TEMP/text-edit-candidate-core/m/text/document/CellDocument2D.js"
+          node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/prepare-cell-packed-candidate.mjs "$RUNNER_TEMP/text-edit-candidate-core/m/text/document/CellDocument2D.js"
           node rumiai-os/lib/sys/js/jsc.lib.js "$RUNNER_TEMP/text-edit-candidate-core/modules-js.json" rumiai-os/lib/sys/js/core/document2d-candidate.generated.js
           node --check rumiai-os/lib/sys/js/core/document2d-candidate.generated.js
       - name: Test experimental compiled Cell composition in Chromium
