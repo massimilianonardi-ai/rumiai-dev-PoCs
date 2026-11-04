@@ -45,8 +45,26 @@ echo VT079_LINUX_INITRAMFS_OVERLAY
 exit 1
 EOF
 chmod 755 "$out/root-original/init" "$out/root-overlay/init"
-(cd "$out/root-base" && find . -print | cpio -o -H newc 2>/dev/null) \
-  > "$out/iso/boot/initrd-base.cpio"
+if [ -n "${VT079_HANDOFF_ROOT:-}" ]; then
+  # Reuse the actual earlier EFI-to-Linux guest module/runtime closure.
+  # Keep the original ISO initrd hook intact, replace only the base data
+  # and out-of-ISO overlay hook in this isolated extended fixture.
+  test -s "$VT079_HANDOFF_ROOT/bin/map-consumer"
+  test -s "$VT079_HANDOFF_ROOT/modules.load"
+  test -s "$VT079_HANDOFF_ROOT/init"
+  cp -a "$VT079_HANDOFF_ROOT"/. "$out/root-base/"
+  rm -f "$out/root-base/init"
+  sed -e 's|/mnt/iso/.pve-cd-id.txt|/mnt/iso/vt079-marker|g' \
+      -e 's|pve-efi-linux-poc-media-id-2026-11-04|vt079-uefi-isolated-source|g' \
+      -e '/echo VT_LINUX_HANDOFF_PASS/a echo VT079_LINUX_INITRAMFS_OVERLAY' \
+      "$VT079_HANDOFF_ROOT/init" > "$out/root-overlay/init"
+  chmod 755 "$out/root-overlay/init"
+  (cd "$out/root-base" && find . -print | cpio -o -H newc 2>/dev/null | gzip -1) \
+    > "$out/iso/boot/initrd-base.cpio"
+else
+  (cd "$out/root-base" && find . -print | cpio -o -H newc 2>/dev/null) \
+    > "$out/iso/boot/initrd-base.cpio"
+fi
 (cd "$out/root-original" && find . -print | cpio -o -H newc 2>/dev/null) \
   > "$out/iso/boot/initrd-hook.cpio"
 (cd "$out/root-overlay" && find . -print | cpio -o -H newc 2>/dev/null) \
