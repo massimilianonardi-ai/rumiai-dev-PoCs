@@ -94,23 +94,53 @@ function dispose()
 function configure()
 {
   dispose();
+  const mode=$('mode').value;
   const Backend=$('backend').value==='piece'?D.PieceDocument:D.FlatDocument;
-  source=new Backend(original);
+  source=new Backend(
+    ['fold','substitution','annotation'].includes(mode)?
+      original+'\nHIDDEN\nTAIL':original
+  );
   const raw=new D.RawDocument2D(source);
   layers.push(raw);
   const rawPresented=prototypeRegions(raw,true);
   view=rawPresented;
 
-  if($('mode').value!=='raw')
+  if(mode!=='raw')
   {
     const cell=new D.CellDocument2D(rawPresented,4);
     layers.push(cell);
     view=cell;
-    if($('mode').value==='nested')
+    if(mode==='nested')
     {
       const nested=new D.CellDocument2D(cell,4);
       layers.push(nested);
       view=nested;
+    }
+    if(['annotation','fold','substitution'].includes(mode))
+    {
+      const notes=new D.AnnotationDocument2D(view);
+      layers.push(notes);
+      notes.setAnnotations([
+        {id:'guide',text:'nota non modificabile',at:{row:0,col:1}}
+      ]);
+      view=notes;
+    }
+    if(mode==='fold')
+    {
+      const fold=new D.FoldDocument2D(view);
+      layers.push(fold);
+      fold.setFolds([{startRow:1,endRow:2}]);
+      view=fold;
+    }
+    if(mode==='substitution')
+    {
+      const substitute=new D.SubstitutionDocument2D(view);
+      layers.push(substitute);
+      substitute.setSubstitutions([
+        {id:'protected',text:'LONG',
+          start:{row:0,col:2},end:{row:0,col:3}}
+      ]);
+      view=substitute;
     }
     view=prototypeRegions(view,false);
   }
@@ -135,70 +165,108 @@ function render()
   if(!view) return;
 
   const revision=view.revision;
-  const regionRows=view.getRegions(0,0,1,100);
+  const rowCount=Math.min(view.rowCount,3);
+  const regionRows=view.getRegions(0,0,rowCount,100);
   const selections=view.getSelections();
-  const element=document.createElement('div');
-  element.className='row';
-  const content=document.createElement('div');
-  content.className='content';
+  const fragment=document.createDocumentFragment();
 
-  const style=getComputedStyle(element);
-  metrics.font=style.fontSize+' '+style.fontFamily;
-  const measured=[];
-  for(const region of regionRows[0]||[])
+  for(let row=0;row<rowCount;row++)
   {
-    if(region.kind==='annotation') continue;
-    const text=region.displayText??region.text;
-    const width=Math.ceil(Math.max(
-      (region.end.col-region.start.col)*MIN_CELL,
-      metrics.measureText(text).width+8
-    ));
-    const span=document.createElement('span');
-    span.className='unit';
-    span.dataset.kind=region.kind;
-    span.dataset.start=String(region.start.col);
-    span.dataset.end=String(region.end.col);
-    span.title=Array.from(region.text).map(
-      c=>'U+'+c.codePointAt(0).toString(16).toUpperCase()
-    ).join(' ');
-    span.style.width=width+'px';
-    span.textContent=text;
-    content.appendChild(span);
+    const element=document.createElement('div');
+    element.className='row';
+    element.dataset.row=String(row);
+    const content=document.createElement('div');
+    content.className='content';
+    content.dataset.row=String(row);
+    const style=getComputedStyle(rows);
+    metrics.font=style.fontSize+' '+style.fontFamily;
+    const measured=[];
+    const annotations=[];
 
-    measured.push({span,start:region.start.col,end:region.end.col});
-  }
-
-  element.appendChild(content);
-  rows.replaceChildren(element);
-
-  // Canvas measurements can underestimate fallback emoji glyphs. Mount the
-  // real DOM units, enlarge overflowing boxes, then measure their actual
-  // advances BEFORE locating carets. Never reshape or split region.text.
-  const boundaries=new Map([[0,0]]);
-  let pixel=0;
-  for(const item of measured)
-  {
-    if(item.span.scrollWidth>item.span.clientWidth)
+    for(const region of regionRows[row]||[])
     {
-      item.span.style.width=(item.span.scrollWidth+8)+'px';
+      if(region.kind==='annotation')
+      {
+        annotations.push(region);
+        continue;
+      }
+      const text=region.displayText??region.text;
+      const width=Math.ceil(Math.max(
+        (region.end.col-region.start.col)*MIN_CELL,
+        metrics.measureText(text).width+8
+      ));
+      const span=document.createElement('span');
+      span.className='unit';
+      span.dataset.kind=region.kind;
+      span.dataset.row=String(row);
+      span.dataset.start=String(region.start.col);
+      span.dataset.end=String(region.end.col);
+      span.title=Array.from(region.text).map(
+        c=>'U+'+c.codePointAt(0).toString(16).toUpperCase()
+      ).join(' ');
+      span.style.width=width+'px';
+      span.textContent=text;
+      content.appendChild(span);
+      measured.push({span,start:region.start.col,end:region.end.col});
     }
-    boundaries.set(item.start,pixel);
-    pixel+=item.span.getBoundingClientRect().width;
-    boundaries.set(item.end,pixel);
+
+    element.appendChild(content);
+    fragment.appendChild(element);
+    element.__measurement={measured,annotations};
   }
 
-  for(const selection of selections)
+  rows.replaceChildren(fragment);
+  for(const element of Array.from(rows.children))
   {
-    const point=selection.forward?selection.end:selection.start;
-    if(point.row!==0 || !boundaries.has(point.col)) continue;
-    const caret=document.createElement('span');
-    caret.className='caret';
-    caret.style.left=boundaries.get(point.col)+'px';
-    content.appendChild(caret);
+    const row=Number(element.dataset.row);
+    const content=element.querySelector('.content');
+    const {measured,annotations}=element.__measurement;
+    delete element.__measurement;
+    // DOM fallback fonts may exceed canvas estimates, particularly emoji.
+    // Establish actual pixel advances before drawing caret/overlay anchors.
+    const boundaries=new Map([[0,0]]);
+    let pixel=0;
+    for(const item of measured)
+    {
+      if(item.span.scrollWidth>item.span.clientWidth)
+      {
+        item.span.style.width=(item.span.scrollWidth+8)+'px';
+      }
+      boundaries.set(item.start,pixel);
+      pixel+=item.span.getBoundingClientRect().width;
+      boundaries.set(item.end,pixel);
+    }
+
+    for(const region of annotations)
+    {
+      const anchor=boundaries.get(region.start.col);
+      if(anchor===undefined) continue;
+      const indicator=document.createElement('span');
+      indicator.className='annotation';
+      indicator.dataset.id=region.id;
+      indicator.dataset.row=String(row);
+      indicator.dataset.start=String(region.start.col);
+      indicator.dataset.end=String(region.end.col);
+      indicator.title=region.text;
+      indicator.textContent='●';
+      indicator.style.left=anchor+'px';
+      content.appendChild(indicator);
+    }
+
+    for(const selection of selections)
+    {
+      const point=selection.forward?selection.end:selection.start;
+      if(point.row!==row || !boundaries.has(point.col)) continue;
+      const indicator=document.createElement('span');
+      indicator.className='caret';
+      indicator.style.left=boundaries.get(point.col)+'px';
+      content.appendChild(indicator);
+    }
   }
   paints++;
   $('status').textContent=
-    'Colonne: '+view.getRowWidth(0)+' · Regioni: '+(regionRows[0]?.length||0)+
+    'Colonne: '+view.getRowWidth(0)+' · Regioni riga 1: '+
+    (regionRows[0]?.length||0)+' · Righe: '+view.rowCount+
     ' · Revisione: '+revision+' · Render: '+paints;
 }
 
@@ -209,9 +277,9 @@ function schedule()
   requestAnimationFrame(render);
 }
 
-function caret(col)
+function caret(row,col)
 {
-  const point={row:0,col};
+  const point={row,col};
   view.setSelections([{start:point,end:{...point},forward:true}]);
   schedule();
 }
@@ -221,13 +289,14 @@ scroller.addEventListener('click',event=>
   const unit=event.target.closest('.unit');
   if(!unit) return;
   const rectangle=unit.getBoundingClientRect();
+  const row=Number(unit.dataset.row);
   const col=Number(
     event.clientX-rectangle.left < rectangle.width/2 ?
       unit.dataset.start : unit.dataset.end
   );
   try
   {
-    caret(col);
+    caret(row,col);
     scroller.focus();
     $('message').textContent='Cursore alla colonna '+col;
   }
@@ -246,8 +315,10 @@ scroller.addEventListener('keydown',event=>
     event.preventDefault();
     const selection=view.getSelections()[0];
     if(!selection) return;
-    const col=(selection.forward?selection.end:selection.start).col;
-    const boundaries=[0,...view.getRegions(0,0,1,100)[0].flatMap(
+    const point=selection.forward?selection.end:selection.start;
+    const col=point.col;
+    const row=point.row;
+    const boundaries=[0,...view.getRegions(row,0,row+1,100)[0].flatMap(
       region=>[region.start.col,region.end.col]
     )].filter((value,index,list)=>list.indexOf(value)===index)
       .sort((a,b)=>a-b);
@@ -256,7 +327,7 @@ scroller.addEventListener('keydown',event=>
       boundaries.find(x=>x>col);
     if(candidate!==undefined)
     {
-      try { caret(candidate); }
+      try { caret(row,candidate); }
       catch(error) { $('message').textContent=error.message; }
     }
     return;
@@ -286,6 +357,120 @@ $('reset').addEventListener('click',configure);
 // physical source only to verify that display placeholders never mutate data.
 globalThis.__presentationProbe=Object.freeze(
 {
+  allowEdit:()=>
+  {
+    const before=source.revision;
+    view.replace(
+      [{start:{row:0,col:0},end:{row:0,col:1},text:'Q'}],
+      view.revision
+    );
+    return {previousRevision:before,sourceRevision:source.revision,
+      sourceText:source.toString()};
+  },
+  attemptProtected:()=>
+  {
+    const row=$('mode').value==='fold'?1:0;
+    const region=view.getRegions(row,0,row+1,100)[0].find(
+      region=>region.kind==='fold'||region.kind==='substitution'
+    );
+    if(!region) return null;
+    const before=source.toString();
+    const sourceRevision=source.revision;
+    let rejected=false;
+    let error='';
+    try
+    {
+      view.replace(
+        [{start:region.start,end:region.end,text:'X'}],
+        view.revision
+      );
+    }
+    catch(failure)
+    {
+      rejected=true;
+      error=failure.message;
+    }
+    return {
+      rejected,error,
+      unchanged:source.toString()===before && source.revision===sourceRevision,
+      region
+    };
+  },
+  benchmarkRaw:()=>
+  {
+    // Diagnostic benchmark only: real RawDocument2D on a long physical
+    // PieceDocument, identical bounded viewport windows for all candidates.
+    const length=100000;
+    const physical=new D.PieceDocument('x'.repeat(length));
+    const raw=new D.RawDocument2D(physical);
+    const unitView=prototypeRegions(raw,true);
+    const start=8192;
+    const widths=[128,1024,4096];
+    const measure=(fn)=>
+    {
+      for(let i=0;i<3;i++) fn();
+      const samples=[];
+      for(let i=0;i<9;i++)
+      {
+        const startTime=performance.now();
+        fn();
+        samples.push(performance.now()-startTime);
+      }
+      samples.sort((a,b)=>a-b);
+      return Number(samples[4].toFixed(4));
+    };
+    try
+    {
+      return widths.map(width=>
+      {
+        const end=start+width;
+        const aggregate=()=>raw.getRegions(0,start,1,end)[0];
+        const expanded=()=>unitView.getRegions(0,start,1,end)[0];
+        // Experimental format candidate: exact run plus explicit unit
+        // boundary offsets. The GUI would consume supplied boundaries,
+        // never discover them by Unicode segmentation or implementation ID.
+        const compact=()=>
+        {
+          const region=aggregate()[0];
+          return {
+            kind:region.kind,text:region.text,start:region.start,
+            end:region.end,
+            boundaries:Array.from(
+              {length:region.text.length+1},(_,index)=>index
+            )
+          };
+        };
+        const rawRegions=aggregate();
+        const singleRegions=expanded();
+        const packed=compact();
+        if(rawRegions.map(x=>x.text).join('')!==
+           singleRegions.map(x=>x.text).join('') ||
+           packed.text!==rawRegions[0].text ||
+           singleRegions.length!==width ||
+           packed.boundaries.length!==width+1)
+        {
+          throw new Error('benchmark input views are not equivalent');
+        }
+        return {
+          width,
+          sourceLength:length,
+          aggregate:{regions:rawRegions.length,
+            jsonChars:JSON.stringify(rawRegions).length,
+            medianMs:measure(aggregate)},
+          expanded:{regions:singleRegions.length,
+            jsonChars:JSON.stringify(singleRegions).length,
+            medianMs:measure(expanded)},
+          compact:{regions:1,boundaries:packed.boundaries.length,
+            jsonChars:JSON.stringify(packed).length,
+            medianMs:measure(compact)}
+        };
+      });
+    }
+    finally
+    {
+      raw.destroy();
+    }
+  },
   chunkBoundary:()=>
   {
     const originalChunk='a'.repeat(2047)+'e\u0301B';
@@ -313,13 +498,24 @@ globalThis.__presentationProbe=Object.freeze(
     viewRevision:view.revision,
     rect:view.getRect(0,0,1,100)[0],
     regions:view.getRegions(0,0,1,100)[0],
+    visibleText:view.getRect(0,0,Math.min(3,view.rowCount),100),
+    regionsByRow:view.getRegions(0,0,Math.min(3,view.rowCount),100),
     selections:view.getSelections(),
     rendered:Array.from(rows.querySelectorAll('.unit')).map(element=>({
+      row:Number(element.dataset.row),
       text:element.textContent,
       start:Number(element.dataset.start),end:Number(element.dataset.end),
       kind:element.dataset.kind,
       clipped:element.scrollWidth>element.clientWidth+1,
       scrollWidth:element.scrollWidth,clientWidth:element.clientWidth
+    })),
+    annotations:Array.from(rows.querySelectorAll('.annotation')).map(e=>({
+      id:e.dataset.id,row:Number(e.dataset.row),
+      start:Number(e.dataset.start),end:Number(e.dataset.end),
+      label:e.title
+    })),
+    carets:Array.from(rows.querySelectorAll('.caret')).map(e=>({
+      row:Number(e.closest('.row').dataset.row),left:e.style.left
     })),
     paints,lastEvent,
     message:$('message').textContent

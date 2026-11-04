@@ -19,6 +19,8 @@ select,button{font:inherit;padding:7px}
  white-space:pre;flex:none;height:32px;border-right:1px dotted #ccd6e5;overflow:visible;
  font-variant-ligatures:none;unicode-bidi:isolate;cursor:text}
 .unit[data-kind="tab"]{background:#f1f5fb}
+.unit[data-kind="fold"],.unit[data-kind="substitution"]{background:#fff0bc;color:#604300;border-radius:3px}
+.annotation{position:absolute;top:0;transform:translateX(-50%);font:12px/14px sans-serif;color:#a02981;pointer-events:none;z-index:1}
 .caret{position:absolute;top:0;width:2px;height:32px;background:#0756b1;pointer-events:none}
 #message{min-height:1.6em;color:#264f79}
 #status{font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap}
@@ -29,7 +31,7 @@ p{max-width:95ch}
 <h1>Document2D: unità di presentazione</h1>
 <p>Esperimento separato: stesso renderer, sorgenti reali Raw/Cell/Cell annidato. Una proiezione
 temporanea di <code>getRegions()</code> prova il candidato di contratto: unità Raw indipendenti,
-grafemi Cell indivisibili. Il contenuto originale non viene trasformato.</p>
+grafemi Cell indivisibili e regioni sintetiche. Il contenuto originale non viene trasformato.</p>
 <p><a href="./document2d.html">Integrazione Document2D precedente</a> ·
 <a href="./index.html">GUI TextEdit 0.8.2</a></p>
 <div class="toolbar">
@@ -38,6 +40,9 @@ grafemi Cell indivisibili. Il contenuto originale non viene trasformato.</p>
 <option value="raw">Raw (unità UTF-16)</option>
 <option value="cell">Cell (grafemi)</option>
 <option value="nested">Cell su Cell</option>
+<option value="annotation">Cell + Annotation</option>
+<option value="fold">Cell + Annotation + Fold</option>
+<option value="substitution">Cell + Annotation + Substitution</option>
 </select></label>
 <label>Storage
 <select id="backend"><option value="flat">FlatDocument</option><option value="piece">PieceDocument</option></select></label>

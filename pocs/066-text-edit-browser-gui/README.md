@@ -12,6 +12,37 @@ The same renderer accepts this experimental Raw view, real `CellDocument2D` over
 
 The PoC deliberately tests one physical row with `A😀Be\u0301\tZ`. Raw presentation uses independent `H`/`L` diagnostic placeholders for the emoji's two UTF-16 surrogates and a dotted-circle prefix for an isolated combining mark. The Cell view recomposes the actual emoji and combining grapheme, and its TAB occupies columns through the next stop. The same real Flat/Piece source supports genuine mouse click, caret arrows and single-character editing. The auxiliary Chromium test `tests/presentation-browser.mjs` exercises both backends and three modes, exact-data preservation, real composed Cell resegmentation, visual span non-clipping and actual keyboard/mouse behavior.
 
+### Synthetic regions and bounded-output benchmark (experiment extension)
+
+The same `presentation.html` renderer also accepts real composed
+`CellDocument2D → AnnotationDocument2D` and optional real
+`FoldDocument2D` or `SubstitutionDocument2D` wrappers, still using
+only the public `Document2D` surface. The fixture uses
+`A😀Be\\u0301\\tZ\\nHIDDEN\\nTAIL`, one zero-width annotation,
+a protected whole-row fold or an occupied `LONG` substitution.
+The GUI renders whole synthetic regions independently of their internal
+text and positions annotation markers without adding occupied columns.
+`tests/presentation-contract.mjs` checks real DOM clipping, surviving
+source text, protected `replace` rejection and successful source edit
+and subsequent redraw for both Flat/Piece physical backends.
+
+A **descriptive, not calibrated** benchmark inside the same browser
+runs bounded windows of 128, 1024 and 4096 columns starting well inside
+a 100000-unit real `PieceDocument` line. Each run compares:
+
+- current aggregated real Raw `getRegions` output;
+- proposed one-UTF-16-unit-per-region PoC projection with exact `text`;
+- an alternative experiment-only compact object retaining the exact
+  source run with an explicit array of unit-boundary offsets.
+
+The benchmark uses median of nine `performance.now()` samples after
+three warmups and reports JSON *character counts* as a serialization
+proxy—not resident memory, wire bytes, production latency or a new API.
+No time-speed ratio is asserted because hosted CI timing varies. Each
+bounded window is verified for exact text equality and column extent.
+The contract decision still requires comparison on realistic non-ASCII,
+synthetic regions and large rendered viewports before product promotion.
+
 **Decision boundary:** This validates an experimental *candidate* public presentation contract, not a new accepted API. In particular `displayText` is a provisional name and plain isolated spans may or may not suffice across browsers. Any promotion requires agreement on the visual-unit and synthetic-region semantics, Unicode diagnostic representation, bounded-output cost, current-spec/test changes, and product authorization. The current `Document2D.getRegions` contract remains in force until that work.
 
 ## Separate browser integration on the real Document2D core
