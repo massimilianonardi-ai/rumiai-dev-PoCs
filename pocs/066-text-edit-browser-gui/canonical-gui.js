@@ -304,6 +304,42 @@ function moveHorizontal(direction)
   }
 }
 
+// A deliberately bounded Delete interaction: one *visible* whole unit.
+// The view alone decides whether the interval is editable. This is not a
+// general deletion/selection/clipboard implementation (G04+).
+function deleteNextVisibleUnit()
+{
+  const selection=view.getSelections()[0];
+  if(!selection || !lastRendered ||
+    lastRendered.revision!==view.revision)
+  {
+    schedule();
+    return;
+  }
+
+  if(selection.start.row!==selection.end.row ||
+    selection.start.col!==selection.end.col)
+  {
+    return;
+  }
+
+  const point=selection.start;
+  const regions=lastRendered.visible[point.row]||[];
+  const unit=regions.find
+  (
+    region=>region.kind!=='annotation' &&
+      region.start.col===point.col && region.end.col>point.col
+  );
+  if(!unit) return;
+
+  view.replace
+  (
+    [{start:{...point},end:{...unit.end},text:''}],
+    view.revision
+  );
+  schedule();
+}
+
 const scroller=$('scroller');
 scroller.addEventListener('click',event=>
 {
@@ -351,8 +387,22 @@ scroller.addEventListener('keydown',event=>
     return;
   }
 
+  if(event.key==='Delete')
+  {
+    event.preventDefault();
+    try
+    {
+      deleteNextVisibleUnit();
+    }
+    catch(error)
+    {
+      $('message').textContent='Eliminazione respinta: '+error.message;
+    }
+    return;
+  }
+
   // G02 handles ordinary non-composing one-key text input. IME,
-  // paste, Enter, deletion and multi-key composed text are separate work.
+  // paste, Enter, full deletion policies and composed text are separate work.
   if(event.key.length===1 && !/[\x00-\x1f\x7f]/u.test(event.key))
   {
     event.preventDefault();
@@ -403,6 +453,55 @@ globalThis.__canonicalGuiProbe=Object.freeze
         sourceUnchanged:source.revision===sourceRevision
       };
     },
+    // Deliberately diagnostic: the real public atomic replace contract is
+    // exercised with a valid edit plus a protected synthetic interval.
+    // Tests must not confuse this direct API proof with an actual key event.
+    attemptProtectedBatch:()=>
+    {
+      const before=source.toString();
+      const physicalRevision=source.revision;
+      const viewRevision=view.revision;
+      const events=contentEvents;
+      const selections=JSON.stringify(view.getSelections());
+      const synthetic=view.getRegions(0,0,view.rowCount,100)
+        .flat().find(region=>
+          region.kind==='fold'||region.kind==='substitution');
+      if(!synthetic) throw new Error('no protected interval in view');
+
+      const first=view.getRegions(0,0,1,2)[0].find
+      (
+        region=>region.kind==='text' &&
+          region.start.col===0 && region.end.col===1
+      );
+      if(!first) throw new Error('no ordinary control region');
+
+      let rejected=false;
+      let reason='';
+      try
+      {
+        view.replace
+        (
+          [
+            {start:{...first.start},end:{...first.end},text:'Q'},
+            {start:{...synthetic.start},end:{...synthetic.end},text:'X'}
+          ],
+          view.revision
+        );
+      }
+      catch(error)
+      {
+        rejected=true;
+        reason=error.message;
+      }
+      return {
+        rejected,reason,syntheticKind:synthetic.kind,
+        originalUnchanged:source.toString()===before,
+        sourceRevisionUnchanged:source.revision===physicalRevision,
+        viewRevisionUnchanged:view.revision===viewRevision,
+        contentEventsUnchanged:contentEvents===events,
+        selectionsUnchanged:JSON.stringify(view.getSelections())===selections
+      };
+    },
     snapshot:()=>
     {
       const visible=lastRendered?.visible||[];
@@ -417,6 +516,7 @@ globalThis.__canonicalGuiProbe=Object.freeze
         selections:view?.getSelections(),lastEvent,
         lastContentEvent,contentEvents,selectionEvents,
         focused:document.activeElement===scroller,
+        statusMessage:$('message').textContent,
         domUnits:Array.from(rows.querySelectorAll('.unit'),item=>({
           kind:item.dataset.kind,row:Number(item.dataset.row),
           start:Number(item.dataset.start),end:Number(item.dataset.end),

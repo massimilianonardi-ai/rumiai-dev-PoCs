@@ -33,8 +33,18 @@ whole-region caret boundaries (including multi-column TAB), left/right
 navigation and simple-key `insert`, still using only the outermost
 `Document2D`. Its separate real Chromium test checks source revision,
 one content notification and actual repaint on Flat/Piece.
-G03 protected-region interaction, G04 scrolling/viewport, IME and
-physical host acceptance remain outside the G02 claim. The execution plan
+G03 adds a targeted real `Delete` key attempt against one published
+visible unit and verifies the public view's rejection of protected
+Substitution content. Fold marker click rejection and strict left/right
+caret boundary behavior are driven by real mouse/arrow events; a separate
+diagnostic public `Document2D.replace` batch mixes an otherwise valid
+edit with a protected span to prove atomic refusal on Fold/Substitution.
+Zero-width Annotation is compared against actual DOM pixel positions;
+the annotation remains non-interactive metadata.
+`tests/canonical-protected-browser.mjs` covers Flat/Piece × three
+synthetic views on the unmodified, compiled core. This remains scoped G03
+evidence, **not** complete deletion/selection/IME behavior. G04
+scrolling/viewport and physical-host acceptance remain open. The execution plan
 and authoritative task state live solely in
 `rumiai-dev/handoff/browser-column-editor.md`.
 
