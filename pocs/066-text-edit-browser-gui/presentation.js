@@ -117,6 +117,29 @@ function prototypeCompact(input)
 
 // GUI decoding depends solely on explicitly supplied unit boundaries.
 // There is no Unicode segmentation, raw/cell recognition or source access.
+// Direct compact presentation only for the real aggregated Raw adapter.
+function prototypeRawDirect(input)
+{
+  return new Proxy(input,
+  {
+    get(target,key)
+    {
+      if(key==='getRegions')
+      {
+        return (...args)=>globalThis.__presentationDirect.packRawRows(
+          target.getRegions(...args)
+        );
+      }
+      const value=Reflect.get(target,key,target);
+      return typeof value==='function' ? value.bind(target) : value;
+    },
+    set(target,key,value)
+    {
+      return Reflect.set(target,key,value,target);
+    }
+  });
+}
+
 function readRegions(...args)
 {
   return globalThis.__presentationTransport.unpackRows(
@@ -137,6 +160,12 @@ function configure()
 {
   dispose();
   const mode=$('mode').value;
+  const directOption=$('transport').querySelector('[value="direct"]');
+  directOption.disabled=mode!=='raw';
+  if(mode!=='raw' && $('transport').value==='direct')
+  {
+    $('transport').value='compact';
+  }
   const Backend=$('backend').value==='piece'?D.PieceDocument:D.FlatDocument;
   const text=$('fixture').value==='mixed'?mixed:original;
   source=new Backend(
@@ -188,6 +217,7 @@ function configure()
     view=prototypeRegions(view,false);
   }
   if($('transport').value==='compact') view=prototypeCompact(view);
+  if($('transport').value==='direct') view=prototypeRawDirect(raw);
 
   view.setSelections([{start:{row:0,col:0},end:{row:0,col:0},forward:true}]);
   unsubscribe=view.subscribe(event=>
@@ -540,6 +570,54 @@ globalThis.__presentationProbe=Object.freeze(
       cell.destroy();
       raw.destroy();
     }
+  },
+  benchmarkDirect:(mode,width,repeats=16)=>
+  {
+    if(!['aggregate','expanded','packed','direct'].includes(mode) ||
+      !Number.isSafeInteger(width) || width<1 || width>4096 ||
+      !Number.isSafeInteger(repeats) || repeats<1 || repeats>64)
+    {
+      throw new RangeError('invalid direct benchmark request');
+    }
+    const pattern='A😀Be\u0301\tZ\u0001👩‍💻क';
+    const physical=new D.PieceDocument(pattern.repeat(70000));
+    const raw=new D.RawDocument2D(physical);
+    const units=prototypeRegions(raw,true);
+    const window=[0,4096,1,4096+width];
+    const aggregate=()=>raw.getRegions(...window);
+    const expanded=()=>units.getRegions(...window);
+    const packed=()=>globalThis.__presentationTransport.packRows(expanded());
+    const direct=()=>globalThis.__presentationDirect.packRawRows(aggregate());
+    const methods={aggregate,expanded,packed,direct};
+    const normalized=rows=>globalThis.__presentationTransport
+      .unpackRows(rows)[0].map(r=>[
+        r.text,r.start.col,r.end.col,r.displayText??r.text
+      ]);
+    const reference=normalized(expanded());
+    if(mode!=='aggregate' &&
+      JSON.stringify(normalized(methods[mode]()))!==JSON.stringify(reference))
+    {
+      raw.destroy();
+      throw new Error('direct compact presentation does not match Raw units');
+    }
+    const results=[];
+    const durations=[];
+    for(let i=0;i<repeats;i++)
+    {
+      const before=performance.now();
+      results.push(methods[mode]());
+      durations.push(performance.now()-before);
+    }
+    // Retain result objects so CDP can measure their post-GC heap.
+    globalThis.__directBenchmarkRetained={physical,raw,results};
+    durations.sort((a,b)=>a-b);
+    const sample=results[0];
+    return {
+      mode,width,repeats,sourceUTF16Length:physical.length,
+      outputRegions:sample[0].length,
+      payloadUTF8:new TextEncoder().encode(JSON.stringify(sample)).length,
+      medianMs:durations[Math.floor(durations.length/2)]
+    };
   },
   benchmarkRaw:()=>
   {

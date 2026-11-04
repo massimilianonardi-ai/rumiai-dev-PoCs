@@ -12,6 +12,28 @@ The same renderer accepts this experimental Raw view, real `CellDocument2D` over
 
 The PoC deliberately tests one physical row with `A😀Be\u0301\tZ`. Raw presentation uses independent `H`/`L` diagnostic placeholders for the emoji's two UTF-16 surrogates and a dotted-circle prefix for an isolated combining mark. The Cell view recomposes the actual emoji and combining grapheme, and its TAB occupies columns through the next stop. The same real Flat/Piece source supports genuine mouse click, caret arrows and single-character editing. The auxiliary Chromium test `tests/presentation-browser.mjs` exercises both backends and three modes, exact-data preservation, real composed Cell resegmentation, visual span non-clipping and actual keyboard/mouse behavior.
 
+### Direct Raw compact producer and real Chromium heap benchmark (PoC-only)
+
+A new direct Raw-only producer in presentation-direct.js reads bounded, aggregated
+regions from the real RawDocument2D and creates the existing experimental
+cells/glyphs compact format *without constructing per-UTF16-unit region objects*.
+It is not a new product API; the GUI consumes the same public region decoder
+and exposes a Raw-only 'direct' experiment selector.
+
+The Playwright presentation-direct.mjs test compares current aggregated Raw,
+expanded units, expanded-then-packed, and direct packed output over a real
+PieceDocument with long mixed Unicode/TAB content (128/2048/4096-column
+windows). It checks reconstructed glyphs and exact columns, equal actual DOM
+rendering, pointer/arrow/typing and invalidation. Chromium CDP measures
+post-GC JS heap before and after retaining 24 window results in a *fresh
+page for each method/width*, with descriptive timings and UTF-8 payload
+sizes. Results describe **retained JS heap**, not peak/transient allocation,
+process RSS, calibration-grade speed or physical Ubuntu ARM64 validation.
+The normal GUI remains bounded to 100 visible columns; its mounted DOM count
+is measured separately, not conflated with the 4096-column data benchmark.
+Only the Raw-specific direct producer is evaluated; composing a direct
+Cell/Annotation/Fold/Substitution producer remains open.
+
 ### Compact unit-boundary transport — browser consumer experiment
 
 The `presentation.html` page now has a transport selector (**explicit regions** /
