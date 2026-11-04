@@ -42,7 +42,7 @@ grub-mkstandalone -O x86_64-efi -o "$out/efi/BOOTX64.EFI" \
   "boot/grub/grub.cfg=$out/efi/grub.cfg" > "$out/grub-build.log" 2>&1
 test -s "$out/efi/BOOTX64.EFI"
 cp "$out/efi/BOOTX64.EFI" "$out/efi/iso/EFI/BOOT/BOOTX64.EFI"
-truncate -s 8M "$out/efi/iso/efiboot.img"
+truncate -s 16M "$out/efi/iso/efiboot.img"
 mkfs.vfat -F 16 "$out/efi/iso/efiboot.img" > "$out/efi-fat.log" 2>&1
 mmd -i "$out/efi/iso/efiboot.img" ::/EFI ::/EFI/BOOT
 mcopy -i "$out/efi/iso/efiboot.img" "$out/efi/BOOTX64.EFI" ::/EFI/BOOT/BOOTX64.EFI
