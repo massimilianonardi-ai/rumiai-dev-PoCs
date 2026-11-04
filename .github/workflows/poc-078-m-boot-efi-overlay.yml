@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: massimilianonardi-ai/Ventoy
-          ref: ac3c68d45ef0866c90a7511c09ca659c4d5a8d96
+          ref: 8ebc9a7adef342e803b70ab4c5a2b6926ea60bfa
           path: fork
           persist-credentials: false
       - name: Verify exact experimental source revision
@@ -28,7 +28,7 @@ jobs:
         run: |
           set -eu
           actual=$(git -C fork rev-parse HEAD)
-          test "$actual" = ac3c68d45ef0866c90a7511c09ca659c4d5a8d96
+          test "$actual" = 8ebc9a7adef342e803b70ab4c5a2b6926ea60bfa
           printf 'ventoy_probe_revision=%s\n' "$actual"
       - name: Install native GRUB EDK2 and firmware test dependencies
         shell: sh
