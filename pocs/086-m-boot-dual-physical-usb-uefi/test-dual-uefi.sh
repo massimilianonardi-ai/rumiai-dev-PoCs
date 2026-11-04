@@ -80,16 +80,35 @@ start=$(awk '/^First sector: / {print $3}' "$out/source-part3.txt")
   echo 'GPT3 not MiB aligned' >&2; exit 6;
 }
 truncate -s 192M "$out/source-ext4.img"
-# mkfs.ext4 -d can preserve sparse holes in generated ISO files; that is
-# intentionally rejected by the Ventoy probe. Instead allocate every block
-# with regular debugfs writes into an EMPTY disposable ext4 image.
+# The real kernel's ext4 regular-file write path allocates every zero block.
+# Work only on this newly created, regular file under runner-temp; never
+# inspect or open the operator's USB, and unmount before starting QEMU.
+[[ -f "$out/source-ext4.img" && ! -L "$out/source-ext4.img" ]] || exit 7
 mkfs.ext4 -q -F -L MBOOTDATA "$out/source-ext4.img" > "$out/ext4.log" 2>&1
-for dir in /m /m/boot /m/boot/iso; do
-  debugfs -w -R "mkdir $dir" "$out/source-ext4.img" >> "$out/ext4.log" 2>&1
-done
+mount_dir="$out/mounted-fixture"
+mkdir -p "$mount_dir"
+mounted=no
+unmount_fixture() {
+  if [[ "$mounted" == yes ]]; then
+    sudo umount "$mount_dir" || echo 'ERROR: loop fixture still mounted' >&2
+  fi
+}
+trap unmount_fixture EXIT
+sudo mount -t ext4 -o loop,nosuid,nodev,noexec \
+  "$out/source-ext4.img" "$mount_dir"
+mounted=yes
+sudo mkdir -p "$mount_dir/m/boot/iso"
 for name in proxmox-ve_9.2-1.iso TrueNAS-SCALE-25.10.7.iso; do
-  debugfs -w -R "write $out/root/m/boot/iso/$name /m/boot/iso/$name" \
-    "$out/source-ext4.img" >> "$out/ext4.log" 2>&1
+  sudo cp --reflink=never --sparse=never -- \
+    "$out/root/m/boot/iso/$name" "$mount_dir/m/boot/iso/$name"
+  sudo cmp "$out/root/m/boot/iso/$name" "$mount_dir/m/boot/iso/$name"
+done
+sudo sync -f "$mount_dir/m/boot/iso/proxmox-ve_9.2-1.iso"
+sudo sync -f "$mount_dir/m/boot/iso/TrueNAS-SCALE-25.10.7.iso"
+sudo umount "$mount_dir"
+mounted=no
+trap - EXIT
+for name in proxmox-ve_9.2-1.iso TrueNAS-SCALE-25.10.7.iso; do
   debugfs -R "stat /m/boot/iso/$name" "$out/source-ext4.img" \
     > "$out/ext4-stat-$name.log" 2>&1
   python3 - "$out/ext4-stat-$name.log" "$out/root/m/boot/iso/$name" <<'PYEXTENTS'
