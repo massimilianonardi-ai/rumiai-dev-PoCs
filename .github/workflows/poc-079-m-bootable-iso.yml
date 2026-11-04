@@ -1,0 +1,64 @@
+name: PoC 079 small bootable x86_64 UEFI Linux ISO
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/poc-079-m-bootable-iso.yml'
+      - 'pocs/079-m-bootable-iso/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-ovmf-linux-iso:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install genuine distribution GRUB kernel and ISO tooling
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            grub-common grub-efi-amd64-bin linux-image-generic busybox-static \
+            cpio xorriso dosfstools mtools qemu-system-x86 ovmf file
+      - name: Verify both fixture tools
+        run: |
+          sh -n pocs/079-m-bootable-iso/build-bootable-iso.sh
+          sh -n pocs/079-m-bootable-iso/smoke-boot.sh
+          grub-mkstandalone --version
+          test -s /usr/share/OVMF/OVMF_CODE_4M.fd
+      - name: Build standalone original Linux-kernel ISO and replacement hook
+        shell: sh
+        run: |
+          set -eu
+          kernel=$(find /boot -maxdepth 1 -name 'vmlinuz-*generic' -type f | sort -V | tail -n 1)
+          test -n "$kernel" && test -s "$kernel"
+          echo "original_linux_kernel=$kernel"
+          sh pocs/079-m-bootable-iso/build-bootable-iso.sh "$RUNNER_TEMP/vt079" "$kernel"
+          file "$RUNNER_TEMP/vt079/BOOTX64.EFI"
+          file "$RUNNER_TEMP/vt079/bootable.iso"
+      - name: OVMF boot original ISO EFI loader and unchanged Linux kernel
+        shell: sh
+        run: |
+          set -eu
+          sh pocs/079-m-bootable-iso/smoke-boot.sh "$RUNNER_TEMP/vt079"
+      - name: Preserve full generated ISO, sidecar, and boot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-079-bootable-uefi-linux-iso
+          if-no-files-found: warn
+          retention-days: 14
+          compression-level: 6
+          path: |
+            ${{ runner.temp }}/vt079/bootable.iso
+            ${{ runner.temp }}/vt079/initrd-hook-overlay.cpio
+            ${{ runner.temp }}/vt079/iso/boot/initrd-hook.cpio
+            ${{ runner.temp }}/vt079/sha256sums.txt
+            ${{ runner.temp }}/vt079/qemu-iso-boot.log
+            ${{ runner.temp }}/vt079/xorriso.log
+            ${{ runner.temp }}/vt079/grub-build.log
