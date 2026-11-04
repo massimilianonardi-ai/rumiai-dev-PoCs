@@ -81,9 +81,12 @@ if python3 "$HERE/extent_handoff.py" check \
     --map "$TEMP/tampered_map" --table "$TEMP/tampered_table"; then
     echo 'ERROR corrupted extent was accepted' >&2; exit 6
 fi
+# Kernel dm-linear takes an exclusive holder on the source partition on
+# this runner. Release the experimental ext4 mount after mapping verification.
+umount "$TEMP/fs"
 # Kernel mapping, not a FUSE simulation or a userspace ISO copy.
 dmsetup create "$NAME" --readonly --table "$(cat "$TEMP/table")"
-python3 - "$TEMP/fs/fixture.iso" "/dev/mapper/$NAME" <<'PY'
+python3 - "$TEMP/source.iso" "/dev/mapper/$NAME" <<'PY'
 import hashlib, sys
 def sha(path):
     h = hashlib.sha256()
