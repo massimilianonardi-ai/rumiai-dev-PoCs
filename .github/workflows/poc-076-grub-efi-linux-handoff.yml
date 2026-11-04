@@ -43,7 +43,7 @@ jobs:
             grub-common grub-efi-amd64-bin dpkg-dev build-essential automake \
             autoconf gettext bison flex python3 patch file busybox-static cpio \
             dmsetup gdisk dosfstools e2fsprogs mtools xorriso qemu-system-x86 \
-            ovmf linux-image-generic linux-modules-extra-generic zstd kmod
+            ovmf linux-image-generic zstd kmod
           sudo DEBIAN_FRONTEND=noninteractive apt-get build-dep -y -qq grub2
           source_pkg=$(dpkg-query -W -f='${source:Package}' grub-common)
           source_ver=$(dpkg-query -W -f='${Version}' grub-common)
