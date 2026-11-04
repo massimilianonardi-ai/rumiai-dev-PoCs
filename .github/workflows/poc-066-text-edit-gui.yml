@@ -46,6 +46,8 @@ jobs:
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/presentation-contract.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/presentation-compact.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/grapheme-stream.mjs
+          node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/prepare-grapheme-candidate.mjs
+          node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/grapheme-candidate-browser.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/document2d-browser.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/browser.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/region-geometry.js
@@ -68,3 +70,12 @@ jobs:
           node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/presentation-browser.mjs
           node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/presentation-contract.mjs
           node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/presentation-compact.mjs
+      - name: Compile isolated patched real Cell core (experimental only)
+        run: |
+          cp -R rumiai-os/lib/sys/js/core "$RUNNER_TEMP/text-edit-candidate-core"
+          node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/prepare-grapheme-candidate.mjs "$RUNNER_TEMP/text-edit-candidate-core/m/text/document/CellDocument2D.js"
+          node rumiai-os/lib/sys/js/jsc.lib.js "$RUNNER_TEMP/text-edit-candidate-core/modules-js.json" rumiai-os/lib/sys/js/core/document2d-candidate.generated.js
+          node --check rumiai-os/lib/sys/js/core/document2d-candidate.generated.js
+      - name: Test experimental compiled Cell composition in Chromium
+        run: |
+          node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/grapheme-candidate-browser.mjs

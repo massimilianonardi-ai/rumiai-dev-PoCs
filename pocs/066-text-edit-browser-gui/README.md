@@ -88,6 +88,27 @@ product until this issue is corrected and covered by real product tests.
 The experimental `cells`/`glyphs` wire fields likewise remain
 candidate-only, with no product/API authorization inferred from CI PASS.
 
+### Compiled candidate composition (PoC-only)
+
+The PoC also compiles a **disposable copy** of the actual pinned `m.text.document`
+core with exactly one proposed `CellDocument2D.#scanRow` carry change.
+`tests/prepare-grapheme-candidate.mjs` refuses to patch outside the
+`text-edit-candidate-core/` temporary directory and verifies the existing
+scanner line before replacing it. The original product checkout and generated
+standard browser core are not modified. The `jsc` compiler builds an
+isolated browser script from the staged full core, and Playwright intercepts
+**only the candidate test page**'s core-script request to load that script.
+
+`tests/grapheme-candidate-browser.mjs` checks the actual composed candidate
+with per-code-unit Raw presentation, both physical Flat/Piece backends,
+full `Intl.Segmenter` comparison near 2048-column boundaries, nested
+Cell/Annotation views, Fold/Substitution protection and single-commit editing.
+It also exercises the unchanged GUI through real Chromium with the candidate
+core and compact transport, including DOM emoji integrity, mouse/key input and
+repaint. The candidate's results are *experimental changed-source evidence*;
+none is proof of behavior shipped by `rumiai-os`. The existing unpatched
+core and browser checks continue to run first and remain separate.
+
 ### Candidate UTF-16 streaming carry experiment (PoC-only)
 
 The standalone Node experiment `tests/grapheme-stream.mjs` isolates
