@@ -18,7 +18,7 @@ from pathlib import Path
 SECTOR = 2048
 RANGE_HEADER = re.compile(r"^bytes (\d+)-(\d+)/(\d+)$")
 BOOT_NAMES = re.compile(
-    r"(^|/)(grub\.cfg|grub\.conf|isolinux\.cfg|syslinux\.cfg|"
+    r"(^|/)(linux26|[^/]*cd-id[^/]*|grub\.cfg|grub\.conf|isolinux\.cfg|syslinux\.cfg|"
     r"menu\.cfg|txt\.cfg|linux\.cfg|initrd[^/]*|initramfs[^/]*|"
     r"vmlinuz[^/]*|kernel[^/]*|bootx64\.efi|"
     r"[^/]*\.pve-cd-id[^/]*|[^/]*\.squashfs)$", re.I
@@ -245,6 +245,18 @@ def inspect(args):
         except ValueError as error:
             f["read_error"] = str(error)
     report["boot_configuration_files"] = text_files[:24]
+    identities = []
+    for f in files:
+        if f["directory"] or f["bytes"] <= 0 or f["bytes"] > 4096:
+            continue
+        if "cd-id" not in f["path"].casefold() and not f["path"].casefold().endswith(".cd-info"):
+            continue
+        raw = iso.read(f["extent_lba"] * SECTOR, f["bytes"],
+                       "original ISO media identity file " + f["path"])
+        identities.append({"path": f["path"], "bytes": f["bytes"],
+                           "utf8_excerpt": raw.decode("utf-8", "replace")[:1500],
+                           "sha256_of_whole_small_file": hashlib.sha256(raw).hexdigest()})
+    report["media_identity_files"] = identities[:15]
     small_samples = []
     for f in report["boot_relevant_files"]:
         if re.search(r"(initrd|initramfs|vmlinuz|kernel)", f["path"], re.I):
