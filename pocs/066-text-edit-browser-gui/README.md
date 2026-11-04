@@ -38,6 +38,17 @@ allocates its internal cell records. This instrumentation proves a narrower
 Core Cell path and is not a general direct API for Fold/Substitution.
 Results of browser tests must explicitly distinguish the two paths.
 
+`tests/presentation-bounded-browser.mjs` uses the exact pinned real
+jsc-compiled core with **both experimental changes staged on a disposable
+copy**. It checks parity of the original expanded units, generic
+bounded-chunk packing and direct scanner packing, across Flat/Piece,
+Unicode+TAB fixtures, nested Cell, Annotation, Fold and Substitution.
+A separate bounded real Chromium heap/timing comparison measures
+24 retained windows over long real `PieceDocument` content. The GUI's
+existing renderer continues consuming the old format: the candidate's
+byte/heap improvements are not evidence of full host/pixel parity.
+
+
 ### Declared implicit Raw units and Shift+wheel paging (PoC-only)
 
 This second Raw-only transport experiment keeps the **published** aggregated

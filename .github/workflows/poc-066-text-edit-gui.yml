@@ -51,6 +51,7 @@ jobs:
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/grapheme-stream.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/prepare-grapheme-candidate.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/prepare-cell-packed-candidate.mjs
+          node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/presentation-bounded-browser.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/presentation-bounded.js
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/grapheme-candidate-browser.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/document2d-browser.mjs
@@ -87,3 +88,4 @@ jobs:
       - name: Test experimental compiled Cell composition in Chromium
         run: |
           node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/grapheme-candidate-browser.mjs
+          node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/presentation-bounded-browser.mjs
