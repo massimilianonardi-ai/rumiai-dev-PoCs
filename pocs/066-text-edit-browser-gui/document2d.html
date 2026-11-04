@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Document2D · integrazione browser sul core reale</title>
+<style>
+:root{font:15px/1.5 system-ui,sans-serif;background:#f4f6fa;color:#263447}
+*{box-sizing:border-box}
+body{max-width:1120px;margin:20px auto;padding:0 18px}
+h1{font-size:1.45rem}
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 0}
+button,select{font:inherit;padding:5px 9px}
+button{background:white;border:1px solid #a3b3c8;border-radius:5px;cursor:pointer}
+button:focus-visible,select:focus-visible,#scroller:focus-visible{outline:3px solid #3384d6}
+#scroller{height:310px;overflow:auto;background:white;border:1px solid #a3b3c8;position:relative;outline:0}
+#spacer{position:relative;min-width:100%}
+#rows{position:absolute;top:0;left:0;right:0}
+.row{display:flex;height:28px;white-space:pre;font:16px/28px ui-monospace,Consolas,monospace}
+.row:nth-child(2n){background:#f6f9fd}
+.gutter{flex:0 0 62px;width:62px;text-align:right;padding-right:9px;color:#678;background:#e7eef7;user-select:none}
+.content{position:relative;white-space:pre;height:28px;flex:1 0 auto}
+.region{display:inline-block;height:28px;vertical-align:top;white-space:pre;overflow:hidden}
+.region[data-kind="tab"]{background:#f1f5fb}
+.region[data-kind="fold"],.region[data-kind="substitution"]{background:#fff0bc;color:#604300;border-radius:3px;text-align:center}
+.annotation{position:absolute;top:1px;transform:translateX(-50%);height:11px;max-width:12px;background:#a02981;color:white;border-radius:5px;font:9px/11px sans-serif;pointer-events:none;z-index:1}
+.caret{position:absolute;top:1px;width:2px;height:26px;background:#0756b1;pointer-events:none;z-index:2}
+#message{min-height:1.6em;color:#264f79}
+#status{font-family:ui-monospace,Consolas,monospace;white-space:pre-wrap}
+p{max-width:82ch}
+</style>
+</head>
+<body>
+<h1>Document2D · integrazione browser</h1>
+<p>La vista legge direttamente <code>m.text.document.Document2D</code> dal core compilato del prodotto. Le regioni protette non sono bersagli di modifica; dopo ogni notifica <code>invalidation:{all:true}</code> il viewport viene ricostruito nello spazio di coordinate corrente.</p>
+<p><a href="./index.html">GUI originale TextEdit 0.8.2</a> · Questo esperimento è separato e non modifica quell'editor.</p>
+<div class="toolbar">
+ <label>Vista <select id="kind"><option value="fold">Fold inline</option><option value="substitution">Substitution</option></select></label>
+ <label>Storage <select id="backend"><option value="flat">FlatDocument</option><option value="piece">PieceDocument</option></select></label>
+ <button id="reset" type="button">Ripristina</button>
+ <button id="allowed" type="button">Modifica consentita</button>
+ <button id="blocked" type="button">Tentativo protetto</button>
+ <button id="outside" type="button">Modifica esterna nascosta</button>
+ <button id="note" type="button">Aggiorna annotazione</button>
+</div>
+<p id="message" role="status" aria-live="polite"></p>
+<div id="scroller" tabindex="0" role="textbox" aria-label="Vista editor Document2D" aria-multiline="true">
+ <div id="spacer"><div id="rows"></div></div>
+</div>
+<p id="status" role="status"></p>
+<script src="../../../../lib/sys/js/core/document2d-browser.generated.js"></script>
+<script src="./document2d.js"></script>
+</body>
+</html>
