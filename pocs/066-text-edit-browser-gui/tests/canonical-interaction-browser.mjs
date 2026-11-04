@@ -144,6 +144,8 @@ try
     assert.equal(s.viewRevision,0,
       'selection navigation must not change coordinate revision');
     assert.equal(s.contentEvents,0);
+    assert.ok(s.selectionEvents>0,
+      'actual Document2D selections events are observed separately');
     const beforePaint=s.paints;
 
     await clickEnd(emoji,'right');

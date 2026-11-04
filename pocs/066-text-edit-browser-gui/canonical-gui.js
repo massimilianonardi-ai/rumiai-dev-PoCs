@@ -244,7 +244,7 @@ function configure()
       contentEvents++;
       lastContentEvent=lastEvent;
     }
-    if(event.type==='selection') selectionEvents++;
+    if(event.type==='selections') selectionEvents++;
     schedule();
   });
   $('message').textContent=
