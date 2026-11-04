@@ -1,0 +1,54 @@
+name: PoC 082 read-only exact vendor ISO boot metadata
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/poc-082-m-boot-vendor-iso-metadata.yml'
+      - 'pocs/082-m-boot-vendor-iso-readonly/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  vendor-range-metadata:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: proxmox-ve-9.2-1-x64
+            url: https://download.proxmox.com/iso/proxmox-ve_9.2-1.iso
+            sha256: 4e88fe416df9b527624a175f24c9aa07c714d3332afb1ee3dbf3879573ef2c6c
+          - name: truenas-scale-25.10.7-x64
+            url: https://download.truenas.com/TrueNAS-SCALE-Goldeye/25.10.7/TrueNAS-SCALE-25.10.7.iso
+            sha256: 54ce9441ce66966a392e28f63604ca3c2c083d0bec4db7bb5af2f74f7a007c8e
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check range parser syntax without pulling ISO bytes
+        shell: sh
+        run: |
+          set -eu
+          python3 -m py_compile pocs/082-m-boot-vendor-iso-readonly/iso_range_inspect.py
+      - name: Inspect exact official vendor ISO by strict HTTP byte ranges
+        shell: sh
+        run: |
+          set -eu
+          python3 pocs/082-m-boot-vendor-iso-readonly/iso_range_inspect.py \
+            --url '${{ matrix.url }}' \
+            --sha256 '${{ matrix.sha256 }}' \
+            --name '${{ matrix.name }}' \
+            --max-bytes 33554432 \
+            --out "$RUNNER_TEMP/${{ matrix.name }}-metadata.json"
+      - name: Preserve bounded range ledger and exact observed boot metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-082-${{ matrix.name }}
+          retention-days: 14
+          if-no-files-found: warn
+          path: ${{ runner.temp }}/${{ matrix.name }}-metadata.json
