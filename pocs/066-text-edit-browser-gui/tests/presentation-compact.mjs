@@ -93,7 +93,8 @@ try
         if(fixture==='mixed' && mode!=='raw')
         {
           assert.ok(compact.regions.some(r=>r.text==='👩‍💻'),
-            'cell keeps multi-code-point emoji indivisible');
+            'cell emoji '+JSON.stringify(params)+' regions='+
+            JSON.stringify(compact.regions.map(r=>[r.kind,r.text,r.start.col,r.end.col])));
         }
         if(mode==='fold'||mode==='substitution')
         {
