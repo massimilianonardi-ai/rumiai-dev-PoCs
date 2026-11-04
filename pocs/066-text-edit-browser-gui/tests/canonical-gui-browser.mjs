@@ -48,7 +48,8 @@ try
       );
       assert.equal(s.sourceText,original);
       assert.equal(s.sourceRevision,0);
-      assert.equal(s.rowCount,mode==='fold'?2:3);
+      assert.equal(s.rowCount,3,
+        'a folded row retains one visible marker row');
       assert.equal(s.rawRegions.length,1,
         'published Raw remains aggregated');
       assert.equal(s.rawRegions[0].text,original.split('\n')[0],
