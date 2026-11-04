@@ -137,6 +137,19 @@ try
     assert.equal(s.sourceText,sample);
   }
 
+
+  // A grapheme spanning the 2048-unit Raw scanning chunk boundary must
+  // survive the proposed one-region-per-UTF-16-unit projection unchanged.
+  const boundary=await page.evaluate(()=>window.__presentationProbe.chunkBoundary());
+  assert.equal(boundary.source,'a'.repeat(2047)+'e\u0301B');
+  assert.deepEqual(
+    boundary.regions,
+    [{kind:'text',text:'e\u0301',
+      start:{row:0,col:2047},end:{row:0,col:2048}}]
+  );
+  assert.equal(boundary.rect,'e\u0301');
+  assert.equal(boundary.rowWidth,2049);
+
   assert.deepEqual(errors,[],'browser runtime errors');
   console.log(JSON.stringify({
     pass:true,

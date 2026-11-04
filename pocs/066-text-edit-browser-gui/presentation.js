@@ -286,6 +286,27 @@ $('reset').addEventListener('click',configure);
 // physical source only to verify that display placeholders never mutate data.
 globalThis.__presentationProbe=Object.freeze(
 {
+  chunkBoundary:()=>
+  {
+    const originalChunk='a'.repeat(2047)+'e\u0301B';
+    const chunkSource=new D.PieceDocument(originalChunk);
+    const chunkRaw=new D.RawDocument2D(chunkSource);
+    const chunkCell=new D.CellDocument2D(prototypeRegions(chunkRaw,true));
+    try
+    {
+      return {
+        source:chunkSource.toString(),
+        regions:chunkCell.getRegions(0,2047,1,2048)[0],
+        rect:chunkCell.getRect(0,2047,1,2048)[0],
+        rowWidth:chunkCell.getRowWidth(0)
+      };
+    }
+    finally
+    {
+      chunkCell.destroy();
+      chunkRaw.destroy();
+    }
+  },
   snapshot:()=>({
     mode:$('mode').value,backend:$('backend').value,
     sourceText:source.toString(),sourceRevision:source.revision,
