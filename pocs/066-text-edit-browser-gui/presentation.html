@@ -31,7 +31,7 @@ p{max-width:95ch}
 <h1>Document2D: unità di presentazione</h1>
 <p>Esperimento separato: stesso renderer, sorgenti reali Raw/Cell/Cell annidato. Una proiezione
 temporanea di <code>getRegions()</code> prova il candidato di contratto: unità Raw indipendenti,
-grafemi Cell indivisibili e regioni sintetiche. Il contenuto originale non viene trasformato.</p>
+grafemi Cell indivisibili e regioni sintetiche. Il trasporto compatto dichiara i confini, senza far ricostruire grafemi alla GUI; il contenuto originale non viene trasformato.</p>
 <p><a href="./document2d.html">Integrazione Document2D precedente</a> ·
 <a href="./index.html">GUI TextEdit 0.8.2</a></p>
 <div class="toolbar">
@@ -44,6 +44,10 @@ grafemi Cell indivisibili e regioni sintetiche. Il contenuto originale non viene
 <option value="fold">Cell + Annotation + Fold</option>
 <option value="substitution">Cell + Annotation + Substitution</option>
 </select></label>
+<label>Trasporto
+<select id="transport"><option value="expanded">Regioni esplicite</option><option value="compact">Confini compatti</option></select></label>
+<label>Testo
+<select id="fixture"><option value="basic">Base</option><option value="mixed">Unicode + controlli</option></select></label>
 <label>Storage
 <select id="backend"><option value="flat">FlatDocument</option><option value="piece">PieceDocument</option></select></label>
 <button id="reset" type="button">Ripristina</button>
@@ -54,6 +58,7 @@ grafemi Cell indivisibili e regioni sintetiche. Il contenuto originale non viene
 </div>
 <p id="status"></p>
 <script src="../../../../lib/sys/js/core/document2d-browser.generated.js"></script>
+<script src="./presentation-transport.js"></script>
 <script src="./presentation.js"></script>
 </body>
 </html>

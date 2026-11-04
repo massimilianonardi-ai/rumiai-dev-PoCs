@@ -14,6 +14,7 @@ if(!D?.RawDocument2D || !D?.CellDocument2D)
 }
 
 const original='A😀Be\u0301\tZ';
+const mixed='A😀Be\u0301\tZ\u0001👩‍💻';
 const rows=$('rows');
 const scroller=$('scroller');
 const canvas=document.createElement('canvas');
@@ -40,6 +41,9 @@ function prototypeRegions(input,rawUnits)
     if(code>=0xd800 && code<=0xdbff) return 'H';
     if(code>=0xdc00 && code<=0xdfff) return 'L';
     if(unit==='\t') return '⇥';
+    if(code===0x200d) return 'ZWJ';
+    if(code===0x200c) return 'ZWNJ';
+    if(code===0x200b) return 'ZWSP';
     if(/^\p{Mark}$/u.test(unit)) return '◌'+unit;
     if(code<32 || code===127) return '·';
     return unit;
@@ -68,6 +72,11 @@ function prototypeRegions(input,rawUnits)
               });
             }
             if(region.kind==='tab') return [{...region,displayText:'⇥'}];
+            if(region.kind==='text' && region.text.length===1 &&
+              /[\x00-\x1f\x7f]/u.test(region.text))
+            {
+              return [{...region,displayText:display(region.text)}];
+            }
             return [region];
           })
         );
@@ -80,6 +89,39 @@ function prototypeRegions(input,rawUnits)
       return Reflect.set(target,key,value,target);
     }
   });
+}
+
+// Document-side wire-format experiment. A transport choice changes only
+// the public getRegions payload, not physical data or selection ownership.
+function prototypeCompact(input)
+{
+  return new Proxy(input,
+  {
+    get(target,key)
+    {
+      if(key==='getRegions')
+      {
+        return (...args)=>globalThis.__presentationTransport.packRows(
+          target.getRegions(...args)
+        );
+      }
+      const value=Reflect.get(target,key,target);
+      return typeof value==='function' ? value.bind(target) : value;
+    },
+    set(target,key,value)
+    {
+      return Reflect.set(target,key,value,target);
+    }
+  });
+}
+
+// GUI decoding depends solely on explicitly supplied unit boundaries.
+// There is no Unicode segmentation, raw/cell recognition or source access.
+function readRegions(...args)
+{
+  return globalThis.__presentationTransport.unpackRows(
+    view.getRegions(...args)
+  );
 }
 
 function dispose()
@@ -96,9 +138,10 @@ function configure()
   dispose();
   const mode=$('mode').value;
   const Backend=$('backend').value==='piece'?D.PieceDocument:D.FlatDocument;
+  const text=$('fixture').value==='mixed'?mixed:original;
   source=new Backend(
     ['fold','substitution','annotation'].includes(mode)?
-      original+'\nHIDDEN\nTAIL':original
+      text+'\nHIDDEN\nTAIL':text
   );
   const raw=new D.RawDocument2D(source);
   layers.push(raw);
@@ -144,6 +187,7 @@ function configure()
     }
     view=prototypeRegions(view,false);
   }
+  if($('transport').value==='compact') view=prototypeCompact(view);
 
   view.setSelections([{start:{row:0,col:0},end:{row:0,col:0},forward:true}]);
   unsubscribe=view.subscribe(event=>
@@ -166,7 +210,7 @@ function render()
 
   const revision=view.revision;
   const rowCount=Math.min(view.rowCount,3);
-  const regionRows=view.getRegions(0,0,rowCount,100);
+  const regionRows=readRegions(0,0,rowCount,100);
   const selections=view.getSelections();
   const fragment=document.createDocumentFragment();
 
@@ -318,7 +362,7 @@ scroller.addEventListener('keydown',event=>
     const point=selection.forward?selection.end:selection.start;
     const col=point.col;
     const row=point.row;
-    const boundaries=[0,...view.getRegions(row,0,row+1,100)[0].flatMap(
+    const boundaries=[0,...readRegions(row,0,row+1,100)[0].flatMap(
       region=>[region.start.col,region.end.col]
     )].filter((value,index,list)=>list.indexOf(value)===index)
       .sort((a,b)=>a-b);
@@ -350,6 +394,8 @@ scroller.addEventListener('keydown',event=>
 });
 
 $('backend').addEventListener('change',configure);
+$('transport').addEventListener('change',configure);
+$('fixture').addEventListener('change',configure);
 $('mode').addEventListener('change',configure);
 $('reset').addEventListener('click',configure);
 
@@ -370,7 +416,7 @@ globalThis.__presentationProbe=Object.freeze(
   attemptProtected:()=>
   {
     const row=$('mode').value==='fold'?1:0;
-    const region=view.getRegions(row,0,row+1,100)[0].find(
+    const region=readRegions(row,0,row+1,100)[0].find(
       region=>region.kind==='fold'||region.kind==='substitution'
     );
     if(!region) return null;
@@ -395,6 +441,73 @@ globalThis.__presentationProbe=Object.freeze(
       unchanged:source.toString()===before && source.revision===sourceRevision,
       region
     };
+  },
+  benchmarkMixed:()=>
+  {
+    const pattern='A😀Be\u0301\tZ\u0001👩‍💻क';
+    const text=pattern.repeat(7000);
+    const physical=new D.PieceDocument(text);
+    const raw=new D.RawDocument2D(physical);
+    const rawUnits=prototypeRegions(raw,true);
+    const cell=new D.CellDocument2D(rawUnits,4);
+    const codec=globalThis.__presentationTransport;
+    const enc=new TextEncoder();
+    const measures=[];
+    const median=fn=>
+    {
+      for(let i=0;i<2;i++) fn();
+      const timings=[];
+      for(let i=0;i<7;i++)
+      {
+        const start=performance.now();
+        fn();
+        timings.push(performance.now()-start);
+      }
+      return Number(timings.sort((a,b)=>a-b)[3].toFixed(4));
+    };
+    try
+    {
+      for(const [mode,input] of [['raw',rawUnits],['cell',cell]])
+      {
+        for(const width of [128,512,2048])
+        {
+          // A bounded read from the same large real source. Record one
+          // transport window, not the entire source or a full DOM viewport.
+          const read=()=>input.getRegions(0,128,1,128+width);
+          const regions=read();
+          const compact=codec.packRows(regions);
+          const restored=codec.unpackRows(compact);
+          const identity=entries=>entries.map(row=>row.map(item=>[
+            item.kind,item.text,item.start.row,item.start.col,
+            item.end.row,item.end.col,item.displayText??item.text,
+            item.id??null
+          ]));
+          if(JSON.stringify(identity(restored))!==
+            JSON.stringify(identity(regions)))
+          {
+            throw new Error('compact mixed-unicode roundtrip differs');
+          }
+          const normalJSON=JSON.stringify(regions);
+          const compactJSON=JSON.stringify(compact);
+          measures.push({
+            mode,width,sourceUTF16Length:text.length,
+            unitCount:regions[0].length,packedCount:compact[0].length,
+            expandedChars:normalJSON.length,packedChars:compactJSON.length,
+            expandedUTF8:enc.encode(normalJSON).length,
+            packedUTF8:enc.encode(compactJSON).length,
+            readMedianMs:median(read),
+            packMedianMs:median(()=>codec.packRows(regions)),
+            unpackMedianMs:median(()=>codec.unpackRows(compact))
+          });
+        }
+      }
+      return measures;
+    }
+    finally
+    {
+      cell.destroy();
+      raw.destroy();
+    }
   },
   benchmarkRaw:()=>
   {
@@ -494,12 +607,14 @@ globalThis.__presentationProbe=Object.freeze(
   },
   snapshot:()=>({
     mode:$('mode').value,backend:$('backend').value,
+    transport:$('transport').value,fixture:$('fixture').value,
     sourceText:source.toString(),sourceRevision:source.revision,
     viewRevision:view.revision,
     rect:view.getRect(0,0,1,100)[0],
-    regions:view.getRegions(0,0,1,100)[0],
+    regions:readRegions(0,0,1,100)[0],
+    compactPayload:view.getRegions(0,0,Math.min(3,view.rowCount),100),
     visibleText:view.getRect(0,0,Math.min(3,view.rowCount),100),
-    regionsByRow:view.getRegions(0,0,Math.min(3,view.rowCount),100),
+    regionsByRow:readRegions(0,0,Math.min(3,view.rowCount),100),
     selections:view.getSelections(),
     rendered:Array.from(rows.querySelectorAll('.unit')).map(element=>({
       row:Number(element.dataset.row),

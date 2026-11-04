@@ -12,6 +12,39 @@ The same renderer accepts this experimental Raw view, real `CellDocument2D` over
 
 The PoC deliberately tests one physical row with `A😀Be\u0301\tZ`. Raw presentation uses independent `H`/`L` diagnostic placeholders for the emoji's two UTF-16 surrogates and a dotted-circle prefix for an isolated combining mark. The Cell view recomposes the actual emoji and combining grapheme, and its TAB occupies columns through the next stop. The same real Flat/Piece source supports genuine mouse click, caret arrows and single-character editing. The auxiliary Chromium test `tests/presentation-browser.mjs` exercises both backends and three modes, exact-data preservation, real composed Cell resegmentation, visual span non-clipping and actual keyboard/mouse behavior.
 
+### Compact unit-boundary transport — browser consumer experiment
+
+The `presentation.html` page now has a transport selector (**explicit regions** /
+**compact boundaries**) and a text fixture selector (**basic** / **mixed Unicode**).
+Both expose the exact same real `Document2D` chain and GUI behavior; only the
+outermost experimental `getRegions` response differs. The candidate codec is
+`presentation-transport.js`, which runs in this PoC and is **not a published
+Document2D interface**.
+
+For consecutive contiguous ordinary text regions, the document-side encoder
+combines the original `text` into a run, retaining an ordered `cells` array
+of **[relative end-column, UTF-16 end-index]** pairs and a sparse `glyphs`
+array for display-only overrides. TAB, annotated zero-width overlays, fold
+markers and occupied substitutions remain **separate, indivisible records**
+with the original extent and metadata. A run crossing an annotation or
+synthetic region is never merged. The GUI only decodes the explicitly
+supplied boundaries and uses `text.slice()` on supplied offsets; it does
+not segment Unicode, inspect concrete view types or derive editability from
+a `kind`. Source `region.text`, `read()`, `replace()`, selections, revision
+and invalidation semantics are unchanged.
+
+`tests/presentation-compact.mjs` compares the **actual Chromium DOM and
+public visible behavior** across the two transports, for both real Flat/Piece
+backends, all six Raw/Cell/nested/annotation/fold/substitution modes, and
+both input fixtures. The mixed fixture includes UTF-16 surrogate pairs,
+combining marks, TAB, control characters and a ZWJ emoji sequence. The test
+exercises actual clicks, arrow navigation, insertion, source preservation,
+protected-edit rejection and synthetic-overlay metadata. A separate bounded
+benchmark on a real long mixed-Unicode PieceDocument reports UTF-8
+serialisation sizes and descriptive `performance.now()` timings. These are
+not measured resident heap, stable throughput targets or production runtime
+claims; absolute latency and memory require later controlled validation.
+
 ### Synthetic regions and bounded-output benchmark (experiment extension)
 
 The same `presentation.html` renderer also accepts real composed
