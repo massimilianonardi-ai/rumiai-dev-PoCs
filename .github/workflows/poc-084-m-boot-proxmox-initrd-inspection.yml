@@ -26,7 +26,7 @@ jobs:
           set -eu
           sudo apt-get update -qq
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
-            initramfs-tools-core zstd cpio file
+            initramfs-tools-core zstd cpio file fakeroot
           python3 -m py_compile \
             pocs/082-m-boot-vendor-iso-readonly/iso_range_inspect.py \
             pocs/083-m-boot-truenas-initrd-readonly/extract_initrd_range.py \
@@ -53,7 +53,7 @@ jobs:
           lsinitramfs initrd.img > initrd-file-list.txt
           test -s initrd-file-list.txt
           mkdir -p extracted
-          unmkinitramfs initrd.img extracted
+          fakeroot -- unmkinitramfs initrd.img extracted
           cd "$GITHUB_WORKSPACE"
           python3 pocs/084-m-boot-proxmox-initrd-readonly/inspect_installer_initrd.py \
             "$RUNNER_TEMP/proxmox-9.2-1/extracted" \
