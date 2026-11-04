@@ -35,6 +35,23 @@ unmodified kernel, execution of the ORIGINAL initramfs `/init`, a
 successful guest shutdown, and unchanged ISO SHA256. It must **not**
 show the overlay initramfs marker before the overlay experiment.
 
+## Reuse in subsequent original-Ventoy QEMU tests
+
+PoC 080 uses this generator unchanged for a rootless UEFI ISO; the
+original ISO's EFI GRUB then boots Linux with the 1 KiB hook **virtually
+replaced** by original Ventoy EFI (run `41838046494` SUCCESS).
+
+For PoC 081 only, the optional `VT079_HANDOFF_ROOT` environment variable
+points to the **real previously constructed** PoC 076 early-Linux kernel
+module/consumer closure. The builder packages those source files in the
+base initramfs archive, leaves the original hook inside the ISO, and
+produces a **separate** replacement hook with the read-only map consumer
+and ISO mount checks. The original boot ISO under this option is 42,010,624
+bytes; it boots normally before the virtual replacement test, and its
+original SHA256 is independently compared after Linux `dm-linear`
+reconstruction (run `41839593585` SUCCESS). These are two distinct
+revision-specific experiments, not a claim of vendor installer support.
+
 ## Boundaries
 
 The first run proves only **bootability of the original test ISO**.
