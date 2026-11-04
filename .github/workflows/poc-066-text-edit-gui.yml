@@ -45,12 +45,16 @@ jobs:
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/presentation-browser.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/presentation-contract.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/presentation-compact.mjs
+          node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/grapheme-stream.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/document2d-browser.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/browser.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/region-geometry.js
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/regions-headless.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/regions.js
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/regions.mjs
+      - name: Check standalone candidate UTF-16 streaming carry (PoC only)
+        run: |
+          node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/grapheme-stream.mjs
       - name: Run DOM-independent 2D region tests against actual TextEdit
         run: |
           node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/regions-headless.mjs

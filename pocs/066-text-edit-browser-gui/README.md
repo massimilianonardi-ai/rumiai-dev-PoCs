@@ -88,6 +88,27 @@ product until this issue is corrected and covered by real product tests.
 The experimental `cells`/`glyphs` wire fields likewise remain
 candidate-only, with no product/API authorization inferred from CI PASS.
 
+### Candidate UTF-16 streaming carry experiment (PoC-only)
+
+The standalone Node experiment `tests/grapheme-stream.mjs` isolates
+the current Cell scanner's incremental `Intl.Segmenter` flush policy.
+The existing policy commits `👩‍` before seeing the low surrogate
+of `💻`, incorrectly splitting a single ZWJ grapheme when
+Raw presentation uses one region per UTF-16 unit. The candidate retains the
+previous grapheme in the carry buffer **when the trailing code unit is an
+unpaired high surrogate**. It compares complete-string segmentation with
+the candidate's incremental output (text and UTF-16 offsets) for isolated
+surrogates, combining marks, ZWJ emoji, flags, Indic text, and chunk
+boundaries around 2048 columns. The same test checks that the old
+incremental policy still reproduces the known failure.
+
+This **only evaluates a streaming algorithm**, not the actual compiled
+`CellDocument2D` integration or a general Unicode conformance
+guarantee. It neither changes canonical Raw `getRegions` nor
+adopts a compact payload. Actual composed Document2D browser tests and
+direct packed-producer heap/DOM measurements remain necessary before
+the candidate can be promoted into the product.
+
 ### Synthetic regions and bounded-output benchmark (experiment extension)
 
 The same `presentation.html` renderer also accepts real composed
