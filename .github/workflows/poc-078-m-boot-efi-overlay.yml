@@ -119,6 +119,7 @@ jobs:
         run: |
           set -eu
           cd fork
+          VTOY_ISO_DRIVER_EFI="$PWD/INSTALL/ventoy/iso9660_x64.efi" \
           sh GRUB2/port/probe-standalone-uefi.sh \
             "$RUNNER_TEMP/efi-source-module/source/grub-core/ventoy_source_probe.mod" \
             "$RUNNER_TEMP/efi-overlay-qemu" ext4-gpt3 \
