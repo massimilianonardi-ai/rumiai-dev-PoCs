@@ -8,7 +8,7 @@ fi
 bundle=$1
 out=$2
 [[ -s "$bundle/boot-disk.raw" && -s "$bundle/runtime.cfg" && ! -e "$out" ]] || exit 3
-for bin in grub-mkstandalone mkfs.vfat mmd mcopy mtype xorriso mkfs.ext4 sgdisk qemu-system-x86_64 timeout grep dd sha256sum awk cmp python3; do
+for bin in grub-mkstandalone mkfs.vfat mmd mcopy mtype xorriso mkfs.ext4 debugfs sgdisk qemu-system-x86_64 timeout grep dd sha256sum awk cmp python3; do
   command -v "$bin" >/dev/null || { echo "Missing CI tool $bin" >&2; exit 4; }
 done
 code=; vars=
@@ -80,8 +80,32 @@ start=$(awk '/^First sector: / {print $3}' "$out/source-part3.txt")
   echo 'GPT3 not MiB aligned' >&2; exit 6;
 }
 truncate -s 192M "$out/source-ext4.img"
-mkfs.ext4 -q -F -L MBOOTDATA -d "$out/root" "$out/source-ext4.img" \
-  > "$out/ext4.log" 2>&1
+# mkfs.ext4 -d can preserve sparse holes in generated ISO files; that is
+# intentionally rejected by the Ventoy probe. Instead allocate every block
+# with regular debugfs writes into an EMPTY disposable ext4 image.
+mkfs.ext4 -q -F -L MBOOTDATA "$out/source-ext4.img" > "$out/ext4.log" 2>&1
+for dir in /m /m/boot /m/boot/iso; do
+  debugfs -w -R "mkdir $dir" "$out/source-ext4.img" >> "$out/ext4.log" 2>&1
+done
+for name in proxmox-ve_9.2-1.iso TrueNAS-SCALE-25.10.7.iso; do
+  debugfs -w -R "write $out/root/m/boot/iso/$name /m/boot/iso/$name" \
+    "$out/source-ext4.img" >> "$out/ext4.log" 2>&1
+  debugfs -R "stat /m/boot/iso/$name" "$out/source-ext4.img" \
+    > "$out/ext4-stat-$name.log" 2>&1
+  python3 - "$out/ext4-stat-$name.log" "$out/root/m/boot/iso/$name" <<'PYEXTENTS'
+import pathlib, re, sys
+stat=pathlib.Path(sys.argv[1]).read_text()
+size=pathlib.Path(sys.argv[2]).stat().st_size
+blocks=re.search(r'Blockcount:\s*(\d+)', stat)
+if not blocks:
+    raise SystemExit('Missing ext4 allocated-block count')
+needed=((size + 4095) // 4096) * 8
+actual=int(blocks.group(1))
+print(f'VT086_DENSE_EXT4_FILE={sys.argv[2]} allocated_sectors={actual} required={needed}')
+if actual < needed:
+    raise SystemExit('Refusing synthetic sparse ext4 ISO fixture before QEMU')
+PYEXTENTS
+done
 dd if="$out/source-ext4.img" of="$out/source-disk.raw" bs=1M \
   seek=$((start / 2048)) conv=notrunc status=none
 sgdisk --verify "$out/source-disk.raw" >> "$out/source-gpt.log" 2>&1
