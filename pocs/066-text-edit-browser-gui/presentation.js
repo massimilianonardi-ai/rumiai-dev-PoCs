@@ -442,6 +442,38 @@ globalThis.__presentationProbe=Object.freeze(
       region
     };
   },
+  compareZWJ:()=>
+  {
+    // Diagnostic ONLY: compare the shipped aggregated Raw input with the
+    // proposed one-code-unit-per-region input, under the same real Cell.
+    const original='A😀Be\u0301\tZ\u0001👩‍💻';
+    const physical=new D.PieceDocument(original);
+    const raw=new D.RawDocument2D(physical);
+    const ordinary=new D.CellDocument2D(raw,4);
+    const projected=new D.CellDocument2D(prototypeRegions(raw,true),4);
+    const read=doc=>doc.getRegions(0,0,1,100)[0].map(region=>({
+      kind:region.kind,text:region.text,
+      start:region.start.col,end:region.end.col
+    }));
+    try
+    {
+      return {
+        source:physical.toString(),
+        standard:read(ordinary),
+        atomized:read(projected),
+        unicodeGraphemes:Array.from(
+          new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(original),
+          segment=>segment.segment
+        )
+      };
+    }
+    finally
+    {
+      projected.destroy();
+      ordinary.destroy();
+      raw.destroy();
+    }
+  },
   benchmarkMixed:()=>
   {
     const pattern='A😀Be\u0301\tZ\u0001👩‍💻क';
