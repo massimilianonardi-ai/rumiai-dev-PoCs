@@ -28,7 +28,7 @@ jobs:
         run: |
           set -eu
           cd fork
-          test "$(git rev-parse HEAD)" = 'a3a208d151b51b5eb72d1e977176780f990add6f' || {
+          test "$(git rev-parse HEAD)" = '6d830fdeb411007e81f33ec35d28f3c072dd72ef' || {
             echo 'Experimental fork changed: review before testing' >&2
             exit 2
           }
