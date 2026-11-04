@@ -1,0 +1,31 @@
+name: PoC 077 m-boot read-only ISO9660 initrd shadow
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'pocs/077-m-boot-iso-overlay/**'
+      - '.github/workflows/poc-077-m-boot-iso-overlay.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  iso-overlay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install real ISO9660 and kernel device mapper dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gdisk dmsetup xorriso e2fsprogs cpio
+      - name: Static syntax preflight
+        run: |
+          sh -n pocs/077-m-boot-iso-overlay/run-linux.sh
+          python3 -m py_compile pocs/077-m-boot-iso-overlay/overlay_iso.py
+      - name: Genuine read-only ISO9660 mount with replaced initrd and unchanged original
+        run: sudo sh pocs/077-m-boot-iso-overlay/run-linux.sh
