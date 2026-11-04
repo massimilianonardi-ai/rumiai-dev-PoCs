@@ -133,11 +133,15 @@ try
     const selections=[];
     async function checkpoint(expectedStart)
     {
-      await page.waitForFunction(
-        expected=>window.__presentationProbe?.snapshot()
-          ?.viewportColStart===expected,
-        expectedStart
-      );
+      await page.waitForFunction(expected=>
+      {
+        const snapshot=window.__presentationProbe?.snapshot();
+        const units=document.querySelectorAll('#rows .unit');
+        return snapshot?.viewportColStart===expected &&
+          units.length===100 &&
+          Number(units[0].dataset.start)===expected &&
+          Number(units[units.length-1].dataset.end)===expected+100;
+      },expectedStart);
       const snap=await page.evaluate(
         ()=>window.__presentationProbe.snapshot()
       );
