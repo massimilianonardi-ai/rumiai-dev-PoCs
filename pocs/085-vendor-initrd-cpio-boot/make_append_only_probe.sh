@@ -55,10 +55,22 @@ chmod 755 "$output/root/init"
   echo 'Experimental appended CPIO exceeds 64KiB' >&2
   exit 6
 }
-cat "$source" "$output/append-only-hook.cpio" \
-  > "$output/composed-initrd.img"
+# Linux's initramfs stream parser expects a new cpio archive to start at
+# a 4-byte boundary. Both exact vendor .zst lengths are 1 modulo 4.
+# Preserve every original byte; insert 0..3 external alignment bytes.
+python3 - "$source" "$output/append-only-hook.cpio" \
+  "$output/composed-initrd.img" <<'PYPAD'
+from pathlib import Path
+import sys
+original = Path(sys.argv[1]).read_bytes()
+sidecar = Path(sys.argv[2]).read_bytes()
+pad = (-len(original)) % 4
+assert sidecar.startswith(b'070701'), 'unexpected cpio header'
+Path(sys.argv[3]).write_bytes(original + b'\0' * pad + sidecar)
+print(f'VT085_CPIO_4_BYTE_ALIGNMENT_PAD={pad}')
+PYPAD
 test "$(wc -c < "$output/composed-initrd.img")" -eq \
-  "$(($(wc -c < "$source") + $(wc -c < "$output/append-only-hook.cpio")))" ||
+  "$(($(wc -c < "$source") + (4 - $(wc -c < "$source") % 4) % 4 + $(wc -c < "$output/append-only-hook.cpio")))" ||
   exit 7
 python3 - "$source" "$output/composed-initrd.img" <<'PY'
 import hashlib
