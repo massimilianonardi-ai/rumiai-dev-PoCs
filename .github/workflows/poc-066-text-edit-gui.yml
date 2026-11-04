@@ -1,4 +1,4 @@
-name: PoC 066 TextEdit browser GUI
+name: PoC 066 TextEdit and Document2D browser GUI
 
 on:
   push:
@@ -15,11 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Check out the real current TextEdit 0.8.2
+      - name: Check out real TextEdit 0.8.2 and current m.text.document
         uses: actions/checkout@v4
         with:
           repository: massimilianonardi-ai/rumiai-os
-          ref: ef466362e9630b86d81b07ca647c2f2fbfd97a22
+          ref: c453b5764fec8403571125ea62107ae072a823a1
           path: rumiai-os
       - name: Check out GUI PoC at its actual nested path
         uses: actions/checkout@v4
@@ -32,9 +32,15 @@ jobs:
         run: |
           npm install --no-save playwright@1.56.1
           npx playwright install chromium
+      - name: Compile the actual Document2D core as a browser script
+        run: |
+          node rumiai-os/lib/sys/js/jsc.lib.js rumiai-os/lib/sys/js/core/modules-js.json rumiai-os/lib/sys/js/core/document2d-browser.generated.js
+          node --check rumiai-os/lib/sys/js/core/document2d-browser.generated.js
       - name: Verify PoC source syntax
         run: |
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/gui.js
+          node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/document2d.js
+          node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/document2d-browser.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/browser.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/region-geometry.js
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/regions-headless.mjs
@@ -49,3 +55,4 @@ jobs:
           sleep 2
           node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/browser.mjs
           node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/regions.mjs
+          node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/document2d-browser.mjs
