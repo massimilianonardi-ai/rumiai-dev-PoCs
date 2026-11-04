@@ -44,7 +44,33 @@ the annotation remains non-interactive metadata.
 `tests/canonical-protected-browser.mjs` covers Flat/Piece × three
 synthetic views on the unmodified, compiled core. This remains scoped G03
 evidence, **not** complete deletion/selection/IME behavior. G04
-scrolling/viewport and physical-host acceptance remain open. The execution plan
+scrolling/viewport and physical-host acceptance remain open.
+
+### G04 canonical bounded-viewport prototype
+
+The same `canonical-gui.html` page now has `basic`, `long`
+(>100,000 UTF-16 code units) and `many` (1,200 rows) fixtures.
+The actual renderer requests at most 3 rows by 100 columns from the
+outermost existing unmodified `Document2D` per paint, mounts only
+these rows, and preserves whole indivisible regions crossing an
+edge. Real vertical wheel and PageUp/PageDown page row windows; Shift
++ wheel pages columns. Arrow left/right query a single exposed cell
+to find the whole token and can move into a different window, while
+up/down use valid public row boundaries. This is **logical paging**,
+not a browser-native proportional scrollbar or a benchmark for
+full-row `getRowWidth` complexity. The latter remains a known
+nonindexed source method, used only to clamp horizontal navigation.
+
+Rapid reconfiguration cancels pending animation frames and guards
+the generation; old document views are destroyed and detached.
+A diagnostic probe may modify the *retired physical source* solely
+to test that it cannot repaint the newly selected view. Neither
+the renderer nor user input receives the physical source.
+
+`tests/canonical-viewport-browser.mjs` drives real Chromium mouse,
+keyboard, edits, source invalidation and reconfiguration on Flat/Piece.
+The current file-loading/IME/full scrollbar and reference physical-host
+capabilities remain outside this PoC work unit. The execution plan
 and authoritative task state live solely in
 `rumiai-dev/handoff/browser-column-editor.md`.
 

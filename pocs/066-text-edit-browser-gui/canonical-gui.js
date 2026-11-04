@@ -14,6 +14,14 @@ if(!D?.CellDocument2D || !D?.RawDocument2D)
 }
 
 const sample='A😀Be\u0301\tZ👩‍💻\nHIDDEN\nTAIL';
+const longSample='A😀Be\u0301\tZ👩‍💻XY'.repeat(9000);
+const manySample=Array.from
+(
+  {length:1200},
+  (_,i)=>'row-'+String(i).padStart(4,'0')+' A😀Be\u0301\tZ👩‍💻'
+).join('\n');
+const VISIBLE_ROWS=3;
+const VISIBLE_COLS=100;
 const rows=$('rows');
 const metrics=document.createElement('canvas').getContext('2d');
 const CELL_PX=20;
@@ -28,6 +36,13 @@ let lastContentEvent=null;
 let contentEvents=0;
 let selectionEvents=0;
 let lastRendered=null;
+let firstRow=0;
+let firstCol=0;
+let generation=0;
+let frame=null;
+let regionReads=0;
+let retiredSource=null;
+let retiredView=null;
 
 function destroy()
 {
@@ -36,6 +51,8 @@ function destroy()
     unsubscribe();
     unsubscribe=null;
   }
+  retiredSource=source;
+  retiredView=view;
   for(const layer of layers.reverse()) layer.destroy();
   layers=[];
   source=view=null;
@@ -43,7 +60,12 @@ function destroy()
 
 function compose(Backend,mode)
 {
-  source=new Backend(sample);
+  const fixture=$('fixture').value;
+  source=new Backend
+  (
+    fixture==='long' ? longSample :
+    fixture==='many' ? manySample : sample
+  );
   const raw=new D.RawDocument2D(source);
   layers.push(raw);
 
@@ -91,18 +113,23 @@ function compose(Backend,mode)
   }
 }
 
-function renderDocument(document2D,element,colStart,colEnd)
+function renderDocument(document2D,element,rowStart,colStart)
 {
   const revision=document2D.revision;
-  const rowEnd=Math.min(3,document2D.rowCount);
-  const visible=document2D.getRegions(0,colStart,rowEnd,colEnd);
+  const rowEnd=Math.min(rowStart+VISIBLE_ROWS,document2D.rowCount);
+  const colEnd=colStart+VISIBLE_COLS;
+  regionReads++;
+  const visible=document2D.getRegions
+  (
+    rowStart,colStart,rowEnd,colEnd
+  );
   const selections=document2D.getSelections();
   const fragment=globalThis.document.createDocumentFragment();
   const measurements=[];
   const style=getComputedStyle(element);
   metrics.font='18px '+(style.fontFamily||'monospace');
 
-  for(let row=0;row<rowEnd;row++)
+  for(let row=rowStart;row<rowEnd;row++)
   {
     const line=globalThis.document.createElement('div');
     line.className='row';
@@ -113,7 +140,7 @@ function renderDocument(document2D,element,colStart,colEnd)
     const units=[];
     const notes=[];
 
-    for(const region of visible[row]||[])
+    for(const region of visible[row-rowStart]||[])
     {
       if(region.kind==='annotation')
       {
@@ -197,29 +224,58 @@ function renderDocument(document2D,element,colStart,colEnd)
     return;
   }
   paints++;
-  lastRendered={revision,visible,rowCount:rowEnd};
+  lastRendered={
+    revision,visible,rowStart,rowEnd,colStart,colEnd,generation
+  };
   $('status').textContent=
-    'Righe: '+document2D.rowCount+
-    ' · Colonne prima riga: '+document2D.getRowWidth(0)+
-    ' · Revisione: '+revision+' · Render: '+paints;
+    'Vista righe '+rowStart+'–'+rowEnd+
+    ' · colonne '+colStart+'–'+colEnd+
+    ' · righe totali '+document2D.rowCount+
+    ' · revisione '+revision+' · render '+paints;
 }
 
 function render()
 {
-  scheduled=false;
-  if(view) renderDocument(view,rows,0,100);
+  if(!view) return;
+  firstRow=Math.min
+  (
+    firstRow,Math.max(0,view.rowCount-VISIBLE_ROWS)
+  );
+  renderDocument(view,rows,firstRow,firstCol);
 }
 
 function schedule()
 {
   if(scheduled) return;
   scheduled=true;
-  requestAnimationFrame(render);
+  const ticket=generation;
+  frame=requestAnimationFrame
+  (
+    ()=>
+    {
+      frame=null;
+      scheduled=false;
+      if(ticket!==generation) return;
+      render();
+    }
+  );
 }
 
 function configure()
 {
+  generation++;
+  if(frame!==null)
+  {
+    cancelAnimationFrame(frame);
+    frame=null;
+  }
+  scheduled=false;
   destroy();
+  firstRow=0;
+  firstCol=0;
+  scroller.scrollTop=0;
+  scroller.scrollLeft=0;
+  regionReads=0;
   paints=0;
   lastEvent=null;
   lastContentEvent=null;
@@ -263,46 +319,113 @@ function moveCaret(row,col)
   (
     [{start:point,end:{...point},forward:true}]
   );
+  if(row<firstRow || row>=firstRow+VISIBLE_ROWS)
+  {
+    firstRow=Math.max
+    (
+      0,Math.min(row,view.rowCount-VISIBLE_ROWS)
+    );
+  }
+  if(col<firstCol || col>firstCol+VISIBLE_COLS)
+  {
+    firstCol=Math.floor(col/VISIBLE_COLS)*VISIBLE_COLS;
+  }
   schedule();
 }
 
 function moveHorizontal(direction)
 {
   const selection=view.getSelections()[0];
-  if(!selection || !lastRendered ||
-    lastRendered.revision!==view.revision)
-  {
-    schedule();
-    return;
-  }
+  if(!selection) return;
 
   const point=selection.forward?selection.end:selection.start;
-  const regions=lastRendered.visible[point.row];
-  if(!regions) return;
+  const at=point.col+(direction<0?-1:0);
+  if(at<0) return;
 
-  // This first interaction prototype stays inside the G01 100-column
-  // visible window; full horizontal/vertical navigation belongs to G04.
-  const width=view.getRowWidth(point.row);
-  const boundaries=new Set([0]);
-  if(width<=100) boundaries.add(width);
+  // The public bounded query returns the *whole* intersecting region,
+  // including an indivisible TAB or substitution at a viewport edge.
+  // There is no Unicode segmentation or source-storage mapping here.
+  const next=view.getRegions
+  (
+    point.row,at,point.row+1,at+1
+  )[0].find
+  (
+    region=>region.kind!=='annotation' &&
+      region.start.col<=at && region.end.col>at
+  );
+  if(!next) return;
+  moveCaret
+  (
+    point.row,direction<0?next.start.col:next.end.col
+  );
+}
 
+function moveVertical(direction)
+{
+  const selection=view.getSelections()[0];
+  if(!selection) return;
+
+  const point=selection.forward?selection.end:selection.start;
+  const row=point.row+direction;
+  if(row<0 || row>=view.rowCount) return;
+  const target=Math.min(point.col,view.getRowWidth(row));
+  const regions=view.getRegions
+  (
+    row,Math.max(0,target-1),row+1,target+1
+  )[0].filter(region=>region.kind!=='annotation');
+  const boundaries=new Set([0,target]);
   for(const region of regions)
   {
-    if(region.kind==='annotation') continue;
     boundaries.add(region.start.col);
     boundaries.add(region.end.col);
   }
-
-  const sorted=Array.from(boundaries).sort((a,b)=>a-b);
-  const next=direction<0 ?
-    sorted.filter(col=>col<point.col).at(-1) :
-    sorted.find(col=>col>point.col);
-
-  if(next!==undefined)
+  const valid=Array.from(boundaries)
+    .filter(col=>col>=0 && col<=view.getRowWidth(row))
+    .sort((a,b)=>Math.abs(a-target)-Math.abs(b-target)||a-b);
+  // setSelections is the authority on legal exposed endpoints, including
+  // protected rows; no fallback to backing coordinates is allowed.
+  for(const col of valid)
   {
-    moveCaret(point.row,next);
+    try
+    {
+      moveCaret(row,col);
+      return;
+    }
+    catch(error)
+    {
+      if(!(error instanceof RangeError)) throw error;
+    }
   }
 }
+
+function moveWindow(rowDelta,colDelta)
+{
+  if(!view) return;
+  const rowEnd=Math.max(0,view.rowCount-VISIBLE_ROWS);
+  const nextRow=Math.max(0,Math.min(rowEnd,firstRow+rowDelta));
+  let nextCol=firstCol;
+
+  if(colDelta!==0)
+  {
+    let maximum=0;
+    for(let row=nextRow;row<Math.min(view.rowCount,nextRow+VISIBLE_ROWS);row++)
+    {
+      maximum=Math.max(maximum,view.getRowWidth(row));
+    }
+    nextCol=Math.max
+    (
+      0,Math.min(Math.max(0,maximum-VISIBLE_COLS),firstCol+colDelta)
+    );
+  }
+
+  if(nextRow===firstRow && nextCol===firstCol) return;
+  firstRow=nextRow;
+  firstCol=nextCol;
+  scroller.scrollTop=0;
+  scroller.scrollLeft=0;
+  schedule();
+}
+
 
 // A deliberately bounded Delete interaction: one *visible* whole unit.
 // The view alone decides whether the interval is editable. This is not a
@@ -324,7 +447,7 @@ function deleteNextVisibleUnit()
   }
 
   const point=selection.start;
-  const regions=lastRendered.visible[point.row]||[];
+  const regions=lastRendered.visible[point.row-lastRendered.rowStart]||[];
   const unit=regions.find
   (
     region=>region.kind!=='annotation' &&
@@ -341,6 +464,24 @@ function deleteNextVisibleUnit()
 }
 
 const scroller=$('scroller');
+// The DOM intentionally contains only three rows. Real wheel events page
+// the logical bounded viewport; this is not a document-sized scrollbar.
+scroller.addEventListener('wheel',event=>
+{
+  if(!view) return;
+  const horizontal=event.shiftKey ||
+    Math.abs(event.deltaX)>Math.abs(event.deltaY);
+  const delta=horizontal?(event.deltaX||event.deltaY):event.deltaY;
+  if(!delta) return;
+  const pages=Math.max(1,Math.ceil(Math.abs(delta)/100));
+  event.preventDefault();
+  moveWindow
+  (
+    horizontal?0:Math.sign(delta)*pages*VISIBLE_ROWS,
+    horizontal?Math.sign(delta)*pages*VISIBLE_COLS:0
+  );
+},{passive:false});
+
 scroller.addEventListener('click',event=>
 {
   const target=event.target;
@@ -387,6 +528,27 @@ scroller.addEventListener('keydown',event=>
     return;
   }
 
+  if(event.key==='PageDown' || event.key==='PageUp')
+  {
+    event.preventDefault();
+    moveWindow(event.key==='PageDown'?VISIBLE_ROWS:-VISIBLE_ROWS,0);
+    return;
+  }
+
+  if(event.key==='ArrowDown' || event.key==='ArrowUp')
+  {
+    event.preventDefault();
+    try
+    {
+      moveVertical(event.key==='ArrowDown'?1:-1);
+    }
+    catch(error)
+    {
+      $('message').textContent='Navigazione respinta: '+error.message;
+    }
+    return;
+  }
+
   if(event.key==='Delete')
   {
     event.preventDefault();
@@ -419,6 +581,7 @@ scroller.addEventListener('keydown',event=>
   }
 });
 
+$('fixture').addEventListener('change',configure);
 $('mode').addEventListener('change',configure);
 $('backend').addEventListener('change',configure);
 $('reset').addEventListener('click',configure);
@@ -502,15 +665,58 @@ globalThis.__canonicalGuiProbe=Object.freeze
         selectionsUnchanged:JSON.stringify(view.getSelections())===selections
       };
     },
+    viewport:()=>({
+      fixture:$('fixture').value,mode:$('mode').value,
+      firstRow,firstCol,generation,paints,regionReads,
+      rowCount:view?.rowCount,viewRevision:view?.revision,
+      renderedRevision:lastRendered?.revision,
+      renderedGeneration:lastRendered?.generation,
+      renderWindow:lastRendered ? {
+        rowStart:lastRendered.rowStart,rowEnd:lastRendered.rowEnd,
+        colStart:lastRendered.colStart,colEnd:lastRendered.colEnd
+      } : null,
+      mountedRows:rows.childElementCount,
+      mountedUnits:rows.querySelectorAll('.unit').length
+    }),
+    mutateRetiredSource:()=>
+    {
+      if(!retiredSource) return null;
+      const priorRevision=retiredSource.revision;
+      const currentRevision=source.revision;
+      const currentPaints=paints;
+      const currentEvents=contentEvents;
+      retiredSource.replace([{start:0,end:0,text:'!'}]);
+      return {
+        retiredRevisionDelta:retiredSource.revision-priorRevision,
+        currentSourceUnchanged:source.revision===currentRevision,
+        currentPaintsUnchanged:paints===currentPaints,
+        currentEventsUnchanged:contentEvents===currentEvents,
+        retiredViewRejectsRead:(()=>{
+          try
+          {
+            retiredView.getRegions(0,0,1,1);
+            return false;
+          }
+          catch(error)
+          {
+            return true;
+          }
+        })()
+      };
+    },
     snapshot:()=>
     {
       const visible=lastRendered?.visible||[];
       return {
         mode:$('mode').value,backend:$('backend').value,
+        fixture:$('fixture').value,
+        firstRow,firstCol,generation,regionReads,
         paints,sourceText:source?.toString(),
         sourceRevision:source?.revision,viewRevision:view?.revision,
         renderedRevision:lastRendered?.revision,
-        rowCount:view?.rowCount,firstRowWidth:view?.getRowWidth(0),
+        rowCount:view?.rowCount,
+        firstRowWidth:$('fixture').value==='basic'?
+          view?.getRowWidth(0):null,
         rawRegions:layers[0]?.getRegions(0,0,1,100)[0],
         regionsByRow:visible,
         selections:view?.getSelections(),lastEvent,
