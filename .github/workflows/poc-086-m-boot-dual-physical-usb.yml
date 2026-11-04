@@ -58,7 +58,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bash pocs/086-m-boot-dual-physical-usb-uefi/test-dual-uefi.sh \
+          bash -x pocs/086-m-boot-dual-physical-usb-uefi/test-dual-uefi.sh \
             "$RUNNER_TEMP/vt086/image" "$RUNNER_TEMP/vt086/test"
           for name in proxmox truenas; do
             grep -Fq 'VT086_NESTED_ISO_EFI_CHAIN_SUCCESS' "$RUNNER_TEMP/vt086/test/qemu-$name.log"
