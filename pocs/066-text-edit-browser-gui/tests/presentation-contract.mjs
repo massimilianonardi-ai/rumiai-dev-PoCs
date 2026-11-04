@@ -122,6 +122,17 @@ try
       assert.equal(accepted.sourceRevision,1);
       assert.ok(accepted.sourceText.startsWith('Q😀Be\u0301\tZ'));
       await waitPaint(before);
+      // A preceding pointer selection can queue its own frame. Require
+      // the post-commit view content, not merely any later render count.
+      await page.waitForFunction(()=>
+      {
+        const current=window.__presentationProbe?.snapshot();
+        return current?.sourceRevision===1 &&
+          current.lastEvent?.invalidation===true &&
+          current.rendered.every(region=>
+            region.kind!=='fold' && region.kind!=='substitution') &&
+          current.annotations.length===0;
+      });
       const after=await snap();
       assert.equal(after.sourceRevision,1);
       assert.equal(after.lastEvent.invalidation,true);
