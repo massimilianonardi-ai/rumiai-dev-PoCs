@@ -119,6 +119,17 @@ try
     assert.equal(copied.text,'😀\nI');
     assert.ok(copied.column.includes('"rows":2'));
 
+    // Toolbar path must use the browser's actual permission-gated clipboard,
+    // independently of the synthetic ClipboardEvent data-transfer probe.
+    await page.context().grantPermissions
+    (
+      ['clipboard-read','clipboard-write'],
+      {origin:'http://127.0.0.1:8765'}
+    );
+    await page.locator('#copy').click();
+    const nativeCopy=await page.evaluate(()=>navigator.clipboard.readText());
+    assert.equal(nativeCopy,'😀\nI');
+
     const cut=await clipboard('cut',null);
     assert.equal(cut.handled,true);
     const removed=original.replace('😀','').replace('HIDDEN','HDDEN');
@@ -134,8 +145,7 @@ try
     s=await settle(removed);
     assert.equal(s.history.undo,1);
 
-    const pasted=await clipboard('paste','😀\nI',true);
-    assert.equal(pasted.handled,true);
+    await page.locator('#paste').click();
     s=await settle(original);
     assert.equal(s.sourceRevision,4,'one source commit per column action');
     assert.equal(s.history.undo,2);
