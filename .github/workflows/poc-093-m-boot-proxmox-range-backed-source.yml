@@ -1,0 +1,80 @@
+name: PoC 093 M-05 QEMU native HTTPS read-only official Proxmox ISO source
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/poc-093-m-boot-proxmox-range-backed-source.yml'
+      - 'pocs/093-m-boot-proxmox-range-backed-source/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  m05-qemu-remote-original-iso-source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      OFFICIAL_ISO: https://enterprise.proxmox.com/iso/proxmox-ve_9.2-1.iso
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install actual QEMU read-only block driver, no disk imaging
+        shell: sh
+        run: |
+          set -eu
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends qemu-utils
+          qemu-img --version
+          python3 -m py_compile pocs/093-m-boot-proxmox-range-backed-source/verify-qemu-source.py
+          python3 -m py_compile pocs/082-m-boot-vendor-iso-readonly/iso_range_inspect.py
+      - name: Open entire official ISO address space read-only without copying ISO
+        shell: sh
+        run: |
+          set -eu
+          mkdir -p "$RUNNER_TEMP/m05-remote"
+          timeout 90 qemu-img info -f raw --output=json "$OFFICIAL_ISO" \
+            > "$RUNNER_TEMP/m05-remote/qemu-info.json"
+          python3 - "$RUNNER_TEMP/m05-remote/qemu-info.json" <<'PY'
+          import json,sys
+          info=json.load(open(sys.argv[1]))
+          if info.get("virtual-size")!=1706178560 or info.get("format")!="raw":
+              raise SystemExit("M05_QEMU_REMOTE_SIZE_OR_FORMAT_BAD")
+          print("M05_QEMU_ORIGINAL_ISO_VIRTUAL_BYTES="+str(info["virtual-size"]))
+          PY
+      - name: Read TWO distant original ISO sectors through real QEMU HTTPS backend
+        shell: sh
+        run: |
+          set -eu
+          timeout 90 qemu-img dd -f raw -O raw bs=2048 count=1 skip=16 \
+            "if=$OFFICIAL_ISO" "of=$RUNNER_TEMP/m05-remote/qemu-pvd.bin"
+          timeout 90 qemu-img dd -f raw -O raw bs=2048 count=1 skip=833078 \
+            "if=$OFFICIAL_ISO" "of=$RUNNER_TEMP/m05-remote/qemu-tail.bin"
+          test "$(wc -c < "$RUNNER_TEMP/m05-remote/qemu-pvd.bin")" -eq 2048
+          test "$(wc -c < "$RUNNER_TEMP/m05-remote/qemu-tail.bin")" -eq 2048
+      - name: Verify exact sectors against independent strict HTTP 206 with object consistency
+        shell: sh
+        run: |
+          set -eu
+          python3 pocs/093-m-boot-proxmox-range-backed-source/verify-qemu-source.py \
+            --url "$OFFICIAL_ISO" \
+            --qemu-info "$RUNNER_TEMP/m05-remote/qemu-info.json" \
+            --qemu-pvd "$RUNNER_TEMP/m05-remote/qemu-pvd.bin" \
+            --qemu-tail "$RUNNER_TEMP/m05-remote/qemu-tail.bin" \
+            --out "$RUNNER_TEMP/m05-remote/m05-source-evidence.json"
+          test "$(find "$RUNNER_TEMP/m05-remote" -type f -size +1M | wc -l)" -eq 0
+          echo M05_NO_FULL_ISO_LOCAL_COPY_CONFIRMED
+      - name: Preserve only sampled original bytes and source provenance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-093-m05-proxmox-qemu-https-source
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/m05-remote/qemu-info.json
+            ${{ runner.temp }}/m05-remote/qemu-pvd.bin
+            ${{ runner.temp }}/m05-remote/qemu-tail.bin
+            ${{ runner.temp }}/m05-remote/m05-source-evidence.json
