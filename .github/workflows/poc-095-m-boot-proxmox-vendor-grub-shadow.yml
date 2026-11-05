@@ -34,6 +34,8 @@ jobs:
           test -s m05-config/first-stage-grub.cfg
           test "$(wc -c < m05-config/pvd-override.bin)" -eq 8
           test "$(wc -c < m05-config/dirent-override.bin)" -eq 16
+          test "$(wc -c < m05-config/pvd-sector-patched.bin)" -eq 2048
+          test "$(wc -c < m05-config/dirent-sector-patched.bin)" -eq 2048
           test "$(wc -c < m05-config/virtual-grub.cfg)" -le 65536
           grub-script-check m05-config/original-grub.cfg
           grub-script-check m05-config/virtual-grub.cfg
@@ -78,3 +80,5 @@ jobs:
             m05-config/virtual-grub.cfg
             m05-config/pvd-override.bin
             m05-config/dirent-override.bin
+            m05-config/pvd-sector-patched.bin
+            m05-config/dirent-sector-patched.bin
