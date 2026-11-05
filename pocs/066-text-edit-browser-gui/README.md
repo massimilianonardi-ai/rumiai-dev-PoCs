@@ -81,6 +81,71 @@ synthetic views on the unmodified, compiled core. This remains scoped G03
 evidence, **not** complete deletion/selection/IME behavior. G04
 scrolling/viewport and physical-host acceptance remain open.
 
+### Interactive GUI: rectangle, drag, clipboard, IME, navigation and scrollbars
+
+The **existing** `canonical-gui.html` page now exposes two explicit
+gesture modes: **Lineare** (default) and **Colonne**. The `Alt+1` /
+`Alt+2` switches, `Ctrl/Command+C/X/V`, `Ctrl/Command+Z/Y`,
+`Ctrl/Command+Shift+Z`, and source-backed column-mode distribution
+follow established MadEdit-Mod interaction ideas, **not a claim of exact
+MadEdit-Mod compatibility**. The documented MadEdit-Mod key mapping
+has Text/Column mode at Alt+1/Alt+2, clipboard actions at Ctrl+C/X/V,
+and Undo/Redo at Ctrl+Z/Y; its changelog describes optional one-line
+auto-fill for multiple column destinations.
+
+A pointer click places one exposed-cell caret; captured pointer drag
+extends a selection. In **Colonne** mode dragging across rows creates
+one half-open range per row in the original drag order, preserving
+horizontal orientation and snapping both ends to the nearest published
+unit boundary. Short rows are clipped to their own EOL; a TAB, Unicode
+grapheme, fold or substitution is not split into arbitrary GUI offsets.
+Protected source edits are checked/rejected by the nominal Document2D.
+Each selection is painted across the bounded visible rows; the renderer
+still reads only the outermost Document2D and has no source mapping.
+
+Clipboard **copy** uses `Document2D.read()` in selection order.
+Multiple selected rows are transferred as `text/plain` joined by LF;
+a browser `ClipboardEvent` also publishes the opt-in experimental
+`application/x-rumiai-column` row-count marker. **Cut** deletes only
+after clipboard transport succeeds. **Paste** into multiple column
+targets distributes exactly one source line per target; with **Ripeti
+riga singola** enabled, one clipboard line repeats to every target.
+Other row-count mismatches reject the entire action (no silent partial
+edits, no cyclic repetition). Pasting into one selection retains the
+incoming text literally. Browser clipboard events and the toolbar's
+`navigator.clipboard` transport are separate paths; toolbar access
+requires browser clipboard permission/secure loopback context.
+
+The browser-only composer adds a **bounded source-edit inverse journal**
+to the actual physical document's public `replace`, preserving one
+underlying atomic mutation per user action and no full document snapshots.
+Each successful source commit records the edited UTF-16 spans, their
+removed contents and before/after public selections. **Annulla/Ripeti**
+replays the inverse/forward atomic batch and restores selections, with
+up to **100 actions or 2 MiB of changed text**, whichever limit comes
+first; new commits clear redo. This is a **PoC-only adapter**, not a new
+`Document2D` public history contract, a persisted timeline, or a
+promise of exact cross-document history under independently concurrent
+writers. There is no keystroke coalescing.
+
+Native `compositionstart/update/end` on the hidden, caret-positioned
+textarea keeps intermediate IME state outside the source and commits one
+final text insertion. Real OS input-method/candidate-window behavior
+still needs interactive manual verification; synthetic composition tests
+cannot establish all platform IME paths. Navigation adds Home/End,
+Ctrl/Command+Home/End, arrows across line boundaries,
+Shift+arrows, Backspace/Delete, Enter and TAB. Two real **range
+scrollbars** control the bounded logical row and current-window column
+offsets; wheel and PageUp/PageDown continue to page without expanding
+the DOM. The horizontal range is based on the displayed rows, not a
+global proportional scrollbar across all hidden rows.
+
+`tests/canonical-advanced-browser.mjs` checks both real Flat/Piece
+backends in actual Chromium: pixel-placed drag, per-row copy/cut/paste,
+history reversibility, failed incompatible paste, IME event commit and
+range scrolling. Hosted browser checks do not by themselves validate
+physical clipboard permission or native IME on the operator's VM.
+
 ### G07 Ubuntu 26.04 ARM64 reference-VM validation
 
 **The operator's Ubuntu 26.04 ARM64 VM is the primary reference host.**
