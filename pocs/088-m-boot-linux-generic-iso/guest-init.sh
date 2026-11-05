@@ -23,9 +23,45 @@ echo "VT_LINUX_ISO_SHA256=$digest"
 echo VT_LINUX_ISO_IDENTITY_PASS
 echo VT_LINUX_HANDOFF_PASS
 echo M02_GUEST_MOUNT_PASS
+# Read the existing real C consumer table to locate this disposable guest's
+# actual source partition; do not assume vdb/dm-0 or alter source bytes.
+IFS=' ' read -r table_start table_length table_kind source_part source_sector < /run/m02/iso-table ||
+    failed MISSING_MAP_TABLE
+[ "$table_kind" = linear ] && [ -b "$source_part" ] ||
+    failed UNEXPECTED_MAP_TABLE
+case "$source_part" in
+    /dev/vd*[0-9]) source_disk=${source_part%[0-9]} ;;
+    *) failed UNSUPPORTED_TEST_SOURCE ;;
+esac
+[ -b "$source_disk" ] || failed MISSING_SOURCE_DEVICE
 /bin/sh /bin/m02-iso-stage cleanup || failed CLEANUP
 [ ! -e /dev/mapper/vt_iso_m02 ] || failed MAPPER_LEFT_BEHIND
 echo M02_GUEST_CLEANUP_PASS
+
+# Hide ONLY a devtmpfs node for the disposable virtual source (not the
+# underlying disk). Other QEMU GPT disks remain visible: consumer must not
+# select a different device or create a mapper in its place.
+/bin/busybox mv "$source_disk" "$source_disk.m02-hidden" ||
+    failed HIDE_WHOLE_SOURCE
+if /bin/sh /bin/m02-iso-stage prepare; then
+    failed WRONG_SOURCE_FALLBACK_ACCEPTED
+fi
+/bin/busybox mv "$source_disk.m02-hidden" "$source_disk" ||
+    failed RESTORE_WHOLE_SOURCE
+[ ! -e /dev/mapper/vt_iso_m02 ] || failed WRONG_SOURCE_MAPPER_LEAK
+echo M02_NEGATIVE_MISSING_SOURCE_DEVICE_PASS
+
+# With primary GPT still available, hide its real partition block node.
+# C validation succeeds but the real dm-linear backend must refuse creation.
+/bin/busybox mv "$source_part" "$source_part.m02-hidden" ||
+    failed HIDE_SOURCE_PARTITION
+if /bin/sh /bin/m02-iso-stage prepare; then
+    failed MISSING_SOURCE_PARTITION_ACCEPTED
+fi
+/bin/busybox mv "$source_part.m02-hidden" "$source_part" ||
+    failed RESTORE_SOURCE_PARTITION
+[ ! -e /dev/mapper/vt_iso_m02 ] || failed SOURCE_PARTITION_MAPPER_LEAK
+echo M02_NEGATIVE_MISSING_SOURCE_PARTITION_PASS
 
 # Genuine guest negative cases: missing actual consumer and loader manifest.
 /bin/busybox mv /bin/map-consumer /bin/map-consumer.saved ||
