@@ -1,6 +1,8 @@
 # PoC 081 — Original EFI ISO boot to Linux physical ISO remount
 
 **Status (2026-11-04): synthetic UEFI → Linux end-to-end PASS.**
+
+**F-01 current source/ABI inventory (2026-11-05):** [experimental EFI→Linux map layout, enforced checks and limitations](ABI-INVENTORY.md). This is source inspection tied to pinned prior runs, not an additional QEMU, vendor, or physical PASS.
 This is not an actual Proxmox/TrueNAS installer or a released m-boot path.
 
 ## Evidence
