@@ -41,16 +41,25 @@ jobs:
           printf 'ventoy_probe_revision=%s\n' "$actual"
       - name: Install native GRUB EDK2 and firmware test dependencies
         shell: sh
+        timeout-minutes: 17
         run: |
           set -eu
           sudo sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/ubuntu.sources
-          sudo apt-get update -qq
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+          echo VT_F04_APT_UPDATE_STARTED
+          sudo timeout -k 30s 240s apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 update -qq
+          echo VT_F04_APT_INSTALL_STARTED
+          sudo timeout -k 30s 540s env DEBIAN_FRONTEND=noninteractive \
+            apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 \
+              install -y -qq --no-install-recommends \
             grub-common grub-efi-amd64-bin linux-image-generic busybox-static cpio dmsetup zstd kmod dpkg-dev automake autoconf gettext \
             bison flex patch build-essential nasm acpica-tools uuid-dev curl \
             unzip file python3 gdisk dosfstools e2fsprogs mtools xorriso \
             qemu-system-x86 ovmf
-          sudo DEBIAN_FRONTEND=noninteractive apt-get build-dep -y -qq grub2
+          echo VT_F04_APT_BUILD_DEP_STARTED
+          sudo timeout -k 30s 240s env DEBIAN_FRONTEND=noninteractive \
+            apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 \
+              build-dep -y -qq grub2
+          echo VT_F04_APT_DEPS_OK
       - name: Obtain matching unmodified distribution GRUB source
         shell: sh
         run: |
