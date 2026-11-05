@@ -1,0 +1,16 @@
+[Unit]
+Description=m-boot native QEMU optical guest from GRUB-selected ISO
+After=systemd-udev-settle.service
+Wants=systemd-udev-settle.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+ExecStartPre=/bin/sh -c 'echo MBOOT_UBUNTU_HOST_SYSTEMD_STARTED > /dev/ttyS0'
+ExecStart=/usr/local/sbin/mboot-qemu-boot --execute
+StandardOutput=journal+console
+StandardError=journal+console
+TimeoutStartSec=infinity
+
+[Install]
+WantedBy=multi-user.target
