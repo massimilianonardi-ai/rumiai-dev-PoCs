@@ -167,13 +167,6 @@ jobs:
           set -euo pipefail
           sudo -n sh pocs/qemu-ubuntu-raw-host/build.sh \
             "$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}"
-          # Builder is root-only for chroot and owns its output. Read back
-          # evidence through the non-privileged artifact uploader.
-          build_output="$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}"
-          sudo chown "$(id -u):$(id -g)" "$build_output"
-          sudo find "$build_output" -maxdepth 1 -type f \
-            -exec chown "$(id -u):$(id -g)" {} +
-          sudo chmod 0755 "$build_output"
           qemu-img info -f raw "$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}/mboot-ubuntu-host.raw"
           grep -F 'file format: raw' \
             "$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}/raw-info.txt"
@@ -190,6 +183,18 @@ jobs:
             ! grep -Ei '^(libguestfs|guestfish|virt-customize)' packages.txt
           )
           echo MBOOT_UBUNTU_EXT4_ROOTFS_AND_SIDECARS_PASS
+      - name: Make completed or failed builder evidence readable
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          build_output="$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}"
+          if [ -d "$build_output" ]; then
+            # Only top-level outputs/logs become readable. The temporary
+            # rootfs stays private and is never uploaded.
+            sudo chmod 0755 "$build_output"
+            sudo find "$build_output" -maxdepth 1 -type f -exec chmod 0644 {} +
+          fi
       - name: Preserve build evidence and actual RAW container
         if: always()
         uses: actions/upload-artifact@v4
