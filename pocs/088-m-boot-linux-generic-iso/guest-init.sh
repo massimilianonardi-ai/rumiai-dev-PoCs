@@ -121,6 +121,22 @@ fi
 [ ! -e /dev/mapper/vt_iso_m02 ] || failed DMSETUP_MAPPER_LEAK
 echo M02_NEGATIVE_MISSING_DMSETUP_PASS
 
+# Corrupt ONLY the temporary QEMU -snapshot view of the disposable ISO
+# partition, at the mapped ISO9660 primary-volume-descriptor offset.
+# Original host ISO and GPT backing images remain byte-identical.
+case "$source_sector" in
+    ''|*[!0-9]*) failed INVALID_SOURCE_SECTOR ;;
+esac
+pvd_offset=$((source_sector + 64))
+/bin/busybox dd if=/dev/zero of="$source_part" bs=512 count=4 \
+    seek="$pvd_offset" conv=notrunc >/dev/console 2>&1 ||
+    failed NEGATIVE_SNAPSHOT_WRITE
+if /bin/sh /bin/m02-iso-stage prepare; then
+    failed INVALID_ISO9660_MOUNT_ACCEPTED
+fi
+[ ! -e /dev/mapper/vt_iso_m02 ] || failed INVALID_ISO9660_MAPPER_LEAK
+echo M02_NEGATIVE_ISO9660_MOUNT_ERROR_PASS
+
 echo M02_GUEST_TEST_PASS
 /bin/busybox poweroff -f
 /bin/busybox sleep 3
