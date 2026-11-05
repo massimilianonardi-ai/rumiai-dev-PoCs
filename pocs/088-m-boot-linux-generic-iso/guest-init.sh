@@ -128,9 +128,22 @@ case "$source_sector" in
     ''|*[!0-9]*) failed INVALID_SOURCE_SECTOR ;;
 esac
 pvd_offset=$((source_sector + 64))
-/bin/busybox dd if=/dev/zero of="$source_part" bs=512 count=4 \
+magic_offset=$((pvd_offset * 512 + 1))
+/bin/busybox dd if="$source_part" of=/run/m02/pvd-magic \
+    bs=1 skip="$magic_offset" count=5 >/dev/console 2>&1 ||
+    failed NEGATIVE_PVD_OFFSET_READ
+[ "$(/bin/busybox cat /run/m02/pvd-magic)" = CD001 ] ||
+    failed NEGATIVE_PVD_OFFSET_WRONG
+# Invalidate the PVD and all subsequent supplementary/terminator
+# descriptors; one corrupt PVD alone can leave a mountable ISO descriptor.
+/bin/busybox dd if=/dev/zero of="$source_part" bs=512 count=64 \
     seek="$pvd_offset" conv=notrunc >/dev/console 2>&1 ||
     failed NEGATIVE_SNAPSHOT_WRITE
+/bin/busybox dd if="$source_part" of=/run/m02/pvd-after \
+    bs=1 skip="$magic_offset" count=5 >/dev/console 2>&1 ||
+    failed NEGATIVE_SNAPSHOT_VERIFY
+[ "$(/bin/busybox cat /run/m02/pvd-after)" != CD001 ] ||
+    failed NEGATIVE_SNAPSHOT_UNCHANGED
 if /bin/sh /bin/m02-iso-stage prepare; then
     failed INVALID_ISO9660_MOUNT_ACCEPTED
 fi
