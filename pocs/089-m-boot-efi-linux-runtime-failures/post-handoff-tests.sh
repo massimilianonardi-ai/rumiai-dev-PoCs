@@ -28,13 +28,13 @@ refuse_consumer() {
     diagnostic=$2
     /bin/busybox rm -f /run/f04-table /run/f04-output
     if /bin/map-consumer /run/f04-table >/run/f04-output 2>&1; then
-        fail "$case_name_ACCEPTED"
+        fail "${case_name}_ACCEPTED"
     fi
-    [ ! -e /run/f04-table ] || fail "$case_name_PARTIAL_TABLE"
+    [ ! -e /run/f04-table ] || fail "${case_name}_PARTIAL_TABLE"
     /bin/busybox grep -F "$diagnostic" /run/f04-output >/dev/null ||
-        fail "$case_name_UNEXPECTED_DIAGNOSTIC"
+        fail "${case_name}_UNEXPECTED_DIAGNOSTIC"
     no_mapper "$case_name"
-    echo "F04_NEGATIVE_$case_name_PASS"
+    echo "F04_NEGATIVE_${case_name}_PASS"
 }
 restore_var() {
     /bin/busybox cp /run/f04-original-efi-var "$var" ||
