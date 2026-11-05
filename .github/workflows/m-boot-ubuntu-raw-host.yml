@@ -34,7 +34,7 @@ jobs:
           set -euo pipefail
           sudo apt-get update -qq
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
-            qemu-utils libguestfs-tools libguestfs0 zstd curl \
+            qemu-utils libguestfs-tools libguestfs0 linux-image-generic zstd curl \
             qemu-system-x86 qemu-system-arm ovmf qemu-efi-aarch64
       - name: Check launcher and generate read-only synthetic disk plan
         shell: bash
