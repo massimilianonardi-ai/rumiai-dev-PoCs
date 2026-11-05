@@ -28,31 +28,22 @@ def selected_iso(cmdline):
     return Path(values[0])
 
 
-def locate_iso(cmdline, iso, execute):
+def locate_iso(iso, execute):
+    # Ubuntu's native initramfs-tools loop= path retains the backing ext4
+    # filesystem at /host. The ISO remains there after switch-root.
+    if ".." in iso.parts:
+        fail("ISO_PATH", "ISO path must not traverse outside its source")
     if iso.is_file():
         return iso
     if not execute:
         fail("ISO_MISSING", f"selected ISO not readable: {iso}")
-    entries = [v[len("mboot.media_uuid="):] for v in cmdline.split()
-               if v.startswith("mboot.media_uuid=")]
-    if len(entries) != 1 or not entries[0]:
-        fail("SOURCE_UUID", "selected ISO source filesystem UUID is missing")
-    uuid = entries[0]
-    if any(c not in "0123456789abcdefABCDEF-" for c in uuid):
-        fail("SOURCE_UUID", "invalid source filesystem UUID")
-    source = Path("/dev/disk/by-uuid") / uuid
-    if not source.exists():
-        fail("SOURCE_DEVICE", f"selected source disk unavailable: {uuid}")
-    # The Wubi-style initramfs local-bottom script moves the backing source
-    # into /host. Reuse it: do not mount the same writable disk a second time.
     mountpoint = Path("/host")
     if not os.path.ismount(mountpoint):
-        fail("SOURCE_NOT_PRESERVED", "backing MBOOTDATA mount absent at /host")
+        fail("SOURCE_NOT_PRESERVED", "Ubuntu loop= backing mount absent at /host")
     candidate = mountpoint / iso.relative_to("/")
     if not candidate.is_file():
-        fail("ISO_MISSING", f"ISO absent from preserved source filesystem: {iso}")
+        fail("ISO_MISSING", f"ISO absent from preserved backing filesystem: {iso}")
     return candidate
-
 
 def physical_disks():
     result = subprocess.run(
@@ -151,7 +142,7 @@ def main():
     try:
         cmdline = options.cmdline_file.read_text(encoding="utf-8")
         iso = selected_iso(cmdline)
-        iso = locate_iso(cmdline, iso, options.execute)
+        iso = locate_iso(iso, options.execute)
         disks = physical_disks()
         if options.fixture_disks:
             if options.execute:
