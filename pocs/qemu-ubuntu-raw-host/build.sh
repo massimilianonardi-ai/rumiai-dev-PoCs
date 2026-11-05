@@ -65,6 +65,9 @@ EOF
 # Use the actual runner resolver for build-time APT, not a hardcoded DNS IP.
 rm -f "$rootfs/etc/resolv.conf"
 cp /etc/resolv.conf "$rootfs/etc/resolv.conf"
+# APT download helpers use the unprivileged _apt user. With umask 077,
+# these files would otherwise be root-only, causing misleading DNS errors.
+chmod 0644 "$rootfs/etc/resolv.conf"
 
 # Refuse to accidentally start target services while installing packages.
 cat > "$rootfs/usr/sbin/policy-rc.d" <<'EOF'
@@ -113,6 +116,7 @@ mount --make-rslave "$rootfs/dev"
 if [ ! -f "$rootfs/etc/hosts" ]; then
   printf '127.0.0.1 localhost\n::1 localhost\n' > "$rootfs/etc/hosts"
 fi
+chmod 0644 "$rootfs/etc/hosts"
 cp "$rootfs/etc/hosts" "$output/hosts-before-build.txt"
 for apt_host in $apt_hosts; do
   # Even a successful DNS probe can fail later during package downloads on
@@ -202,6 +206,7 @@ chroot "$rootfs" dpkg-query -W > "$output/packages.txt"
 chroot "$rootfs" apt-get clean
 rm -f "$rootfs/usr/sbin/policy-rc.d"
 cp "$output/hosts-before-build.txt" "$rootfs/etc/hosts"
+chmod 0644 "$rootfs/etc/hosts"
 # Build-time resolver information must not leak into the deployed filesystem.
 rm -f "$rootfs/etc/resolv.conf"
 ln -s ../run/systemd/resolve/stub-resolv.conf "$rootfs/etc/resolv.conf"
