@@ -84,6 +84,29 @@ declared suite on this actual reference VM; unrun platforms remain
 `PENDING`. `rumiai-tests` owns formal evidence per `PHYSICAL-TESTING.md`.
 Do not treat a GitHub runner with a similar OS label as this VM.
 
+### G07 Ubuntu x86_64 reference-VM validation
+
+After the successful scoped ARM64 browser run, the next ordered reference
+host is the **operator's Ubuntu 24.04 or 26.04 x86_64 VM**. Its separate
+launcher is `tests/g07-ubuntu-x86_64.sh`. On that actual VM, from the
+parent directory of an existing PoC checkout:
+
+```sh
+git -C rumiai-dev-PoCs pull --ff-only
+sh rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/g07-ubuntu-x86_64.sh
+```
+
+This accepts the named Ubuntu guest versions with native x86_64 Node.js
+22+ and installed system Chromium, and records the actual guest,
+virtualization, browser session and exact pinned product/PoC revisions.
+It runs the same six real-browser suites and captures local logs and
+screenshots in `~/rumiai-g07-x86_64-<UTC-timestamp>/` by default.
+`RUMIAI_G07_CHROMIUM`, `RUMIAI_G07_POC_SHA` and
+`RUMIAI_G07_REPORT_DIR` have the same meanings as on ARM64.
+A generic hosted-CI smoke test can validate launcher mechanics but
+**cannot** establish a PASS on the operator's x86_64 VM.
+macOS 27 ARM64 and Electron are separate pending work.
+
 ### G06 canonical renderer boundary and 0.8.2 comparison
 
 The canonical GUI remains a **separate PoC-only page**.
