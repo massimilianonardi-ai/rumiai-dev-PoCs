@@ -111,14 +111,40 @@ else
         -device "scsi-cd,drive=grubcd,bus=boot-scsi.0,bootindex=1")
 fi
 
-# TCG may be slow on hosted runners. A timeout never counts as a PASS:
-# require markers emitted by the *running* GRUB and Ubuntu host service.
-set +e
+# TCG may be slow on hosted runners. Watch the *actual* serial output,
+# terminate as soon as the running Ubuntu service proves the intended path,
+# and fail early on definite kernel/loop-root failures. Merely reaching a
+# timeout is never accepted as a PASS.
 timeout --signal=TERM --kill-after=10s 480 \
-  "${cmd[@]}" > "$work/outer-qemu-serial.log" 2>&1
+  "${cmd[@]}" > "$work/outer-qemu-serial.log" 2>&1 &
+outer_pid=$!
+observed=none
+for ((iteration = 0; iteration < 240; iteration++)); do
+  if grep -Fq MBOOT_GRUB_MENUENTRY_SELECTED "$work/outer-qemu-serial.log" &&
+     grep -Fq MBOOT_QEMU_GUEST_START "$work/outer-qemu-serial.log" &&
+     grep -Fq MBOOT_QEMU_DISKS_READONLY "$work/outer-qemu-serial.log"; then
+    observed=service
+    break
+  fi
+  if grep -Eq 'Kernel panic - not syncing|ALERT!.*does not exist|Gave up waiting for root file system device' \
+    "$work/outer-qemu-serial.log"; then
+    observed=kernel-failure
+    break
+  fi
+  if ! kill -0 "$outer_pid" 2>/dev/null; then
+    observed=exited
+    break
+  fi
+  sleep 2
+done
+if kill -0 "$outer_pid" 2>/dev/null; then
+  kill -TERM "$outer_pid" 2>/dev/null || :
+fi
+set +e
+wait "$outer_pid"
 status=$?
 set -e
-echo "MBOOT_LOOP_OUTER_QEMU_EXIT=$status"
+echo "MBOOT_LOOP_OUTER_QEMU_EXIT=$status phase=$observed"
 if ! grep -Fq MBOOT_GRUB_MENUENTRY_SELECTED "$work/outer-qemu-serial.log"; then
   echo MBOOT_LOOP_GRUB_MENUENTRY_NOT_OBSERVED >&2
   tail -n 100 "$work/outer-qemu-serial.log" >&2
