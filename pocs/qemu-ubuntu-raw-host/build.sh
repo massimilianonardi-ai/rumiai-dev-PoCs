@@ -13,8 +13,8 @@ for cmd in curl qemu-img virt-resize virt-customize sha256sum grep awk zstd; do
   }
 done
 case "$(uname -m)" in
-  x86_64) architecture=amd64; packages=qemu-system-x86,ovmf,python3,util-linux ;;
-  aarch64) architecture=arm64; packages=qemu-system-arm,qemu-efi-aarch64,python3,util-linux ;;
+  x86_64) architecture=amd64; packages=qemu-system-x86,ovmf,python3,util-linux,initramfs-tools,kmod,linux-image-generic ;;
+  aarch64) architecture=arm64; packages=qemu-system-arm,qemu-efi-aarch64,python3,util-linux,initramfs-tools,kmod,linux-image-generic ;;
   *) echo 'MBOOT_RAW_UNSUPPORTED_HOST_ARCH' >&2; exit 4 ;;
 esac
 here=$(CDPATH= cd "$(dirname "$0")" && pwd -P)
@@ -57,9 +57,15 @@ LIBGUESTFS_BACKEND=direct virt-resize --expand /dev/sda1 "$output/$name" \
 LIBGUESTFS_BACKEND=direct virt-customize \
   --format qcow2 -a "$output/expanded.qcow2" \
   --install "$packages" \
+  --mkdir /etc/initramfs-tools/scripts/local-top \
+  --mkdir /etc/initramfs-tools/hooks \
+  --upload "$here/mboot-raw-root:/etc/initramfs-tools/scripts/local-top/mboot-raw-root" \
+  --upload "$here/mboot-raw-initramfs-hook:/etc/initramfs-tools/hooks/mboot-raw-root" \
   --upload "$here/launch.py:/usr/local/sbin/mboot-qemu-boot" \
   --upload "$here/mboot-qemu-host.service:/etc/systemd/system/mboot-qemu-host.service" \
   --run-command 'chmod 0755 /usr/local/sbin/mboot-qemu-boot' \
+  --run-command 'chmod 0755 /etc/initramfs-tools/scripts/local-top/mboot-raw-root /etc/initramfs-tools/hooks/mboot-raw-root' \
+  --run-command 'update-initramfs -u -k all' \
   --run-command 'mkdir -p /etc/systemd/system/multi-user.target.wants' \
   --run-command 'ln -sfn /etc/systemd/system/mboot-qemu-host.service /etc/systemd/system/multi-user.target.wants/mboot-qemu-host.service' \
   --run-command 'touch /etc/cloud/cloud-init.disabled' \
