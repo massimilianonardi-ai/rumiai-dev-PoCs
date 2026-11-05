@@ -1,0 +1,88 @@
+name: PoC 092 M-05 original Proxmox media-scanner adapter source check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/poc-092-m-boot-proxmox-media-discovery.yml'
+      - 'pocs/092-m-boot-proxmox-media-discovery/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  m05-original-vendor-source-adapter:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Check out exact PoC revision
+        uses: actions/checkout@v4
+        with:
+          path: poc-repo
+          persist-credentials: false
+      - name: Check out pinned existing Ventoy source adapter
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/Ventoy
+          ref: 475db53dee122887fab3387db47fbb1f09ca71b7
+          path: fork
+          persist-credentials: false
+      - name: Confirm pinned firmware and existing original adapter
+        shell: sh
+        run: |
+          set -eu
+          test "$(git -C fork rev-parse HEAD)" = 475db53dee122887fab3387db47fbb1f09ca71b7
+          test -s fork/IMG/cpio/ventoy/hook/debian/pve-hook.sh
+          python3 -m py_compile poc-repo/pocs/092-m-boot-proxmox-media-discovery/probe-scanner.py
+          python3 -m py_compile poc-repo/pocs/083-m-boot-truenas-initrd-readonly/extract_initrd_range.py
+      - name: Install read-only initramfs extraction tools
+        shell: sh
+        run: |
+          set -eu
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            initramfs-tools-core zstd cpio fakeroot
+      - name: Fetch only original vendor initrd via strict official HTTPS ranges
+        shell: sh
+        run: |
+          set -eu
+          mkdir -p "$RUNNER_TEMP/m05"
+          python3 poc-repo/pocs/083-m-boot-truenas-initrd-readonly/extract_initrd_range.py \
+            --url https://enterprise.proxmox.com/iso/proxmox-ve_9.2-1.iso \
+            --source-sha256 4e88fe416df9b527624a175f24c9aa07c714d3332afb1ee3dbf3879573ef2c6c \
+            --target BOOT/INITRD.IMG --expect-bytes 55878409 \
+            --output "$RUNNER_TEMP/m05/vendor-initrd.img" \
+            --manifest "$RUNNER_TEMP/m05/range-ledger.json"
+          echo '8fdf76b44287af130358c142f1743c30e1b10df21bae1693283736603bef3cba  '"$RUNNER_TEMP/m05/vendor-initrd.img" | sha256sum --check
+          zstd -t "$RUNNER_TEMP/m05/vendor-initrd.img"
+          mkdir -p "$RUNNER_TEMP/m05/unpacked"
+          fakeroot -- unmkinitramfs "$RUNNER_TEMP/m05/vendor-initrd.img" "$RUNNER_TEMP/m05/unpacked"
+      - name: Verify exact original installer scan and existing upstream dm adapter as DATA
+        shell: sh
+        run: |
+          set -eu
+          cd "$RUNNER_TEMP/m05/unpacked"
+          printf '%s  %s\n' \
+            8b0ca78470877fddee457fd044f70f88127a5ce761cda63f35e26a73ddd96265 init \
+            9a91800003f76fd470215f9baf4a38e31c4a805e5328d99d3afa94955fc56ca1 .cd-info \
+            | sha256sum --check
+          cd "$GITHUB_WORKSPACE"
+          python3 poc-repo/pocs/092-m-boot-proxmox-media-discovery/probe-scanner.py \
+            --vendor-init "$RUNNER_TEMP/m05/unpacked/init" \
+            --cd-info "$RUNNER_TEMP/m05/unpacked/.cd-info" \
+            --upstream-hook fork/IMG/cpio/ventoy/hook/debian/pve-hook.sh \
+            --out "$RUNNER_TEMP/m05/m05-adapter-source-check.json"
+          grep -q '"vendor_media_accepted_in_guest": false' \
+            "$RUNNER_TEMP/m05/m05-adapter-source-check.json"
+          printf 'M05_SOURCE_ONLY_NOT_VENDOR_PASS\n'
+      - name: Preserve provenance and exact original-source adapter decision
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-092-m05-proxmox-original-init-source
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/m05/range-ledger.json
+            ${{ runner.temp }}/m05/m05-adapter-source-check.json
