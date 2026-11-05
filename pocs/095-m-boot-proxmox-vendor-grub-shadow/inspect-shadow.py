@@ -153,6 +153,23 @@ def main():
         updated + b"\x00" * (size_padded - len(updated)))
     (a.out / "pvd-override.bin").write_bytes(pvd_patch)
     (a.out / "dirent-override.bin").write_bytes(record_patch)
+    # QEMU qcow2 backing-image test needs whole aligned sectors for writes:
+    # emit the strict original sector with only the same F-owned fields patched.
+    dir_sector_start = config_record_at // SECTOR * SECTOR
+    dir_sector_intra = config_record_at % SECTOR
+    if dir_sector_intra + len(record_patch) > SECTOR:
+        raise ValueError("M05_ORIGINAL_DIRENT_OVERRIDE_CROSSES_SECTOR")
+    dir_sector_original = iso.read(dir_sector_start, SECTOR,
+                                   "exact original grub cfg dirent sector")
+    if (dir_sector_original[dir_sector_intra:dir_sector_intra + 16] !=
+            both_endian(conf["extent_lba"]) + both_endian(conf["bytes"])):
+        raise ValueError("M05_ORIGINAL_RECORD_CONTENT_MISMATCH")
+    pvd_sector = bytearray(pvd)
+    dir_sector = bytearray(dir_sector_original)
+    pvd_sector[80:88] = pvd_patch
+    dir_sector[dir_sector_intra:dir_sector_intra + 16] = record_patch
+    (a.out / "pvd-sector-patched.bin").write_bytes(pvd_sector)
+    (a.out / "dirent-sector-patched.bin").write_bytes(dir_sector)
 
     report = {
         "scope": "authentic_vendor_grub_cfg_iso9660_record_virtualization_data_only",
@@ -174,6 +191,12 @@ def main():
         "virtual_iso_sectors": virtual_count,
         "pvd_record_override_start": 16 * SECTOR + 80,
         "pvd_patch_bytes": len(pvd_patch),
+        "original_dirent_sector_start": dir_sector_start,
+        "original_dirent_sector_sha256": digest(dir_sector_original),
+        "virtual_pvd_sector_sha256": digest(pvd_sector),
+        "virtual_dirent_sector_sha256": digest(dir_sector),
+        "verified_pvd_sector_writes_only_bytes_80_to_87": True,
+        "verified_dirent_sector_writes_only_original_extent_size_16_bytes": True,
         "config_record_patch_bytes": len(record_patch),
         "virtual_data_padding_bytes": size_padded - len(updated),
         "installer_only_initrd_edits": changes,
