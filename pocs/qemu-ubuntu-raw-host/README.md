@@ -97,12 +97,21 @@ proved only paused native QEMU with read-only synthetic backing files and
 no fixture writes. Ubuntu 24.04 `initramfs-tools-core` loop-root support
 was inspected on an actual runner in [42090302581](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/42090302581).
 
-The **new debootstrap + mkfs.ext4 revision must be validated independently**.
-A workflow's static GRUB parser PASS is not a genuine GRUB/UEFI boot.
-The following still require actual evidence: completed per-arch bundles,
-Ubuntu reaching systemd from the RAW using native `loop=`, `/host`
-source-ISO access, guest-side CD-ROM/disk visibility, native KVM, graphics,
-genuine vendor ISO boot, and final operator-host validation.
+**Direct Ubuntu minbase builder validated on both architectures.**
+The source-pinned [GitHub Actions run 42114121474](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/42114121474),
+revision `b872aeb93578080e9b636aa239e5c7020a030e96`, completed **PASS**
+for its native AMD64/ARM64 build jobs and static boot-contract job. It
+actually ran `debootstrap`, build-time APT, Ubuntu initramfs generation,
+`mkfs.ext4 -d`, `qemu-img info -f raw`, `blkid`, read-only `e2fsck`,
+`sha256sum -c release-SHA256SUMS`, and verified matching external
+`vmlinuz`/`initrd.img`, publishing two compressed RAW bundle artifacts.
+The builder emitted `6.8.0-147-generic` for both native architectures.
+
+**This is a build PASS only.** A workflow's static GRUB parser PASS is not
+a genuine GRUB/UEFI boot. Still untested: Ubuntu reaching systemd from
+RAW with `loop=`, preserved `/host` source-ISO access, guest-side CD-ROM
+and physical-disk inventory, native KVM, graphics, genuine vendor ISO
+boot, and final operator reference-host validation.
 
 All disks remain **read-only in the guest**. A subsequent design must give
 writable target disks exclusive ownership without allowing concurrent writes
