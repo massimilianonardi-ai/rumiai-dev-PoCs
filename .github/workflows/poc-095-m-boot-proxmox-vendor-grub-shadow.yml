@@ -1,0 +1,80 @@
+name: PoC 095 M-05 original Proxmox GRUB ISO9660 virtual config source
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/poc-095-m-boot-proxmox-vendor-grub-shadow.yml'
+      - 'pocs/095-m-boot-proxmox-vendor-grub-shadow/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  vendor-grub-source-layout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check real original-source probe syntax and stock GRUB tooling
+        shell: sh
+        run: |
+          set -eu
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends grub-common qemu-utils qemu-block-extra
+          python3 -m py_compile pocs/082-m-boot-vendor-iso-readonly/iso_range_inspect.py
+          python3 -m py_compile pocs/095-m-boot-proxmox-vendor-grub-shadow/inspect-shadow.py
+      - name: Inspect ONLY official original ISO config ranges and produce F-layout 3-piece shadow
+        shell: sh
+        run: |
+          set -eu
+          python3 pocs/095-m-boot-proxmox-vendor-grub-shadow/inspect-shadow.py --out m05-config
+          test -s m05-config/original-grub.cfg
+          test -s m05-config/virtual-grub.cfg
+          test -s m05-config/first-stage-grub.cfg
+          test "$(wc -c < m05-config/pvd-override.bin)" -eq 8
+          test "$(wc -c < m05-config/dirent-override.bin)" -eq 16
+          test "$(wc -c < m05-config/virtual-grub.cfg)" -le 65536
+          grub-script-check m05-config/original-grub.cfg
+          grub-script-check m05-config/virtual-grub.cfg
+          echo M05_ORIGINAL_GRUB_AND_VIRTUAL_SCRIPT_SYNTAX_PASS
+          echo '---- original EFI first-stage ----'
+          cat m05-config/first-stage-grub.cfg
+          echo '---- original Proxmox initrd directives ----'
+          grep -n 'initrd ' m05-config/original-grub.cfg
+          echo '---- virtual Proxmox initrd directives ----'
+          grep -n 'initrd ' m05-config/virtual-grub.cfg
+      - name: Verify actual F-owned source overlay limits and untouched ownership
+        shell: sh
+        run: |
+          set -eu
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('m05-config/report.json').read_text())
+          assert r['original_iso_size']==1706178560
+          assert r['original_config_length']==6479
+          assert r['installer_only_initrd_edits']==10
+          assert r['recovery_entries_byte_preserved']
+          assert r['virtual_config_bytes']<=65536
+          assert r['config_record_patch_bytes']==16
+          assert r['pvd_patch_bytes']==8
+          assert r['virtual_sector_data_start']==1706178560
+          assert not r['serial_guest_loader_or_vendor_media_accepted']
+          print('M05_SOURCE_ONLY_F_VIRTUAL_LAYOUT_COMPATIBILITY_PASS')
+          print('M05_F_PROBE_SELECTS_VENDOR_GRUB_NOT_YET_IMPLEMENTED')
+          PY
+      - name: Save only original small config, virtual candidate, sector patches and exact provenance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-095-original-vendor-grub-source-only
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            m05-config/report.json
+            m05-config/original-grub.cfg
+            m05-config/first-stage-grub.cfg
+            m05-config/virtual-grub.cfg
+            m05-config/pvd-override.bin
+            m05-config/dirent-override.bin
