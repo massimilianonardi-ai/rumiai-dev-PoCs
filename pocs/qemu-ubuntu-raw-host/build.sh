@@ -62,6 +62,7 @@ deb $mirror noble main universe
 deb $mirror noble-updates main universe
 deb $security_mirror noble-security main universe
 EOF
+chmod 0644 "$rootfs/etc/apt/sources.list"
 # Use the actual runner resolver for build-time APT, not a hardcoded DNS IP.
 rm -f "$rootfs/etc/resolv.conf"
 cp /etc/resolv.conf "$rootfs/etc/resolv.conf"
@@ -172,6 +173,7 @@ ln -s /etc/systemd/system/mboot-qemu-host.service \
   "$rootfs/etc/systemd/system/multi-user.target.wants/mboot-qemu-host.service"
 printf '%s\n' mboot-qemu > "$rootfs/etc/hostname"
 : > "$rootfs/etc/machine-id"
+chmod 0644 "$rootfs/etc/machine-id"
 # The host root is provided by Ubuntu's initramfs loop=; no guest disk in fstab.
 printf '# root provided by initramfs-tools loop=\n' > "$rootfs/etc/fstab"
 
