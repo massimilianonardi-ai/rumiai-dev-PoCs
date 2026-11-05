@@ -43,14 +43,14 @@ def locate_iso(cmdline, iso, execute):
     source = Path("/dev/disk/by-uuid") / uuid
     if not source.exists():
         fail("SOURCE_DEVICE", f"selected source disk unavailable: {uuid}")
-    mountpoint = Path("/run/mboot-source")
-    mountpoint.mkdir(mode=0o700, parents=True, exist_ok=True)
+    # The Wubi-style initramfs local-bottom script moves the backing source
+    # into /host. Reuse it: do not mount the same writable disk a second time.
+    mountpoint = Path("/host")
     if not os.path.ismount(mountpoint):
-        subprocess.run(["mount", "-t", "ext4", "-o", "rw",
-                        str(source), str(mountpoint)], check=True)
+        fail("SOURCE_NOT_PRESERVED", "backing MBOOTDATA mount absent at /host")
     candidate = mountpoint / iso.relative_to("/")
     if not candidate.is_file():
-        fail("ISO_MISSING", f"ISO absent from selected source filesystem: {iso}")
+        fail("ISO_MISSING", f"ISO absent from preserved source filesystem: {iso}")
     return candidate
 
 
