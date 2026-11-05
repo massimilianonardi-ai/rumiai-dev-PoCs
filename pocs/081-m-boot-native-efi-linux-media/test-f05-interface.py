@@ -123,7 +123,15 @@ def main() -> int:
              "original dm-linear target")
     required(consumer, '(rd32(buffer) & 6) != 6', "EFI runtime-visible attributes")
     required(consumer, '(size_t)n != 4 + HEADER_BYTES + OS_PARAM_BYTES', "efivarfs prefix")
-    ordered(boot, ["echo VT081_EFI_MAP_EXPORT_BEGIN",
+    # The runner supports multiple alternative EFI modes, each with its own
+    # publish command. Inspect ONLY the original-overlay-boot branch used by
+    # F-03/F-04; a global first-occurrence search is a false failure.
+    mode_anchor = 'elif [ -n "$efi_probe" ] && [ "$efi_mode" = original-overlay-boot ]; then'
+    required(boot, mode_anchor, "selected EFI mode")
+    mode = boot.split(mode_anchor, 1)[1].split(
+        'elif [ -n "$efi_probe" ] && [ "$efi_mode" = original-overlay ]; then', 1
+    )[0]
+    ordered(mode, ["echo VT081_EFI_MAP_EXPORT_BEGIN",
                    "vt_publish_efi_map",
                    "echo VT081_EFI_MAP_EXPORT_DONE",
                    "echo VT080_ORIGINAL_VENTOY_OVERLAY_BOOT_BEGIN",
