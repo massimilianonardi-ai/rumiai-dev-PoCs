@@ -109,6 +109,10 @@ mount --make-rslave "$rootfs/dev"
 # If the chroot cannot resolve a known mirror, use the host's *current*
 # resolution for this build only, preserving HTTPS hostnames and APT signing.
 # These temporary /etc/hosts entries are removed from the released rootfs.
+# debootstrap minbase may not create /etc/hosts at all.
+if [ ! -f "$rootfs/etc/hosts" ]; then
+  printf '127.0.0.1 localhost\n::1 localhost\n' > "$rootfs/etc/hosts"
+fi
 cp "$rootfs/etc/hosts" "$output/hosts-before-build.txt"
 for apt_host in $apt_hosts; do
   if ! chroot "$rootfs" getent ahostsv4 "$apt_host" > /dev/null 2>&1; then
