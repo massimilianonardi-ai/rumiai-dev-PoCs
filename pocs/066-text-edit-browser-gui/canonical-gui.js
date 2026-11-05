@@ -566,7 +566,8 @@ function perform(action,label,errorPrefix='Operazione respinta:')
   catch(error)
   {
     $('message').textContent=errorPrefix+' '+error.message;
-    schedule();
+    // Rejected document edits and invalid protected clicks cannot mutate
+    // the view. Do not detach/repaint its DOM unnecessarily.
     return null;
   }
 }
