@@ -31,8 +31,9 @@ def check(plan_path, vars_path, firmware_template):
         while True:
             raw = process.stdout.readline()
             if not raw:
-                diagnostic = process.stderr.read() if process.poll() is not None else "no stderr yet"
-                raise RuntimeError(f"QEMU closed QMP before reply: {diagnostic[:3000]}")
+                process.wait(timeout=5)
+                diagnostic = process.stderr.read()
+                raise RuntimeError(f"QEMU exited {process.returncode} before QMP: {diagnostic[:3000]}")
             reply = json.loads(raw)
             if "event" not in reply:
                 if "error" in reply:
