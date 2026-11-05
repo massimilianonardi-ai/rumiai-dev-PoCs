@@ -89,10 +89,10 @@ def firmware(architecture):
 
 
 def blockdev(driver, filename, name):
-    return "json:" + json.dumps({
-        "driver": driver, "filename": filename, "node-name": name,
-        "read-only": True,
-    }, separators=(",", ":"))
+    # QEMU -blockdev uses a comma-separated key=value interface, unlike QMP
+    # blockdev-add which accepts a JSON argument. Double commas in filenames.
+    filename = filename.replace(",", ",,")
+    return f"driver={driver},node-name={name},filename={filename},read-only=on"
 
 
 def generate(iso, disks, arch, firmware_code, vars_template, vars_private):
@@ -126,7 +126,7 @@ def generate(iso, disks, arch, firmware_code, vars_template, vars_private):
     else:
         command += ["-device", "virtio-scsi-pci,id=scsi0"]
     command += ["-blockdev", blockdev("file", str(iso), "optical-file")]
-    command += ["-blockdev", 'json:{"driver":"raw","node-name":"optical","file":"optical-file","read-only":true}']
+    command += ["-blockdev", "driver=raw,node-name=optical,file=optical-file,read-only=on"]
     if arch == "x86_64":
         command += ["-device", "ide-cd,drive=optical,bus=ahci.0,bootindex=1"]
     else:
