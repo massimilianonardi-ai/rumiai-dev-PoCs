@@ -248,6 +248,32 @@ fi
 [ ! -e /dev/mapper/vt_iso_m02 ] || failed INVALID_ISO9660_MAPPER_LEAK
 echo M02_NEGATIVE_ISO9660_MOUNT_ERROR_PASS
 
+# Genuine guest-kernel source loss: unbind ONLY the selected disposable
+# virtio-blk disk from its running driver, then re-run the actual consumer.
+# Not physical USB/media removal or QMP device_del. No rebinding is needed:
+# this test runs LAST and QEMU uses -snapshot for all disks.
+source_driver_path=$(/bin/busybox readlink -f "/sys/block/$source_leaf/device") ||
+    failed SOURCE_DRIVER_PATH
+source_virtio=${source_driver_path##*/}
+case "$source_virtio" in
+    virtio[0-9]*) ;;
+    *) failed SOURCE_DRIVER_IDENTITY ;;
+esac
+[ -w /sys/bus/virtio/drivers/virtio_blk/unbind ] ||
+    failed SOURCE_VIRTIO_UNBIND_UNSUPPORTED
+[ -b "$source_disk" ] || failed SOURCE_PRE_UNBIND_MISSING
+/bin/busybox printf '%s\n' "$source_virtio" \
+    > /sys/bus/virtio/drivers/virtio_blk/unbind ||
+    failed SOURCE_VIRTIO_UNBIND
+[ ! -e "/sys/block/$source_leaf" ] ||
+    failed SOURCE_SYSFS_STILL_PRESENT
+if /bin/sh /bin/m02-iso-stage prepare; then
+    failed SOURCE_KERNEL_UNBIND_ACCEPTED
+fi
+[ ! -e /dev/mapper/vt_iso_m02 ] ||
+    failed SOURCE_KERNEL_UNBIND_MAPPER_LEAK
+echo M02_NEGATIVE_KERNEL_SOURCE_UNBIND_PASS
+
 echo M02_GUEST_TEST_PASS
 /bin/busybox poweroff -f
 /bin/busybox sleep 3
