@@ -182,6 +182,8 @@ jobs:
               M02_NEGATIVE_MISSING_SOURCE_DEVICE_PASS \
               M02_NEGATIVE_MISSING_SOURCE_PARTITION_PASS \
               M02_NEGATIVE_DUPLICATE_GPT_GUID_PASS \
+              M02_NEGATIVE_DM_CONTROL_UNAVAILABLE_PASS \
+              M02_NEGATIVE_DM_ERROR_EIO_PASS \
               M02_NEGATIVE_ISO9660_MOUNT_ERROR_PASS M02_GUEST_TEST_PASS; do
             grep -q "^$marker" "$log" || {
               echo "Missing guest marker: $marker" >&2
@@ -194,6 +196,7 @@ jobs:
           grep -q '^M02_ERROR_DM_CREATE' "$log"
           grep -q '^VT_LINUX_HANDOFF_ERROR source GPT identity missing or ambiguous' "$log"
           grep -q '^M02_ERROR_ISO9660_MOUNT' "$log"
+          grep -q '^M02_KERNEL_DM_ERROR_READ_REJECTED' "$log"
           if grep -q '^M02_GUEST_FAILURE_' "$log"; then
             tail -n 100 "$log" >&2
             exit 12
