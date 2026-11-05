@@ -1,0 +1,116 @@
+name: PoC 097 M-05 original Proxmox EFI read-only nbdkit HTTPS control
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/poc-097-m-boot-proxmox-original-efi-nbd.yml'
+      - 'pocs/097-m-boot-proxmox-nbd-transport/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  official-original-vendor-efi-nbd:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install separate read-only libguestfs NBD HTTP Range backend
+        shell: sh
+        run: |
+          set -eu
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            nbdkit qemu-system-x86 qemu-utils ovmf
+          nbdkit --version
+          nbdkit curl --dump-plugin | head -n 24
+      - name: Start private Unix socket NBD backed by untouched official ISO over HTTPS
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p m05-nbd
+          sock="$PWD/m05-nbd/official-pve.iso.sock"
+          nbdkit --foreground --readonly -U "$sock" \
+            curl https://enterprise.proxmox.com/iso/proxmox-ve_9.2-1.iso \
+            protocols=https > m05-nbd/nbdkit.log 2>&1 &
+          pid=$!
+          echo "$pid" > m05-nbd/server.pid
+          for attempt in $(seq 1 70); do
+            [[ -S "$sock" ]] && break
+            kill -0 "$pid" || { echo M05_NBDKIT_SERVER_DIED >&2; cat m05-nbd/nbdkit.log >&2; exit 2; }
+            sleep 0.3
+          done
+          [[ -S "$sock" ]] || { echo M05_NBDKIT_SOCKET_NOT_CREATED >&2; exit 3; }
+          timeout 90 qemu-img info --output=json -f raw "nbd:unix:$sock" > m05-nbd/qemu-nbd-info.json
+          python3 - <<'PY'
+          import json
+          x=json.load(open('m05-nbd/qemu-nbd-info.json'))
+          assert x['format']=='raw' and x['virtual-size']==1706178560
+          print('M05_UNMODIFIED_OFFICIAL_ISO_NBD_READONLY_LOGICAL_LENGTH_PASS')
+          PY
+          echo M05_NBDKIT_LIVE_FOR_NEXT_STEP
+      - name: Boot original vendor EFI with NBD instead of crashing QEMU native curl driver
+        shell: bash
+        run: |
+          set -euo pipefail
+          sock="$PWD/m05-nbd/official-pve.iso.sock"
+          pid=$(cat m05-nbd/server.pid)
+          cleanup() { kill "$pid" 2>/dev/null || :; }
+          trap cleanup EXIT
+          code=
+          vars=
+          for dir in /usr/share/OVMF /usr/share/edk2/ovmf; do
+            for suffix in _4M ''; do
+              if [[ -s "$dir/OVMF_CODE$suffix.fd" && -s "$dir/OVMF_VARS$suffix.fd" ]]; then
+                code="$dir/OVMF_CODE$suffix.fd"
+                vars="$dir/OVMF_VARS$suffix.fd"
+                break 2
+              fi
+            done
+          done
+          [[ -n "$code" && -n "$vars" ]] || { echo M05_NBD_OVMF_NOT_FOUND >&2; exit 4; }
+          cp "$vars" m05-nbd/ovmf-vars-disposable.fd
+          set +e
+          timeout --signal=TERM --kill-after=5 150 qemu-system-x86_64 \
+            -machine q35,accel=tcg -m 2048 -smp 2 -no-reboot \
+            -display none -serial mon:stdio -net none \
+            -drive "if=pflash,format=raw,readonly=on,file=$code" \
+            -drive "if=pflash,format=raw,file=m05-nbd/ovmf-vars-disposable.fd" \
+            -device ich9-ahci,id=ahci \
+            -drive "if=none,id=iso,format=raw,media=cdrom,readonly=on,file=nbd:unix:$sock" \
+            -device ide-cd,drive=iso,bus=ahci.0,bootindex=1 \
+            > m05-nbd/original-vendor-efi-serial.log 2>&1
+          status=$?
+          set -e
+          echo "$status" > m05-nbd/qemu-status.txt
+          echo "M05_QEMU_UNTOUCHED_VENDOR_NBD_EXIT=$status"
+          grep -E 'BdsDxe|Proxmox|GRUB|Kernel panic|no device|searching for|M05_' \
+            m05-nbd/original-vendor-efi-serial.log | tail -n 45 || :
+          if [[ "$status" -eq 139 ]]; then
+            echo M05_QEMU_NBD_ORIGINAL_VENDOR_SEGFAULT_STILL_REPRODUCED
+          elif [[ "$status" -eq 124 ]]; then
+            echo M05_QEMU_NBD_ORIGINAL_VENDOR_NO_SEGFAULT_BY_TIMEOUT
+          elif [[ "$status" -eq 0 ]]; then
+            echo M05_QEMU_NBD_ORIGINAL_VENDOR_EXIT_ZERO
+          else
+            echo M05_QEMU_NBD_ORIGINAL_VENDOR_NONZERO >&2
+            tail -n 60 m05-nbd/original-vendor-efi-serial.log >&2
+            exit 8
+          fi
+          echo M05_NBD_CONTROL_NOT_VENDOR_MEDIA_ACCEPTANCE
+      - name: Publish read-only alternative transport evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-097-m05-original-pve-nbdkit-control
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            m05-nbd/qemu-nbd-info.json
+            m05-nbd/nbdkit.log
+            m05-nbd/original-vendor-efi-serial.log
+            m05-nbd/qemu-status.txt
