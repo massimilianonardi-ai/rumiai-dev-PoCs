@@ -1,0 +1,90 @@
+name: m-boot Ubuntu loop-root real GRUB/UEFI boot experiment
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/m-boot-ubuntu-loop-boot.yml'
+      - 'pocs/qemu-ubuntu-raw-host/boot-loop-smoke.sh'
+      - 'pocs/qemu-ubuntu-raw-host/grub-example.cfg'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  real-uefi-grub-looproot:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    steps:
+      - name: Check out exact experimental source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Reuse independently verified, same-build Ubuntu RAW bundle
+        uses: actions/download-artifact@v4
+        with:
+          # Previously verified real debootstrap AMD64/ARM64 builder PASS.
+          # This pin is deliberately revision-specific, not a latest artifact.
+          run-id: 42114121474
+          github-token: ${{ github.token }}
+          name: mboot-ubuntu-minimal-raw-${{ matrix.arch }}
+          path: ${{ runner.temp }}/mboot-raw-bundle
+
+      - name: Install real firmware, GRUB image builder and native QEMU
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          base_packages='xorriso mtools grub-common grub2-common e2fsprogs zstd'
+          if [ "${{ matrix.arch }}" = amd64 ]; then
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+              $base_packages grub-pc-bin grub-efi-amd64-bin qemu-system-x86 ovmf
+          else
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+              $base_packages grub-efi-arm64-bin qemu-system-arm qemu-efi-aarch64
+          fi
+
+      - name: Check test script and real GRUB function syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n pocs/qemu-ubuntu-raw-host/boot-loop-smoke.sh
+          cp pocs/qemu-ubuntu-raw-host/grub-example.cfg "$RUNNER_TEMP/grub-check.cfg"
+          printf '\nboot_iso_with_ubuntu_qemu_host /m/boot/iso/fixture.iso\n' \
+            >> "$RUNNER_TEMP/grub-check.cfg"
+          grub-script-check "$RUNNER_TEMP/grub-check.cfg"
+          echo MBOOT_GRUB_BOOT_SMOKE_SCRIPT_SYNTAX_PASS
+
+      - name: Real EFI GRUB to Ubuntu ext4 RAW loop= and QEMU service
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash pocs/qemu-ubuntu-raw-host/boot-loop-smoke.sh \
+            "$RUNNER_TEMP/mboot-raw-bundle" \
+            "$RUNNER_TEMP/mboot-loop-uefi-test"
+
+      - name: Preserve actual UEFI GRUB/QEMU boot observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mboot-ubuntu-real-loopboot-evidence-${{ matrix.arch }}
+          retention-days: 14
+          if-no-files-found: warn
+          compression-level: 6
+          path: |
+            ${{ runner.temp }}/mboot-loop-uefi-test/outer-qemu-serial.log
+            ${{ runner.temp }}/mboot-loop-uefi-test/grub-mkrescue.log
+            ${{ runner.temp }}/mboot-loop-uefi-test/bundle-sha256.log
+            ${{ runner.temp }}/mboot-loop-uefi-test/mkfs-source.log
+            ${{ runner.temp }}/mboot-loop-uefi-test/source-iso.log
