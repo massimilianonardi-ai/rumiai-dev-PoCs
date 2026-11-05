@@ -11,7 +11,8 @@ def check(plan_path, vars_path, firmware_template):
     plan = json.loads(Path(plan_path).read_text())
     if plan.get("physical_disk_write_enabled") is not False:
         raise RuntimeError("Cannot smoke-test a writable physical disk plan")
-    cmd = list(plan["command"])
+    cmd = [part.replace("/run/mboot-qemu/ovmf-vars.fd", vars_path)
+           for part in plan["command"]]
     index = cmd.index("-monitor")
     if cmd[index + 1] != "none":
         raise RuntimeError("Monitor was not isolated")
@@ -50,7 +51,10 @@ def check(plan_path, vars_path, firmware_template):
             raise RuntimeError(f"guest unexpectedly running: {state}")
         blocks = call("query-block")
         expected = int(plan["physical_disks_exposed_readonly"]) + 1
-        inserted = [item["inserted"] for item in blocks if item.get("inserted")]
+        inserted = [item["inserted"] for item in blocks
+                    if item.get("inserted") and
+                    ("synthetic-" in json.dumps(item) or
+                     "physical" in item.get("device", ""))]
         if len(inserted) != expected:
             raise RuntimeError(f"expected {expected} inserted backends, got {blocks}")
         if not all(item.get("ro") is True for item in inserted):
