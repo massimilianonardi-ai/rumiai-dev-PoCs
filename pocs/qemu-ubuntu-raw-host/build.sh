@@ -30,10 +30,7 @@ curl -fL --retry 3 --silent --show-error "$base/$name" \
   cd "$output"
   awk -v name="$name" '
     {
-      file=$2
-      sub(/^\\*/, "", file)
-      sub(/^\\.\\//, "", file)
-      if (file==name) {
+      if ($2==name || $2=="*" name || $2=="./" name || $2=="*./" name) {
         print $1 "  " name
         found=1
       }
