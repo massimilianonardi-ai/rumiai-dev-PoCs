@@ -1,0 +1,51 @@
+name: PoC 087 reject malformed EFI Linux handoff variables
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/poc-087-efi-linux-map-negative.yml'
+      - 'pocs/087-m-boot-efi-linux-middleware/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-original-consumer-rejections:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out the PoC test (no USB, no ISO)
+        uses: actions/checkout@v4
+        with:
+          path: poc-repo
+          persist-credentials: false
+      - name: Check out the unchanged experimental Linux EFI consumer
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/Ventoy
+          ref: ceff79ca92d246928f86362a569f86c6d2ac130f
+          path: fork
+          persist-credentials: false
+      - name: Assert exact source revision and compile the real consumer
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual=$(git -C fork rev-parse HEAD)
+          test "$actual" = ceff79ca92d246928f86362a569f86c6d2ac130f
+          gcc --version | head -n 1
+          python3 -m py_compile poc-repo/pocs/087-m-boot-efi-linux-middleware/test-consumer-negative.py
+          python3 poc-repo/pocs/087-m-boot-efi-linux-middleware/test-consumer-negative.py \
+            fork/GRUB2/port/probe-linux-efi-consumer.c \
+            | tee "$RUNNER_TEMP/vt087-negative-results.txt"
+          grep -Fx 'VT087_EFI_VARIABLE_MALFORMED_REJECTION_PASS: 13 cases, real consumer' \
+            "$RUNNER_TEMP/vt087-negative-results.txt"
+      - name: Preserve bounded negative test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-087-efi-invalid-map-result
+          retention-days: 14
+          if-no-files-found: warn
+          path: ${{ runner.temp }}/vt087-negative-results.txt
