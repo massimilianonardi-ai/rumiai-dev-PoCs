@@ -6,7 +6,7 @@ umask 077
   echo 'usage: build.sh NEW_OUTPUT_DIRECTORY' >&2
   exit 2
 }
-for cmd in curl qemu-img virt-resize virt-customize sha256sum grep awk zstd; do
+for cmd in curl qemu-img virt-resize virt-customize virt-copy-out sha256sum grep awk zstd lsinitramfs; do
   command -v "$cmd" >/dev/null 2>&1 || {
     echo "MBOOT_RAW_MISSING_TOOL: $cmd" >&2
     exit 3
@@ -83,13 +83,16 @@ LIBGUESTFS_BACKEND=direct virt-customize \
   --format qcow2 -a "$output/expanded.qcow2" \
   --install "$packages" \
   --mkdir /etc/initramfs-tools/scripts/local-top \
+  --mkdir /etc/initramfs-tools/scripts/local-bottom \
   --mkdir /etc/initramfs-tools/hooks \
+  --mkdir /host \
   --upload "$here/mboot-raw-root:/etc/initramfs-tools/scripts/local-top/mboot-raw-root" \
+  --upload "$here/mboot-raw-keep-host:/etc/initramfs-tools/scripts/local-bottom/mboot-raw-keep-host" \
   --upload "$here/mboot-raw-initramfs-hook:/etc/initramfs-tools/hooks/mboot-raw-root" \
   --upload "$here/launch.py:/usr/local/sbin/mboot-qemu-boot" \
   --upload "$here/mboot-qemu-host.service:/etc/systemd/system/mboot-qemu-host.service" \
   --run-command 'chmod 0755 /usr/local/sbin/mboot-qemu-boot' \
-  --run-command 'chmod 0755 /etc/initramfs-tools/scripts/local-top/mboot-raw-root /etc/initramfs-tools/hooks/mboot-raw-root' \
+  --run-command 'chmod 0755 /etc/initramfs-tools/scripts/local-top/mboot-raw-root /etc/initramfs-tools/scripts/local-bottom/mboot-raw-keep-host /etc/initramfs-tools/hooks/mboot-raw-root' \
   --run-command 'update-initramfs -u -k all' \
   --run-command 'mkdir -p /etc/systemd/system/multi-user.target.wants' \
   --run-command 'ln -sfn /etc/systemd/system/mboot-qemu-host.service /etc/systemd/system/multi-user.target.wants/mboot-qemu-host.service' \
@@ -104,6 +107,45 @@ qemu-img convert -p -f qcow2 -O raw \
 qemu-img info -f raw "$output/mboot-ubuntu-host.raw" \
   > "$output/raw-info.txt"
 sha256sum "$output/mboot-ubuntu-host.raw" > "$output/raw-sha256.txt"
+# Export a matching kernel/initramfs from the *customized* Ubuntu guest.
+# GRUB reads these sidecars from MBOOTDATA directly: it does not parse GPT RAW.
+# The release must be handled as a single atomic, architecture-specific bundle.
+mkdir -p "$output/boot-export"
+LIBGUESTFS_BACKEND=direct virt-copy-out -a "$output/expanded.qcow2" \
+  /boot "$output/boot-export" > "$output/boot-export.log" 2>&1 || {
+    echo MBOOT_RAW_BOOT_EXPORT_FAILED >&2
+    tail -n 60 "$output/boot-export.log" >&2
+    exit 12
+  }
+kernel=$(find "$output/boot-export/boot" -maxdepth 1 \
+  -type f -name 'vmlinuz-*-generic' | sort -V | tail -n 1)
+[ -n "$kernel" ] && [ -s "$kernel" ] || {
+  echo MBOOT_RAW_GUEST_KERNEL_NOT_FOUND >&2
+  exit 13
+}
+release=${kernel##*/vmlinuz-}
+initrd="$output/boot-export/boot/initrd.img-$release"
+[ -s "$initrd" ] || {
+  echo "MBOOT_RAW_MATCHING_INITRD_NOT_FOUND: $release" >&2
+  exit 14
+}
+cp "$kernel" "$output/vmlinuz"
+cp "$initrd" "$output/initrd.img"
+lsinitramfs "$output/initrd.img" > "$output/initramfs-contents.txt"
+for required in scripts/local-top/mboot-raw-root \
+                scripts/local-bottom/mboot-raw-keep-host; do
+  grep -Fq "$required" "$output/initramfs-contents.txt" || {
+    echo "MBOOT_RAW_INITRD_MISSING: $required" >&2
+    exit 15
+  }
+done
+printf '%s\n' "$release" > "$output/kernel-release.txt"
+(
+  cd "$output"
+  sha256sum mboot-ubuntu-host.raw vmlinuz initrd.img > release-SHA256SUMS
+)
+echo "MBOOT_RAW_EXTERNAL_BOOT_MATCH=$release"
+
 printf 'source_release=Ubuntu Minimal 24.04 20261103\narchitecture=%s\nformat=raw\n' \
   "$architecture" > "$output/provenance.txt"
 # The uncompressed artifact remains a genuinely raw full disk image.
