@@ -93,6 +93,7 @@ jobs:
           cat "$RUNNER_TEMP/paused-qemu-smoke.json"
           echo MBOOT_NATIVE_QEMU_READONLY_SMOKE_PASS
       - name: Build official-verified Ubuntu Minimal RAW container
+        if: always()
         shell: bash
         run: |
           set -euo pipefail
