@@ -554,7 +554,7 @@ function pointerPoint(event)
   return null;
 }
 
-function perform(action,label)
+function perform(action,label,errorPrefix='Operazione respinta:')
 {
   try
   {
@@ -565,7 +565,7 @@ function perform(action,label)
   }
   catch(error)
   {
-    $('message').textContent='Operazione respinta: '+error.message;
+    $('message').textContent=errorPrefix+' '+error.message;
     schedule();
     return null;
   }
@@ -578,7 +578,12 @@ scroller.addEventListener('pointerdown',event=>
   if(!point) return;
   event.preventDefault();
   keyboardAnchor=null;
-  perform(()=>moveCaret(point.row,point.col));
+  const placed=perform
+  (
+    ()=>{moveCaret(point.row,point.col);return true;},
+    null,'Posizione respinta:'
+  );
+  if(placed!==true) return;
   drag={id:event.pointerId,anchor:point,last:point};
   scroller.setPointerCapture(event.pointerId);
   imeInput.focus({preventScroll:true});
@@ -983,7 +988,7 @@ scroller.addEventListener('keydown',event=>
     perform
     (
       ()=>event.key==='Delete'?deleteForward():deleteSelectedOrPrevious(),
-      'Modifica eliminazione'
+      'Modifica eliminazione','Eliminazione respinta:'
     );
     return;
   }
