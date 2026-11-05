@@ -12,8 +12,8 @@ if [ "$(id -u)" -ne 0 ]; then
   echo MBOOT_RAW_BUILD_REQUIRES_ROOT >&2
   exit 3
 fi
-for tool in debootstrap chroot apt-get mount umount mountpoint mkfs.ext4 \
-            truncate e2fsck blkid sha256sum zstd lsinitramfs awk du; do
+for tool in debootstrap chroot apt-get mount umount mkfs.ext4 \
+            truncate e2fsck blkid sha256sum zstd lsinitramfs awk du getent; do
   if ! command -v "$tool" >/dev/null 2>&1; then
     echo "MBOOT_RAW_MISSING_TOOL: $tool" >&2
     exit 4
@@ -25,12 +25,14 @@ case "$(uname -m)" in
     architecture=amd64
     mirror=https://archive.ubuntu.com/ubuntu
     security_mirror=https://security.ubuntu.com/ubuntu
+    apt_hosts='archive.ubuntu.com security.ubuntu.com'
     guest_packages='qemu-system-x86 ovmf'
     ;;
   aarch64)
     architecture=arm64
     mirror=https://ports.ubuntu.com/ubuntu-ports
     security_mirror=$mirror
+    apt_hosts='ports.ubuntu.com'
     guest_packages='qemu-system-arm qemu-efi-aarch64'
     ;;
   *)
@@ -102,6 +104,28 @@ mount --rbind /dev "$rootfs/dev"
 mounted_dev=1
 mount --make-rslave "$rootfs/dev"
 
+# Some hosted build runners resolve Ubuntu mirrors on the host but not from
+# a newly debootstrapped chroot. Verify the real resolver before proceeding.
+# If the chroot cannot resolve a known mirror, use the host's *current*
+# resolution for this build only, preserving HTTPS hostnames and APT signing.
+# These temporary /etc/hosts entries are removed from the released rootfs.
+cp "$rootfs/etc/hosts" "$output/hosts-before-build.txt"
+for apt_host in $apt_hosts; do
+  if ! chroot "$rootfs" getent ahostsv4 "$apt_host" > /dev/null 2>&1; then
+    host_ip=$(getent ahostsv4 "$apt_host" | awk 'NR == 1 { print $1 }')
+    if [ -z "$host_ip" ]; then
+      echo "MBOOT_RAW_HOST_DNS_FAILED: $apt_host" >&2
+      exit 17
+    fi
+    printf '%s %s\n' "$host_ip" "$apt_host" >> "$rootfs/etc/hosts"
+    echo "MBOOT_RAW_CHROOT_DNS_FALLBACK: $apt_host"
+  fi
+  if ! chroot "$rootfs" getent ahostsv4 "$apt_host" > /dev/null; then
+    echo "MBOOT_RAW_CHROOT_DNS_FAILED: $apt_host" >&2
+    exit 18
+  fi
+done
+
 chroot "$rootfs" /usr/bin/env DEBIAN_FRONTEND=noninteractive \
   apt-get -q update > "$output/apt-update.log" 2>&1 || {
     echo MBOOT_RAW_APT_UPDATE_FAILED >&2
@@ -170,12 +194,12 @@ fi
 chroot "$rootfs" dpkg-query -W > "$output/packages.txt"
 chroot "$rootfs" apt-get clean
 rm -f "$rootfs/usr/sbin/policy-rc.d"
+cp "$output/hosts-before-build.txt" "$rootfs/etc/hosts"
 # Build-time resolver information must not leak into the deployed filesystem.
 rm -f "$rootfs/etc/resolv.conf"
 ln -s ../run/systemd/resolve/stub-resolv.conf "$rootfs/etc/resolv.conf"
 
 # The root tree must be free of live mounts before copying into ext4.
-cleanup_mounts=1
 umount -R "$rootfs/dev"
 mounted_dev=0
 umount "$rootfs/sys"
