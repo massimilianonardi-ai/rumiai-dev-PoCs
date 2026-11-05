@@ -25,15 +25,24 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends grub-common
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends grub-common initramfs-tools-core e2fsprogs
       - name: Validate external kernel/initramfs GRUB and initramfs syntax
         shell: bash
         run: |
           set -euo pipefail
           root=pocs/qemu-ubuntu-raw-host
-          for source in build.sh mboot-raw-root mboot-raw-keep-host mboot-raw-initramfs-hook; do
-            sh -n "$root/$source"
-          done
+          sh -n "$root/build.sh"
+          # Verify Ubuntu 24.04's *installed* native loop-root implementation,
+          # not only its manpage or the old Wubi sources.
+          test -f /usr/share/initramfs-tools/scripts/local
+          grep -Fq 'LOOP' /usr/share/initramfs-tools/scripts/local
+          grep -Fq 'mount -o move' /usr/share/initramfs-tools/scripts/local
+          dpkg-query -W -f='MBOOT_NATIVE_LOOP_PACKAGE=${Version}\n' initramfs-tools-core
+          # Create and inspect a real partitionless ext4 RAW fixture.
+          truncate -s 64M "$RUNNER_TEMP/fixture-rootfs.raw"
+          mkfs.ext4 -q -F -L MBOOT_ROOTFS_FIXTURE "$RUNNER_TEMP/fixture-rootfs.raw"
+          test "$(blkid -p -o value -s TYPE "$RUNNER_TEMP/fixture-rootfs.raw")" = ext4
+          e2fsck -fn "$RUNNER_TEMP/fixture-rootfs.raw" > "$RUNNER_TEMP/ext4-check.txt"
           # The source is a GRUB function library. Append a synthetic
           # invocation only for parser validation; this does NOT boot it.
           cp "$root/grub-example.cfg" "$RUNNER_TEMP/grub-check.cfg"
@@ -46,16 +55,18 @@ jobs:
           root=Path(sys.argv[1])
           grub=(root/'grub-example.cfg').read_text()
           builder=(root/'build.sh').read_text()
-          early=(root/'mboot-raw-root').read_text()
-          preserve=(root/'mboot-raw-keep-host').read_text()
+          launcher=(root/'launch.py').read_text()
           assert 'host_kernel' in grub and 'host_initrd' in grub
           assert 'loopback ubuntu_host' not in grub
-          assert 'mboot.raw=' in grub and 'mboot.iso=' in grub
-          assert 'mboot.media_uuid=' in grub
-          assert '/host' in early and '/host' in preserve
-          assert 'mount -o move /host "$rootmnt/host"' in preserve
+          assert 'root=UUID=' in grub and 'loop="$host_image"' in grub
+          assert 'loopfstype=ext4' in grub and 'mboot.iso=' in grub
+          assert 'mboot.raw=' not in grub and 'mboot.media_uuid=' not in grub
+          assert 'mboot.media_uuid=' not in launcher
+          assert 'candidate = mountpoint / iso.relative_to("/")' in launcher
           assert 'release-SHA256SUMS' in builder
-          assert 'virt-copy-out' in builder
+          assert 'virt-copy-out' in builder and 'guestfish --ro' in builder
+          assert 'blkid -p -o value -s TYPE' in builder
+          assert 'qemu-img convert -p -f qcow2 -O raw' not in builder
           assert 'update-initramfs -u -k all' in builder
           PY
           echo MBOOT_RAW_EXTERNAL_BOOT_CONTRACT_STATIC_PASS
@@ -158,16 +169,16 @@ jobs:
           qemu-img info -f raw "$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}/mboot-ubuntu-host.raw"
           grep -F 'file format: raw' \
             "$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}/raw-info.txt"
+          test "$(blkid -p -o value -s TYPE "$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}/mboot-ubuntu-host.raw")" = ext4
           (
             cd "$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}"
             sha256sum -c release-SHA256SUMS
             test -s vmlinuz
             test -s initrd.img
             test -s kernel-release.txt
-            grep -F 'scripts/local-top/mboot-raw-root' initramfs-contents.txt
-            grep -F 'scripts/local-bottom/mboot-raw-keep-host' initramfs-contents.txt
+            grep -F 'scripts/local' initramfs-contents.txt
           )
-          echo MBOOT_UBUNTU_RAW_FORMAT_AND_SIDECARS_PASS
+          echo MBOOT_UBUNTU_EXT4_ROOTFS_AND_SIDECARS_PASS
       - name: Preserve build evidence and actual RAW container
         if: always()
         uses: actions/upload-artifact@v4
@@ -184,6 +195,9 @@ jobs:
             ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/release-SHA256SUMS
             ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/initramfs-contents.txt
             ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/boot-export.log
+            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/root-filesystems.txt
+            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/export-ext4.log
+            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/e2fsck.log
             ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/raw-sha256.txt
             ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/raw-info.txt
             ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/provenance.txt
