@@ -11,7 +11,14 @@ body{max-width:1000px;margin:24px auto;padding:0 20px}
 h1{font-size:1.5rem}
 .toolbar{display:flex;flex-wrap:wrap;gap:12px;margin:18px 0;align-items:center}
 select,button{font:inherit;padding:7px}
-#scroller{border:1px solid #a3b3c8;background:#fff;overflow:auto;height:156px;padding:12px;outline:0}
+#scroller{border:1px solid #a3b3c8;background:#fff;overflow:hidden;height:156px;padding:12px;outline:0;flex:1;min-width:0;position:relative}
+.editor-frame{display:flex;gap:8px;align-items:stretch}
+#vscroll{writing-mode:vertical-lr;direction:rtl;width:18px;min-height:156px}
+#hscroll{width:100%;margin:10px 0}
+#ime-input{position:absolute;left:12px;top:12px;width:1px;height:24px;opacity:.02;resize:none;overflow:hidden;outline:0;border:0;padding:0;z-index:5}
+#composition-preview{min-height:1.6em;color:#805b26}
+.toolbar input[type=checkbox]{width:18px;height:18px;vertical-align:middle}
+.toolbar button:disabled{opacity:.45}
 #scroller:focus-visible{outline:3px solid #3384d6}
 .selection-mark{position:absolute;top:0;height:32px;background:rgba(36,108,189,.3);
  pointer-events:none;z-index:2}
@@ -33,11 +40,7 @@ select,button{font:inherit;padding:7px}
 <h1>GUI su Document2D canonico</h1>
 <p>Prototipo di contratto: la GUI riceve il Document2D composto, senza distinguere
 lo storage, riscrivere Raw o segmentare Unicode. Non usa codec di trasporto.
-Clic, frecce, Maiusc+frecce (selezione orizzontale) e digitazione passano attraverso Document2D. G04:
-rotella verticale per paginare le righe, Maiusc+rotella per paginare
-le colonne, PgSu/PgGiù per le righe. La vista DOM resta limitata
-a tre righe e cento colonne richieste; questo è paging logico, non
-una scrollbar nativa dell'intero documento. IME resta separato.</p>
+Clic, trascinamento, selezione lineare/rettangolare, frecce, Maiusc+frecce, copia/taglia/incolla, composizione IME e annulla/ripristina sono gestiti dall'interfaccia. Le barre di scorrimento e la rotella spostano finestre logiche di massimo tre righe e cento colonne; il DOM non monta tutto il documento. Non è ancora un editor di produzione.</p>
 <p><a href="./presentation.html">Laboratorio sperimentale dei trasporti</a> ·
 <a href="./index.html">TextEdit 0.8.2 originale</a></p>
 <div class="toolbar">
@@ -54,14 +57,30 @@ una scrollbar nativa dell'intero documento. IME resta separato.</p>
 <option value="long">Riga lunga Unicode</option>
 <option value="many">1200 righe Unicode</option>
 </select></label>
+<label>Selezione <select id="gesture"><option value="line">Lineare</option><option value="rectangle">Colonne</option></select></label>
+<label><input id="repeat-paste" type="checkbox" checked> Ripeti riga singola</label>
+<button id="copy" type="button">Copia</button>
+<button id="cut" type="button">Taglia</button>
+<button id="paste" type="button">Incolla</button>
+<button id="undo" type="button">Annulla</button>
+<button id="redo" type="button">Ripeti</button>
 <button id="reset" type="button">Ripristina</button>
 </div>
 <div id="message" role="status"></div>
+<div class="editor-frame">
 <div id="scroller" role="textbox" aria-multiline="true"
- aria-label="Vista canonica Document2D" tabindex="0"><div id="rows"></div></div>
+ aria-label="Vista canonica Document2D" tabindex="0">
+<div id="rows"></div>
+<textarea id="ime-input" aria-label="Input di composizione testo" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+</div>
+<input id="vscroll" aria-label="Scorrimento righe" type="range" min="0" max="0" value="0">
+</div>
+<input id="hscroll" aria-label="Scorrimento colonne" type="range" min="0" max="0" value="0">
+<div id="composition-preview" aria-live="polite"></div>
 <div id="status"></div>
 <script src="../../../../lib/sys/js/core/document2d-browser.generated.js"></script>
 <script src="./canonical-region-renderer.js"></script>
+<script src="./canonical-editor-actions.js"></script>
 <script src="./canonical-gui.js"></script>
 </body>
 </html>
