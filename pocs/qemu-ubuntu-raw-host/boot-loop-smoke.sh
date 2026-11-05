@@ -38,12 +38,12 @@ done
 ( cd "$target" && sha256sum -c release-SHA256SUMS ) > "$work/bundle-sha256.log"
 echo MBOOT_LOOP_BUNDLE_INTEGRITY_PASS
 
-# A real, intentionally nonbootable ISO file is passed unchanged by GRUB to
-# the host. This test does not assert vendor-installer compatibility.
-mkdir -p "$work/iso-input"
-printf 'mboot original ISO fixture\n' > "$work/iso-input/README"
-xorriso -as mkisofs -quiet -V MBOOT_ISO_FIXTURE \
-  -o "$work/source/m/boot/iso/fixture.iso" "$work/iso-input" \
+# Construct an actual bootable Linux ISO fixture and pass it unchanged through
+# GRUB -> Ubuntu's preserved /host -> the inner QEMU read-only CD-ROM.
+# This is not an original vendor ISO and proves only the guest fixture path.
+bash "$here/make-bootable-guest-iso.sh" \
+  "$target/vmlinuz" "$target/initrd.img" \
+  "$work/source/m/boot/iso/fixture.iso" "$arch" \
   > "$work/source-iso.log" 2>&1
 source_image="$work/mbootdata.raw"
 truncate -s 6400M "$source_image"
@@ -122,11 +122,12 @@ observed=none
 for ((iteration = 0; iteration < 240; iteration++)); do
   if grep -Fq MBOOT_GRUB_MENUENTRY_SELECTED "$work/outer-qemu-serial.log" &&
      grep -Fq MBOOT_QEMU_GUEST_START "$work/outer-qemu-serial.log" &&
-     grep -Fq MBOOT_QEMU_DISKS_READONLY "$work/outer-qemu-serial.log"; then
-    observed=service
+     grep -Fq MBOOT_QEMU_DISKS_READONLY "$work/outer-qemu-serial.log" &&
+     grep -Fq MBOOT_INNER_GUEST_INSPECTION_PASS "$work/outer-qemu-serial.log"; then
+    observed=inner-guest
     break
   fi
-  if grep -Eq 'Kernel panic - not syncing|ALERT!.*does not exist|Gave up waiting for root file system device' \
+  if grep -Eq 'Kernel panic - not syncing|ALERT!.*does not exist|Gave up waiting for root file system device|MBOOT_INNER_GUEST_INSPECTION_FAILED' \
     "$work/outer-qemu-serial.log"; then
     observed=kernel-failure
     break
@@ -162,3 +163,19 @@ if ! grep -Fq MBOOT_QEMU_DISKS_READONLY "$work/outer-qemu-serial.log"; then
   exit 13
 fi
 echo MBOOT_LOOP_GRUB_UBUNTU_ROOT_SYSTEMD_QEMU_START_PASS
+if ! grep -Fq MBOOT_INNER_GUEST_OPTICAL_PRESENT "$work/outer-qemu-serial.log"; then
+  echo MBOOT_LOOP_INNER_OPTICAL_NOT_OBSERVED >&2
+  tail -n 120 "$work/outer-qemu-serial.log" >&2
+  exit 14
+fi
+if ! grep -Fq MBOOT_INNER_GUEST_DISK_PRESENT "$work/outer-qemu-serial.log"; then
+  echo MBOOT_LOOP_INNER_DISK_NOT_OBSERVED >&2
+  tail -n 120 "$work/outer-qemu-serial.log" >&2
+  exit 15
+fi
+if ! grep -Fq MBOOT_INNER_GUEST_INSPECTION_PASS "$work/outer-qemu-serial.log"; then
+  echo MBOOT_LOOP_INNER_BOOT_NOT_OBSERVED >&2
+  tail -n 120 "$work/outer-qemu-serial.log" >&2
+  exit 16
+fi
+echo MBOOT_LOOP_GUEST_LINUX_OPTICAL_AND_DISK_PASS
