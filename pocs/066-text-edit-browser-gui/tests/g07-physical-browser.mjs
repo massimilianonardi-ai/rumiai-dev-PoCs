@@ -1,5 +1,5 @@
-// G07 visual verification on the operator's Ubuntu ARM64 reference VM.
-// The launcher records the guest and installed system Chromium identity.
+// G07 visual verification on the operator's Ubuntu reference VMs.
+// Each host launcher records its guest and installed Chromium identity.
 import assert from 'node:assert/strict';
 import {mkdir} from 'node:fs/promises';
 import {join} from 'node:path';
