@@ -579,7 +579,38 @@ scroller.addEventListener('pointerdown',event=>
 scroller.addEventListener('pointermove',event=>
 {
   if(!drag || drag.id!==event.pointerId) return;
-  const point=pointerPoint(event);
+  let point=pointerPoint(event);
+  if(!point)
+  {
+    // Captured pointer movements outside the bounded display may advance
+    // the logical window without ever mounting the whole source.
+    const rect=scroller.getBoundingClientRect();
+    if(event.clientY<rect.top && firstRow>0)
+    {
+      moveWindow(-VISIBLE_ROWS,0);
+      point=snap(firstRow,drag.last.col);
+    }
+    else if(event.clientY>rect.bottom &&
+      firstRow+VISIBLE_ROWS<view.rowCount)
+    {
+      moveWindow(VISIBLE_ROWS,0);
+      point=snap
+      (
+        Math.min(view.rowCount-1,firstRow+VISIBLE_ROWS-1),
+        drag.last.col
+      );
+    }
+    else if(event.clientX<rect.left && firstCol>0)
+    {
+      moveWindow(0,-VISIBLE_COLS);
+      point=snap(drag.last.row,firstCol);
+    }
+    else if(event.clientX>rect.right)
+    {
+      moveWindow(0,VISIBLE_COLS);
+      point=snap(drag.last.row,firstCol+VISIBLE_COLS);
+    }
+  }
   if(!point || (point.row===drag.last.row && point.col===drag.last.col))
   {
     return;
