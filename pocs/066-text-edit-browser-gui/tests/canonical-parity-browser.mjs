@@ -83,12 +83,21 @@ async function keyBoth(key)
 {
   await legacy.locator('#scroller').focus();
   await canonical.locator('#scroller').focus();
+  const before=await canonical.evaluate
+  (
+    ()=>window.__canonicalGuiProbe.snapshot().paints
+  );
   await legacy.keyboard.press(key);
   await canonical.keyboard.press(key);
   await canonical.waitForFunction
   (
-    ()=>window.__canonicalGuiProbe?.snapshot()?.renderedRevision===
-        window.__canonicalGuiProbe?.snapshot()?.viewRevision
+    previous=>
+    {
+      const s=window.__canonicalGuiProbe?.snapshot();
+      return s?.paints>previous &&
+        s.renderedRevision===s.viewRevision;
+    },
+    before
   );
 }
 
