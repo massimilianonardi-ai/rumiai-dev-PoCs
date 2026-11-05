@@ -1,20 +1,21 @@
-// Real hosted Chromium is the default. The physical launcher alone opts
-// into a native headful system browser after Ubuntu/ARM64 host preflight.
+// Hosted Chromium is the default. The reference Ubuntu VM uses its own
+// installed Chromium; headful with a GUI, otherwise native headless.
 import {chromium} from 'playwright';
 
 export async function launchTestChromium()
 {
-  const physical=process.env.RUMIAI_G07_PHYSICAL==='1';
-  if(physical && !process.env.RUMIAI_G07_CHROMIUM)
+  const reference=process.env.RUMIAI_G07_REFERENCE==='1';
+  const headless=process.env.RUMIAI_G07_HEADLESS==='1';
+  if(reference && !process.env.RUMIAI_G07_CHROMIUM)
   {
     throw new Error('G07 native Chromium executable is required');
   }
   return chromium.launch
   (
     {
-      headless:!physical,
-      ...(physical?{executablePath:process.env.RUMIAI_G07_CHROMIUM}:{}),
-      args:physical?[]:['--no-sandbox']
+      headless:reference?headless:true,
+      ...(reference?{executablePath:process.env.RUMIAI_G07_CHROMIUM}:{}),
+      args:reference?[]:['--no-sandbox']
     }
   );
 }

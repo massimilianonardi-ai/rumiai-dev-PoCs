@@ -1,5 +1,5 @@
-// G07 visual verification on a *real physical* GUI host. The surrounding
-// launcher checks the hardware/OS/session, captures its identity and logs.
+// G07 visual verification on the operator's Ubuntu ARM64 reference VM.
+// The launcher records the guest and installed system Chromium identity.
 import assert from 'node:assert/strict';
 import {mkdir} from 'node:fs/promises';
 import {join} from 'node:path';
@@ -7,9 +7,9 @@ import {launchTestChromium} from './browser-launch.mjs';
 
 assert.equal
 (
-  process.env.RUMIAI_G07_PHYSICAL,
+  process.env.RUMIAI_G07_REFERENCE,
   '1',
-  'physical-host preflight required'
+  'reference VM preflight required'
 );
 assert.ok
 (
@@ -130,7 +130,8 @@ try
   assert.deepEqual(errors,[]);
   const report=
   {
-    status:'PASS',scope:'G07 native headful Chromium pixel checks',
+    status:'PASS',scope:'G07 real reference VM Chromium pixel checks',
+    browserMode:process.env.RUMIAI_G07_HEADLESS==='1'?'headless':'headful',
     browserVersion:browser.version(),
     browser:initial,geometry,
     screenshots:[
@@ -138,7 +139,7 @@ try
       'canonical-annotation.png','canonical-substitution.png',
       'textedit-082-reference.png'
     ],
-    boundary:'No claim for Electron, physical host before operator execution, or full editor parity'
+    boundary:'No claim for Electron, missing desktop integration in headless mode, other hosts or full editor parity'
   };
   console.log(JSON.stringify(report));
 }
