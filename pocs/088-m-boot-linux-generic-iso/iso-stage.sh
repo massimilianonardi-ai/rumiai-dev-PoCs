@@ -48,7 +48,11 @@ done
     /bin/busybox mount -t sysfs sysfs /sys || fail SYSFS 6
 [ -c /dev/null ] ||
     /bin/busybox mount -t devtmpfs devtmpfs /dev || fail DEVTMPFS 7
-/bin/sh /modules.load || fail MODULES 8
+# Subsequent fixture attempts share the same kernel; do not insmod twice.
+if [ ! -f /run/m02/modules-loaded ]; then
+    /bin/sh /modules.load || fail MODULES 8
+    /bin/busybox touch /run/m02/modules-loaded || fail MODULE_STATE 19
+fi
 /bin/busybox grep -q ' /sys/firmware/efi/efivars ' /proc/mounts ||
     /bin/busybox mount -t efivarfs efivarfs /sys/firmware/efi/efivars ||
     fail EFIVARFS 9
