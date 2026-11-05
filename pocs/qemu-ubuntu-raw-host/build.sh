@@ -28,9 +28,20 @@ curl -fL --retry 3 --silent --show-error "$base/$name" \
   -o "$output/$name"
 (
   cd "$output"
-  grep -F " $name" SHA256SUMS > source-verify.txt
-  [ -s source-verify.txt ] || {
+  awk -v name="$name" '
+    {
+      file=$2
+      sub(/^\\*/, "", file)
+      sub(/^\\.\\//, "", file)
+      if (file==name) {
+        print $1 "  " name
+        found=1
+      }
+    }
+    END { if (!found) exit 1 }
+  ' SHA256SUMS > source-verify.txt || {
     echo 'MBOOT_RAW_SOURCE_NOT_IN_OFFICIAL_SHA256SUMS' >&2
+    grep "$architecture" SHA256SUMS >&2 || :
     exit 5
   }
   sha256sum -c source-verify.txt
