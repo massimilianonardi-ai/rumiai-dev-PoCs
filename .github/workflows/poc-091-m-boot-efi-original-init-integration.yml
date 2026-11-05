@@ -253,7 +253,13 @@ jobs:
               M03_ORIGINAL_PID_ONE_PASS M03_ORIGINAL_MOUNT_NAMESPACE_PASS \
               M03_ORIGINAL_MEDIA_READ_PASS M03_ORIGINAL_CLEANUP_PASS \
               M03_ORIGINAL_NEXT_STAGE_PASS; do
-            grep -q "^$marker" "$log" || {
+            # GRUB's first serial print may carry ANSI cursor-control
+            # bytes on the same line; do not require column-zero for only
+            # that marker. All Linux stage markers remain line-anchored.
+            case "$marker" in
+              VT079_UEFI_GRUB_STARTED) grep -q "$marker" "$log" ;;
+              *) grep -q "^$marker" "$log" ;;
+            esac || {
               echo "M-04 missing guest-observed marker: $marker" >&2
               tail -n 140 "$log" >&2
               exit 11
@@ -263,7 +269,7 @@ jobs:
           # clean mount. No middleware-owned original success marker exists.
           test "$(grep -c '^M03_ORIGINAL_INIT_ENTERED' "$log")" -eq 1
           line() { grep -n "^$1" "$log" | head -n1 | cut -d: -f1; }
-          first=$(line VT079_UEFI_GRUB_STARTED)
+          first=$(grep -n 'VT079_UEFI_GRUB_STARTED' "$log" | head -n1 | cut -d: -f1)
           sidecar=$(line M04_EFI_SIDECAR_INIT_ENTERED)
           middle=$(line M03_MIDDLEWARE_INIT_ENTERED)
           badmap=$(line M03_NEGATIVE_CORRUPT_MAP_NO_HANDOFF_PASS)
