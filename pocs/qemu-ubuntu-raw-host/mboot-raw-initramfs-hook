@@ -1,0 +1,17 @@
+#!/bin/sh
+# initramfs-tools hook; copies only the tools needed for RAW-host root discovery.
+set -e
+PREREQ=""
+prereqs() { echo "$PREREQ"; }
+case "$1" in
+  prereqs) prereqs; exit 0 ;;
+esac
+. /usr/share/initramfs-tools/hook-functions
+copy_exec /usr/sbin/losetup
+copy_exec /usr/sbin/blkid
+copy_exec /usr/sbin/modprobe
+manual_add_modules loop
+manual_add_modules ext4
+manual_add_modules nvme
+manual_add_modules usb_storage
+manual_add_modules sd_mod
