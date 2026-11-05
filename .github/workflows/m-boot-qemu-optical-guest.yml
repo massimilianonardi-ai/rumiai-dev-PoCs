@@ -26,7 +26,7 @@ jobs:
           set -eu
           sudo apt-get update -qq
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
-            grub-common grub-efi-amd64-bin linux-image-generic linux-modules-extra-generic \
+            grub-common grub-efi-amd64-bin linux-image-generic \
             busybox-static cpio zstd xz-utils kmod \
             xorriso dosfstools mtools qemu-system-x86 ovmf file
       - name: Validate syntax and build disposable original-ISO Linux guest
