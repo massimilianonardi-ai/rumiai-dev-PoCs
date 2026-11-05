@@ -2,16 +2,15 @@
 # Disposable stock-GRUB EFI boot proving two separate original-vendor/initrd files.
 # No original vendor ISO replica, no physical disk, no product/firmware changes.
 set -eu
-if [ "$#" -ne 5 ] || [ -e "$1" ] || [ ! -s "$2" ] ||
+if [ "$#" -ne 4 ] || [ -e "$1" ] || [ ! -s "$2" ] ||
    [ ! -s "$3" ] || [ ! -s "$4" ] || [ ! -s "$5" ]; then
-  echo 'M05_EFI_FIXTURE_ARGS: usage NEW_DIRECTORY VENDOR_KERNEL VENDOR_INITRD SMALL_CPIO EFI_MODULE_ROOT' >&2
+  echo 'M05_EFI_FIXTURE_ARGS: usage NEW_DIRECTORY VENDOR_KERNEL VENDOR_INITRD SMALL_CPIO' >&2
   exit 2
 fi
 out=$1
 kernel=$2
 initrd=$3
 sidecar=$4
-module_root=$5
 for tool in grub-mkstandalone grub-script-check mkfs.vfat mmd mcopy xorriso sha256sum cmp; do
   command -v "$tool" >/dev/null 2>&1 || {
     echo "M05_EFI_FIXTURE_MISSING_TOOL: $tool" >&2
