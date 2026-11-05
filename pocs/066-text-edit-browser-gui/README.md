@@ -88,13 +88,25 @@ Do not treat a GitHub runner with a similar OS label as this VM.
 
 After the successful scoped ARM64 browser run, the next ordered reference
 host is the **operator's Ubuntu 24.04 or 26.04 x86_64 VM**. Its separate
-launcher is `tests/g07-ubuntu-x86_64.sh`. On that actual VM, from the
-parent directory of an existing PoC checkout:
+launcher is `tests/g07-ubuntu-x86_64.sh`. **Do not run this stage on
+`vmdev`**: that named Ubuntu 26.04 reference VM is **ARM64 (`aarch64`)**
+and its scoped G07 browser validation has already passed. A shell prompt
+or checkout path alone does not establish the host architecture.
+
+First identify and enter the **separate x86_64 reference VM**, then verify
+its architecture before launching the test. The hostname of that second
+VM has not yet been established in this workstream; do not infer that it
+is `vmdev`. From the parent directory of the PoC checkout on the
+verified x86_64 machine:
 
 ```sh
+uname -m  # must print x86_64; otherwise stop on this host
 git -C rumiai-dev-PoCs pull --ff-only
 sh rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/g07-ubuntu-x86_64.sh
 ```
+
+If the actual second host is not available, leave its G07 result PENDING;
+neither an ARM64 rerun nor generic hosted CI substitutes for it.
 
 This accepts the named Ubuntu guest versions with native x86_64 Node.js
 22+ and installed system Chromium, and records the actual guest,
