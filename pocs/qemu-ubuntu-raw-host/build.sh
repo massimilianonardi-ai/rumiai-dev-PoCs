@@ -39,8 +39,12 @@ qemu-img info -f qcow2 "$output/$name" > "$output/source-qcow2-info.txt"
 qemu-img create -f qcow2 "$output/expanded.qcow2" 4G
 # Published Ubuntu Minimal UEFI/GPT images use sda1 as the root filesystem.
 # Verify this separately before depending on it for GRUB looproot boot.
-virt-resize --expand /dev/sda1 "$output/$name" \
-  "$output/expanded.qcow2" > "$output/virt-resize.log" 2>&1
+LIBGUESTFS_BACKEND=direct virt-resize --expand /dev/sda1 "$output/$name" \
+  "$output/expanded.qcow2" > "$output/virt-resize.log" 2>&1 || {
+    echo MBOOT_RAW_RESIZE_FAILED >&2
+    tail -n 100 "$output/virt-resize.log" >&2
+    exit 7
+  }
 # Customize only the NEW disposable guest image, never the Canonical original.
 LIBGUESTFS_BACKEND=direct virt-customize \
   --format qcow2 -a "$output/expanded.qcow2" \
