@@ -1,0 +1,73 @@
+name: m-boot K-03 synthetic Linux persistent virtual CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/m-boot-qemu-optical-guest.yml'
+      - 'pocs/qemu-optical-guest/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qemu-linux-post-kernel-optical:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Check out exact PoC revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install stock UEFI, Linux kernel, optical modules and QEMU
+        shell: sh
+        run: |
+          set -eu
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            grub-common grub-efi-amd64-bin linux-image-generic linux-modules-extra-generic \
+            busybox-static cpio zstd xz-utils kmod \
+            xorriso dosfstools mtools qemu-system-x86 ovmf file
+      - name: Validate syntax and build disposable original-ISO Linux guest
+        shell: sh
+        run: |
+          set -eu
+          sh -n pocs/qemu-optical-guest/guest-init.sh
+          sh -n pocs/qemu-optical-guest/build.sh
+          sh -n pocs/qemu-optical-guest/run.sh
+          kernel=$(find /boot -maxdepth 1 -name 'vmlinuz-*generic' -type f | sort -V | tail -n 1)
+          test -s "$kernel"
+          sudo install -m 0644 "$kernel" "$RUNNER_TEMP/$(basename "$kernel")"
+          sh pocs/qemu-optical-guest/build.sh \
+            "$RUNNER_TEMP/k03-synthetic-guest" \
+            "$RUNNER_TEMP/$(basename "$kernel")"
+          file "$RUNNER_TEMP/k03-synthetic-guest/bootable.iso"
+      - name: Boot real QEMU guest and assert Linux optical read and negative
+        shell: sh
+        run: |
+          set -eu
+          sh pocs/qemu-optical-guest/run.sh "$RUNNER_TEMP/k03-synthetic-guest"
+          cat "$RUNNER_TEMP/k03-synthetic-guest/k03-result.txt"
+          grep -F 'K03_GUEST_POST_KERNEL_CD_PASS' \
+            "$RUNNER_TEMP/k03-synthetic-guest/k03-positive.log"
+          grep -F 'negative_source_rejected=yes' \
+            "$RUNNER_TEMP/k03-synthetic-guest/k03-result.txt"
+      - name: Preserve guest/host SHA and boot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m-boot-k03-qemu-optical-linux-evidence
+          if-no-files-found: warn
+          retention-days: 14
+          compression-level: 6
+          path: |
+            ${{ runner.temp }}/k03-synthetic-guest/k03-result.txt
+            ${{ runner.temp }}/k03-synthetic-guest/k03-positive.log
+            ${{ runner.temp }}/k03-synthetic-guest/k03-negative.log
+            ${{ runner.temp }}/k03-synthetic-guest/k03-source-sha256.txt
+            ${{ runner.temp }}/k03-synthetic-guest/module-manifest.txt
+            ${{ runner.temp }}/k03-synthetic-guest/k03-xorriso.log
+            ${{ runner.temp }}/k03-synthetic-guest/k03-hook-extracted.cpio
+            ${{ runner.temp }}/k03-synthetic-guest/grub-build.log
+            ${{ runner.temp }}/k03-synthetic-guest/bootable.iso
