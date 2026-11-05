@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/m-boot-ubuntu-loop-boot.yml'
       - 'pocs/qemu-ubuntu-raw-host/boot-loop-smoke.sh'
+      - 'pocs/qemu-ubuntu-raw-host/make-bootable-guest-iso.sh'
       - 'pocs/qemu-ubuntu-raw-host/grub-example.cfg'
   workflow_dispatch:
 
@@ -46,7 +47,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          base_packages='xorriso mtools grub-common grub2-common e2fsprogs zstd'
+          base_packages='xorriso mtools grub-common grub2-common e2fsprogs zstd cpio gzip initramfs-tools-core'
           if [ "${{ matrix.arch }}" = amd64 ]; then
             sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
               $base_packages grub-pc-bin grub-efi-amd64-bin qemu-system-x86 ovmf
@@ -60,13 +61,14 @@ jobs:
         run: |
           set -euo pipefail
           bash -n pocs/qemu-ubuntu-raw-host/boot-loop-smoke.sh
+          bash -n pocs/qemu-ubuntu-raw-host/make-bootable-guest-iso.sh
           cp pocs/qemu-ubuntu-raw-host/grub-example.cfg "$RUNNER_TEMP/grub-check.cfg"
           printf '\nboot_iso_with_ubuntu_qemu_host /m/boot/iso/fixture.iso\n' \
             >> "$RUNNER_TEMP/grub-check.cfg"
           grub-script-check "$RUNNER_TEMP/grub-check.cfg"
           echo MBOOT_GRUB_BOOT_SMOKE_SCRIPT_SYNTAX_PASS
 
-      - name: Real EFI GRUB to Ubuntu ext4 RAW loop= and QEMU service
+      - name: Real EFI GRUB to Ubuntu RAW host, nested Linux optical and disk visibility
         shell: bash
         run: |
           set -euo pipefail
@@ -88,3 +90,4 @@ jobs:
             ${{ runner.temp }}/mboot-loop-uefi-test/bundle-sha256.log
             ${{ runner.temp }}/mboot-loop-uefi-test/mkfs-source.log
             ${{ runner.temp }}/mboot-loop-uefi-test/source-iso.log
+            ${{ runner.temp }}/mboot-loop-uefi-test/source/m/boot/iso/guest-grub-mkrescue.log
