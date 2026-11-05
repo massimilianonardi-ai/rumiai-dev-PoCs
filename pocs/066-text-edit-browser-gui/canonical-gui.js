@@ -292,18 +292,21 @@ function applyGesture(anchor,cursor)
     setRange(anchor,cursor);
     return;
   }
-  const first=Math.min(anchor.row,cursor.row);
-  const last=Math.max(anchor.row,cursor.row);
-  if(last-first>2000) throw new RangeError('Selezione troppo estesa');
+  if(Math.abs(anchor.row-cursor.row)>2000)
+  {
+    throw new RangeError('Selezione troppo estesa');
+  }
   const left=Math.min(anchor.col,cursor.col);
   const right=Math.max(anchor.col,cursor.col);
   const forward=anchor.col<=cursor.col;
+  const step=anchor.row<=cursor.row?1:-1;
   const range=[];
-  for(let row=first;row<=last;row++)
+  for(let row=anchor.row;;row+=step)
   {
     const start=snap(row,left);
     const end=snap(row,right);
     range.push({start,end,forward});
+    if(row===cursor.row) break;
   }
   view.setSelections(range);
   revealCursor(cursor);
