@@ -245,9 +245,9 @@ try
     status:'PASS',scope:'G06 actual 0.8.2 vs nominal Document2D GUI',
     variants:results,
     knownDisparities:[
-      'legacy supports pointer drag/Alt rectangle, canonical does not',
-      'legacy has Backspace/Enter/Tab and native proportional scrollbars',
-      'canonical only paints same-row selections and pages logical windows',
+      'this G06 comparison covers only shared caret/type and same-row shift selection',
+      'advanced pointer drag/rectangles, clipboard, history and IME are covered separately by canonical-advanced-browser',
+      'legacy has proportional document-native scrollbars; canonical uses bounded logical range sliders',
       'legacy glyph widths are configurable; Cell currently gives other graphemes one cell'
     ],
     limitation:'Real hosted Chromium only; this is parity of common paths, not full GUI equivalence or physical host validation.'
