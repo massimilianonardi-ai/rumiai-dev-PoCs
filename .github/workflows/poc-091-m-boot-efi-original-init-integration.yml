@@ -220,15 +220,22 @@ jobs:
         run: |
           set -eu
           cd fork
+          python3 ../poc-repo/pocs/091-m-boot-efi-original-init-integration/prepare-m04-runner.py \
+            GRUB2/port/probe-standalone-uefi.sh \
+            GRUB2/port/verify-extent-map.py \
+            "$RUNNER_TEMP/m04-private-runner"
+          sh -n "$RUNNER_TEMP/m04-private-runner/probe-standalone-uefi.sh"
           VTOY_ISO_DRIVER_EFI="$PWD/INSTALL/ventoy/iso9660_x64.efi" \
           VTOY_BOOTABLE_ISO="$RUNNER_TEMP/vt079/bootable.iso" \
           VTOY_INITRD_OVERLAY="$RUNNER_TEMP/vt079/initrd-hook-overlay.cpio" \
           VTOY_REQUIRE_EFI_MAP=1 \
           VTOY_REQUIRE_FRAGMENTED_ISO=1 \
-          sh GRUB2/port/probe-standalone-uefi.sh \
+          sh "$RUNNER_TEMP/m04-private-runner/probe-standalone-uefi.sh" \
             "$RUNNER_TEMP/efi-source-module/source/grub-core/ventoy_source_probe.mod" \
             "$RUNNER_TEMP/efi-overlay-boot-qemu" fat32 \
             "$RUNNER_TEMP/Ventoy-original-X64.EFI" original-overlay-boot
+          grep -Fx 'm04_fragmented_efi_linux_two_consumptions=passed' \
+            "$RUNNER_TEMP/efi-overlay-boot-qemu/m04-runtime-verification.txt"
       - name: Verify complete original EFI ISO to preserved original-init guest chain
         shell: sh
         run: |
@@ -342,6 +349,7 @@ jobs:
             ${{ runner.temp }}/efi-overlay-boot-qemu/qemu.log
             ${{ runner.temp }}/efi-overlay-boot-qemu/runtime-result.txt
             ${{ runner.temp }}/efi-overlay-boot-qemu/iso-map-verification.txt
+            ${{ runner.temp }}/efi-overlay-boot-qemu/m04-runtime-verification.txt
             ${{ runner.temp }}/m04-evidence.txt
             ${{ runner.temp }}/vt079/iso/boot/initrd-hook.cpio
             ${{ runner.temp }}/vt079/sha256sums.txt
