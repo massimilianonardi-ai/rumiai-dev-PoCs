@@ -1,0 +1,102 @@
+name: m-boot Ubuntu Minimal RAW host bootstrap PoC
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/m-boot-ubuntu-raw-host.yml'
+      - 'pocs/qemu-ubuntu-raw-host/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ubuntu-raw-image:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - name: Check out pinned PoC revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install real QEMU and libguestfs image customizer
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            qemu-utils libguestfs-tools libguestfs0 zstd curl \
+            qemu-system-x86 qemu-system-arm ovmf qemu-efi-aarch64
+      - name: Check launcher and generate read-only synthetic disk plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile pocs/qemu-ubuntu-raw-host/launch.py
+          sh -n pocs/qemu-ubuntu-raw-host/build.sh
+          truncate -s 4M "$RUNNER_TEMP/synthetic-source.iso"
+          truncate -s 8M "$RUNNER_TEMP/synthetic-physical-a.raw"
+          truncate -s 8M "$RUNNER_TEMP/synthetic-physical-b.raw"
+          sha256sum "$RUNNER_TEMP"/synthetic-* > "$RUNNER_TEMP/fixture-hashes.txt"
+          printf 'root=LABEL=test mboot.iso=%s\n' "$RUNNER_TEMP/synthetic-source.iso" \
+            > "$RUNNER_TEMP/cmdline"
+          python3 - "$RUNNER_TEMP" <<'PY'
+          import json, pathlib, sys
+          root = pathlib.Path(sys.argv[1])
+          data = [{"path": str(root / f"synthetic-physical-{x}.raw"), "size": 8388608}
+                  for x in ("a", "b")]
+          (root / "fixture-disks.json").write_text(json.dumps(data))
+          PY
+          python3 pocs/qemu-ubuntu-raw-host/launch.py \
+            --cmdline-file "$RUNNER_TEMP/cmdline" \
+            --fixture-disks "$RUNNER_TEMP/fixture-disks.json" \
+            > "$RUNNER_TEMP/read-only-plan.json"
+          python3 - "$RUNNER_TEMP/read-only-plan.json" <<'PY'
+          import json, sys
+          data = json.load(open(sys.argv[1]))
+          assert data["physical_disks_exposed_readonly"] == 2
+          assert data["all_disk_backends_readonly"]
+          assert not data["physical_disk_write_enabled"]
+          command = data["command"]
+          blocks = [json.loads(x[5:]) for x in command if x.startswith("json:")]
+          assert all(b.get("read-only") is True for b in blocks)
+          assert sum(b["node-name"].startswith("physical") for b in blocks) == 2
+          assert data["accelerator_requested"] in ("kvm", "tcg")
+          PY
+          sha256sum --check "$RUNNER_TEMP/fixture-hashes.txt"
+          echo MBOOT_RAW_DISK_READONLY_PLAN_PASS
+      - name: Build official-verified Ubuntu Minimal RAW container
+        shell: bash
+        run: |
+          set -euo pipefail
+          pocs/qemu-ubuntu-raw-host/build.sh \
+            "$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}"
+          qemu-img info -f raw "$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}/mboot-ubuntu-host.raw"
+          grep -F 'file format: raw' \
+            "$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}/raw-info.txt"
+          echo MBOOT_UBUNTU_RAW_FORMAT_PASS
+      - name: Preserve build evidence and actual RAW container
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mboot-ubuntu-minimal-raw-${{ matrix.arch }}
+          retention-days: 14
+          if-no-files-found: warn
+          compression-level: 0
+          path: |
+            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/mboot-ubuntu-host.raw.zst
+            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/raw-sha256.txt
+            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/raw-info.txt
+            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/provenance.txt
+            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/source-verify.txt
+            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/virt-resize.log
+            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/virt-customize.log
+            ${{ runner.temp }}/read-only-plan.json
