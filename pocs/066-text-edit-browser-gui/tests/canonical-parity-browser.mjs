@@ -177,9 +177,17 @@ try
 
     await legacy.keyboard.type('X');
     await canonical.keyboard.type('X');
+    // The source commits before its RAF paints the new selection state.
+    // Read the DOM only after the committed revision is actually rendered.
     await canonical.waitForFunction
     (
-      ()=>window.__canonicalGuiProbe?.snapshot()?.sourceRevision===1
+      ()=>
+      {
+        const s=window.__canonicalGuiProbe?.snapshot();
+        return s?.sourceRevision===1 &&
+          s.renderedRevision===s.viewRevision &&
+          s.domMarks.length===0;
+      }
     );
     await verify(4,3,inserted);
     const after=await newState();
