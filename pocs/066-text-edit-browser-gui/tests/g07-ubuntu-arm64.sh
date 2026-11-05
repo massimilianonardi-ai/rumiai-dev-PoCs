@@ -1,4 +1,4 @@
-# PoC G07 physical Ubuntu 26.04 ARM64 launcher. Run with "sh FILE".
+# PoC G07 Ubuntu 26.04 ARM64 reference-VM launcher. Run with "sh FILE".
 # Not a distributed command. No sudo and no user-checkout modification.
 set -e
 fail()
@@ -12,19 +12,15 @@ fail()
 . /etc/os-release
 [ "$ID" = ubuntu ] && [ "$VERSION_ID" = 26.04 ] ||
   fail 12 'requires Ubuntu 26.04'
-command -v systemd-detect-virt >/dev/null 2>&1 ||
-  fail 13 'missing systemd-detect-virt'
-if systemd-detect-virt --quiet
+# The operator's designated ARM64 reference environment is Ubuntu in a VM.
+# GUI availability determines browser mode; virtualization is recorded.
+browser_headless=0
+browser_mode='headful'
+if [ -z "$DISPLAY$WAYLAND_DISPLAY" ]
 then
-  fail 13 'VM/container is not a physical reference host'
+  browser_headless=1
+  browser_mode='headless'
 fi
-[ -n "$DISPLAY$WAYLAND_DISPLAY" ] ||
-  fail 14 'desktop DISPLAY or WAYLAND_DISPLAY required'
-case "$DISPLAY" in
-  localhost:*|127.0.0.1:*)
-    fail 14 'SSH-forwarded display is not the physical desktop'
-    ;;
-esac
 for tool in git node npm python3
 do
   command -v "$tool" >/dev/null 2>&1 ||
@@ -74,6 +70,15 @@ printf 'utc=%s\nkernel=%s\nos=%s\nbrowser=%s\nnode=%s\n' \
   > "$report/host.txt"
 printf 'session=%s\ndisplay=%s\nwayland=%s\n' \
   "$XDG_SESSION_TYPE" "$DISPLAY" "$WAYLAND_DISPLAY" >> "$report/host.txt"
+printf 'browser_mode=%s\n' "$browser_mode" >> "$report/host.txt"
+if command -v systemd-detect-virt >/dev/null 2>&1
+then
+  virtualization="$(systemd-detect-virt 2>/dev/null || :)"
+  [ -n "$virtualization" ] || virtualization='none'
+  printf 'virtualization=%s\n' "$virtualization" >> "$report/host.txt"
+else
+  printf 'virtualization=unknown\n' >> "$report/host.txt"
+fi
 command -v lscpu >/dev/null 2>&1 && lscpu >> "$report/host.txt" || :
 
 core='c453b5764fec8403571125ea62107ae072a823a1'
@@ -106,12 +111,13 @@ server=$!
 sleep 2
 kill -0 "$server" 2>/dev/null ||
   fail 26 'HTTP fixture failed; port 8765 may be occupied'
-export RUMIAI_G07_PHYSICAL=1
+export RUMIAI_G07_REFERENCE=1
+export RUMIAI_G07_HEADLESS="$browser_headless"
 export RUMIAI_G07_CHROMIUM="$browser"
 export RUMIAI_G07_ARTIFACTS="$report"
 for suite in canonical-gui-browser.mjs canonical-interaction-browser.mjs canonical-protected-browser.mjs canonical-viewport-browser.mjs canonical-parity-browser.mjs g07-physical-browser.mjs
 do
-  printf 'G07 real desktop: %s\n' "$suite"
+  printf 'G07 reference VM ($browser_mode): %s\n' "$suite"
   if ! node "$tests/$suite" > "$report/$suite.log" 2>&1
   then
     tail -n 30 "$report/$suite.log" >&2 || :
@@ -120,4 +126,4 @@ do
   tail -n 1 "$report/$suite.log"
 done
 passed=1
-printf 'G07 PASS on the recorded physical host and exact revisions.\n'
+printf 'G07 PASS on the recorded Ubuntu ARM64 reference VM and exact revisions.\n'
