@@ -89,6 +89,39 @@ on-device upgrade/rollback implementation.
   backends with disposable synthetic ISO/disks, not a guest boot.
 - `.github/workflows/m-boot-ubuntu-raw-host.yml`: native AMD64/ARM64
   GitHub-hosted builders and limited isolated tests.
+- `boot-loop-smoke.sh`: builds a disposable ext4 MBOOTDATA file from the
+  **already verified** Ubuntu RAW bundle, creates a valid but nonbootable
+  selected ISO file, and uses `grub-mkrescue` to make an actual UEFI GRUB
+  ISO invoking `grub-example.cfg`. Runs QEMU native UEFI with that boot
+  ISO and ext4 source disk as regular files, and checks GRUB menu and
+  systemd/QEMU service output on the serial console.
+- `.github/workflows/m-boot-ubuntu-loop-boot.yml`: independently fetches
+  and verifies the exact AMD64/ARM64 bundle artifacts from source-pinned
+  builder PASS run 42114121474, then invokes the real UEFI loop-root smoke
+  test on native runners. The pinned artifacts are retained by GitHub
+  for a limited period; this is a reproducible **experiment**, not a
+  permanent installer or release repository.
+
+## Boot-smoke acceptance and limits
+
+`boot-loop-smoke.sh BUNDLE_DIRECTORY NEW_WORK_DIRECTORY` performs only
+non-destructive operations on disposable **regular files**. Its checks:
+`release-SHA256SUMS` for the unchanged Ubuntu RAW bundle, real
+`mkfs.ext4 -d` population of a mock MBOOTDATA filesystem, an actual
+GRUB-generated UEFI ISO and the existing GRUB function, and native QEMU
+boot with the original external `vmlinuz`/`initrd.img`. It requires
+serial evidence `MBOOT_GRUB_MENUENTRY_SELECTED` and
+`MBOOT_QEMU_GUEST_START`/`MBOOT_QEMU_DISKS_READONLY`, rather than
+treating firmware entry or a timeout as proof of Ubuntu startup. Each
+architecture records its real outer-VM serial console log.
+
+These markers can prove the loop-root service startup only when actually
+observed, **not** that the inner VM has booted a vendor system or
+recognized its CD/DVD media. The selected ISO is an intentionally
+nonbootable experimental ISO; original vendor install media, the actual
+m-boot ESP chainload path and realistic multi-disk physical topology need
+separate tests. The experiment has no access to physical block devices
+or permission to make guest disks writable.
 
 ## Validation boundary
 
