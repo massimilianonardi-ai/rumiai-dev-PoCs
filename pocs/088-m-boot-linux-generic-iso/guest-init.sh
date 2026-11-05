@@ -48,6 +48,43 @@ fi
 [ ! -e /dev/mapper/vt_iso_m02 ] || failed NEGATIVE_MODULES_LEAK
 echo M02_NEGATIVE_MISSING_MODULES_PASS
 
+# Modules really remain loaded in this guest; avoid re-inserting them during
+# later unrelated missing-variable and missing-backend negative paths.
+/bin/busybox touch /run/m02/modules-loaded || failed NEGATIVE_MODULE_STATE
+
+# A private tmpfs masks ONLY this guest's efivarfs; no firmware variable,
+# host disk or original ISO source is written.
+/bin/busybox mount -t tmpfs -o size=64k tmpfs \
+    /sys/firmware/efi/efivars || failed EFI_MASK_MOUNT
+if /bin/sh /bin/m02-iso-stage prepare; then
+    failed ABSENT_EFI_VARIABLE_ACCEPTED
+fi
+[ ! -e /dev/mapper/vt_iso_m02 ] || failed ABSENT_EFI_MAPPER_LEAK
+echo M02_NEGATIVE_MISSING_EFI_VARIABLE_PASS
+
+var=/sys/firmware/efi/efivars/VtDmMapProbe-0e5e24d4-168b-4f9e-a397-0951f757111e
+/bin/busybox printf '\006\000\000\000invalid-map' > "$var" ||
+    failed EFI_CORRUPT_FIXTURE
+if /bin/sh /bin/m02-iso-stage prepare; then
+    failed CORRUPT_EFI_VARIABLE_ACCEPTED
+fi
+[ ! -e /dev/mapper/vt_iso_m02 ] || failed CORRUPT_EFI_MAPPER_LEAK
+echo M02_NEGATIVE_CORRUPT_EFI_VARIABLE_PASS
+/bin/busybox umount /sys/firmware/efi/efivars ||
+    failed EFI_MASK_UMOUNT
+[ -r "$var" ] || failed ORIGINAL_EFI_VARIABLE_NOT_RESTORED
+
+# Real compiled consumer still runs, but missing dmsetup must never mount.
+/bin/busybox mv /usr/sbin/dmsetup /usr/sbin/dmsetup.saved ||
+    failed DMSETUP_FIXTURE
+if /bin/sh /bin/m02-iso-stage prepare; then
+    failed MISSING_DMSETUP_ACCEPTED
+fi
+/bin/busybox mv /usr/sbin/dmsetup.saved /usr/sbin/dmsetup ||
+    failed DMSETUP_RESTORE
+[ ! -e /dev/mapper/vt_iso_m02 ] || failed DMSETUP_MAPPER_LEAK
+echo M02_NEGATIVE_MISSING_DMSETUP_PASS
+
 echo M02_GUEST_TEST_PASS
 /bin/busybox poweroff -f
 /bin/busybox sleep 3
