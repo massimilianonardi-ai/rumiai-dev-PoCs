@@ -58,3 +58,13 @@ BIOS/ARM64, large overlay payloads beyond the 64 KiB probe, or an
 actual installer progressing through its own media-remount procedure.
 This synthetic Linux handoff is the basis for those separate tests,
 not evidence that real vendor installers currently boot.
+
+## F-03 genuine FAT fragmentation profile (2026-11-05)
+
+The original PoC 081 evidence above remains pinned to its historical source and workflow revisions. F-03 exercises the **current F-02-hardened producer and consumer** on a real QEMU/OVMF Ubuntu kernel path. It does not borrow a historical one-extent PASS.
+
+Runner `GRUB2/port/probe-standalone-uefi.sh` now accepts `VTOY_REQUIRE_FRAGMENTED_ISO=1` with `original-overlay-boot` on a disposable 192 MiB FAT32 GPT source. It populates four filler files and deletes an interior 16 MiB allocation, leaving less than the ISO's length contiguously available at the tail before writing the original approximately 40 MiB ISO. The input ISO copy is allocated **non-sparsely**. The existing independent `verify-extent-map.py` must reconstruct **every byte** from the raw GPT image, verify native original Ventoy structures, exact GPT identity and source path, require at least two actual extents and one physical discontinuity, and match complete SHA256. A second verifier checks firmware-published and post-kernel-consumed chunk counts and independent EFI/Linux markers and the Linux read-back SHA256. The entire GPT source disk must retain an identical SHA256 before and after QEMU's `-snapshot` boot.
+
+GitHub Actions workflow `.github/workflows/poc-081-m-boot-native-efi-linux-media.yml` pins experimental Ventoy `475db53dee122887fab3387db47fbb1f09ca71b7`, compiles the authentic stock-GRUB external module, original rebuilt Ventoy EFI app and statically linked F-02 consumer, and boots the real ISO's inner GRUB and **unmodified Ubuntu kernel** via original EFI virtual BlockIo. It checks the read-only Linux `dm-linear`/ISO9660 mount and records `f03-runtime-verification.txt`, `iso-map-verification.txt`, `source-disk-integrity.txt` plus raw serial/QEMU trace. F-03 PASS needs an **actually successful run and its real report**, not just this workflow definition.
+
+**Boundaries:** synthetic x86_64 OVMF/TCG and disposable file-backed GPT only; no real vendor/physical media, Secure Boot, BIOS, ARM64, production API promotion, or independent Linux middleware/original vendor init acceptance.
