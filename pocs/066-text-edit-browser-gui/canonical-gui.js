@@ -510,6 +510,11 @@ function deleteNextVisibleUnit()
 }
 
 const scroller=$('scroller');
+scroller.addEventListener('focus',()=>
+{
+  // Keyboard focus must also provide an IME-capable native input target.
+  imeInput.focus({preventScroll:true});
+});
 // The DOM intentionally contains only three rows. Real wheel events page
 // the logical bounded viewport; this is not a document-sized scrollbar.
 scroller.addEventListener('wheel',event=>
