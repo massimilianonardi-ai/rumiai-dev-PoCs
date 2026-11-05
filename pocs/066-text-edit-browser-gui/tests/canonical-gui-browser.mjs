@@ -2,12 +2,9 @@
 // The renderer has only the nominal Document2D public API. No PoC
 // per-unit Raw proxy, no packed codec, no patched Cell core.
 import assert from 'node:assert/strict';
-import {chromium} from 'playwright';
+import {launchTestChromium} from './browser-launch.mjs';
 
-const browser=await chromium.launch
-(
-  {headless:true,args:['--no-sandbox']}
-);
+const browser=await launchTestChromium();
 const page=await browser.newPage({viewport:{width:1100,height:760}});
 page.setDefaultTimeout(20000);
 const errors=[];

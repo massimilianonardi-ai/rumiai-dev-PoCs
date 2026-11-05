@@ -46,6 +46,38 @@ synthetic views on the unmodified, compiled core. This remains scoped G03
 evidence, **not** complete deletion/selection/IME behavior. G04
 scrolling/viewport and physical-host acceptance remain open.
 
+### G07 physical Ubuntu 26.04 ARM64 reference-host procedure
+
+**Not yet executed on a physical host.** The existing G01–G06 hosted x64
+Chromium PASS is not evidence for Ubuntu ARM64 reference hardware.
+
+On the real Ubuntu 26.04 ARM64 graphical desktop, provide native `git`,
+`node` 22+, `npm`, `python3` and an installed **system Chromium** (plus
+network access to GitHub and npm). Obtain this PoC and run:
+
+```sh
+git clone https://github.com/massimilianonardi-ai/rumiai-dev-PoCs.git
+sh rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/g07-ubuntu-arm64.sh
+```
+
+The launcher requires the true aarch64 OS/kernel, rejects VMs/containers,
+requires an actual desktop session, and uses local headful Chromium. It
+creates isolated temporary checkouts, pins the previously CI-validated
+`rumiai-os@c453b5764fec8403571125ea62107ae072a823a1`, resolves
+and pins the PoC revision **before** running, compiles the real core, and
+runs actual G01/G02/G03/G04/G06 scenarios plus headful DOM pixel checks.
+Use `RUMIAI_G07_POC_SHA` to select an exact PoC commit, and
+`RUMIAI_G07_CHROMIUM` if the browser executable has another path.
+No sudo, product checkout modification, or automatic upload is performed.
+
+Results stay **locally** under `~/rumiai-g07-<UTC-timestamp>/` (or
+`RUMIAI_G07_REPORT_DIR`): `host.txt` holds host and exact revisions;
+`status.txt` is `PASS` only when every suite succeeded; individual
+logs and 5 UI screenshots document browser/DOM behavior. This is a
+PoC physical-run report: formal evidence ownership/registration stays
+with `rumiai-tests` under `PHYSICAL-TESTING.md`. Inspect host-identifying
+logs before sharing. No VM/CI run is to be relabeled as physical PASS.
+
 ### G06 canonical renderer boundary and 0.8.2 comparison
 
 The canonical GUI remains a **separate PoC-only page**.

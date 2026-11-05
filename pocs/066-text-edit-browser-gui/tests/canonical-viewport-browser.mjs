@@ -1,12 +1,9 @@
 // G04: real Chromium bounded 2D paging through the unmodified compiled
 // Document2D core; no monkey-patched view, transport or whole-document DOM.
 import assert from 'node:assert/strict';
-import {chromium} from 'playwright';
+import {launchTestChromium} from './browser-launch.mjs';
 
-const browser=await chromium.launch
-(
-  {headless:true,args:['--no-sandbox']}
-);
+const browser=await launchTestChromium();
 const page=await browser.newPage({viewport:{width:1150,height:780}});
 page.setDefaultTimeout(45000);
 const errors=[];

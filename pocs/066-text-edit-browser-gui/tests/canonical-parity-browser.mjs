@@ -2,12 +2,9 @@
 // GUI and separate canonical compiled Document2D GUI. Compare source text;
 // their selection coordinates deliberately differ (UTF-16 vs visual cells).
 import assert from 'node:assert/strict';
-import {chromium} from 'playwright';
+import {launchTestChromium} from './browser-launch.mjs';
 
-const browser=await chromium.launch
-(
-  {headless:true,args:['--no-sandbox']}
-);
+const browser=await launchTestChromium();
 const legacy=await browser.newPage({viewport:{width:1140,height:810}});
 const canonical=await browser.newPage({viewport:{width:1140,height:810}});
 const errors=[];

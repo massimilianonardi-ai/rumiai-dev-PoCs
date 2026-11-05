@@ -2,12 +2,9 @@
 // whole-row Fold and occupied Substitution using the *unmodified* canonical
 // Raw->Cell->... chain. Atomic mixed edits use the real public replace API.
 import assert from 'node:assert/strict';
-import {chromium} from 'playwright';
+import {launchTestChromium} from './browser-launch.mjs';
 
-const browser=await chromium.launch
-(
-  {headless:true,args:['--no-sandbox']}
-);
+const browser=await launchTestChromium();
 const page=await browser.newPage({viewport:{width:1100,height:760}});
 page.setDefaultTimeout(20000);
 const errors=[];
