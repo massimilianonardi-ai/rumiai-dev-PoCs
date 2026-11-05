@@ -1,0 +1,73 @@
+name: PoC 081 F-05 pinned EFI-to-Linux interface conformance
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/poc-081-f05-firmware-conformance.yml'
+      - 'pocs/081-m-boot-native-efi-linux-media/test-f05-interface.py'
+      - 'pocs/081-m-boot-native-efi-linux-media/F05-INTERFACE-HANDOFF.md'
+  pull_request:
+    paths:
+      - '.github/workflows/poc-081-f05-firmware-conformance.yml'
+      - 'pocs/081-m-boot-native-efi-linux-media/test-f05-interface.py'
+      - 'pocs/081-m-boot-native-efi-linux-media/F05-INTERFACE-HANDOFF.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  f05-current-interface-conformance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact PoC revision
+        uses: actions/checkout@v4
+        with:
+          path: poc
+          persist-credentials: false
+      - name: Checkout exact F-03/F-04 tested experimental firmware sources
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/Ventoy
+          ref: 475db53dee122887fab3387db47fbb1f09ca71b7
+          path: fork
+          persist-credentials: false
+      - name: Verify source pins, byte-level wire contract and fail-closed ordering
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C fork rev-parse HEAD)" = 475db53dee122887fab3387db47fbb1f09ca71b7
+          python3 -m py_compile poc/pocs/081-m-boot-native-efi-linux-media/test-f05-interface.py
+          python3 poc/pocs/081-m-boot-native-efi-linux-media/test-f05-interface.py \
+            fork poc | tee "$RUNNER_TEMP/f05-interface-result.txt"
+          grep -Fx F05_SOURCE_INTERFACE_CONFORMANCE_PASS \
+            "$RUNNER_TEMP/f05-interface-result.txt"
+      - name: Recompile current pinned real consumer and replay bounded negative suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v gcc
+          python3 poc/pocs/087-m-boot-efi-linux-middleware/test-consumer-negative.py \
+            fork/GRUB2/port/probe-linux-efi-consumer.c | tee "$RUNNER_TEMP/f05-early-negative.txt"
+          grep -Fx 'VT087_EFI_VARIABLE_MALFORMED_REJECTION_PASS: 13 cases, real consumer' \
+            "$RUNNER_TEMP/f05-early-negative.txt"
+          python3 poc/pocs/087-m-boot-efi-linux-middleware/test-consumer-disk-negative.py \
+            fork/GRUB2/port/probe-linux-efi-consumer.c | tee "$RUNNER_TEMP/f05-disk-negative.txt"
+          grep -Fx 'VT_F02_DISPOSABLE_GPT_MAP_PASS: 21 real-consumer cases' \
+            "$RUNNER_TEMP/f05-disk-negative.txt"
+          printf 'F05_CURRENT_CONSUMER_13_EARLY_21_GPT_MAP_CASES_PASS\n' |
+            tee "$RUNNER_TEMP/f05-current-source-result.txt"
+      - name: Preserve exact conformance and compiled consumer results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-081-f05-firmware-interface-conformance
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            ${{ runner.temp }}/f05-interface-result.txt
+            ${{ runner.temp }}/f05-early-negative.txt
+            ${{ runner.temp }}/f05-disk-negative.txt
+            ${{ runner.temp }}/f05-current-source-result.txt
