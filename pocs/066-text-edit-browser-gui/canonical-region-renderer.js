@@ -107,33 +107,40 @@ class CanonicalRegionRenderer
         content.appendChild(note);
       }
   
-      // G06: range drawing is currently limited to one visible row
-      // and exact endpoints; never infer hidden or noneditable cells.
+      // Draw the clipped visible intersection of each linear or column
+      // selection. Exact public region boundaries remain the only pixel
+      // boundary authority; a synthetic/Unicode/TAB unit is never split.
       for(const selection of selections)
       {
-        if
-        (
-          selection.start.row!==row || selection.end.row!==row ||
-          selection.start.col===selection.end.col
-        )
-        {
-          continue;
-        }
-  
-        const from=positions.get(selection.start.col);
-        const to=positions.get(selection.end.col);
-        if(from===undefined || to===undefined || to<=from) continue;
-  
+        if(row<selection.start.row || row>selection.end.row) continue;
+        const fromCol=row===selection.start.row?selection.start.col:0;
+        const toCol=row===selection.end.row?
+          selection.end.col:document2D.getRowWidth(row);
+        if(toCol<=fromCol) continue;
+
+        const boundaries=Array.from(positions.keys()).sort((a,b)=>a-b);
+        if(!boundaries.length) continue;
+        const low=boundaries[0];
+        const high=boundaries[boundaries.length-1];
+        if(toCol<=low || fromCol>=high) continue;
+        const leftBoundary=boundaries.find(x=>x>=Math.max(low,fromCol));
+        const rightBoundary=boundaries.findLast(x=>x<=Math.min(high,toCol));
+        if(leftBoundary===undefined || rightBoundary===undefined ||
+          rightBoundary<=leftBoundary) continue;
+        const from=positions.get(leftBoundary);
+        const to=positions.get(rightBoundary);
+        if(to<=from) continue;
+
         const mark=globalThis.document.createElement('span');
         mark.className='selection-mark';
         mark.dataset.row=String(row);
-        mark.dataset.start=String(selection.start.col);
-        mark.dataset.end=String(selection.end.col);
+        mark.dataset.start=String(leftBoundary);
+        mark.dataset.end=String(rightBoundary);
         mark.style.left=from+'px';
         mark.style.width=(to-from)+'px';
         content.appendChild(mark);
       }
-  
+
       for(const selection of selections)
       {
         const point=selection.forward?selection.end:selection.start;
