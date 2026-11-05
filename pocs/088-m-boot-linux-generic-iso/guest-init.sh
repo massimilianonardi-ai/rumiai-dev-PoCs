@@ -121,6 +121,43 @@ fi
 [ ! -e /dev/mapper/vt_iso_m02 ] || failed DMSETUP_MAPPER_LEAK
 echo M02_NEGATIVE_MISSING_DMSETUP_PASS
 
+# The disposable QEMU fixture has a same-size rival GPT disk with a
+# distinct GUID. Duplicate its primary header (including its correct CRC)
+# only in QEMU -snapshot and require the real consumer to reject ambiguity.
+source_leaf=${source_disk#/dev/}
+[ -r "/sys/block/$source_leaf/size" ] || failed SOURCE_SIZE_MISSING
+source_size=$(/bin/busybox cat "/sys/block/$source_leaf/size")
+rival_disk=
+rival_count=0
+for candidate in /sys/block/vd*/size; do
+    [ -f "$candidate" ] || continue
+    candidate_leaf=${candidate#/sys/block/}
+    candidate_leaf=${candidate_leaf%/size}
+    [ "$candidate_leaf" = "$source_leaf" ] && continue
+    [ "$(/bin/busybox cat "$candidate")" = "$source_size" ] || continue
+    rival_count=$((rival_count + 1))
+    rival_disk=/dev/$candidate_leaf
+done
+[ "$rival_count" -eq 1 ] && [ -b "$rival_disk" ] ||
+    failed GPT_RIVAL_NOT_UNIQUE
+/bin/busybox dd if="$source_disk" of=/run/m02/source-gpt-header \
+    bs=512 skip=1 count=1 >/dev/console 2>&1 ||
+    failed GPT_SOURCE_HEADER_READ
+/bin/busybox dd if="$rival_disk" of=/run/m02/rival-gpt-header \
+    bs=512 skip=1 count=1 >/dev/console 2>&1 ||
+    failed GPT_RIVAL_HEADER_READ
+/bin/busybox dd if=/run/m02/source-gpt-header of="$rival_disk" \
+    bs=512 seek=1 count=1 conv=notrunc >/dev/console 2>&1 ||
+    failed GPT_SNAPSHOT_COLLISION_WRITE
+if /bin/sh /bin/m02-iso-stage prepare; then
+    failed AMBIGUOUS_GPT_DISK_ACCEPTED
+fi
+/bin/busybox dd if=/run/m02/rival-gpt-header of="$rival_disk" \
+    bs=512 seek=1 count=1 conv=notrunc >/dev/console 2>&1 ||
+    failed GPT_SNAPSHOT_COLLISION_RESTORE
+[ ! -e /dev/mapper/vt_iso_m02 ] || failed AMBIGUOUS_GPT_MAPPER_LEAK
+echo M02_NEGATIVE_DUPLICATE_GPT_GUID_PASS
+
 # Corrupt ONLY the temporary QEMU -snapshot view of the disposable ISO
 # partition, at the mapped ISO9660 primary-volume-descriptor offset.
 # Original host ISO and GPT backing images remain byte-identical.
