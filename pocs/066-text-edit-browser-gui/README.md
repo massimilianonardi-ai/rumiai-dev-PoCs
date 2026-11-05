@@ -232,8 +232,12 @@ backing objects or Unicode segmentation.
 In the scoped behavior shared with TextEdit 0.8.2, unshifted left/right
 arrows collapse a selected range and Shift+left/right extends or reverses
 a **whole-unit, same-row selection**; the canonical renderer paints the
-selected interval using public region boundaries. This does **not** add
-drag, rectangle, multiline, IME or system clipboard equivalence.
+selected interval using public region boundaries. **G06 compares only
+these shared paths.** The newer advanced GUI experiment described above
+adds pointer drag, rectangle/multirow drawing, clipboard and IME handling
+in the browser adapter, with a separate regression test; those features
+are not established as complete TextEdit 0.8.2 GUI parity or native-host
+input-method validation by the older G06 test.
 
 `tests/canonical-parity-browser.mjs` drives **both actual
 browser GUI pages** in hosted Chromium using the original TextEdit 0.8.2
