@@ -70,7 +70,7 @@ jobs:
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/regions-headless.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/regions.js
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/regions.mjs
-      - name: Verify physical-only G07 launcher fails closed on x64
+      - name: Verify G07 Ubuntu ARM64 reference VM launcher rejects x64 guest
         run: |
           set +e
           sh rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/g07-ubuntu-arm64.sh >/tmp/rumiai-g07-aux.log 2>&1
