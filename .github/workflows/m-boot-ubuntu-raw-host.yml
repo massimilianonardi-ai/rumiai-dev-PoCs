@@ -64,10 +64,16 @@ jobs:
           assert 'mboot.media_uuid=' not in launcher
           assert 'candidate = mountpoint / iso.relative_to("/")' in launcher
           assert 'release-SHA256SUMS' in builder
-          assert 'virt-copy-out' in builder and 'guestfish --ro' in builder
-          assert 'blkid -p -o value -s TYPE' in builder
-          assert 'qemu-img convert -p -f qcow2 -O raw' not in builder
-          assert 'update-initramfs -u -k all' in builder
+          assert 'debootstrap --arch=' in builder
+          assert '--variant=minbase' in builder
+          assert 'mkfs.ext4 -F -q -d "$rootfs"' in builder
+          assert 'apt-get -q -y --no-install-recommends install' in builder
+          assert 'release-SHA256SUMS' in builder
+          assert 'initramfs-tools' in builder
+          assert 'qemu-img' not in builder and 'libguestfs' not in builder.lower()
+          assert 'virt-customize' not in builder
+          assert 'guestfish' not in builder
+          assert 'update-initramfs -u -k "$release"' in builder
           PY
           echo MBOOT_RAW_EXTERNAL_BOOT_CONTRACT_STATIC_PASS
 
@@ -87,20 +93,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Install real QEMU and libguestfs image customizer
+      - name: Install direct Ubuntu bootstrap and native QEMU test tools
         shell: bash
         run: |
           set -euo pipefail
           sudo apt-get update -qq
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
-            qemu-utils libguestfs-tools libguestfs0 linux-image-generic zstd curl \
-            qemu-system-x86 qemu-system-arm ovmf qemu-efi-aarch64
-          # libguestfs 1.52 tries passt preferentially, but its nested helper
-          # cannot start on this GitHub-hosted runner. Force supported SLIRP
-          # fallback only inside this disposable CI machine.
-          if command -v passt >/dev/null 2>&1; then
-            sudo mv "$(command -v passt)" "$(command -v passt).disabled-in-ci"
-          fi
+            debootstrap ubuntu-keyring ca-certificates e2fsprogs initramfs-tools-core \
+            qemu-utils zstd qemu-system-x86 qemu-system-arm ovmf qemu-efi-aarch64
       - name: Check launcher and generate read-only synthetic disk plan
         shell: bash
         run: |
@@ -159,13 +159,20 @@ jobs:
             > "$RUNNER_TEMP/paused-qemu-smoke.json"
           cat "$RUNNER_TEMP/paused-qemu-smoke.json"
           echo MBOOT_NATIVE_QEMU_READONLY_SMOKE_PASS
-      - name: Build official-verified Ubuntu Minimal RAW container
+      - name: Build Ubuntu minbase ext4 RAW and external boot assets
         if: always()
         shell: bash
         run: |
           set -euo pipefail
-          sh pocs/qemu-ubuntu-raw-host/build.sh \
+          sudo -n sh pocs/qemu-ubuntu-raw-host/build.sh \
             "$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}"
+          # Builder is root-only for chroot and owns its output. Read back
+          # evidence through the non-privileged artifact uploader.
+          build_output="$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}"
+          sudo chown "$(id -u):$(id -g)" "$build_output"
+          sudo find "$build_output" -maxdepth 1 -type f \
+            -exec chown "$(id -u):$(id -g)" {} +
+          sudo chmod 0755 "$build_output"
           qemu-img info -f raw "$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}/mboot-ubuntu-host.raw"
           grep -F 'file format: raw' \
             "$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}/raw-info.txt"
@@ -177,6 +184,9 @@ jobs:
             test -s initrd.img
             test -s kernel-release.txt
             grep -F 'scripts/local' initramfs-contents.txt
+            grep -F 'source=Ubuntu 24.04 noble debootstrap minbase' provenance.txt
+            test -s packages.txt
+            ! grep -Ei '^(libguestfs|guestfish|virt-customize)' packages.txt
           )
           echo MBOOT_UBUNTU_EXT4_ROOTFS_AND_SIDECARS_PASS
       - name: Preserve build evidence and actual RAW container
@@ -194,15 +204,15 @@ jobs:
             ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/kernel-release.txt
             ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/release-SHA256SUMS
             ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/initramfs-contents.txt
-            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/boot-export.log
-            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/root-filesystems.txt
-            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/export-ext4.log
+            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/debootstrap.log
+            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/apt-update.log
+            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/apt-install.log
+            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/update-initramfs.log
+            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/mkfs-ext4.log
+            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/packages.txt
             ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/e2fsck.log
             ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/raw-sha256.txt
             ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/raw-info.txt
             ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/provenance.txt
-            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/source-verify.txt
-            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/virt-resize.log
-            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/virt-customize.log
             ${{ runner.temp }}/read-only-plan.json
             ${{ runner.temp }}/paused-qemu-smoke.json
