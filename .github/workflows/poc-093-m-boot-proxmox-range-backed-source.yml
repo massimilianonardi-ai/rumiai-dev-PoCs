@@ -44,16 +44,16 @@ jobs:
               raise SystemExit("M05_QEMU_REMOTE_SIZE_OR_FORMAT_BAD")
           print("M05_QEMU_ORIGINAL_ISO_VIRTUAL_BYTES="+str(info["virtual-size"]))
           PY
-      - name: Read TWO distant original ISO sectors through real QEMU HTTPS backend
+      - name: Read TWO distant original ISO sectors through real QEMU HTTPS qemu-io
         shell: sh
         run: |
           set -eu
-          timeout 90 qemu-img dd -f raw -O raw bs=2048 count=1 skip=16 \
-            "if=$OFFICIAL_ISO" "of=$RUNNER_TEMP/m05-remote/qemu-pvd.bin"
-          timeout 90 qemu-img dd -f raw -O raw bs=2048 count=1 skip=833078 \
-            "if=$OFFICIAL_ISO" "of=$RUNNER_TEMP/m05-remote/qemu-tail.bin"
-          test "$(wc -c < "$RUNNER_TEMP/m05-remote/qemu-pvd.bin")" -eq 2048
-          test "$(wc -c < "$RUNNER_TEMP/m05-remote/qemu-tail.bin")" -eq 2048
+          timeout 90 qemu-io -r -f raw -c 'read -v 32768 2048' "$OFFICIAL_ISO" \
+            > "$RUNNER_TEMP/m05-remote/qemu-pvd.hex"
+          timeout 90 qemu-io -r -f raw -c 'read -v 1706143744 2048' "$OFFICIAL_ISO" \
+            > "$RUNNER_TEMP/m05-remote/qemu-tail.hex"
+          test -s "$RUNNER_TEMP/m05-remote/qemu-pvd.hex"
+          test -s "$RUNNER_TEMP/m05-remote/qemu-tail.hex"
       - name: Verify exact sectors against independent strict HTTP 206 with object consistency
         shell: sh
         run: |
@@ -61,8 +61,8 @@ jobs:
           python3 pocs/093-m-boot-proxmox-range-backed-source/verify-qemu-source.py \
             --url "$OFFICIAL_ISO" \
             --qemu-info "$RUNNER_TEMP/m05-remote/qemu-info.json" \
-            --qemu-pvd "$RUNNER_TEMP/m05-remote/qemu-pvd.bin" \
-            --qemu-tail "$RUNNER_TEMP/m05-remote/qemu-tail.bin" \
+            --qemu-pvd "$RUNNER_TEMP/m05-remote/qemu-pvd.hex" \
+            --qemu-tail "$RUNNER_TEMP/m05-remote/qemu-tail.hex" \
             --out "$RUNNER_TEMP/m05-remote/m05-source-evidence.json"
           test "$(find "$RUNNER_TEMP/m05-remote" -type f -size +1M | wc -l)" -eq 0
           echo M05_NO_FULL_ISO_LOCAL_COPY_CONFIRMED
@@ -75,6 +75,6 @@ jobs:
           if-no-files-found: warn
           path: |
             ${{ runner.temp }}/m05-remote/qemu-info.json
-            ${{ runner.temp }}/m05-remote/qemu-pvd.bin
-            ${{ runner.temp }}/m05-remote/qemu-tail.bin
+            ${{ runner.temp }}/m05-remote/qemu-pvd.hex
+            ${{ runner.temp }}/m05-remote/qemu-tail.hex
             ${{ runner.temp }}/m05-remote/m05-source-evidence.json
