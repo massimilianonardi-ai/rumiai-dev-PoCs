@@ -38,10 +38,16 @@ jobs:
           grep -Fq 'LOOP' /usr/share/initramfs-tools/scripts/local
           grep -Fq 'mount -o move' /usr/share/initramfs-tools/scripts/local
           dpkg-query -W -f='MBOOT_NATIVE_LOOP_PACKAGE=${Version}\n' initramfs-tools-core
-          # Create and inspect a real partitionless ext4 RAW fixture.
+          # Exercise the real mkfs.ext4 -d population path on an isolated
+          # partitionless fixture, not merely an empty ext4 image.
+          mkdir -p "$RUNNER_TEMP/fixture-rootfs/etc"
+          printf 'mboot fixture contents\n' > "$RUNNER_TEMP/fixture-rootfs/etc/mboot-build-fixture"
           truncate -s 64M "$RUNNER_TEMP/fixture-rootfs.raw"
-          mkfs.ext4 -q -F -L MBOOT_ROOTFS_FIXTURE "$RUNNER_TEMP/fixture-rootfs.raw"
+          mkfs.ext4 -q -F -d "$RUNNER_TEMP/fixture-rootfs" \
+            -L MBOOT_ROOTFS_FIXTURE "$RUNNER_TEMP/fixture-rootfs.raw"
           test "$(blkid -p -o value -s TYPE "$RUNNER_TEMP/fixture-rootfs.raw")" = ext4
+          debugfs -R 'cat /etc/mboot-build-fixture' "$RUNNER_TEMP/fixture-rootfs.raw" \
+            2> "$RUNNER_TEMP/debugfs-stderr.log" | grep -F 'mboot fixture contents'
           e2fsck -fn "$RUNNER_TEMP/fixture-rootfs.raw" > "$RUNNER_TEMP/ext4-check.txt"
           # The source is a GRUB function library. Append a synthetic
           # invocation only for parser validation; this does NOT boot it.
