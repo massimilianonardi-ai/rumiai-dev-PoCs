@@ -774,6 +774,7 @@ imeInput.addEventListener('compositionend',event=>
   imeInput.value='';
   $('composition-preview').textContent='';
   if(text) perform(()=>view.insert(text),'Testo composto inserito');
+  setTimeout(()=>{suppressCompositionInput=false;},0);
 });
 imeInput.addEventListener('beforeinput',event=>
 {
@@ -787,7 +788,11 @@ imeInput.addEventListener('beforeinput',event=>
   if(event.inputType==='insertText' && event.data)
   {
     event.preventDefault();
-    suppressCompositionInput=false;
+    if(suppressCompositionInput)
+    {
+      suppressCompositionInput=false;
+      return; // Browser post-composition text already committed once.
+    }
     perform(()=>view.insert(event.data),'Testo inserito');
   }
   else if(event.inputType==='insertFromPaste')
