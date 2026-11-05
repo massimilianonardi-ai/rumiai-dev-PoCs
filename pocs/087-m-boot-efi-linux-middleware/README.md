@@ -1,10 +1,10 @@
 # PoC 087 — Existing EFI-to-Linux consumer malformed-map rejection
 
-**Scope:** First executable F3 work unit of the current ordered m-boot handoff execution plan. This is an error-path check on the **existing** consumer, not an alternative boot implementation and not the finished middleware. See `rumiai-dev/handoff/m-boot-standalone.md`.
+**Scope:** Original malformed-variable refusals and the F-02 isolated source/GPT/extent checks on the **real** Linux consumer. This is not an alternative boot implementation or generic middleware. See `rumiai-dev/handoff/m-boot-standalone.md`.
 
-The real C consumer is `massimilianonardi-ai/Ventoy@m-boot-secondary-uefi:GRUB2/port/probe-linux-efi-consumer.c`, pinned to revision `ceff79ca92d246928f86362a569f86c6d2ac130f`. Its original runtime uses `VtDmMapProbe` from Linux efivarfs. The test compiles an otherwise untouched temporary copy of that **same C parser**, changing only the hard-coded efivarfs file pathname to a regular file under a private temporary directory. It provides 13 malformed runtime-variable fixtures and requires specific error diagnostics **before** any device-mapper table is produced.
+The original 13-case suite was first validated at Ventoy revision `ceff79ca92d246928f86362a569f86c6d2ac130f`; current CI pins the hardened revision `01e0398315c42442cb358ee25f80c7c2fc2df68f`. The real C consumer is `massimilianonardi-ai/Ventoy@m-boot-secondary-uefi:GRUB2/port/probe-linux-efi-consumer.c`. Its runtime uses `VtDmMapProbe` from Linux efivarfs. The test compiles an otherwise untouched temporary copy of that **same C parser**, changing only the hard-coded efivarfs file pathname to a regular file under a private temporary directory. It provides 13 malformed runtime-variable fixtures and requires specific error diagnostics **before** any device-mapper table is produced.
 
-No test runs a valid map through the source-disk scanner: a valid payload would progress to inspecting `/dev`, which is outside this isolated negative-fixture unit. The script does not touch any USB or block device, download an ISO, run a hypervisor, alter the Ventoy branch, or claim that a firmware→Linux positive boot passed during this run. Success is 13 fail-closed parser refusals; **disk GUID ambiguity, GPT extent bounds, runtime fragment maps, Linux device-mapper creation and actual QEMU handoff remain untested by PoC 087** and require their own gates. The complete positive synthetic QEMU path was already demonstrated by PoC 081.
+The **original 13-case script** does not run a valid map through the source-disk scanner: that would inspect host `/dev` without the F-02 isolated I/O seam. The script does not touch any USB or block device, download an ISO, run a hypervisor, alter the Ventoy branch, or claim that a firmware→Linux positive boot passed during this run. That original script proves 13 early fail-closed parser refusals only. The F-02 suite below separately covers GUID ambiguity, GPT and extent boundaries with disposable regular-file inputs; actual device-mapper creation and QEMU handoff remain outside this test. The complete positive synthetic QEMU path was already demonstrated by PoC 081.
 
 Run on a standard Linux development host with `gcc` and Python 3:
 
@@ -15,7 +15,7 @@ python3 pocs/087-m-boot-efi-linux-middleware/test-consumer-negative.py \
 
 CI workflow: `.github/workflows/poc-087-efi-linux-map-negative.yml` checks out and verifies the pinned Ventoy revision, then compiles and executes this test. The script prints one PASS per refused fixture and a final `VT087_EFI_VARIABLE_MALFORMED_REJECTION_PASS` only if all 13 fail safely.
 
-**Next responsibility:** extend independent negative tests to authenticated source GPT and partition boundaries without inspecting any host device, then extract the **existing** early-userspace logic into a reusable Linux middleware that can hand over to the original OS init, initially on a small synthetic ISO.
+**Responsibility boundary:** F-02 safety tests are recorded below; generic early Linux middleware and original-init handoff remain independently owned by the M track. GPT CRC and source GUID are integrity/identity checks, **not authenticated source trust**.
 
 ## F-02 extension — real consumer with disposable GPT sources (2026-11-05)
 
@@ -36,4 +36,4 @@ python3 pocs/087-m-boot-efi-linux-middleware/test-consumer-disk-negative.py \
   fork/GRUB2/port/probe-linux-efi-consumer.c
 ```
 
-CI workflow `.github/workflows/poc-087-efi-linux-map-negative.yml` now checks both suites. PASS must be claimed only after an actually observed run, not just a committed workflow. Test scope excludes real device-mapper creation, QEMU/firmware, physical USB, Secure Boot and vendor media acceptance.
+CI workflow `.github/workflows/poc-087-efi-linux-map-negative.yml` checks both suites. **Observed GitHub Actions PR run [42033679188](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/42033679188), job 127266196833, completed SUCCESS**: 13/13 malformed-variable refusals and 21/21 compiled-consumer cases (one positive table-only control and twenty negatives). Test scope excludes real device-mapper creation, QEMU/firmware, physical USB, Secure Boot and vendor media acceptance.
