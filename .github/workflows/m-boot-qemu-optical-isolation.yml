@@ -1,0 +1,76 @@
+name: m-boot K-07 QEMU optical operational isolation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/m-boot-qemu-optical-isolation.yml'
+      - 'pocs/qemu-optical-isolation/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-qemu-isolation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Check out exact PoC revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install stock Linux, GRUB, EFI and QEMU
+        shell: sh
+        run: |
+          set -eu
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            grub-common grub-efi-amd64-bin linux-image-generic \
+            busybox-static cpio zstd xz-utils kmod \
+            xorriso dosfstools mtools qemu-system-x86 ovmf file
+      - name: Build independent disposable Linux optical ISO
+        shell: sh
+        run: |
+          set -eu
+          python3 -m py_compile pocs/qemu-optical-isolation/check.py
+          sh -n pocs/qemu-optical-guest/build.sh
+          kernel=$(find /boot -maxdepth 1 -name 'vmlinuz-*generic' -type f | sort -V | tail -n 1)
+          test -s "$kernel"
+          sudo install -m 0644 "$kernel" "$RUNNER_TEMP/$(basename "$kernel")"
+          sh pocs/qemu-optical-guest/build.sh \
+            "$RUNNER_TEMP/k07-synthetic-iso" "$RUNNER_TEMP/$(basename "$kernel")"
+      - name: Real QMP readonly disconnect, guest read and cleanup tests
+        shell: sh
+        run: |
+          set -eu
+          python3 pocs/qemu-optical-isolation/check.py \
+            "$RUNNER_TEMP/k07-synthetic-iso" "$RUNNER_TEMP/k07-isolation-evidence"
+          cat "$RUNNER_TEMP/k07-isolation-evidence/manifest.json"
+          python3 - "$RUNNER_TEMP/k07-isolation-evidence/manifest.json" <<'PY'
+          import json, sys
+          data = json.load(open(sys.argv[1], encoding="utf-8"))
+          for key in ("source_alias_unlinked_after_open",
+                      "guest_serial_observed", "qmp_optical_read_only",
+                      "qmp_eject_cleared_medium", "invalid_source_rejected",
+                      "source_hash_unchanged", "ovmf_templates_unchanged"):
+              assert data[key] is True, key
+          assert data["transient_resources_remaining"] == 0
+          assert data["isolation_result"] == "PASS"
+          PY
+      - name: Preserve revision-specific QMP and Linux guest evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m-boot-k07-optical-isolation
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            ${{ runner.temp }}/k07-isolation-evidence/manifest.json
+            ${{ runner.temp }}/k07-isolation-evidence/qemu-opened-alias.log
+            ${{ runner.temp }}/k07-isolation-evidence/serial-opened-alias.log
+            ${{ runner.temp }}/k07-isolation-evidence/qemu-eject.log
+            ${{ runner.temp }}/k07-isolation-evidence/serial-eject.log
+            ${{ runner.temp }}/k07-isolation-evidence/negative-startup.log
+            ${{ runner.temp }}/k07-synthetic-iso/k03-source-sha256.txt
+            ${{ runner.temp }}/k07-synthetic-iso/module-manifest.txt
