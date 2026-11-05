@@ -1,0 +1,348 @@
+name: PoC 091 M-04 original ISO EFI middleware integration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/poc-091-m-boot-efi-original-init-integration.yml'
+      - 'pocs/091-m-boot-efi-original-init-integration/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  m04-efi-original-init-integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - name: Check out PoC scripts at this workflow revision
+        uses: actions/checkout@v4
+        with:
+          path: poc-repo
+          persist-credentials: false
+      - name: Check out pinned experimental Ventoy branch (never master)
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/Ventoy
+          ref: 475db53dee122887fab3387db47fbb1f09ca71b7
+          path: fork
+          persist-credentials: false
+      - name: Verify exact experimental source revision
+        shell: sh
+        run: |
+          set -eu
+          actual=$(git -C fork rev-parse HEAD)
+          test "$actual" = 475db53dee122887fab3387db47fbb1f09ca71b7
+          printf 'ventoy_probe_revision=%s\n' "$actual"
+      - name: Install native GRUB EDK2 and firmware test dependencies
+        shell: sh
+        run: |
+          set -eu
+          sudo sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/ubuntu.sources
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            grub-common grub-efi-amd64-bin linux-image-generic busybox-static cpio dmsetup zstd kmod dpkg-dev automake autoconf gettext \
+            bison flex patch build-essential nasm acpica-tools uuid-dev curl \
+            unzip file python3 gdisk dosfstools e2fsprogs mtools xorriso \
+            qemu-system-x86 ovmf
+          sudo DEBIAN_FRONTEND=noninteractive apt-get build-dep -y -qq grub2
+      - name: Obtain matching unmodified distribution GRUB source
+        shell: sh
+        run: |
+          set -eu
+          source_pkg=$(dpkg-query -W -f='${source:Package}' grub-common)
+          source_ver=$(dpkg-query -W -f='${Version}' grub-common)
+          mkdir -p "$RUNNER_TEMP/grub-input"
+          cd "$RUNNER_TEMP/grub-input"
+          apt-get source "$source_pkg=$source_ver"
+          distro=$(find "$PWD" -mindepth 1 -maxdepth 1 -type d -name 'grub2-*' -print -quit)
+          test -s "$distro/configure.ac"
+          printf '%s\n' "$distro" > "$RUNNER_TEMP/grub-path"
+      - name: Build external module against original distribution GRUB core
+        shell: sh
+        run: |
+          set -eu
+          cd fork
+          sh -n GRUB2/port/probe-standalone-module.sh
+          sh -n GRUB2/port/probe-standalone-uefi.sh
+          sh GRUB2/port/probe-standalone-module.sh \
+            "$(cat "$RUNNER_TEMP/grub-path")" \
+            "$RUNNER_TEMP/efi-source-module"
+      - name: Obtain pinned EDK2 2019 baseline with Ventoy application overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          revision=bd85bf54c268204c7a698a96f3ccd96cd77952cd
+          mkdir -p "$RUNNER_TEMP/edk2-input"
+          curl --fail --location --retry 3 \
+            "https://codeload.github.com/tianocore/edk2/zip/$revision" \
+            -o "$RUNNER_TEMP/edk2-input/edk2.zip"
+          unzip -q "$RUNNER_TEMP/edk2-input/edk2.zip" -d "$RUNNER_TEMP/edk2-input"
+          src="$RUNNER_TEMP/edk2-input/edk2-$revision"
+          test -s "$src/MdeModulePkg/MdeModulePkg.dsc"
+          cp -a fork/EDK2/edk2_mod/edk2-edk2-stable201911/. "$src/"
+          python3 - "$src/BaseTools/Source/Python/Common/Misc.py" <<'PY'
+          from pathlib import Path
+          import sys
+          path=Path(sys.argv[1])
+          s=path.read_text()
+          old="ByteArray.tostring() != b'PE\\0\\0'"
+          new="ByteArray.tobytes() != b'PE\\0\\0'"
+          assert s.count(old)==1, 'unknown EDK2 BaseTools version'
+          path.write_text(s.replace(old,new))
+          PY
+          echo "EDK2_SRC=$src" >> "$GITHUB_ENV"
+      - name: Build actual original Ventoy EFI entrypoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$EDK2_SRC"
+          make -C BaseTools -j4 EXTRA_OPTFLAGS=-Wno-error > "$RUNNER_TEMP/basetools.log" 2>&1 || {
+            grep -n -B3 -A5 'error:' "$RUNNER_TEMP/basetools.log" | tail -n 95 || :
+            tail -n 65 "$RUNNER_TEMP/basetools.log"
+            exit 6
+          }
+          export WORKSPACE="$EDK2_SRC"
+          set +u
+          source edksetup.sh --reconfig
+          set -u
+          build -p MdeModulePkg/MdeModulePkg.dsc \
+            -m MdeModulePkg/Application/Ventoy/Ventoy.inf \
+            -a X64 -b RELEASE -t GCC5 > "$RUNNER_TEMP/edk2-build.log" 2>&1 || {
+            grep -n -B3 -A6 'error:' "$RUNNER_TEMP/edk2-build.log" | tail -n 100 || :
+            tail -n 65 "$RUNNER_TEMP/edk2-build.log"
+            exit 7
+          }
+          binary=$(find "$EDK2_SRC/Build/MdeModule" -type f \
+            -path '*/Application/Ventoy/Ventoy/OUTPUT/Ventoy.efi' -print)
+          test -s "$binary"
+          file "$binary" | grep -q 'PE32+.*EFI application'
+          cp "$binary" "$RUNNER_TEMP/Ventoy-original-X64.EFI"
+      - name: Build tested Linux EFI map consumer and kernel module closure
+        shell: sh
+        run: |
+          set -eu
+          cd fork
+          sh -n GRUB2/port/build-linux-handoff-initrd.sh
+          sudo sh GRUB2/port/build-linux-handoff-initrd.sh "$RUNNER_TEMP/efi-linux-root"
+          test -s "$RUNNER_TEMP/efi-linux-root/root/bin/map-consumer"
+          test -s "$RUNNER_TEMP/efi-linux-root/root/modules.load"
+      - name: Install unchanged M-02 stage, M-03 middleware, independent init, and M-04 EFI overlay
+        shell: sh
+        run: |
+          set -eu
+          root="$RUNNER_TEMP/efi-linux-root/root"
+          sudo install -m 0755 poc-repo/pocs/088-m-boot-linux-generic-iso/iso-stage.sh "$root/bin/m02-iso-stage"
+          sudo install -m 0755 poc-repo/pocs/090-m-boot-linux-original-init/middleware-init.sh "$root/bin/m03-middleware-init"
+          sudo install -D -m 0755 poc-repo/pocs/090-m-boot-linux-original-init/original-init.sh "$root/original-root/init"
+          sudo install -m 0755 poc-repo/pocs/091-m-boot-efi-original-init-integration/overlay-init.sh "$root/init"
+          for file in "$root/bin/m02-iso-stage" "$root/bin/m03-middleware-init" \
+              "$root/original-root/init" "$root/init"; do
+            sudo sh -n "$file"
+          done
+          grep -q '^echo M04_EFI_SIDECAR_INIT_ENTERED' \
+            poc-repo/pocs/091-m-boot-efi-original-init-integration/overlay-init.sh
+          if grep -q '^echo M03_ORIGINAL_INIT_ENTERED' \
+              poc-repo/pocs/091-m-boot-efi-original-init-integration/overlay-init.sh; then
+            echo 'EFI sidecar must never emit original-init marker' >&2
+            exit 8
+          fi
+          cmp poc-repo/pocs/090-m-boot-linux-original-init/original-init.sh \
+            "$root/original-root/init"
+          python3 -m py_compile \
+            poc-repo/pocs/091-m-boot-efi-original-init-integration/prepare-fixture.py
+      - name: Build original ISO with independent original initrd hook, before EFI sidecar injection
+        shell: sh
+        run: |
+          set -eu
+          kernel=$(find /boot -maxdepth 1 -name 'vmlinuz-*generic' -type f | sort -V | tail -n 1)
+          test -s "$kernel"
+          sudo install -m 0644 "$kernel" "$RUNNER_TEMP/unchanged-vmlinuz"
+          test "$(sudo sha256sum "$kernel" | awk '{print $1}')" = \
+            "$(sha256sum "$RUNNER_TEMP/unchanged-vmlinuz" | awk '{print $1}')"
+          # Customize ONLY the original *test fixture hook authoring* in a
+          # temporary copy of PoC 079's builder. The shared builder is intact.
+          python3 poc-repo/pocs/091-m-boot-efi-original-init-integration/prepare-fixture.py \
+            poc-repo/pocs/079-m-bootable-iso/build-bootable-iso.sh \
+            "$RUNNER_TEMP/m04-private-iso-builder.sh" \
+            poc-repo/pocs/090-m-boot-linux-original-init/original-init.sh
+          sudo env \
+            M04_ORIGINAL_INIT="$GITHUB_WORKSPACE/poc-repo/pocs/090-m-boot-linux-original-init/original-init.sh" \
+            VT079_HANDOFF_ROOT="$RUNNER_TEMP/efi-linux-root/root" \
+            sh "$RUNNER_TEMP/m04-private-iso-builder.sh" \
+            "$RUNNER_TEMP/vt079" "$RUNNER_TEMP/unchanged-vmlinuz"
+          test -s "$RUNNER_TEMP/vt079/bootable.iso"
+          test -s "$RUNNER_TEMP/vt079/iso/boot/initrd-hook.cpio"
+          test -s "$RUNNER_TEMP/vt079/iso/boot/initrd-base.cpio"
+          (cd "$RUNNER_TEMP/vt079" && sha256sum --check --status sha256sums.txt)
+          mkdir -p "$RUNNER_TEMP/m04-original-hook-extracted"
+          (cd "$RUNNER_TEMP/m04-original-hook-extracted" && \
+            cpio -idm --quiet < "$RUNNER_TEMP/vt079/iso/boot/initrd-hook.cpio")
+          # Authoritative original /init really exists INSIDE the original
+          # ISO's unchanged initrd hook; base retain-copy has identical bytes.
+          cmp "$RUNNER_TEMP/m04-original-hook-extracted/init" \
+            poc-repo/pocs/090-m-boot-linux-original-init/original-init.sh
+          cmp "$RUNNER_TEMP/m04-original-hook-extracted/init" \
+            "$RUNNER_TEMP/efi-linux-root/root/original-root/init"
+          cmp "$RUNNER_TEMP/vt079/iso/boot/initrd-hook.cpio" \
+            "$RUNNER_TEMP/vt079/extracted-hook.cpio"
+          cp "$RUNNER_TEMP/vt079/sha256sums.txt" \
+            "$RUNNER_TEMP/m04-original-iso-input-sha256sums.txt"
+          sha256sum "$RUNNER_TEMP/vt079/bootable.iso" > "$RUNNER_TEMP/m04-iso-before.sha256"
+          test "$(wc -c < "$RUNNER_TEMP/vt079/initrd-hook-overlay.cpio")" -le 65536
+          (cd "$RUNNER_TEMP/vt079" && \
+            cpio -it --quiet < initrd-hook-overlay.cpio | grep -qx 'init')
+          echo M04_ORIGINAL_INITRD_HOOK_BYTES_VERIFIED
+          echo M04_EFI_OVERLAY_UNDER_64K_BOUND_PASS
+      - name: Prove the original ISO's init executes without out-of-ISO overlay
+        shell: sh
+        run: |
+          set -eu
+          # The original next-stage deliberately cannot read /mnt/iso before
+          # middleware; it must execute and fail closed, not silently be
+          # replaced with the EFI sidecar when booting the ISO alone.
+          sed -e "s/'VT079_LINUX_INITRAMFS_ORIGINAL'/'M03_ORIGINAL_INIT_ENTERED'/g" \
+              -e 's/VT079_UNMODIFIED_KERNEL_INITRAMFS_ORIGINAL_PASS/M04_UNSHADOWED_ORIGINAL_INIT_ENTRY_PASS/g' \
+            poc-repo/pocs/079-m-bootable-iso/smoke-boot.sh \
+            > "$RUNNER_TEMP/m04-private-original-smoke.sh"
+          sh -n "$RUNNER_TEMP/m04-private-original-smoke.sh"
+          sh "$RUNNER_TEMP/m04-private-original-smoke.sh" "$RUNNER_TEMP/vt079"
+          grep -q '^M03_ORIGINAL_INIT_ENTERED' "$RUNNER_TEMP/vt079/qemu-iso-boot.log"
+          grep -q '^M03_ORIGINAL_ERROR_PROC_MISSING' "$RUNNER_TEMP/vt079/qemu-iso-boot.log"
+          if grep -Eq '^M04_EFI_SIDECAR_INIT_ENTERED|^M03_MIDDLEWARE_INIT_ENTERED' \
+              "$RUNNER_TEMP/vt079/qemu-iso-boot.log"; then
+            echo 'unshadowed original ISO mistakenly ran middleware' >&2
+            exit 9
+          fi
+      - name: Original ISO GRUB boots Linux and reconstructs EFI-mapped physical media
+        shell: sh
+        run: |
+          set -eu
+          cd fork
+          VTOY_ISO_DRIVER_EFI="$PWD/INSTALL/ventoy/iso9660_x64.efi" \
+          VTOY_BOOTABLE_ISO="$RUNNER_TEMP/vt079/bootable.iso" \
+          VTOY_INITRD_OVERLAY="$RUNNER_TEMP/vt079/initrd-hook-overlay.cpio" \
+          VTOY_REQUIRE_EFI_MAP=1 \
+          VTOY_REQUIRE_FRAGMENTED_ISO=1 \
+          sh GRUB2/port/probe-standalone-uefi.sh \
+            "$RUNNER_TEMP/efi-source-module/source/grub-core/ventoy_source_probe.mod" \
+            "$RUNNER_TEMP/efi-overlay-boot-qemu" fat32 \
+            "$RUNNER_TEMP/Ventoy-original-X64.EFI" original-overlay-boot
+      - name: Verify complete original EFI ISO to preserved original-init guest chain
+        shell: sh
+        run: |
+          set -eu
+          log="$RUNNER_TEMP/efi-overlay-boot-qemu/qemu.log"
+          test -s "$log"
+          for marker in VT080_ORIGINAL_VENTOY_OVERLAY_BOOT_BEGIN \
+              VT079_UEFI_GRUB_STARTED VT079_UEFI_ISO_FOUND \
+              VT079_UEFI_KERNEL_STARTING M04_EFI_SIDECAR_INIT_ENTERED \
+              M04_EFI_SIDECAR_HANDOFF_TO_MIDDLEWARE \
+              M03_MIDDLEWARE_INIT_ENTERED M03_MIDDLEWARE_BASELINE_STAGE_PASS \
+              M03_NEGATIVE_MISSING_SOURCE_NO_HANDOFF_PASS \
+              M03_NEGATIVE_CORRUPT_MAP_NO_HANDOFF_PASS \
+              M03_MIDDLEWARE_EXEC_ORIGINAL_INIT M03_ORIGINAL_INIT_ENTERED \
+              M03_ORIGINAL_PID_ONE_PASS M03_ORIGINAL_MOUNT_NAMESPACE_PASS \
+              M03_ORIGINAL_MEDIA_READ_PASS M03_ORIGINAL_CLEANUP_PASS \
+              M03_ORIGINAL_NEXT_STAGE_PASS; do
+            grep -q "^$marker" "$log" || {
+              echo "M-04 missing guest-observed marker: $marker" >&2
+              tail -n 140 "$log" >&2
+              exit 11
+            }
+          done
+          # Original init runs only after BOTH negative tests and the final
+          # clean mount. No middleware-owned original success marker exists.
+          test "$(grep -c '^M03_ORIGINAL_INIT_ENTERED' "$log")" -eq 1
+          line() { grep -n "^$1" "$log" | head -n1 | cut -d: -f1; }
+          first=$(line VT079_UEFI_GRUB_STARTED)
+          sidecar=$(line M04_EFI_SIDECAR_INIT_ENTERED)
+          middle=$(line M03_MIDDLEWARE_INIT_ENTERED)
+          badmap=$(line M03_NEGATIVE_CORRUPT_MAP_NO_HANDOFF_PASS)
+          transfer=$(line M03_MIDDLEWARE_EXEC_ORIGINAL_INIT)
+          original=$(line M03_ORIGINAL_INIT_ENTERED)
+          readpass=$(line M03_ORIGINAL_MEDIA_READ_PASS)
+          cleanup=$(line M03_ORIGINAL_CLEANUP_PASS)
+          test "$first" -lt "$sidecar" && test "$sidecar" -lt "$middle" &&
+            test "$middle" -lt "$badmap" && test "$badmap" -lt "$transfer" &&
+            test "$transfer" -lt "$original" && test "$original" -lt "$readpass" &&
+            test "$readpass" -lt "$cleanup"
+          grep -q '^M02_ERROR_CONSUMER' "$log"
+          grep -q '^VT_LINUX_HANDOFF_ERROR source GPT identity missing or ambiguous' "$log"
+          if grep -Eq '^M03_(MIDDLEWARE|ORIGINAL)_ERROR_|^M04_ERROR_' "$log"; then
+            echo 'Unexpected original/middleware error during shadowed boot' >&2
+            tail -n 140 "$log" >&2
+            exit 12
+          fi
+          expected=$(sha256sum "$RUNNER_TEMP/vt079/bootable.iso" | awk '{print $1}')
+          guest=$(sed -n 's/^M03_ORIGINAL_ISO_SHA256=//p' "$log" | tr -d '\r')
+          test -n "$guest" && test "$guest" = "$expected" || exit 13
+          grep -Fx "source_sha256=$expected" \
+            "$RUNNER_TEMP/efi-overlay-boot-qemu/iso-map-verification.txt"
+          grep -Fx "reconstructed_sha256=$expected" \
+            "$RUNNER_TEMP/efi-overlay-boot-qemu/iso-map-verification.txt"
+          grep -Fx 'iso_map_verification=passed' \
+            "$RUNNER_TEMP/efi-overlay-boot-qemu/iso-map-verification.txt"
+          # Entire ISO and original in-ISO initrd hook remain unchanged even
+          # after shadowed boot; the sidecar is a distinct ESP-only file.
+          test "$(awk '{print $1}' "$RUNNER_TEMP/m04-iso-before.sha256")" = \
+            "$expected"
+          (cd "$RUNNER_TEMP/vt079" && sha256sum --check --status sha256sums.txt)
+          cmp "$RUNNER_TEMP/vt079/iso/boot/initrd-hook.cpio" \
+            "$RUNNER_TEMP/vt079/extracted-hook.cpio"
+          cmp "$RUNNER_TEMP/m04-original-hook-extracted/init" \
+            poc-repo/pocs/090-m-boot-linux-original-init/original-init.sh
+          echo M04_REAL_QEMU_EFI_ORIGINAL_INIT_CHAIN_PASS
+          manifest="$RUNNER_TEMP/m04-evidence.txt"
+          {
+            echo task=M-04
+            echo scope=synthetic_x86_64_efi_original_hook_preserved_with_sidecar_boot
+            echo "poc_commit=$GITHUB_SHA"
+            echo "github_run_id=$GITHUB_RUN_ID"
+            echo ventoy_revision=475db53dee122887fab3387db47fbb1f09ca71b7
+            echo "kernel_sha256=$(sha256sum "$RUNNER_TEMP/unchanged-vmlinuz" | awk '{print $1}')"
+            echo "original_iso_sha256=$expected"
+            echo "original_next_init_observed_iso_sha256=$guest"
+            echo "original_in_iso_init_sha256=$(sha256sum "$RUNNER_TEMP/m04-original-hook-extracted/init" | awk '{print $1}')"
+            echo "original_hook_cpio_sha256=$(sha256sum "$RUNNER_TEMP/vt079/iso/boot/initrd-hook.cpio" | awk '{print $1}')"
+            echo "original_base_initrd_sha256=$(sha256sum "$RUNNER_TEMP/vt079/iso/boot/initrd-base.cpio" | awk '{print $1}')"
+            echo "overlay_sidecar_sha256=$(sha256sum "$RUNNER_TEMP/vt079/initrd-hook-overlay.cpio" | awk '{print $1}')"
+            echo "efi_sidecar_bytes=$(wc -c < "$RUNNER_TEMP/vt079/initrd-hook-overlay.cpio")"
+            echo "m02_stage_sha256=$(sha256sum poc-repo/pocs/088-m-boot-linux-generic-iso/iso-stage.sh | awk '{print $1}')"
+            echo "m03_middleware_sha256=$(sha256sum poc-repo/pocs/090-m-boot-linux-original-init/middleware-init.sh | awk '{print $1}')"
+            echo "m04_overlay_init_sha256=$(sha256sum poc-repo/pocs/091-m-boot-efi-original-init-integration/overlay-init.sh | awk '{print $1}')"
+            grep -E '^(iso_map_verification|source_sha256|reconstructed_sha256|checked_bytes)=' \
+              "$RUNNER_TEMP/efi-overlay-boot-qemu/iso-map-verification.txt"
+            echo original_unshadowed_init_entry=observed_fail_closed
+            echo original_in_iso_hook_bytes_preserved=observed
+            echo original_next_init_pid_one=observed
+            echo negative_map_and_source_before_handoff=observed
+            echo original_iso_and_kernel_unchanged=observed
+            echo vendor_original_init=not_tested
+            echo fresh_vendor_initrd_injection=not_tested
+            echo kernel_mount_namespace_switch_root=not_tested
+            echo secure_boot_and_physical_usb=not_tested
+          } > "$manifest"
+          cat "$manifest"
+      - name: Preserve trace, diagnostics, provenance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-091-m04-efi-original-init-chain
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            ${{ runner.temp }}/efi-source-module/build.log
+            ${{ runner.temp }}/efi-source-module/result.txt
+            ${{ runner.temp }}/edk2-build.log
+            ${{ runner.temp }}/vt079/qemu-iso-boot.log
+            ${{ runner.temp }}/vt079/sha256sums.txt
+            ${{ runner.temp }}/efi-linux-root/provenance.txt
+            ${{ runner.temp }}/efi-overlay-boot-qemu/qemu.log
+            ${{ runner.temp }}/efi-overlay-boot-qemu/runtime-result.txt
+            ${{ runner.temp }}/efi-overlay-boot-qemu/iso-map-verification.txt
+            ${{ runner.temp }}/m04-evidence.txt
+            ${{ runner.temp }}/vt079/iso/boot/initrd-hook.cpio
+            ${{ runner.temp }}/vt079/sha256sums.txt
+            ${{ runner.temp }}/m04-original-iso-input-sha256sums.txt
