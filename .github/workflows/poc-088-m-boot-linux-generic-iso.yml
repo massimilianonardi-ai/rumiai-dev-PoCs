@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: massimilianonardi-ai/Ventoy
-          ref: ceff79ca92d246928f86362a569f86c6d2ac130f
+          ref: f213b860982f540f43d51a296b05768d13587af2
           path: fork
           persist-credentials: false
       - name: Verify exact experimental source revision
@@ -33,7 +33,7 @@ jobs:
         run: |
           set -eu
           actual=$(git -C fork rev-parse HEAD)
-          test "$actual" = ceff79ca92d246928f86362a569f86c6d2ac130f
+          test "$actual" = f213b860982f540f43d51a296b05768d13587af2
           printf 'ventoy_probe_revision=%s\n' "$actual"
       - name: Install native GRUB EDK2 and firmware test dependencies
         shell: sh
@@ -175,7 +175,10 @@ jobs:
               M02_GENERIC_DEVICE_READY M02_GENERIC_MOUNT_PASS \
               M02_GUEST_MOUNT_PASS M02_GUEST_CLEANUP_PASS \
               M02_NEGATIVE_MISSING_CONSUMER_PASS \
-              M02_NEGATIVE_MISSING_MODULES_PASS M02_GUEST_TEST_PASS; do
+              M02_NEGATIVE_MISSING_MODULES_PASS \
+              M02_NEGATIVE_MISSING_EFI_VARIABLE_PASS \
+              M02_NEGATIVE_CORRUPT_EFI_VARIABLE_PASS \
+              M02_NEGATIVE_MISSING_DMSETUP_PASS M02_GUEST_TEST_PASS; do
             grep -q "^$marker" "$log" || {
               echo "Missing guest marker: $marker" >&2
               tail -n 100 "$log" >&2
@@ -184,6 +187,7 @@ jobs:
           done
           grep -q '^M02_ERROR_CONSUMER' "$log"
           grep -q '^M02_ERROR_MODULES' "$log"
+          grep -q '^M02_ERROR_DM_CREATE' "$log"
           if grep -q '^M02_GUEST_FAILURE_' "$log"; then
             tail -n 100 "$log" >&2
             exit 12
