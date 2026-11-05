@@ -158,6 +158,9 @@ if [ ! -f "$local_script" ] ||
 fi
 printf 'loop\next4\n' >> "$rootfs/etc/initramfs-tools/modules"
 install -m 0755 "$here/launch.py" "$rootfs/usr/local/sbin/mboot-qemu-boot"
+# Ubuntu's native loop= handoff preserves MBOOTDATA below /host.
+mkdir -p "$rootfs/host"
+chmod 0755 "$rootfs/host"
 install -m 0644 "$here/mboot-qemu-host.service" \
   "$rootfs/etc/systemd/system/mboot-qemu-host.service"
 mkdir -p "$rootfs/etc/systemd/system/multi-user.target.wants"
