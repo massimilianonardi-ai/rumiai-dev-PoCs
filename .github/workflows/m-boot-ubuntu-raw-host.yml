@@ -77,7 +77,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pocs/qemu-ubuntu-raw-host/build.sh \
+          sh pocs/qemu-ubuntu-raw-host/build.sh \
             "$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}"
           qemu-img info -f raw "$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}/mboot-ubuntu-host.raw"
           grep -F 'file format: raw' \
