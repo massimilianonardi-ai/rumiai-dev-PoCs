@@ -48,6 +48,9 @@ done
     /bin/busybox mount -t sysfs sysfs /sys || fail SYSFS 6
 [ -c /dev/null ] ||
     /bin/busybox mount -t devtmpfs devtmpfs /dev || fail DEVTMPFS 7
+# Sysfs/devtmpfs may have hidden the early initramfs directory entries.
+/bin/busybox mkdir -p /sys/firmware/efi/efivars /dev/mapper ||
+    fail RUNTIME_DIRECTORIES 20
 # Subsequent fixture attempts share the same kernel; do not insmod twice.
 if [ ! -f /run/m02/modules-loaded ]; then
     /bin/sh /modules.load || fail MODULES 8
