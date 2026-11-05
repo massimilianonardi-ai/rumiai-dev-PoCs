@@ -83,7 +83,8 @@ LIBGUESTFS_BACKEND=direct virt-customize \
   --format qcow2 -a "$output/expanded.qcow2" \
   --install "$packages" \
   --mkdir /host \
-  --run-command 'grep -q LOOP /usr/share/initramfs-tools/scripts/local && grep -q "mount -o move" /usr/share/initramfs-tools/scripts/local' \
+  --run-command 'grep -q LOOPFSTYPE /usr/share/initramfs-tools/scripts/local && grep -q "mount -o move" /usr/share/initramfs-tools/scripts/local && grep -q -- "-o loop" /usr/share/initramfs-tools/scripts/local' \
+  --run-command 'printf "loop\\next4\\n" >> /etc/initramfs-tools/modules' \
   --upload "$here/launch.py:/usr/local/sbin/mboot-qemu-boot" \
   --upload "$here/mboot-qemu-host.service:/etc/systemd/system/mboot-qemu-host.service" \
   --run-command 'chmod 0755 /usr/local/sbin/mboot-qemu-boot' \
