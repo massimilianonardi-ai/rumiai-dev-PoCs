@@ -31,6 +31,7 @@ SEARCH_LINE = (
     '  echo M05_SIDECAR_NOT_FOUND\n'
     '  halt\n'
     'fi\n'
+    'echo M05_EXTERNAL_SIDECAR_GRUB_FOUND\n'
 )
 REPLACED_INITRD = 'initrd /boot/initrd.img ($m05sidecar)/m05-probe.cpio'
 
@@ -106,7 +107,7 @@ def config_transform(original):
              if op[0] != "equal"]
     if len(edits) != 10 or any(op[0] != "replace" or
                                op[2] - op[1] != 1 or
-                               op[4] - op[3] != 6 for op in edits):
+                               op[4] - op[3] != 7 for op in edits):
         raise ValueError("M05_VENDOR_CONFIG_NONINSTALL_EDIT_DETECTED")
     return updated, changes
 
