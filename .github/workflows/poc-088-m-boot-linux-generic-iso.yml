@@ -203,6 +203,35 @@ jobs:
             exit 12
           fi
           echo M02_REAL_QEMU_GUEST_READONLY_MOUNT_PASS
+          # A revision-specific manifest supplements—not replaces—the real
+          # QEMU guest serial trace and independent source extent/hash oracle.
+          manifest="$RUNNER_TEMP/m02-evidence.txt"
+          {
+            echo 'task=M-02'
+            echo 'scope=synthetic_x86_64_linux_guest_readonly_iso'
+            echo "poc_commit=$GITHUB_SHA"
+            echo "github_run_id=$GITHUB_RUN_ID"
+            echo 'ventoy_revision=f213b860982f540f43d51a296b05768d13587af2'
+            echo 'kernel=unchanged_ubuntu_generic'
+            echo "kernel_sha256=$(sha256sum "$RUNNER_TEMP/unchanged-vmlinuz" | awk '{print $1}')"
+            echo "stage_sha256=$(sha256sum poc-repo/pocs/088-m-boot-linux-generic-iso/iso-stage.sh | awk '{print $1}')"
+            echo "guest_init_sha256=$(sha256sum poc-repo/pocs/088-m-boot-linux-generic-iso/guest-init.sh | awk '{print $1}')"
+            echo "modules_load_sha256=$(sha256sum "$RUNNER_TEMP/efi-linux-root/root/modules.load" | awk '{print $1}')"
+            echo "original_iso_sha256=$(sha256sum "$RUNNER_TEMP/vt079/bootable.iso" | awk '{print $1}')"
+            grep -E '^(iso_map_verification|source_sha256|reconstructed_sha256|checked_bytes)=' \
+              "$RUNNER_TEMP/efi-overlay-boot-qemu/iso-map-verification.txt"
+            echo 'm02_qemu_guest_result=pass'
+            echo 'read_only_kernel_mapper=observed'
+            echo 'kernel_dm_error_target_eio=observed'
+            echo 'kernel_virtio_source_driver_unbind=observed'
+            echo 'kernel_feature_absent_at_boot=not_tested'
+            echo 'qemu_qmp_hot_unplug=not_tested'
+            echo 'physical_usb=not_tested'
+            echo 'vendor_original_init=not_tested'
+            echo 'original_init_handoff=not_tested'
+          } > "$manifest"
+          test -s "$manifest"
+          cat "$manifest"
       - name: Preserve trace, diagnostics, provenance
         if: always()
         uses: actions/upload-artifact@v4
@@ -220,3 +249,4 @@ jobs:
             ${{ runner.temp }}/efi-overlay-boot-qemu/qemu.log
             ${{ runner.temp }}/efi-overlay-boot-qemu/runtime-result.txt
             ${{ runner.temp }}/efi-overlay-boot-qemu/iso-map-verification.txt
+            ${{ runner.temp }}/m02-evidence.txt
