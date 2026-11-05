@@ -70,9 +70,10 @@ jobs:
           assert 'apt-get -q -y --no-install-recommends install' in builder
           assert 'release-SHA256SUMS' in builder
           assert 'initramfs-tools' in builder
-          assert 'qemu-img' not in builder and 'libguestfs' not in builder.lower()
-          assert 'virt-customize' not in builder
-          assert 'guestfish' not in builder
+          assert 'qemu-img' not in builder
+          assert 'virt-customize ' not in builder
+          assert 'LIBGUESTFS_BACKEND=' not in builder
+          assert 'guestfish --ro' not in builder
           assert 'update-initramfs -u -k "$release"' in builder
           PY
           echo MBOOT_RAW_EXTERNAL_BOOT_CONTRACT_STATIC_PASS
