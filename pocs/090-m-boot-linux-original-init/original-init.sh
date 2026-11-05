@@ -74,6 +74,11 @@ case "$digest" in
     *) failure ORIGINAL_DIGEST_EMPTY ;;
 esac
 echo "M03_ORIGINAL_ISO_SHA256=$digest"
+# Legacy PoC 081 oracle requires these values. They are emitted ONLY by
+# this independent original next-stage init after its own successful read.
+echo "VT_LINUX_ISO_SHA256=$digest"
+echo VT_LINUX_ISO_IDENTITY_PASS
+echo VT_LINUX_HANDOFF_PASS
 echo M03_ORIGINAL_MEDIA_READ_PASS
 
 # The original init owns post-read cleanup; it happens AFTER the handoff
