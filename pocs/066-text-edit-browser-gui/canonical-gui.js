@@ -796,6 +796,12 @@ scroller.addEventListener('paste',event=>
   );
 });
 
+// Toolbar actions should return keyboard focus to the editor, preserving
+// the current public selections for Ctrl/Command+Z, typing and navigation.
+function restoreEditorFocus()
+{
+  scroller.focus({preventScroll:true});
+}
 $('copy').addEventListener('click',async()=>
 {
   try
@@ -809,6 +815,7 @@ $('copy').addEventListener('click',async()=>
   {
     $('message').textContent='Appunti non disponibili: '+error.message;
   }
+  finally {restoreEditorFocus();}
 });
 $('cut').addEventListener('click',async()=>
 {
@@ -823,6 +830,7 @@ $('cut').addEventListener('click',async()=>
   {
     $('message').textContent='Taglia non riuscito: '+error.message;
   }
+  finally {restoreEditorFocus();}
 });
 $('paste').addEventListener('click',async()=>
 {
@@ -843,9 +851,18 @@ $('paste').addEventListener('click',async()=>
   {
     $('message').textContent='Incolla non riuscito: '+error.message;
   }
+  finally {restoreEditorFocus();}
 });
-$('undo').addEventListener('click',()=>perform(()=>actions.undo(),'Annullato'));
-$('redo').addEventListener('click',()=>perform(()=>actions.redo(),'Ripetuto'));
+$('undo').addEventListener('click',()=>
+{
+  perform(()=>actions.undo(),'Annullato');
+  restoreEditorFocus();
+});
+$('redo').addEventListener('click',()=>
+{
+  perform(()=>actions.redo(),'Ripetuto');
+  restoreEditorFocus();
+});
 
 // IME keeps interim composition outside the source; one final committed
 // string becomes one Document2D action on compositionend.
