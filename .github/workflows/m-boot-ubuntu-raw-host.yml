@@ -12,6 +12,49 @@ permissions:
   contents: read
 
 jobs:
+  ubuntu-raw-boot-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact PoC revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install real GRUB script checker
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends grub-common
+      - name: Validate external kernel/initramfs GRUB and initramfs syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=pocs/qemu-ubuntu-raw-host
+          for source in build.sh mboot-raw-root mboot-raw-keep-host mboot-raw-initramfs-hook; do
+            sh -n "$root/$source"
+          done
+          grub-script-check "$root/grub-example.cfg"
+          python3 - "$root" <<'PY'
+          from pathlib import Path
+          import sys
+          root=Path(sys.argv[1])
+          grub=(root/'grub-example.cfg').read_text()
+          builder=(root/'build.sh').read_text()
+          early=(root/'mboot-raw-root').read_text()
+          preserve=(root/'mboot-raw-keep-host').read_text()
+          assert 'host_kernel' in grub and 'host_initrd' in grub
+          assert 'loopback ubuntu_host' not in grub
+          assert 'mboot.raw=' in grub and 'mboot.iso=' in grub
+          assert 'mboot.media_uuid=' in grub
+          assert '/host' in early and '/host' in preserve
+          assert 'mount -o move /host "$rootmnt/host"' in preserve
+          assert 'release-SHA256SUMS' in builder
+          assert 'virt-copy-out' in builder
+          assert 'update-initramfs -u -k all' in builder
+          PY
+          echo MBOOT_RAW_EXTERNAL_BOOT_CONTRACT_STATIC_PASS
+
   ubuntu-raw-image:
     strategy:
       fail-fast: false
@@ -110,7 +153,16 @@ jobs:
           qemu-img info -f raw "$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}/mboot-ubuntu-host.raw"
           grep -F 'file format: raw' \
             "$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}/raw-info.txt"
-          echo MBOOT_UBUNTU_RAW_FORMAT_PASS
+          (
+            cd "$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}"
+            sha256sum -c release-SHA256SUMS
+            test -s vmlinuz
+            test -s initrd.img
+            test -s kernel-release.txt
+            grep -F 'scripts/local-top/mboot-raw-root' initramfs-contents.txt
+            grep -F 'scripts/local-bottom/mboot-raw-keep-host' initramfs-contents.txt
+          )
+          echo MBOOT_UBUNTU_RAW_FORMAT_AND_SIDECARS_PASS
       - name: Preserve build evidence and actual RAW container
         if: always()
         uses: actions/upload-artifact@v4
@@ -121,6 +173,12 @@ jobs:
           compression-level: 0
           path: |
             ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/mboot-ubuntu-host.raw.zst
+            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/vmlinuz
+            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/initrd.img
+            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/kernel-release.txt
+            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/release-SHA256SUMS
+            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/initramfs-contents.txt
+            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/boot-export.log
             ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/raw-sha256.txt
             ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/raw-info.txt
             ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/provenance.txt
