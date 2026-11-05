@@ -57,6 +57,7 @@ jobs:
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/g07-physical-browser.mjs
           sh -n rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/g07-ubuntu-arm64.sh
           sh -n rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/g07-ubuntu-x86_64.sh
+          sh -n rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/show-canonical-gui.sh
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/presentation-contract.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/presentation-compact.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/grapheme-stream.mjs
@@ -88,6 +89,46 @@ jobs:
           test "$status" -eq 16
           grep -q 'G07 Chromium version probe failed' /tmp/rumiai-g07-x86-smoke.log
           grep -q 'executable=/usr/bin/false exit=1' /tmp/rumiai-g07-x86-smoke.log
+      - name: Smoke-test interactive GUI manual launcher and actual HTML
+        run: |
+          set -eu
+          script=rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/show-canonical-gui.sh
+          RUMIAI_TEXTEDIT_DEMO_PORT=8767 sh "$script" >"$RUNNER_TEMP/textedit-manual-demo.log" 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || :; wait "$pid" 2>/dev/null || :' EXIT
+          ready=0
+          for attempt in $(seq 1 90)
+          do
+            if grep -q 'GUI interattiva TextEdit pronta:' "$RUNNER_TEMP/textedit-manual-demo.log"
+            then
+              ready=1
+              break
+            fi
+            if ! kill -0 "$pid" 2>/dev/null
+            then
+              cat "$RUNNER_TEMP/textedit-manual-demo.log"
+              exit 1
+            fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]
+          then
+            cat "$RUNNER_TEMP/textedit-manual-demo.log"
+            exit 1
+          fi
+          python3 - <<'PY'
+          from urllib.request import urlopen
+          base = 'http://127.0.0.1:8767'
+          html = '/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/canonical-gui.html'
+          core = '/lib/sys/js/core/document2d-browser.generated.js'
+          with urlopen(base + html, timeout=5) as response:
+              assert response.status == 200
+              assert b'canonical-gui.js' in response.read()
+          with urlopen(base + core, timeout=5) as response:
+              assert response.status == 200
+              assert b'RawDocument2D' in response.read()
+          print('PASS: interactive GUI launcher serves actual compiled Document2D and GUI')
+          PY
       - name: Check standalone candidate UTF-16 streaming carry (PoC only)
         run: |
           node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/grapheme-stream.mjs
