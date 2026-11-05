@@ -49,12 +49,22 @@ qemu-img create -f qcow2 "$output/expanded.qcow2" 8G
 # Verify this separately before depending on it for GRUB looproot boot.
 # GitHub Actions' running Azure kernel may be unreadable to the unprivileged
 # libguestfs builder. Use the installed Ubuntu generic kernel/modules explicitly.
-generic_kernel=$(find /boot -maxdepth 1 -name 'vmlinuz-*-generic' -type f | sort -V | tail -n 1)
-[ -n "$generic_kernel" ] && [ -r "$generic_kernel" ] || {
+generic_kernel=$(find /boot -maxdepth 1 -name 'vmlinuz-*-generic' | sort -V | tail -n 1)
+[ -n "$generic_kernel" ] && [ -s "$generic_kernel" ] || {
   echo MBOOT_RAW_SUPERMIN_GENERIC_KERNEL_MISSING >&2
   exit 8
 }
 generic_release=${generic_kernel##*/vmlinuz-}
+# The CI owner-protected vmlinuz may exist without being readable by supermin.
+if [ ! -r "$generic_kernel" ]; then
+  if ! command -v sudo >/dev/null 2>&1; then
+    echo MBOOT_RAW_SUPERMIN_KERNEL_UNREADABLE >&2
+    exit 11
+  fi
+  sudo -n install -m 0644 "$generic_kernel" "$output/supermin-vmlinuz"
+  generic_kernel="$output/supermin-vmlinuz"
+fi
+[ -r "$generic_kernel" ] || exit 11
 [ -d "/lib/modules/$generic_release" ] || {
   echo MBOOT_RAW_SUPERMIN_GENERIC_MODULES_MISSING >&2
   exit 9
