@@ -92,8 +92,13 @@ timeout 90 qemu-io -f qcow2 \
 timeout 90 qemu-img info -f qcow2 --output=json "$overlay" > "$out/qemu-info.json"
 timeout 90 qemu-io -r -f qcow2 -c 'read -v 32768 2048' "$overlay" > "$out/read-pvd.hex"
 timeout 90 qemu-io -r -f qcow2 -c "read -v $dirsector 2048" "$overlay" > "$out/read-dirent.hex"
-timeout 90 qemu-io -r -f qcow2 -c "read -v 1706178560 $padded" "$overlay" \
-  > "$out/read-virtual-config.hex"
+i=0
+while [ $((i * 2048)) -lt "$padded" ]; do
+  offset=$((1706178560 + i * 2048))
+  timeout 90 qemu-io -r -f qcow2 -c "read -v $offset 2048" "$overlay" \
+    > "$out/read-virtual-$i.hex"
+  i=$((i + 1))
+done
 test "$(wc -c < "$overlay")" -lt 16777216 || {
   echo M05_COW_LOCAL_IMAGE_UNEXPECTEDLY_LARGE >&2
   exit 11
