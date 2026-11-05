@@ -56,6 +56,7 @@ jobs:
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/browser-launch.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/g07-physical-browser.mjs
           sh -n rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/g07-ubuntu-arm64.sh
+          sh -n rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/g07-ubuntu-x86_64.sh
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/presentation-contract.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/presentation-compact.mjs
           node --check rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/grapheme-stream.mjs
@@ -78,6 +79,15 @@ jobs:
           set -e
           test "$status" -eq 11
           grep -q 'G07 BLOCKED' /tmp/rumiai-g07-aux.log
+      - name: Verify G07 x86_64 launcher reaches original Chromium diagnostics on Ubuntu 24.04
+        run: |
+          set +e
+          RUMIAI_G07_CHROMIUM=/usr/bin/false sh rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/g07-ubuntu-x86_64.sh >/tmp/rumiai-g07-x86-smoke.log 2>&1
+          status=$?
+          set -e
+          test "$status" -eq 16
+          grep -q 'G07 Chromium version probe failed' /tmp/rumiai-g07-x86-smoke.log
+          grep -q 'executable=/usr/bin/false exit=1' /tmp/rumiai-g07-x86-smoke.log
       - name: Check standalone candidate UTF-16 streaming carry (PoC only)
         run: |
           node rumiai-os/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/grapheme-stream.mjs
