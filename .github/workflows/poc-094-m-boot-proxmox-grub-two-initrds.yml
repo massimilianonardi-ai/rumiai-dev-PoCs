@@ -1,0 +1,130 @@
+name: PoC 094 M-05 real Proxmox kernel from stock GRUB EFI two initrds
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/poc-094-m-boot-proxmox-grub-two-initrds.yml'
+      - 'pocs/094-m-boot-proxmox-grub-two-initrds/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  two-real-vendor-initrd-arguments:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install stock EFI GRUB and disposable Linux QEMU tools
+        shell: sh
+        run: |
+          set -eu
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            grub-efi-amd64-bin grub-common ovmf qemu-system-x86 \
+            xorriso dosfstools mtools cpio fakeroot initramfs-tools-core zstd file
+          python3 -m py_compile pocs/085-vendor-initrd-cpio-boot/extract_kernel_range.py
+          python3 -m py_compile pocs/083-m-boot-truenas-initrd-readonly/extract_initrd_range.py
+          sh -n pocs/085-vendor-initrd-cpio-boot/make_append_only_probe.sh
+          sh -n pocs/094-m-boot-proxmox-grub-two-initrds/build-efi-test.sh
+      - name: Fetch original real vendor kernel and initrd only, strict bounded HTTPS ranges
+        shell: sh
+        run: |
+          set -eu
+          mkdir -p m05-efi
+          url=https://enterprise.proxmox.com/iso/proxmox-ve_9.2-1.iso
+          digest=4e88fe416df9b527624a175f24c9aa07c714d3332afb1ee3dbf3879573ef2c6c
+          python3 pocs/085-vendor-initrd-cpio-boot/extract_kernel_range.py \
+            --url "$url" --source-sha256 "$digest" --target BOOT/LINUX26 \
+            --output m05-efi/vendor-vmlinuz --manifest m05-efi/kernel-range.json
+          python3 pocs/083-m-boot-truenas-initrd-readonly/extract_initrd_range.py \
+            --url "$url" --source-sha256 "$digest" --target BOOT/INITRD.IMG \
+            --expect-bytes 55878409 --output m05-efi/vendor-initrd.img \
+            --manifest m05-efi/initrd-range.json
+          printf '%s  %s\n' \
+            9eaf9a7fa2cc55815863db9af76d3de20cb491ca77839febd198d392d4c2e171 m05-efi/vendor-vmlinuz \
+            8fdf76b44287af130358c142f1743c30e1b10df21bae1693283736603bef3cba m05-efi/vendor-initrd.img \
+            | sha256sum --check
+      - name: Reuse original vendor next-stage and isolated small existing CPIO
+        shell: sh
+        run: |
+          set -eu
+          sh pocs/085-vendor-initrd-cpio-boot/make_append_only_probe.sh \
+            m05-efi/vendor-initrd.img m05-efi/hook
+          test "$(wc -c < m05-efi/hook/append-only-hook.cpio)" -le 65536
+      - name: Build rootless stock GRUB EFI El Torito ISO with two separate initrd file arguments
+        shell: sh
+        run: |
+          set -eu
+          sh pocs/094-m-boot-proxmox-grub-two-initrds/build-efi-test.sh \
+            m05-efi/fixture m05-efi/vendor-vmlinuz m05-efi/vendor-initrd.img \
+            m05-efi/hook/append-only-hook.cpio
+          cmp m05-efi/vendor-initrd.img m05-efi/fixture/iso/boot/vendor-initrd.img
+      - name: Real OVMF guest boots stock GRUB EFI and original Proxmox kernel
+        shell: bash
+        run: |
+          set -euo pipefail
+          code=
+          vars=
+          for dir in /usr/share/OVMF /usr/share/edk2/ovmf; do
+            for suffix in _4M ''; do
+              if [[ -s "$dir/OVMF_CODE$suffix.fd" && -s "$dir/OVMF_VARS$suffix.fd" ]]; then
+                code="$dir/OVMF_CODE$suffix.fd"
+                vars="$dir/OVMF_VARS$suffix.fd"
+                break 2
+              fi
+            done
+          done
+          [[ -n "$code" && -n "$vars" ]] || { echo M05_OVMF_FIRMWARE_MISSING >&2; exit 2; }
+          cp "$vars" m05-efi/fixture/ovmf-vars.fd
+          set +e
+          timeout --signal=TERM --kill-after=5 135 qemu-system-x86_64 \
+            -machine q35,accel=tcg -m 2048 -smp 2 -no-reboot \
+            -display none -serial mon:stdio \
+            -drive "if=pflash,format=raw,readonly=on,file=$code" \
+            -drive "if=pflash,format=raw,file=m05-efi/fixture/ovmf-vars.fd" \
+            -device ich9-ahci,id=ahci \
+            -drive "if=none,id=cd,format=raw,media=cdrom,readonly=on,file=m05-efi/fixture/disposable-efi-test.iso" \
+            -device ide-cd,drive=cd,bus=ahci.0,bootindex=1 \
+            > m05-efi/fixture/qemu-serial.log 2>&1
+          status=$?
+          set -e
+          echo "QEMU_EFI_EXIT=$status"
+          grep -E 'M05_EFI_|VT085_|searching for block|Kernel panic|Initramfs unpacking' \
+            m05-efi/fixture/qemu-serial.log | tail -n 65 || :
+          for marker in M05_EFI_STOCK_GRUB_STARTED M05_EFI_STOCK_GRUB_FOUND_SOURCE \
+              M05_EFI_LOADING_UNMODIFIED_VENDOR_INITRD_AND_EXTERNAL_CPIO \
+              M05_EFI_INITRD_TWO_FILES_LOADED \
+              VT085_APPENDED_CPIO_INIT_EXECUTED VT085_EXEC_ORIGINAL_VENDOR_INIT; do
+            grep -Fq "$marker" m05-efi/fixture/qemu-serial.log || {
+              echo "M05_EFI_VENDOR_INITRD_MARKER_MISSING $marker" >&2
+              tail -n 110 m05-efi/fixture/qemu-serial.log >&2
+              exit 5
+            }
+          done
+          ! grep -q 'Initramfs unpacking failed' m05-efi/fixture/qemu-serial.log
+          sha256sum --check --status m05-efi/fixture/source-sha256.txt
+          cmp m05-efi/vendor-initrd.img m05-efi/fixture/iso/boot/vendor-initrd.img
+          echo M05_STOCK_EFI_GRUB_REAL_VENDOR_TWO_INITRD_ARGS_PASS
+          echo M05_VENDOR_ORIGINAL_ISO_EFI_AND_MEDIA_ID_NOT_TESTED
+      - name: Save evidence only, never vendor kernel/initrd or ISO
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-094-m05-stock-efi-grub-vendor-two-initrds
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            m05-efi/kernel-range.json
+            m05-efi/initrd-range.json
+            m05-efi/fixture/grub.cfg
+            m05-efi/fixture/script-check.log
+            m05-efi/fixture/grub-build.log
+            m05-efi/fixture/xorriso.log
+            m05-efi/fixture/source-sha256.txt
+            m05-efi/fixture/fixture-sha256.txt
+            m05-efi/fixture/qemu-serial.log
