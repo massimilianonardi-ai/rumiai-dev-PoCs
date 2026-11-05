@@ -90,11 +90,16 @@ on-device upgrade/rollback implementation.
 - `.github/workflows/m-boot-ubuntu-raw-host.yml`: native AMD64/ARM64
   GitHub-hosted builders and limited isolated tests.
 - `boot-loop-smoke.sh`: builds a disposable ext4 MBOOTDATA file from the
-  **already verified** Ubuntu RAW bundle, creates a valid but nonbootable
-  selected ISO file, and uses `grub-mkrescue` to make an actual UEFI GRUB
-  ISO invoking `grub-example.cfg`. Runs QEMU native UEFI with that boot
-  ISO and ext4 source disk as regular files, and checks GRUB menu and
-  systemd/QEMU service output on the serial console.
+  **already verified** Ubuntu RAW bundle, and uses `grub-mkrescue` to
+  create a real UEFI GRUB ISO invoking `grub-example.cfg`. Runs native
+  QEMU UEFI with only file-backed source/optical devices. Requires actual
+  outer GRUB and Ubuntu systemd/QEMU service markers, then actual nested
+  Linux guest optical/disk device markers on the serial console.
+- `make-bootable-guest-iso.sh`: unpacks a **disposable copy** of the same
+  Ubuntu initramfs, replaces `/init` with a small guest-device observer,
+  repacks its existing kernel modules, and builds a valid EFI bootable
+  Linux ISO. This changes the **test ISO only**, not the checked/installed
+  Ubuntu RAW bundle and not any vendor ISO.
 - `.github/workflows/m-boot-ubuntu-loop-boot.yml`: independently fetches
   and verifies the exact AMD64/ARM64 bundle artifacts from source-pinned
   builder PASS run 42114121474, then invokes the real UEFI loop-root smoke
@@ -104,24 +109,39 @@ on-device upgrade/rollback implementation.
 
 ## Boot-smoke acceptance and limits
 
-`boot-loop-smoke.sh BUNDLE_DIRECTORY NEW_WORK_DIRECTORY` performs only
-non-destructive operations on disposable **regular files**. Its checks:
-`release-SHA256SUMS` for the unchanged Ubuntu RAW bundle, real
-`mkfs.ext4 -d` population of a mock MBOOTDATA filesystem, an actual
-GRUB-generated UEFI ISO and the existing GRUB function, and native QEMU
-boot with the original external `vmlinuz`/`initrd.img`. It requires
-serial evidence `MBOOT_GRUB_MENUENTRY_SELECTED` and
-`MBOOT_QEMU_GUEST_START`/`MBOOT_QEMU_DISKS_READONLY`, rather than
-treating firmware entry or a timeout as proof of Ubuntu startup. Each
-architecture records its real outer-VM serial console log.
+`boot-loop-smoke.sh BUNDLE_DIRECTORY NEW_WORK_DIRECTORY` operates only on
+disposable **regular-file disks and ISO images**. It verifies the unchanged
+Ubuntu RAW's `release-SHA256SUMS`, creates a real ext4 MBOOTDATA fixture,
+boots actual UEFI GRUB through `grub-example.cfg` and the external
+same-build `vmlinuz`/`initrd.img`. A PASS requires serial evidence from
+the actual running processes, not an EFI menu, static assertion or timeout.
 
-These markers can prove the loop-root service startup only when actually
-observed, **not** that the inner VM has booted a vendor system or
-recognized its CD/DVD media. The selected ISO is an intentionally
-nonbootable experimental ISO; original vendor install media, the actual
-m-boot ESP chainload path and realistic multi-disk physical topology need
-separate tests. The experiment has no access to physical block devices
-or permission to make guest disks writable.
+The first source-pinned run
+[42117175487](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/42117175487)
+**PASS** on real hosted native AMD64 and ARM64 UEFI/QEMU/TCG through
+`MBOOT_GRUB_MENUENTRY_SELECTED`, `MBOOT_QEMU_GUEST_START` and
+`MBOOT_QEMU_DISKS_READONLY`, proving Ubuntu reached its systemd QEMU
+launcher from its ext4 looproot. The follow-up
+[42118352541](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/42118352541)
+also **PASS** on both architectures and terminates immediately after those
+real service markers appear. Those runs **do not prove guest Linux boot**.
+
+The following expanded test loads a genuinely bootable **synthetic Linux
+guest ISO** and requires `MBOOT_INNER_GUEST_KERNEL_BOOTED` plus
+`MBOOT_INNER_GUEST_OPTICAL_PRESENT`,
+`MBOOT_INNER_GUEST_DISK_PRESENT` and
+`MBOOT_INNER_GUEST_INSPECTION_PASS` from inside the inner QEMU VM.
+Its revision-pinned [CI run 42119587994](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/42119587994)
+was in progress at this checkpoint. These requirements **remain unvalidated
+until its real jobs PASS**. The fixture is not vendor installer media, and
+its disk inventory represents one disposable source disk, not a full
+real-world physical-disk topology.
+
+The test is not a production m-boot ESP chainload test, never exposes
+real block disks, and cannot authorize writes to any device. Genuine
+Proxmox/TrueNAS media, multi-disk source/target ownership, GUI, native
+KVM and operator reference hosts require distinct acceptance.
+
 
 ## Validation boundary
 
@@ -140,11 +160,11 @@ actually ran `debootstrap`, build-time APT, Ubuntu initramfs generation,
 `vmlinuz`/`initrd.img`, publishing two compressed RAW bundle artifacts.
 The builder emitted `6.8.0-147-generic` for both native architectures.
 
-**This is a build PASS only.** A workflow's static GRUB parser PASS is not
-a genuine GRUB/UEFI boot. Still untested: Ubuntu reaching systemd from
-RAW with `loop=`, preserved `/host` source-ISO access, guest-side CD-ROM
-and physical-disk inventory, native KVM, graphics, genuine vendor ISO
-boot, and final operator reference-host validation.
+**Builder PASS and hosted GRUB/UEFI loop-root Ubuntu startup PASS** are
+both source-pinned above. Guest-side boot and optical recognition in the
+expanded nested Linux ISO test remain pending; native KVM, graphics,
+real physical-disk inventory/ownership, genuine vendor ISO boot and final
+operator reference-host validation have not been attempted.
 
 All disks remain **read-only in the guest**. A subsequent design must give
 writable target disks exclusive ownership without allowing concurrent writes
