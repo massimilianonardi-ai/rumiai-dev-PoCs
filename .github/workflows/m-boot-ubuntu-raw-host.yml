@@ -73,6 +73,25 @@ jobs:
           PY
           sha256sum --check "$RUNNER_TEMP/fixture-hashes.txt"
           echo MBOOT_RAW_DISK_READONLY_PLAN_PASS
+          python3 -m py_compile pocs/qemu-ubuntu-raw-host/smoke.py
+          template=$(python3 - "$RUNNER_TEMP/read-only-plan.json" <<'PY'
+          import json, pathlib, sys
+          plan=json.load(open(sys.argv[1]))
+          code=plan["firmware"]
+          if "CODE" in code:
+              path=code.replace("CODE", "VARS")
+              assert pathlib.Path(path).is_file(), path
+              print(path)
+          else:
+              print("-")
+          PY
+          )
+          python3 pocs/qemu-ubuntu-raw-host/smoke.py \
+            "$RUNNER_TEMP/read-only-plan.json" \
+            "$RUNNER_TEMP/vars/ovmf-vars.fd" "$template" \
+            > "$RUNNER_TEMP/paused-qemu-smoke.json"
+          cat "$RUNNER_TEMP/paused-qemu-smoke.json"
+          echo MBOOT_NATIVE_QEMU_READONLY_SMOKE_PASS
       - name: Build official-verified Ubuntu Minimal RAW container
         shell: bash
         run: |
@@ -100,3 +119,4 @@ jobs:
             ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/virt-resize.log
             ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/virt-customize.log
             ${{ runner.temp }}/read-only-plan.json
+            ${{ runner.temp }}/paused-qemu-smoke.json
