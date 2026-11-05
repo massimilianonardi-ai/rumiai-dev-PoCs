@@ -178,7 +178,10 @@ jobs:
               M02_NEGATIVE_MISSING_MODULES_PASS \
               M02_NEGATIVE_MISSING_EFI_VARIABLE_PASS \
               M02_NEGATIVE_CORRUPT_EFI_VARIABLE_PASS \
-              M02_NEGATIVE_MISSING_DMSETUP_PASS M02_GUEST_TEST_PASS; do
+              M02_NEGATIVE_MISSING_DMSETUP_PASS \
+              M02_NEGATIVE_MISSING_SOURCE_DEVICE_PASS \
+              M02_NEGATIVE_MISSING_SOURCE_PARTITION_PASS \
+              M02_NEGATIVE_ISO9660_MOUNT_ERROR_PASS M02_GUEST_TEST_PASS; do
             grep -q "^$marker" "$log" || {
               echo "Missing guest marker: $marker" >&2
               tail -n 100 "$log" >&2
@@ -188,6 +191,8 @@ jobs:
           grep -q '^M02_ERROR_CONSUMER' "$log"
           grep -q '^M02_ERROR_MODULES' "$log"
           grep -q '^M02_ERROR_DM_CREATE' "$log"
+          grep -q '^VT_LINUX_HANDOFF_ERROR source GPT identity missing or ambiguous' "$log"
+          grep -q '^M02_ERROR_ISO9660_MOUNT' "$log"
           if grep -q '^M02_GUEST_FAILURE_' "$log"; then
             tail -n 100 "$log" >&2
             exit 12
