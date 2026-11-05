@@ -158,6 +158,67 @@ fi
 [ ! -e /dev/mapper/vt_iso_m02 ] || failed AMBIGUOUS_GPT_MAPPER_LEAK
 echo M02_NEGATIVE_DUPLICATE_GPT_GUID_PASS
 
+# Deny the actual kernel device-mapper control character node (not simply
+# the dmsetup binary). Preserve and restore its original guest device node.
+# This proves control ioctl denial, not that dm_mod was unloaded.
+[ -c /dev/mapper/control ] || failed MISSING_DM_CONTROL_PREREQUISITE
+/bin/busybox mv /dev/mapper/control /dev/mapper/control.m02-saved ||
+    failed HIDE_DM_CONTROL
+/bin/busybox mkdir /dev/mapper/control || failed BLOCK_DM_CONTROL
+if /bin/sh /bin/m02-iso-stage prepare; then
+    failed DM_CONTROL_DENIAL_ACCEPTED
+fi
+/bin/busybox rmdir /dev/mapper/control || failed RESTORE_DM_CONTROL_DIRECTORY
+/bin/busybox mv /dev/mapper/control.m02-saved /dev/mapper/control ||
+    failed RESTORE_DM_CONTROL
+[ ! -e /dev/mapper/vt_iso_m02 ] || failed DM_CONTROL_MAPPER_LEAK
+echo M02_NEGATIVE_DM_CONTROL_UNAVAILABLE_PASS
+
+# Map real Linux dm "error" target under the original C consumer's linear
+# source path. This makes real guest kernel block I/O return EIO without
+# replacing the consumer or touching any backing image/physical disk.
+fault_name=m02_fault_source
+source_part_leaf=${source_part#/dev/}
+[ -r "/sys/class/block/$source_part_leaf/size" ] ||
+    failed FAULT_PARTITION_GEOMETRY_MISSING
+fault_sectors=$(/bin/busybox cat "/sys/class/block/$source_part_leaf/size")
+case "$fault_sectors" in ''|*[!0-9]*) failed FAULT_SECTORS_INVALID ;; esac
+[ "$fault_sectors" -gt 0 ] || failed FAULT_SECTORS_EMPTY
+/usr/sbin/dmsetup create "$fault_name" --readonly \
+    --table "0 $fault_sectors error" || failed DM_ERROR_TARGET_UNAVAILABLE
+fault_found=0
+fault_sys=
+for candidate in /sys/block/dm-*/dm/name; do
+    [ -f "$candidate" ] || continue
+    [ "$(/bin/busybox cat "$candidate")" = "$fault_name" ] || continue
+    fault_found=$((fault_found + 1))
+    fault_sys=${candidate%/dm/name}
+done
+[ "$fault_found" -eq 1 ] && [ -r "$fault_sys/dev" ] ||
+    failed FAULT_DM_SYSFS_ID
+IFS=: read -r fault_major fault_minor < "$fault_sys/dev" ||
+    failed FAULT_DM_NUMBERS
+/bin/busybox mv "$source_part" "$source_part.m02-physical" ||
+    failed FAULT_SAVE_PARTITION_NODE
+/bin/busybox mknod -m 0444 "$source_part" b "$fault_major" "$fault_minor" ||
+    failed FAULT_BACKING_NODE
+# Direct kernel block read must fail, establishing EIO rather than zero data.
+if /bin/busybox dd if="$source_part" of=/dev/null bs=512 count=1 \
+    > /run/m02/error-target-read.log 2>&1; then
+    failed DM_ERROR_TARGET_READ_ACCEPTED
+fi
+echo M02_KERNEL_DM_ERROR_READ_REJECTED
+# C parser still sees the real GPT; stage must refuse this bad backend.
+if /bin/sh /bin/m02-iso-stage prepare; then
+    failed DM_ERROR_TARGET_ISO_MOUNT_ACCEPTED
+fi
+/bin/busybox rm -f "$source_part" || failed FAULT_REMOVE_TARGET_NODE
+/bin/busybox mv "$source_part.m02-physical" "$source_part" ||
+    failed FAULT_RESTORE_PARTITION_NODE
+/usr/sbin/dmsetup remove "$fault_name" || failed FAULT_REMOVE_BACKEND
+[ ! -e /dev/mapper/vt_iso_m02 ] || failed DM_ERROR_TARGET_MAPPER_LEAK
+echo M02_NEGATIVE_DM_ERROR_EIO_PASS
+
 # Corrupt ONLY the temporary QEMU -snapshot view of the disposable ISO
 # partition, at the mapped ISO9660 primary-volume-descriptor offset.
 # Original host ISO and GPT backing images remain byte-identical.
