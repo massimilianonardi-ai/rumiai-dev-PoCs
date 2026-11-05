@@ -178,9 +178,8 @@ jobs:
           build_output="$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}"
           sudo chmod 0755 "$build_output"
           sudo find "$build_output" -maxdepth 1 -type f -exec chmod 0644 {} +
-          qemu-img info -f raw "$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}/mboot-ubuntu-host.raw"
-          grep -F 'file format: raw' \
-            "$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}/raw-info.txt"
+          qemu-img info -f raw "$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}/mboot-ubuntu-host.raw" \
+            | grep -F 'file format: raw'
           test "$(blkid -p -o value -s TYPE "$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}/mboot-ubuntu-host.raw")" = ext4
           (
             cd "$RUNNER_TEMP/mboot-ubuntu-${{ matrix.arch }}"
@@ -228,8 +227,6 @@ jobs:
             ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/mkfs-ext4.log
             ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/packages.txt
             ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/e2fsck.log
-            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/raw-sha256.txt
-            ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/raw-info.txt
             ${{ runner.temp }}/mboot-ubuntu-${{ matrix.arch }}/provenance.txt
             ${{ runner.temp }}/read-only-plan.json
             ${{ runner.temp }}/paused-qemu-smoke.json
