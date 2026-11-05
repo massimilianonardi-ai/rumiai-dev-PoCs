@@ -6,6 +6,10 @@ on:
     paths:
       - '.github/workflows/poc-081-m-boot-native-efi-linux-media.yml'
       - 'pocs/081-m-boot-native-efi-linux-media/**'
+  pull_request:
+    paths:
+      - '.github/workflows/poc-081-m-boot-native-efi-linux-media.yml'
+      - 'pocs/081-m-boot-native-efi-linux-media/**'
   workflow_dispatch:
 
 permissions:
@@ -25,7 +29,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: massimilianonardi-ai/Ventoy
-          ref: ceff79ca92d246928f86362a569f86c6d2ac130f
+          ref: 475db53dee122887fab3387db47fbb1f09ca71b7
           path: fork
           persist-credentials: false
       - name: Verify exact experimental source revision
@@ -33,7 +37,7 @@ jobs:
         run: |
           set -eu
           actual=$(git -C fork rev-parse HEAD)
-          test "$actual" = ceff79ca92d246928f86362a569f86c6d2ac130f
+          test "$actual" = 475db53dee122887fab3387db47fbb1f09ca71b7
           printf 'ventoy_probe_revision=%s\n' "$actual"
       - name: Install native GRUB EDK2 and firmware test dependencies
         shell: sh
@@ -152,10 +156,15 @@ jobs:
           VTOY_BOOTABLE_ISO="$RUNNER_TEMP/vt079/bootable.iso" \
           VTOY_INITRD_OVERLAY="$RUNNER_TEMP/vt079/initrd-hook-overlay.cpio" \
           VTOY_REQUIRE_EFI_MAP=1 \
+          VTOY_REQUIRE_FRAGMENTED_ISO=1 \
           sh GRUB2/port/probe-standalone-uefi.sh \
             "$RUNNER_TEMP/efi-source-module/source/grub-core/ventoy_source_probe.mod" \
             "$RUNNER_TEMP/efi-overlay-boot-qemu" fat32 \
             "$RUNNER_TEMP/Ventoy-original-X64.EFI" original-overlay-boot
+          grep -Fx 'f03_fragmented_efi_linux=passed' \
+            "$RUNNER_TEMP/efi-overlay-boot-qemu/f03-runtime-verification.txt"
+          grep -Fx 'vt081_original_iso_reconstructed_in_linux=passed' \
+            "$RUNNER_TEMP/efi-overlay-boot-qemu/runtime-result.txt"
       - name: Preserve trace, diagnostics, provenance
         if: always()
         uses: actions/upload-artifact@v4
@@ -173,3 +182,6 @@ jobs:
             ${{ runner.temp }}/efi-overlay-boot-qemu/qemu.log
             ${{ runner.temp }}/efi-overlay-boot-qemu/runtime-result.txt
             ${{ runner.temp }}/efi-overlay-boot-qemu/iso-map-verification.txt
+            ${{ runner.temp }}/efi-overlay-boot-qemu/f03-runtime-verification.txt
+            ${{ runner.temp }}/efi-overlay-boot-qemu/source-disk-integrity.txt
+            ${{ runner.temp }}/efi-overlay-boot-qemu/iso-disk-sha256.before
