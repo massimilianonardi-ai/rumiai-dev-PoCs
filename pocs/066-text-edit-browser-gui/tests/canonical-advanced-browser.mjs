@@ -35,7 +35,8 @@ async function reset(backend,fixture='basic')
     {
       const s=window.__canonicalGuiProbe?.snapshot();
       return s?.backend===backend && s.fixture===fixture &&
-        s.sourceRevision===0 && s.renderedRevision===s.viewRevision;
+        s.sourceRevision===0 && s.renderedRevision===s.viewRevision &&
+        s.paints>0 && s.domUnits.length>0;
     },
     {backend,fixture}
   );
@@ -45,9 +46,25 @@ async function dragRect()
 {
   const a=page.locator('.unit[data-row="0"][data-start="0"]').first();
   const b=page.locator('.unit[data-row="1"][data-start="1"]').first();
+  await page.waitForFunction
+  (
+    ()=>
+    {
+      const state=window.__canonicalGuiProbe?.snapshot();
+      return state?.renderedRevision===state.viewRevision &&
+        state.domUnits.some(item=>item.row===0&&item.start===0) &&
+        state.domUnits.some(item=>item.row===1&&item.start===1);
+    }
+  );
+  await a.waitFor({state:'visible'});
+  await b.waitFor({state:'visible'});
   const ab=await a.boundingBox();
   const bb=await b.boundingBox();
-  assert.ok(ab && bb);
+  assert.ok
+  (
+    ab && bb,
+    JSON.stringify({ab,bb,dom:(await snapshot()).domUnits.slice(0,20)})
+  );
   await page.mouse.move(ab.x+ab.width-2,ab.y+ab.height/2);
   await page.mouse.down();
   await page.mouse.move(bb.x+bb.width-2,bb.y+bb.height/2,{steps:8});
