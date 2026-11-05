@@ -26,7 +26,7 @@ jobs:
         run: |
           set -eu
           sudo apt-get update -qq
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends qemu-utils
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends qemu-utils qemu-block-extra
           qemu-img --version
           python3 -m py_compile pocs/093-m-boot-proxmox-range-backed-source/verify-qemu-source.py
           python3 -m py_compile pocs/082-m-boot-vendor-iso-readonly/iso_range_inspect.py
