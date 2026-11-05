@@ -11,26 +11,28 @@ disks. It is distinct from the previous K-03 synthetic direct QEMU guest.
 ## Files
 
 - `build.sh`: fetch checksum-verified official Ubuntu 24.04 Minimal cloud
-  image, enlarge/customize the **disposable** copy, convert it to a true RAW
-  GPT disk and compress it without changing its byte-level image format.
-  Export the **matching built** `vmlinuz` and `initrd.img` from the customized
-  guest, check both the initramfs boot hooks, and issue one checksum manifest
+  image, enlarge/customize the **disposable GPT source**, identify its one
+  ext4 root partition, and extract that **filesystem alone** as an unpartitioned
+  RAW ext4 image. Export the **matching built** `vmlinuz` and `initrd.img`
+  from the customized guest, verify Ubuntu's native `LOOP` support, and
+  issue one checksum manifest
   covering RAW, kernel and initramfs. These artifacts must be deployed as
   **one indivisible per-architecture release** (not mixed across builds).
 - `launch.py`: read exactly one `mboot.iso=` from Linux kernel cmdline,
-  resolve a `mboot.media_uuid=` host filesystem where necessary, inventory
-  host disks using real `lsblk`, choose architecture-matched QEMU/firmware,
+  resolve the unchanged ISO through Ubuntu's preserved `/host` mount when
+  necessary, inventory host disks using real `lsblk`, choose
+  architecture-matched QEMU/firmware,
   and construct ISO and all-disks read-only backend attachments.
 - `mboot-qemu-host.service`: systemd entrypoint in the minimal Ubuntu host;
   fails closed if no ISO was provided.
-- `mboot-raw-root`, `mboot-raw-initramfs-hook`,
-  `mboot-raw-keep-host`: an initramfs-tools handoff inspired by Wubi/Lupin:
-  find ext4 MBOOTDATA by UUID, loop-map the **GPT** RAW file's first
-  filesystem partition, then move the backing host mount into `/host`
-  before the real Ubuntu root takes over; preserve the ISO path as well.
+- Ubuntu's existing `initramfs-tools` `scripts/local` handles `loop=`:
+  mount backing MBOOTDATA by `root=UUID`, mount the unpartitioned ext4 RAW
+  root through a loop device, and preserve the backing filesystem under
+  `/host`. The earlier custom GPT initramfs hooks were removed.
 - `grub-example.cfg`: **not production-wired** proposed GRUB entry. It reads
-  kernel/initramfs **directly from ext4 MBOOTDATA**, not from inside RAW,
-  and passes the selected ISO, RAW path and backing filesystem UUID.
+  kernel/initramfs **directly from ext4 MBOOTDATA** and passes
+  `root=UUID=<backing UUID>`, `loop=<RAW path>`,
+  `loopfstype=ext4`, and the unchanged selected `mboot.iso=` path.
 - `.github/workflows/m-boot-ubuntu-raw-host.yml`: Ubuntu 24.04 AMD64/ARM64
   native runners, checksums, disposable disk fixtures, RAW build evidence.
 
@@ -61,22 +63,23 @@ No automatic product update or rollback mechanism exists yet.
 **Wubi research:** original Ubuntu Wubi/Lupin used a file-backed Ubuntu root,
 `root=UUID=<backing_fs_uuid> loop=/ubuntu/disks/root.disk` and an
 initramfs-tools loop-root path. Ubuntu 24.04 still documents `loop=`.
-That path targets a **filesystem image**, not a partition within a **whole
-GPT disk image**. We therefore retain a small partition-aware local-top
-hook and the Wubi mount-move mechanism, rather than editing Ubuntu's system
-`/usr/share/initramfs-tools/scripts/local`. Historical source evidence:
+This prototype now also uses an **ext4 filesystem image**, rather than a GPT
+disk image, so Ubuntu's own `scripts/local` can mount the image natively
+without new boot hooks or an offset. The real Ubuntu 24.04 package
+`initramfs-tools-core 0.142ubuntu25.8` was inspected in CI run
+[42090302581](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/42090302581):
+it contains `LOOP` support and `mount -o move`. Historical references:
 https://wiki.ubuntu.com/WubiGuide ;
 https://mirror.math.princeton.edu/pub/ubuntu/ubuntu/pool/main/l/lupin/ ;
 https://mail-archive.com/debian-bugs-dist%40lists.debian.org/msg461943.html .
 Current runtime interface:
 https://manpages.ubuntu.com/manpages/noble/man7/initramfs-tools.7.html .
 
-**Gates still unproven:** whether the current Ubuntu RAW actually has a single
-root filesystem at GPT partition 1, whether the early loop device and its
-first partition appear on native AMD64/ARM64, whether local-bottom preserves
-the writable backing mount across switch-root, and whether the external
-kernel/initramfs complete real UEFI/GRUB boot. A passing GRUB syntax check
-cannot substitute for those runtime observations.
+**Gates still unproven:** whether customized Ubuntu can be successfully
+exported as an ext4 filesystem image on both architectures, whether the
+native `loop=` path preserves the backing mount through switch-root, and
+whether the external kernel/initramfs actually boot Ubuntu via GRUB/UEFI.
+A PASS on parser checks or synthetic ext4 images is not an end-to-end boot.
 
 ## Current validation boundary
 
@@ -99,10 +102,11 @@ exclusive-ownership and per-target authorization design before writable
 passthrough is added. No physical device has been attached by this PoC.
 
 For genuine m-boot support, the next observable milestones are:
-1. real release-pinned AMD64/ARM64 Ubuntu RAW image generated;
-2. genuine Ubuntu host boot from that RAW as a disk in stock QEMU/UEFI;
-3. GRUB loopback RAW kernel/initramfs and initramfs image root handoff
-   exercised end-to-end in nested QEMU;
+1. genuine release-pinned AMD64/ARM64 **ext4 filesystem RAW** images generated;
+2. genuine Ubuntu host boot with the exported kernel/initramfs and
+   `root=UUID=...` + `loop=...` through real GRUB/UEFI in disposable QEMU;
+3. native `initramfs-tools` preserves backing `/host` mount and original
+   ISO location throughout the boot, without private GPT/looproot hooks;
 4. service invokes actual QEMU with ISO and multiple disposable raw disks,
    and guest independently observes the expected optical and disk inventory;
 5. actual multi-architecture GPU/console, KVM/TCG and original vendor installer
