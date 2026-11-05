@@ -5,10 +5,17 @@ import {mkdir} from 'node:fs/promises';
 import {join} from 'node:path';
 import {launchTestChromium} from './browser-launch.mjs';
 
-assert.equal(process.env.RUMIAI_G07_PHYSICAL,'1',
-  'physical-host preflight required');
-assert.ok(process.env.RUMIAI_G07_ARTIFACTS,
-  'local report directory required');
+assert.equal
+(
+  process.env.RUMIAI_G07_PHYSICAL,
+  '1',
+  'physical-host preflight required'
+);
+assert.ok
+(
+  process.env.RUMIAI_G07_ARTIFACTS,
+  'local report directory required'
+);
 const output=process.env.RUMIAI_G07_ARTIFACTS;
 await mkdir(output,{recursive:true});
 
@@ -21,8 +28,11 @@ const root='http://127.0.0.1:8765/src/rumiai-dev-PoCs/pocs/066-text-edit-browser
 
 try
 {
-  const response=await page.goto(root+'canonical-gui.html',
-    {waitUntil:'load'});
+  const response=await page.goto
+  (
+    root+'canonical-gui.html',
+    {waitUntil:'load'}
+  );
   assert.equal(response.status(),200);
   await page.waitForFunction
   (
@@ -30,13 +40,16 @@ try
   );
   const initial=await page.evaluate
   (
-    ()=>({
-      userAgent:navigator.userAgent,
-      platform:navigator.platform,
-      dpr:devicePixelRatio,
-      screen:{width:screen.width,height:screen.height},
-      units:window.__canonicalGuiProbe.snapshot().domUnits.length
-    })
+    ()=>
+    {
+      return {
+        userAgent:navigator.userAgent,
+        platform:navigator.platform,
+        dpr:devicePixelRatio,
+        screen:{width:screen.width,height:screen.height},
+        units:window.__canonicalGuiProbe.snapshot().domUnits.length
+      };
+    }
   );
   await page.screenshot
   (
@@ -115,7 +128,8 @@ try
   );
 
   assert.deepEqual(errors,[]);
-  console.log(JSON.stringify({
+  const report=
+  {
     status:'PASS',scope:'G07 native headful Chromium pixel checks',
     browserVersion:browser.version(),
     browser:initial,geometry,
@@ -125,7 +139,8 @@ try
       'textedit-082-reference.png'
     ],
     boundary:'No claim for Electron, physical host before operator execution, or full editor parity'
-  }));
+  };
+  console.log(JSON.stringify(report));
 }
 finally
 {
