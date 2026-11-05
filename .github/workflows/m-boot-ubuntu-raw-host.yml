@@ -66,9 +66,11 @@ jobs:
           assert data["all_disk_backends_readonly"]
           assert not data["physical_disk_write_enabled"]
           command = data["command"]
-          blocks = [json.loads(x[5:]) for x in command if x.startswith("json:")]
-          assert all(b.get("read-only") is True for b in blocks)
-          assert sum(b["node-name"].startswith("physical") for b in blocks) == 2
+          blocks = [command[i + 1] for i, arg in enumerate(command[:-1])
+                    if arg == "-blockdev"]
+          assert len(blocks) == 4, blocks
+          assert all("read-only=on" in block for block in blocks)
+          assert sum("node-name=physical" in block for block in blocks) == 2
           assert data["accelerator_requested"] in ("kvm", "tcg")
           PY
           sha256sum --check "$RUNNER_TEMP/fixture-hashes.txt"
