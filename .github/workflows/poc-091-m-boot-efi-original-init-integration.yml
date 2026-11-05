@@ -253,11 +253,11 @@ jobs:
               M03_ORIGINAL_PID_ONE_PASS M03_ORIGINAL_MOUNT_NAMESPACE_PASS \
               M03_ORIGINAL_MEDIA_READ_PASS M03_ORIGINAL_CLEANUP_PASS \
               M03_ORIGINAL_NEXT_STAGE_PASS; do
-            # GRUB's first serial print may carry ANSI cursor-control
-            # bytes on the same line; do not require column-zero for only
-            # that marker. All Linux stage markers remain line-anchored.
+            # EFI/GRUB serial print may include CR and ANSI cursor controls
+            # before its text; only EFI markers get a substring match.
+            # Linux stage success/negative markers stay line-anchored.
             case "$marker" in
-              VT079_UEFI_GRUB_STARTED) grep -q "$marker" "$log" ;;
+              VT080_*|VT079_UEFI_*) grep -q "$marker" "$log" ;;
               *) grep -q "^$marker" "$log" ;;
             esac || {
               echo "M-04 missing guest-observed marker: $marker" >&2
