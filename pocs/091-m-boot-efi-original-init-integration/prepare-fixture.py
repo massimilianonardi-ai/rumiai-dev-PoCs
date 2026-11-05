@@ -39,6 +39,15 @@ def main() -> None:
     ) + data[end:]
     if changed.count('cp "$M04_ORIGINAL_INIT" "$out/root-original/init"') != 1:
         raise SystemExit("M04_FIXTURE_ERROR_HOOK_REPLACEMENT")
+    # PoC 079 is built with sudo because of its source/runtime closure.
+    # Restore ownership of ONLY the newly generated synthetic ISO fixture
+    # after the private builder completes, so unprivileged QEMU can copy
+    # OVMF vars into the same directory. Never operate on a host device.
+    changed += (
+        '\nif [ -n "${SUDO_UID:-}" ] && [ -n "${SUDO_GID:-}" ]; then\n'
+        '  chown -R "$SUDO_UID:$SUDO_GID" "$out"\n'
+        'fi\n'
+    )
     dst.write_text(changed)
     os.chmod(dst, 0o755)
     print("M04_FIXTURE_ORIGINAL_HOOK_SELECTED_FROM_INDEPENDENT_SOURCE")
