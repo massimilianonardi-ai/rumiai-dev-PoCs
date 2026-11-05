@@ -3,7 +3,7 @@
 # No original vendor ISO replica, no physical disk, no product/firmware changes.
 set -eu
 if [ "$#" -ne 4 ] || [ -e "$1" ] || [ ! -s "$2" ] ||
-   [ ! -s "$3" ] || [ ! -s "$4" ] || [ ! -s "$5" ]; then
+   [ ! -s "$3" ] || [ ! -s "$4" ]; then
   echo 'M05_EFI_FIXTURE_ARGS: usage NEW_DIRECTORY VENDOR_KERNEL VENDOR_INITRD SMALL_CPIO' >&2
   exit 2
 fi
