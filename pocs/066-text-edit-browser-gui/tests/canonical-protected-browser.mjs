@@ -45,6 +45,9 @@ async function clickRegion(kind,side='left',row=0)
   const unit=page.locator(
     '.unit[data-kind="'+kind+'"][data-row="'+row+'"]'
   ).first();
+  // A requestAnimationFrame paint can replace the bounded DOM after an
+  // interaction. Resolve the currently visible unit before measuring it.
+  await unit.waitFor({state:'visible'});
   const box=await unit.boundingBox();
   assert.ok(box && box.width>5);
   await unit.click
