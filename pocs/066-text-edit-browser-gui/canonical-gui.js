@@ -45,6 +45,15 @@ let frame=null;
 let regionReads=0;
 let retiredSource=null;
 let retiredView=null;
+const actions=new globalThis.CanonicalEditorActions
+(
+  ()=>view,message=>{$('message').textContent=message;}
+);
+let drag=null;
+let keyboardAnchor=null;
+const imeInput=$('ime-input');
+let composing=false;
+let suppressCompositionInput=false;
 
 function destroy()
 {
@@ -68,6 +77,7 @@ function compose(Backend,mode)
     fixture==='long' ? longSample :
     fixture==='many' ? manySample : sample
   );
+  actions.attachSource(source);
   const raw=new D.RawDocument2D(source);
   layers.push(raw);
 
@@ -137,6 +147,26 @@ function render()
     ' · colonne '+painted.colStart+'–'+painted.colEnd+
     ' · righe totali '+view.rowCount+
     ' · revisione '+painted.revision+' · render '+paints;
+  const rowMaximum=Math.max(0,view.rowCount-VISIBLE_ROWS);
+  $('vscroll').max=String(rowMaximum);
+  $('vscroll').value=String(Math.min(firstRow,rowMaximum));
+  let maximum=0;
+  for(let row=painted.rowStart;row<painted.rowEnd;row++)
+  {
+    maximum=Math.max(maximum,view.getRowWidth(row));
+  }
+  $('hscroll').max=String(Math.max(0,maximum-VISIBLE_COLS));
+  $('hscroll').value=String(firstCol);
+  $('undo').disabled=actions.state.undo===0;
+  $('redo').disabled=actions.state.redo===0;
+  const caret=rows.querySelector('.caret');
+  if(caret)
+  {
+    const box=caret.getBoundingClientRect();
+    const root=scroller.getBoundingClientRect();
+    imeInput.style.left=(box.left-root.left)+'px';
+    imeInput.style.top=(box.top-root.top)+'px';
+  }
 }
 
 function schedule()
@@ -177,9 +207,15 @@ function configure()
   contentEvents=0;
   selectionEvents=0;
   lastRendered=null;
+  drag=null;
+  keyboardAnchor=null;
+  composing=false;
+  imeInput.value='';
+  $('composition-preview').textContent='';
   const Backend=$('backend').value==='piece'?
     D.PieceDocument:D.FlatDocument;
   compose(Backend,$('mode').value);
+  view.selectionMode=$('gesture').value;
   view.setSelections
   (
     [{start:{row:0,col:0},end:{row:0,col:0},forward:true}]
@@ -199,7 +235,7 @@ function configure()
     schedule();
   });
   $('message').textContent=
-    'Clic sulla metà sinistra/destra di un elemento, frecce e digitazione.';
+    'Clic e trascina per selezionare; Colonne per rettangoli, Ctrl+C/V e Ctrl+Z/Y per appunti e cronologia.';
   schedule();
 }
 
@@ -207,16 +243,8 @@ function configure()
 // The editor only receives the outermost Document2D. The public visible
 // regions declare all legal cell boundaries. The GUI never segments text,
 // infers source coordinates or edits the backing physical Document.
-function setRange(anchor,cursor)
+function revealCursor(cursor)
 {
-  const forward=anchor.row<cursor.row ||
-    (anchor.row===cursor.row && anchor.col<=cursor.col);
-  const start=forward?anchor:cursor;
-  const end=forward?cursor:anchor;
-  view.setSelections
-  (
-    [{start:{...start},end:{...end},forward}]
-  );
   if(cursor.row<firstRow || cursor.row>=firstRow+VISIBLE_ROWS)
   {
     firstRow=Math.max
@@ -231,9 +259,73 @@ function setRange(anchor,cursor)
   schedule();
 }
 
+// Snap endpoints to advertised Document2D unit boundaries. Never infer
+// Unicode, TAB or source offsets in browser gesture interpretation.
+function snap(row,col)
+{
+  const limit=view.getRowWidth(row);
+  const desired=Math.max(0,Math.min(limit,col));
+  if(desired===0 || desired===limit) return {row,col:desired};
+  const regions=view.getRegions
+  (
+    row,Math.max(0,desired-1),row+1,desired+1
+  )[0].filter(item=>item.kind!=='annotation');
+  const interior=regions.find
+  (
+    item=>item.start.col<desired && item.end.col>desired
+  );
+  if(interior)
+  {
+    return {
+      row,
+      col:desired-interior.start.col<=interior.end.col-desired ?
+        interior.start.col:interior.end.col
+    };
+  }
+  return {row,col:desired};
+}
+
+function applyGesture(anchor,cursor)
+{
+  if($('gesture').value!=='rectangle' || anchor.row===cursor.row)
+  {
+    setRange(anchor,cursor);
+    return;
+  }
+  const first=Math.min(anchor.row,cursor.row);
+  const last=Math.max(anchor.row,cursor.row);
+  if(last-first>2000) throw new RangeError('Selezione troppo estesa');
+  const left=Math.min(anchor.col,cursor.col);
+  const right=Math.max(anchor.col,cursor.col);
+  const forward=anchor.col<=cursor.col;
+  const range=[];
+  for(let row=first;row<=last;row++)
+  {
+    const start=snap(row,left);
+    const end=snap(row,right);
+    range.push({start,end,forward});
+  }
+  view.setSelections(range);
+  revealCursor(cursor);
+}
+
+function setRange(anchor,cursor)
+{
+  const forward=anchor.row<cursor.row ||
+    (anchor.row===cursor.row && anchor.col<=cursor.col);
+  const start=forward?anchor:cursor;
+  const end=forward?cursor:anchor;
+  view.setSelections
+  (
+    [{start:{...start},end:{...end},forward}]
+  );
+  revealCursor(cursor);
+}
+
 function moveCaret(row,col)
 {
   const point={row,col};
+  keyboardAnchor=null;
   setRange(point,point);
 }
 
@@ -273,7 +365,9 @@ function moveHorizontal(direction,extend=false)
   const cursor={row:point.row,col:direction<0?next.start.col:next.end.col};
   if(extend)
   {
-    setRange(anchor,cursor);
+    const gestureAnchor=keyboardAnchor||anchor;
+    keyboardAnchor=gestureAnchor;
+    applyGesture(gestureAnchor,cursor);
   }
   else
   {
@@ -281,7 +375,7 @@ function moveHorizontal(direction,extend=false)
   }
 }
 
-function moveVertical(direction)
+function moveVertical(direction,extend=false)
 {
   const selection=view.getSelections()[0];
   if(!selection) return;
@@ -309,7 +403,14 @@ function moveVertical(direction)
   {
     try
     {
-      moveCaret(row,col);
+      if(extend)
+      {
+        const anchor=keyboardAnchor||
+          (selection.forward?selection.start:selection.end);
+        keyboardAnchor=anchor;
+        applyGesture(anchor,{row,col});
+      }
+      else moveCaret(row,col);
       return;
     }
     catch(error)
