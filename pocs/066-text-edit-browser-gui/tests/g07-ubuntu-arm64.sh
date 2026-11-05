@@ -33,8 +33,18 @@ browser="$RUMIAI_G07_CHROMIUM"
 [ -n "$browser" ] || browser="$(command -v chromium-browser 2>/dev/null || true)"
 [ -n "$browser" ] && [ -x "$browser" ] ||
   fail 16 'system Chromium is required'
-browser_version="$("$browser" --version 2>&1)" ||
-  fail 16 'system Chromium failed to start'
+# Preserve the original browser diagnostic: version-probe failures can
+# indicate missing shared libraries, sandbox issues or wrapper errors.
+# Never silently replace them with only a generic launcher status.
+if browser_version="$("$browser" --version 2>&1)"
+then
+  :
+else
+  browser_status=$?
+  printf 'G07 Chromium version probe failed: executable=%s exit=%s\n' "$browser" "$browser_status" >&2
+  printf '%s\n' "$browser_version" >&2
+  fail 16 'installed Chromium --version failed; see original diagnostic above'
+fi
 
 report="$RUMIAI_G07_REPORT_DIR"
 [ -n "$report" ] || report="$HOME/rumiai-g07-$(date -u +%Y%m%dT%H%M%SZ)"
