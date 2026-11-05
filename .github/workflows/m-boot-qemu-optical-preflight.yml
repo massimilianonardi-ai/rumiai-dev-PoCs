@@ -1,0 +1,55 @@
+name: m-boot QEMU optical host preflight K-02
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/m-boot-qemu-optical-preflight.yml'
+      - 'pocs/qemu-optical-preflight/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qemu-optical-host-preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out isolated preflight
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install distribution QEMU and OVMF
+        shell: sh
+        run: |
+          set -eu
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            qemu-system-x86 ovmf coreutils
+      - name: Inspect actual QEMU AHCI/CD-ROM with guest CPU stopped
+        shell: sh
+        run: |
+          set -eu
+          sh -n pocs/qemu-optical-preflight/probe.sh
+          sh pocs/qemu-optical-preflight/probe.sh "$RUNNER_TEMP/k02-optical-preflight"
+          cat "$RUNNER_TEMP/k02-optical-preflight/manifest.txt"
+          grep -Fx 'qemu_halted_device_tree=passed' "$RUNNER_TEMP/k02-optical-preflight/manifest.txt"
+          grep -Fx 'optical_probe_sha256_unchanged=yes' "$RUNNER_TEMP/k02-optical-preflight/manifest.txt"
+          grep -Fx 'guest_boot_attempted=no' "$RUNNER_TEMP/k02-optical-preflight/manifest.txt"
+      - name: Publish exact host manifest and stopped-QEMU evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m-boot-k02-qemu-optical-preflight
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/k02-optical-preflight/manifest.txt
+            ${{ runner.temp }}/k02-optical-preflight/qemu-accelerators.txt
+            ${{ runner.temp }}/k02-optical-preflight/qemu-ahci-device.txt
+            ${{ runner.temp }}/k02-optical-preflight/qemu-ide-cd-device.txt
+            ${{ runner.temp }}/k02-optical-preflight/qemu-displays.txt
+            ${{ runner.temp }}/k02-optical-preflight/qemu-monitor.txt
+            ${{ runner.temp }}/k02-optical-preflight/fixture-sha256-before.txt
+            ${{ runner.temp }}/k02-optical-preflight/fixture-sha256-after.txt
