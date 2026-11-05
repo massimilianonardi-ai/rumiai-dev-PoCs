@@ -181,6 +181,7 @@ jobs:
               M02_NEGATIVE_MISSING_DMSETUP_PASS \
               M02_NEGATIVE_MISSING_SOURCE_DEVICE_PASS \
               M02_NEGATIVE_MISSING_SOURCE_PARTITION_PASS \
+              M02_NEGATIVE_DUPLICATE_GPT_GUID_PASS \
               M02_NEGATIVE_ISO9660_MOUNT_ERROR_PASS M02_GUEST_TEST_PASS; do
             grep -q "^$marker" "$log" || {
               echo "Missing guest marker: $marker" >&2
