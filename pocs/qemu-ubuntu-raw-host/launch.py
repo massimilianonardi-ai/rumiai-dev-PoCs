@@ -124,13 +124,14 @@ def generate(iso, disks, arch, firmware_code, vars_template, vars_private):
     if arch == "x86_64":
         command += ["-device", "ich9-ahci,id=ahci"]
     else:
-        command += ["-device", "qemu-xhci,id=xhci"]
-        command += ["-device", "usb-storage,drive=optical"]
+        command += ["-device", "virtio-scsi-pci,id=scsi0"]
     command += ["-blockdev", blockdev("file", str(iso), "optical-file")]
     command += ["-blockdev", 'json:{"driver":"raw","node-name":"optical","file":"optical-file","read-only":true}']
     if arch == "x86_64":
         command += ["-device", "ide-cd,drive=optical,bus=ahci.0,bootindex=1"]
-    # ARM64 USB storage uses the optical raw node and needs an explicit LUN.
+    else:
+        command += ["-device", "scsi-cd,drive=optical,bus=scsi0.0,bootindex=1"]
+    # Every inventoried physical block disk is represented read-only.
     for index, item in enumerate(disks):
         name = f"physical{index}"
         backend = "host_device" if item.get("physical", True) else "file"
