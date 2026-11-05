@@ -1,0 +1,15 @@
+# PoC 092 — M-05 original Proxmox VE 9.2-1 media scanner / existing adapter
+
+**Task:** M-05 only. This is a **read-only source-compatibility preparation**, **not** an M-05 acceptance test.
+
+The existing PoC 082/084/085 evidence already showed that the official Proxmox 9.2-1 initrd can be retrieved by strict HTTPS ranges and that its original kernel/initrd actually run under direct QEMU, where the original installer then searches for `proxmox-ve-9.2-1` media ID and fails without real media. This new narrowly bounded probe answers the remaining source-level question: **does the exact original installer `/init` scan `/sys/block/dm*`, and is there an existing Ventoy adapter for that scanner?**
+
+The CI test reads only the official original **55,878,409-byte Zstandard initrd** through the already-existing `extract_initrd_range.py`; the original ISO is **not** downloaded or copied. It verifies the previously observed exact initrd and embedded `/init` and `.cd-info` SHA256 values, decodes the original shell script strictly as **data**, requires the real vendor ISO ID checks (`/mnt/$CDID_FN`, `reqid`, read-only ISO9660 mount), and inspects the unmodified [existing Ventoy PVE hook](https://github.com/massimilianonardi-ai/Ventoy/blob/475db53dee122887fab3387db47fbb1f09ca71b7/IMG/cpio/ventoy/hook/debian/pve-hook.sh).
+
+The source comparison requires exactly one vendor `for i in /sys/block/hd* ...` device scanner, verifies it **omits `dm*`**, and checks that upstream Ventoy's existing sed expression can add `/sys/block/dm*` to that same scan without changing any other character in the vendor script. **No modified vendor script is generated or executed**; no hook or generic middleware implementation is forked. The output JSON records the original script/hook hashes and both original/adapter scanner expressions.
+
+### Hard nonclaims and next step
+
+This is **not** original Proxmox installer media acceptance, not EFI→vendor-initrd injection, not `switch_root`, not a verified full original ISO SHA256, and not a completed vendor QEMU boot. The genuine vendor ISO bytes are **1,706,178,560 bytes** and this PoC does not create a full original ISO file, use real USB disks or change firmware, `m-boot/main`, original Ventoy or any vendor binary. The bounded original Proxmox initrd fetch is independent of a full ISO download; the known official ISO digest in its range ledger is vendor-published, **not independently recomputed over the complete ISO**.
+
+M-05 acceptance still requires a separately verified **complete read-only logical original ISO view** through the original EFI route, including valid installer media ID and actual continuation beyond the documented retry, and a genuinely preserved original vendor kernel/initrd. The currently accepted M-04 synthetic EFI sidecar has a **64 KiB** cap; it cannot simply replace the original Proxmox **55,878,409-byte** initrd, so actual vendor initrd injection/exposure must be proved without hiding this mismatch or weakening the ABI. Do not start a destructive physical test merely because this source-only probe passes.
