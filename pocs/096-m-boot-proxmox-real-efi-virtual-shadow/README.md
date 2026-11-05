@@ -1,0 +1,16 @@
+# PoC 096 — original Proxmox inner EFI GRUB consuming a sector-level virtual `grub.cfg`
+
+This deliberately separate **M-05 diagnostic** advances PoC 095's source-only virtual-file model to a **real QEMU/OVMF boot using the official Proxmox VE 9.2-1 ISO's own El Torito EFI loader**. This **does not change** the original Proxmox ISO file/bytes, require a local 1.7 GB ISO copy, or modify F-owned Ventoy experimental source, F-05 EFI map producer, `m-boot/main`, GRUB core, USB or physical disks.
+
+A tiny locally writable **qcow2 copy-on-write layer** has the entire official image as its **HTTPS read-only backing source**. Its only logical differences are the **same three original Ventoy F-shaped ISO9660 changes** derived with strict HTTP Range reads in PoC 095: updated PVD volume count, the original `/boot/grub/grub.cfg` directory record, and one appended small configuration payload. QEMU's actual block backend reads all patched sectors and verifies their full bytes against independent source-derived patches before guest execution. The remote original ISO remains unchanged, with its full published SHA256 **not independently recomputed**.
+
+A separate isolated small FAT disk contains a unique **PoC-only** marker and the existing PoC 085 external CPIO wrapper. This is a disposable analogue of an external loader-accessible sidecar, **not an established m-boot API or path**. The virtual Proxmox GRUB config only adds a **fail-closed search** and second `initrd` argument to the ten original installer branches; original rescue commands remain identical. A real QEMU/OVMF guest boots the official vendor EFI loader from the original ISO-backed virtual CD-ROM, tries to find this FAT sidecar and use it via stock GRUB.
+
+### Evidence gates — no inflated success
+
+1. Genuine QEMU read-only HTTPS image opened; only three bounded COW virtual sector patches; original remote PVD/dirent rechecked independently and unchanged; no physical writes. This is a **QEMU virtual optical model**, not the actual F-owned GPT/FAT32 m-boot producer.
+2. Original vendor's **own EFI bootloader** must read the virtual `/boot/grub/grub.cfg`: the guest serial must include **`M05_EXTERNAL_SIDECAR_GRUB_FOUND`** emitted by the PoC-adjusted installer entry. The original EFI binary is not rebuilt or replaced.
+3. If observable, the Proxmox kernel and original initrd plus external CPIO execute and transfer to original vendor init, as independently established by PoC 094. Serial observation may depend on the default vendor graphics/console settings; lack of serial evidence is **NOT_TESTED**, not PASS.
+4. The actual vendor Proxmox ISO media ID may be accepted through **QEMU's persistently emulated read-only optical drive**, which is *distinct from* M-02's native Linux read-only `dm-linear` physical file extents. Never relabel that QEMU optical acceptance as F/M bare-metal reconstructed-source PASS. No installer installation, target disk, privileged USB passthrough or physical host boot is attempted.
+
+A source-only PoC 095 PASS does not imply this runtime test can boot. Any error must be recorded against exact run/commit and reconciled forward, without weakening the existing firmware interface or producing fake original-ISO boot evidence.
