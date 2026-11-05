@@ -6,6 +6,10 @@ on:
     paths:
       - '.github/workflows/poc-087-efi-linux-map-negative.yml'
       - 'pocs/087-m-boot-efi-linux-middleware/**'
+  pull_request:
+    paths:
+      - '.github/workflows/poc-087-efi-linux-map-negative.yml'
+      - 'pocs/087-m-boot-efi-linux-middleware/**'
   workflow_dispatch:
 
 permissions:
