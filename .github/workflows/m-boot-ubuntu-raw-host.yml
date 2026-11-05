@@ -36,6 +36,12 @@ jobs:
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
             qemu-utils libguestfs-tools libguestfs0 linux-image-generic zstd curl \
             qemu-system-x86 qemu-system-arm ovmf qemu-efi-aarch64
+          # libguestfs 1.52 tries passt preferentially, but its nested helper
+          # cannot start on this GitHub-hosted runner. Force supported SLIRP
+          # fallback only inside this disposable CI machine.
+          if command -v passt >/dev/null 2>&1; then
+            sudo mv "$(command -v passt)" "$(command -v passt).disabled-in-ci"
+          fi
       - name: Check launcher and generate read-only synthetic disk plan
         shell: bash
         run: |
