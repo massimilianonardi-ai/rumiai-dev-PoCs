@@ -37,6 +37,7 @@ fi
     failed NEGATIVE_RESTORE_CONSUMER
 [ ! -e /dev/mapper/vt_iso_m02 ] || failed NEGATIVE_CONSUMER_LEAK
 echo M02_NEGATIVE_MISSING_CONSUMER_PASS
+/bin/busybox rm -f /run/m02/modules-loaded
 /bin/busybox mv /modules.load /modules.load.saved ||
     failed NEGATIVE_FIXTURE_MODULES
 if /bin/sh /bin/m02-iso-stage prepare; then
