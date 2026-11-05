@@ -6,6 +6,8 @@ export PATH=/bin:/usr/sbin
 /bin/busybox mount -t devtmpfs devtmpfs /dev || :
 exec </dev/console >/dev/console 2>&1
 echo M03_MIDDLEWARE_INIT_ENTERED
+# Backward-compatible PoC 079 fixture marker: the overlay /init really ran.
+echo VT079_LINUX_INITRAMFS_OVERLAY
 
 fail() {
     echo "M03_MIDDLEWARE_ERROR_$1"
