@@ -115,15 +115,15 @@ if [ ! -f "$rootfs/etc/hosts" ]; then
 fi
 cp "$rootfs/etc/hosts" "$output/hosts-before-build.txt"
 for apt_host in $apt_hosts; do
-  if ! chroot "$rootfs" getent ahostsv4 "$apt_host" > /dev/null 2>&1; then
-    host_ip=$(getent ahostsv4 "$apt_host" | awk 'NR == 1 { print $1 }')
-    if [ -z "$host_ip" ]; then
-      echo "MBOOT_RAW_HOST_DNS_FAILED: $apt_host" >&2
-      exit 17
-    fi
-    printf '%s %s\n' "$host_ip" "$apt_host" >> "$rootfs/etc/hosts"
-    echo "MBOOT_RAW_CHROOT_DNS_FALLBACK: $apt_host"
+  # Even a successful DNS probe can fail later during package downloads on
+  # some hosted runners. Keep a temporary per-build mapping throughout APT.
+  host_ip=$(getent ahostsv4 "$apt_host" | awk 'NR == 1 { print $1 }')
+  if [ -z "$host_ip" ]; then
+    echo "MBOOT_RAW_HOST_DNS_FAILED: $apt_host" >&2
+    exit 17
   fi
+  printf '%s %s\n' "$host_ip" "$apt_host" >> "$rootfs/etc/hosts"
+  echo "MBOOT_RAW_BUILD_MIRROR_RESOLVED: $apt_host"
   if ! chroot "$rootfs" getent ahostsv4 "$apt_host" > /dev/null; then
     echo "MBOOT_RAW_CHROOT_DNS_FAILED: $apt_host" >&2
     exit 18
