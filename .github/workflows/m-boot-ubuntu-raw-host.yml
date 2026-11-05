@@ -34,7 +34,12 @@ jobs:
           for source in build.sh mboot-raw-root mboot-raw-keep-host mboot-raw-initramfs-hook; do
             sh -n "$root/$source"
           done
-          grub-script-check "$root/grub-example.cfg"
+          # The source is a GRUB function library. Append a synthetic
+          # invocation only for parser validation; this does NOT boot it.
+          cp "$root/grub-example.cfg" "$RUNNER_TEMP/grub-check.cfg"
+          printf '\nboot_iso_with_ubuntu_qemu_host /m/boot/iso/synthetic.iso\n' \
+            >> "$RUNNER_TEMP/grub-check.cfg"
+          grub-script-check "$RUNNER_TEMP/grub-check.cfg"
           python3 - "$root" <<'PY'
           from pathlib import Path
           import sys
