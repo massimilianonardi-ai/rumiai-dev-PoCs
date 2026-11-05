@@ -97,7 +97,7 @@ jobs:
             -device ich9-ahci,id=ahci \
             -drive "if=none,id=iso,format=qcow2,media=cdrom,readonly=on,file=m05-cow/official-iso-readonly-guest-shadow.qcow2" \
             -device ide-cd,drive=iso,bus=ahci.0,bootindex=1 \
-            -drive "if=none,id=sidecar,format=raw,readonly=on,file=m05-cow/m05-stage-fat.img" \
+            -drive "if=none,id=sidecar,format=raw,snapshot=on,file=m05-cow/m05-stage-fat.img" \
             -device ide-hd,drive=sidecar,bus=ahci.1,bootindex=9 \
             > m05-cow/original-vendor-efi-serial.log 2>&1
           status=$?
