@@ -504,102 +504,412 @@ scroller.addEventListener('wheel',event=>
   );
 },{passive:false});
 
-scroller.addEventListener('click',event=>
+// Pointer capture preserves a drag while the bounded rows are repainted.
+function pointerPoint(event)
 {
-  const target=event.target;
-  if(!(target instanceof Element)) return;
-  const unit=target.closest('.unit');
-  if(!unit || !rows.contains(unit)) return;
+  const element=document.elementFromPoint(event.clientX,event.clientY);
+  if(!(element instanceof Element) || !scroller.contains(element))
+  {
+    return null;
+  }
+  const unit=element.closest('.unit');
+  if(unit && rows.contains(unit))
+  {
+    const rect=unit.getBoundingClientRect();
+    const row=Number(unit.dataset.row);
+    const col=event.clientX-rect.left<rect.width/2 ?
+      Number(unit.dataset.start):Number(unit.dataset.end);
+    return {row,col};
+  }
+  const line=element.closest('.row');
+  if(line && rows.contains(line))
+  {
+    const row=Number(line.dataset.row);
+    return {row,col:view.getRowWidth(row)};
+  }
+  return null;
+}
 
-  const rect=unit.getBoundingClientRect();
-  const row=Number(unit.dataset.row);
-  const col=event.clientX-rect.left<rect.width/2 ?
-    Number(unit.dataset.start) : Number(unit.dataset.end);
-
+function perform(action,label)
+{
   try
   {
-    moveCaret(row,col);
-    scroller.focus();
-    $('message').textContent='Cursore alla colonna '+col;
+    const outcome=action();
+    if(label) $('message').textContent=label;
+    schedule();
+    return outcome;
   }
   catch(error)
   {
-    $('message').textContent='Posizione respinta: '+error.message;
+    $('message').textContent='Operazione respinta: '+error.message;
+    schedule();
+    return null;
   }
+}
+
+scroller.addEventListener('pointerdown',event=>
+{
+  if(event.button!==0 || !view) return;
+  const point=pointerPoint(event);
+  if(!point) return;
+  event.preventDefault();
+  keyboardAnchor=null;
+  perform(()=>moveCaret(point.row,point.col));
+  drag={id:event.pointerId,anchor:point,last:point};
+  scroller.setPointerCapture(event.pointerId);
+  imeInput.focus({preventScroll:true});
+});
+scroller.addEventListener('pointermove',event=>
+{
+  if(!drag || drag.id!==event.pointerId) return;
+  const point=pointerPoint(event);
+  if(!point || (point.row===drag.last.row && point.col===drag.last.col))
+  {
+    return;
+  }
+  perform(()=>applyGesture(drag.anchor,point));
+  drag.last=point;
+});
+function endDrag(event)
+{
+  if(!drag || drag.id!==event.pointerId) return;
+  drag=null;
+  if(scroller.hasPointerCapture(event.pointerId))
+  {
+    scroller.releasePointerCapture(event.pointerId);
+  }
+}
+scroller.addEventListener('pointerup',endDrag);
+scroller.addEventListener('pointercancel',endDrag);
+scroller.addEventListener('lostpointercapture',()=>{drag=null;});
+
+$('vscroll').addEventListener('input',()=>
+{
+  moveWindow(Number($('vscroll').value)-firstRow,0);
+});
+$('hscroll').addEventListener('input',()=>
+{
+  moveWindow(0,Number($('hscroll').value)-firstCol);
+});
+
+$('gesture').addEventListener('change',()=>
+{
+  keyboardAnchor=null;
+  perform
+  (
+    ()=>{view.selectionMode=$('gesture').value;},
+    $('gesture').value==='rectangle'?'Selezione a colonne':'Selezione lineare'
+  );
+});
+
+function navigateTo(row,col,extend=false)
+{
+  const point=snap(row,col);
+  const prior=view.getSelections()[0];
+  const anchor=keyboardAnchor||
+    (prior?.forward?prior.start:prior?.end)||point;
+  if(extend)
+  {
+    keyboardAnchor=anchor;
+    applyGesture(anchor,point);
+  }
+  else moveCaret(point.row,point.col);
+}
+
+function deleteSelectedOrPrevious()
+{
+  const selections=view.getSelections();
+  if(selections.some
+  (
+    item=>item.start.row!==item.end.row ||
+      item.start.col!==item.end.col
+  ))
+  {
+    view.insert('');
+    return;
+  }
+  if(selections.length!==1) return;
+  const point=selections[0].start;
+  if(point.col===0) return;
+  const region=view.getRegions
+  (
+    point.row,point.col-1,point.row+1,point.col
+  )[0].find
+  (
+    item=>item.kind!=='annotation' && item.end.col===point.col
+  );
+  if(!region) return;
+  view.replace
+  (
+    [{start:region.start,end:region.end,text:''}],view.revision
+  );
+}
+
+function deleteForward()
+{
+  const selections=view.getSelections();
+  if(selections.some
+  (
+    item=>item.start.row!==item.end.row ||
+      item.start.col!==item.end.col
+  ))
+  {
+    view.insert('');
+    return;
+  }
+  deleteNextVisibleUnit();
+}
+
+// The native ClipboardEvent is the primary transport for keyboard shortcuts.
+// The custom MIME marks our row-shaped transfer; plain text remains standard.
+function transferPayload(event)
+{
+  const payload=actions.copy($('gesture').value==='rectangle');
+  if(!payload || !event.clipboardData) return null;
+  event.preventDefault();
+  event.clipboardData.setData('text/plain',payload.text);
+  if(payload.column)
+  {
+    event.clipboardData.setData
+    (
+      'application/x-rumiai-column',
+      JSON.stringify({rows:payload.rows})
+    );
+  }
+  return payload;
+}
+scroller.addEventListener('copy',event=>
+{
+  const payload=transferPayload(event);
+  if(payload) $('message').textContent='Copiate '+payload.rows+' selezioni';
+});
+scroller.addEventListener('cut',event=>
+{
+  const payload=transferPayload(event);
+  if(!payload) return;
+  perform(()=>view.insert(''),'Selezione tagliata');
+});
+scroller.addEventListener('paste',event=>
+{
+  if(!event.clipboardData) return;
+  event.preventDefault();
+  const text=event.clipboardData.getData('text/plain');
+  const column=$('gesture').value==='rectangle' ||
+    !!event.clipboardData.getData('application/x-rumiai-column');
+  perform
+  (
+    ()=>actions.paste(text,column,$('repeat-paste').checked),
+    'Incollato con modifica atomica'
+  );
+});
+
+$('copy').addEventListener('click',async()=>
+{
+  try
+  {
+    const payload=actions.copy($('gesture').value==='rectangle');
+    if(!payload) throw new Error('Seleziona del testo');
+    await navigator.clipboard.writeText(payload.text);
+    $('message').textContent='Copiato negli appunti';
+  }
+  catch(error)
+  {
+    $('message').textContent='Appunti non disponibili: '+error.message;
+  }
+});
+$('cut').addEventListener('click',async()=>
+{
+  try
+  {
+    const payload=actions.copy($('gesture').value==='rectangle');
+    if(!payload) throw new Error('Seleziona del testo');
+    await navigator.clipboard.writeText(payload.text);
+    perform(()=>view.insert(''),'Selezione tagliata');
+  }
+  catch(error)
+  {
+    $('message').textContent='Taglia non riuscito: '+error.message;
+  }
+});
+$('paste').addEventListener('click',async()=>
+{
+  try
+  {
+    const text=await navigator.clipboard.readText();
+    perform
+    (
+      ()=>actions.paste
+      (
+        text,$('gesture').value==='rectangle',
+        $('repeat-paste').checked
+      ),
+      'Incollato'
+    );
+  }
+  catch(error)
+  {
+    $('message').textContent='Incolla non riuscito: '+error.message;
+  }
+});
+$('undo').addEventListener('click',()=>perform(()=>actions.undo(),'Annullato'));
+$('redo').addEventListener('click',()=>perform(()=>actions.redo(),'Ripetuto'));
+
+// IME keeps interim composition outside the source; one final committed
+// string becomes one Document2D action on compositionend.
+imeInput.addEventListener('compositionstart',()=>
+{
+  composing=true;
+  suppressCompositionInput=false;
+  $('composition-preview').textContent='Composizione in corso…';
+});
+imeInput.addEventListener('compositionupdate',event=>
+{
+  $('composition-preview').textContent='Composizione: '+event.data;
+});
+imeInput.addEventListener('compositionend',event=>
+{
+  composing=false;
+  suppressCompositionInput=true;
+  const text=event.data||imeInput.value;
+  imeInput.value='';
+  $('composition-preview').textContent='';
+  if(text) perform(()=>view.insert(text),'Testo composto inserito');
+});
+imeInput.addEventListener('beforeinput',event=>
+{
+  if(composing) return;
+  if(event.inputType?.toLowerCase().includes('composition'))
+  {
+    event.preventDefault();
+    suppressCompositionInput=false;
+    return;
+  }
+  if(event.inputType==='insertText' && event.data)
+  {
+    event.preventDefault();
+    suppressCompositionInput=false;
+    perform(()=>view.insert(event.data),'Testo inserito');
+  }
+  else if(event.inputType==='insertFromPaste')
+  {
+    event.preventDefault(); // The ClipboardEvent owns the paste.
+  }
+});
+imeInput.addEventListener('input',()=>
+{
+  if(!composing) imeInput.value='';
 });
 
 scroller.addEventListener('keydown',event=>
 {
-  if(!view || event.ctrlKey || event.altKey || event.metaKey ||
-    event.isComposing)
-  {
-    return;
-  }
+  if(!view || event.isComposing || composing) return;
 
-  if(event.key==='ArrowLeft' || event.key==='ArrowRight')
+  const modifier=event.ctrlKey || event.metaKey;
+  const key=event.key.toLowerCase();
+  if(modifier && !event.altKey)
+  {
+    if(key==='z' || key==='y')
+    {
+      event.preventDefault();
+      perform
+      (
+        ()=>key==='y'||event.shiftKey?actions.redo():actions.undo(),
+        key==='y'||event.shiftKey?'Ripetuto':'Annullato'
+      );
+      return;
+    }
+    if(key==='a')
+    {
+      event.preventDefault();
+      perform
+      (
+        ()=>
+        {
+          const last=view.rowCount-1;
+          setRange({row:0,col:0},{row:last,col:view.getRowWidth(last)});
+        },
+        'Tutto selezionato'
+      );
+      return;
+    }
+    if(!['home','end'].includes(key)) return; // Let native clipboard events fire.
+  }
+  if(event.altKey && !modifier && (event.key==='1'||event.key==='2'))
   {
     event.preventDefault();
-    try
-    {
-      moveHorizontal(event.key==='ArrowLeft'?-1:1,event.shiftKey);
-    }
-    catch(error)
-    {
-      $('message').textContent='Navigazione respinta: '+error.message;
-    }
+    $('gesture').value=event.key==='2'?'rectangle':'line';
+    $('gesture').dispatchEvent(new Event('change'));
     return;
   }
+  if(event.altKey) return;
 
-  if(event.key==='PageDown' || event.key==='PageUp')
+  if(event.key==='ArrowLeft'||event.key==='ArrowRight')
+  {
+    event.preventDefault();
+    perform
+    (
+      ()=>moveHorizontal(event.key==='ArrowLeft'?-1:1,event.shiftKey)
+    );
+    return;
+  }
+  if(event.key==='ArrowDown'||event.key==='ArrowUp')
+  {
+    event.preventDefault();
+    perform
+    (
+      ()=>moveVertical(event.key==='ArrowDown'?1:-1,event.shiftKey)
+    );
+    return;
+  }
+  if(event.key==='Home'||event.key==='End')
+  {
+    event.preventDefault();
+    perform
+    (
+      ()=>
+      {
+        const current=view.getSelections()[0];
+        if(!current) return;
+        const point=current.forward?current.end:current.start;
+        const row=modifier?
+          (event.key==='Home'?0:view.rowCount-1):point.row;
+        const col=event.key==='Home'?0:view.getRowWidth(row);
+        navigateTo(row,col,event.shiftKey);
+      }
+    );
+    return;
+  }
+  if(event.key==='PageDown'||event.key==='PageUp')
   {
     event.preventDefault();
     moveWindow(event.key==='PageDown'?VISIBLE_ROWS:-VISIBLE_ROWS,0);
     return;
   }
-
-  if(event.key==='ArrowDown' || event.key==='ArrowUp')
+  if(event.key==='Delete'||event.key==='Backspace')
   {
     event.preventDefault();
-    try
-    {
-      moveVertical(event.key==='ArrowDown'?1:-1);
-    }
-    catch(error)
-    {
-      $('message').textContent='Navigazione respinta: '+error.message;
-    }
+    perform
+    (
+      ()=>event.key==='Delete'?deleteForward():deleteSelectedOrPrevious(),
+      'Modifica eliminazione'
+    );
     return;
   }
-
-  if(event.key==='Delete')
+  if(event.key==='Enter'||event.key==='Tab')
   {
     event.preventDefault();
-    try
-    {
-      deleteNextVisibleUnit();
-    }
-    catch(error)
-    {
-      $('message').textContent='Eliminazione respinta: '+error.message;
-    }
+    perform
+    (
+      ()=>view.insert(event.key==='Enter'?'\n':'\t'),
+      'Carattere di controllo inserito'
+    );
     return;
   }
-
-  // G02 handles ordinary non-composing one-key text input. IME,
-  // paste, Enter, full deletion policies and composed text are separate work.
-  if(event.key.length===1 && !/[\x00-\x1f\x7f]/u.test(event.key))
+  if(!modifier && event.key.length===1 &&
+    !/[\x00-\x1f\x7f]/u.test(event.key))
   {
     event.preventDefault();
-    try
-    {
-      view.insert(event.key);
-      $('message').textContent='Inserimento tramite Document2D';
-      schedule();
-    }
-    catch(error)
-    {
-      $('message').textContent='Inserimento respinto: '+error.message;
-    }
+    perform(()=>view.insert(event.key),'Inserimento tramite Document2D');
   }
 });
 
@@ -698,7 +1008,9 @@ globalThis.__canonicalGuiProbe=Object.freeze
         colStart:lastRendered.colStart,colEnd:lastRendered.colEnd
       } : null,
       mountedRows:rows.childElementCount,
-      mountedUnits:rows.querySelectorAll('.unit').length
+      mountedUnits:rows.querySelectorAll('.unit').length,
+      history:actions.state,verticalMax:Number($('vscroll').max),
+      horizontalMax:Number($('hscroll').max)
     }),
     mutateRetiredSource:()=>
     {
@@ -742,8 +1054,10 @@ globalThis.__canonicalGuiProbe=Object.freeze
         rawRegions:layers[0]?.getRegions(0,0,1,100)[0],
         regionsByRow:visible,
         selections:view?.getSelections(),lastEvent,
+        gesture:$('gesture').value,history:actions.state,
         lastContentEvent,contentEvents,selectionEvents,
-        focused:document.activeElement===scroller,
+        focused:document.activeElement===scroller ||
+          document.activeElement===imeInput,
         statusMessage:$('message').textContent,
         domUnits:Array.from(rows.querySelectorAll('.unit'),item=>({
           kind:item.dataset.kind,row:Number(item.dataset.row),
