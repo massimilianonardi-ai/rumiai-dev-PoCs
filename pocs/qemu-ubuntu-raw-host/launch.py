@@ -28,6 +28,32 @@ def selected_iso(cmdline):
     return Path(values[0])
 
 
+def locate_iso(cmdline, iso, execute):
+    if iso.is_file():
+        return iso
+    if not execute:
+        fail("ISO_MISSING", f"selected ISO not readable: {iso}")
+    entries = [v[len("mboot.media_uuid="):] for v in cmdline.split()
+               if v.startswith("mboot.media_uuid=")]
+    if len(entries) != 1 or not entries[0]:
+        fail("SOURCE_UUID", "selected ISO source filesystem UUID is missing")
+    uuid = entries[0]
+    if any(c not in "0123456789abcdefABCDEF-" for c in uuid):
+        fail("SOURCE_UUID", "invalid source filesystem UUID")
+    source = Path("/dev/disk/by-uuid") / uuid
+    if not source.exists():
+        fail("SOURCE_DEVICE", f"selected source disk unavailable: {uuid}")
+    mountpoint = Path("/run/mboot-source")
+    mountpoint.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if not os.path.ismount(mountpoint):
+        subprocess.run(["mount", "-t", "ext4", "-o", "rw",
+                        str(source), str(mountpoint)], check=True)
+    candidate = mountpoint / iso.relative_to("/")
+    if not candidate.is_file():
+        fail("ISO_MISSING", f"ISO absent from selected source filesystem: {iso}")
+    return candidate
+
+
 def physical_disks():
     result = subprocess.run(
         ["lsblk", "-J", "-b", "-o", "PATH,TYPE,SIZE,RO,RM"],
@@ -124,8 +150,7 @@ def main():
     try:
         cmdline = options.cmdline_file.read_text(encoding="utf-8")
         iso = selected_iso(cmdline)
-        if not iso.is_file():
-            fail("ISO_MISSING", f"selected ISO not readable: {iso}")
+        iso = locate_iso(cmdline, iso, options.execute)
         disks = physical_disks()
         if options.fixture_disks:
             if options.execute:
