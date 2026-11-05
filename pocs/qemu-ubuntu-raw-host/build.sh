@@ -1,12 +1,12 @@
 #!/bin/sh
-# Build a disposable Ubuntu Minimal host RAW disk; never writes a real disk.
+# Build a disposable Ubuntu Minimal RAW ext4 filesystem (NOT a GPT disk).
 set -eu
 umask 077
 [ "$#" -eq 1 ] && [ ! -e "$1" ] || {
   echo 'usage: build.sh NEW_OUTPUT_DIRECTORY' >&2
   exit 2
 }
-for cmd in curl qemu-img virt-resize virt-customize virt-copy-out sha256sum grep awk zstd lsinitramfs; do
+for cmd in curl qemu-img virt-resize virt-customize virt-copy-out virt-filesystems guestfish e2fsck blkid sha256sum grep awk zstd lsinitramfs; do
   command -v "$cmd" >/dev/null 2>&1 || {
     echo "MBOOT_RAW_MISSING_TOOL: $cmd" >&2
     exit 3
@@ -45,8 +45,8 @@ curl -fL --retry 3 --silent --show-error "$base/$name" \
 )
 qemu-img info -f qcow2 "$output/$name" > "$output/source-qcow2-info.txt"
 qemu-img create -f qcow2 "$output/expanded.qcow2" 8G
-# Published Ubuntu Minimal UEFI/GPT images use sda1 as the root filesystem.
-# Verify this separately before depending on it for GRUB looproot boot.
+# The Canonical cloud source is partitioned. Keep that as temporary build input;
+# the published m-boot output must be a standalone ext4 filesystem image.
 # GitHub Actions' running Azure kernel may be unreadable to the unprivileged
 # libguestfs builder. Use the installed Ubuntu generic kernel/modules explicitly.
 generic_kernel=$(find /boot -maxdepth 1 -name 'vmlinuz-*-generic' | sort -V | tail -n 1)
@@ -82,17 +82,11 @@ LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1 LIBGUESTFS_BACKEND=direct virt-resize --ex
 LIBGUESTFS_BACKEND=direct virt-customize \
   --format qcow2 -a "$output/expanded.qcow2" \
   --install "$packages" \
-  --mkdir /etc/initramfs-tools/scripts/local-top \
-  --mkdir /etc/initramfs-tools/scripts/local-bottom \
-  --mkdir /etc/initramfs-tools/hooks \
   --mkdir /host \
-  --upload "$here/mboot-raw-root:/etc/initramfs-tools/scripts/local-top/mboot-raw-root" \
-  --upload "$here/mboot-raw-keep-host:/etc/initramfs-tools/scripts/local-bottom/mboot-raw-keep-host" \
-  --upload "$here/mboot-raw-initramfs-hook:/etc/initramfs-tools/hooks/mboot-raw-root" \
+  --run-command 'grep -q LOOP /usr/share/initramfs-tools/scripts/local && grep -q "mount -o move" /usr/share/initramfs-tools/scripts/local' \
   --upload "$here/launch.py:/usr/local/sbin/mboot-qemu-boot" \
   --upload "$here/mboot-qemu-host.service:/etc/systemd/system/mboot-qemu-host.service" \
   --run-command 'chmod 0755 /usr/local/sbin/mboot-qemu-boot' \
-  --run-command 'chmod 0755 /etc/initramfs-tools/scripts/local-top/mboot-raw-root /etc/initramfs-tools/scripts/local-bottom/mboot-raw-keep-host /etc/initramfs-tools/hooks/mboot-raw-root' \
   --run-command 'update-initramfs -u -k all' \
   --run-command 'mkdir -p /etc/systemd/system/multi-user.target.wants' \
   --run-command 'ln -sfn /etc/systemd/system/mboot-qemu-host.service /etc/systemd/system/multi-user.target.wants/mboot-qemu-host.service' \
@@ -101,14 +95,42 @@ LIBGUESTFS_BACKEND=direct virt-customize \
     tail -n 80 "$output/virt-customize.log" >&2
     exit 6
   }
-qemu-img convert -p -f qcow2 -O raw \
-  "$output/expanded.qcow2" "$output/mboot-ubuntu-host.raw" \
-  > "$output/convert.log" 2>&1
+# Export only the ext4 root partition from the temporary cloud GPT disk.
+# "qemu-img convert -O raw" would export a whole GPT disk and is wrong here.
+LIBGUESTFS_BACKEND=direct virt-filesystems -a "$output/expanded.qcow2" \
+  --filesystems --long > "$output/root-filesystems.txt"
+root_partition=$(awk '$2 == "filesystem" && $3 == "ext4" { print $1 }' \
+  "$output/root-filesystems.txt")
+case "$root_partition" in
+  /dev/*) ;;
+  *) echo "MBOOT_RAW_AMBIGUOUS_ROOT_FILESYSTEM: $root_partition" >&2; exit 16 ;;
+esac
+case "$root_partition" in
+  *'
+'*) echo MBOOT_RAW_MULTIPLE_EXT4_ROOTS >&2; exit 17 ;;
+esac
+LIBGUESTFS_BACKEND=direct guestfish --ro -a "$output/expanded.qcow2" \
+  run : download "$root_partition" "$output/mboot-ubuntu-host.raw" \
+  > "$output/export-ext4.log" 2>&1 || {
+    echo MBOOT_RAW_FILESYSTEM_EXPORT_FAILED >&2
+    tail -n 80 "$output/export-ext4.log" >&2
+    exit 18
+  }
+type=$(blkid -p -o value -s TYPE "$output/mboot-ubuntu-host.raw")
+[ "$type" = ext4 ] || {
+  echo "MBOOT_RAW_NOT_EXT4: $type" >&2
+  exit 19
+}
+e2fsck -fn "$output/mboot-ubuntu-host.raw" > "$output/e2fsck.log" 2>&1 || {
+  echo MBOOT_RAW_E2FSCK_FAILED >&2
+  tail -n 40 "$output/e2fsck.log" >&2
+  exit 20
+}
 qemu-img info -f raw "$output/mboot-ubuntu-host.raw" \
   > "$output/raw-info.txt"
 sha256sum "$output/mboot-ubuntu-host.raw" > "$output/raw-sha256.txt"
 # Export a matching kernel/initramfs from the *customized* Ubuntu guest.
-# GRUB reads these sidecars from MBOOTDATA directly: it does not parse GPT RAW.
+# GRUB reads these sidecars from MBOOTDATA; Ubuntu initramfs-tools mounts RAW via loop=.
 # The release must be handled as a single atomic, architecture-specific bundle.
 mkdir -p "$output/boot-export"
 LIBGUESTFS_BACKEND=direct virt-copy-out -a "$output/expanded.qcow2" \
@@ -132,13 +154,11 @@ initrd="$output/boot-export/boot/initrd.img-$release"
 cp "$kernel" "$output/vmlinuz"
 cp "$initrd" "$output/initrd.img"
 lsinitramfs "$output/initrd.img" > "$output/initramfs-contents.txt"
-for required in scripts/local-top/mboot-raw-root \
-                scripts/local-bottom/mboot-raw-keep-host; do
-  grep -Fq "$required" "$output/initramfs-contents.txt" || {
-    echo "MBOOT_RAW_INITRD_MISSING: $required" >&2
-    exit 15
-  }
-done
+# The generated initramfs must contain Ubuntu's own mountroot implementation.
+grep -Fq 'scripts/local' "$output/initramfs-contents.txt" || {
+  echo MBOOT_RAW_UBUNTU_LOCAL_SCRIPT_MISSING >&2
+  exit 15
+}
 printf '%s\n' "$release" > "$output/kernel-release.txt"
 (
   cd "$output"
@@ -146,9 +166,9 @@ printf '%s\n' "$release" > "$output/kernel-release.txt"
 )
 echo "MBOOT_RAW_EXTERNAL_BOOT_MATCH=$release"
 
-printf 'source_release=Ubuntu Minimal 24.04 20261103\narchitecture=%s\nformat=raw\n' \
-  "$architecture" > "$output/provenance.txt"
-# The uncompressed artifact remains a genuinely raw full disk image.
+printf 'source_release=Ubuntu Minimal 24.04 20261103\narchitecture=%s\nformat=raw-ext4-filesystem\nsource_partition=%s\n' \
+  "$architecture" "$root_partition" > "$output/provenance.txt"
+# The uncompressed artifact is a mountable ext4 filesystem image, no GPT.
 zstd -T0 -4 -f "$output/mboot-ubuntu-host.raw" \
   -o "$output/mboot-ubuntu-host.raw.zst"
 echo "MBOOT_UBUNTU_RAW_BUILT arch=$architecture"
