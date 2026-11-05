@@ -347,8 +347,22 @@ function moveHorizontal(direction,extend=false)
 
   const anchor=selection.forward?selection.start:selection.end;
   const point=selection.forward?selection.end:selection.start;
+  const rowWidth=view.getRowWidth(point.row);
   const at=point.col+(direction<0?-1:0);
-  if(at<0) return;
+  if(at<0 || (direction>0 && point.col>=rowWidth))
+  {
+    const row=point.row+(direction<0?-1:1);
+    if(row<0 || row>=view.rowCount) return;
+    const cursor={row,col:direction<0?view.getRowWidth(row):0};
+    if(extend)
+    {
+      const gestureAnchor=keyboardAnchor||anchor;
+      keyboardAnchor=gestureAnchor;
+      applyGesture(gestureAnchor,cursor);
+    }
+    else moveCaret(cursor.row,cursor.col);
+    return;
+  }
 
   // A bounded one-column public read returns the whole intersecting
   // grapheme/TAB; no source offsets or GUI-side Unicode segmentation.
@@ -630,7 +644,21 @@ function deleteSelectedOrPrevious()
   }
   if(selections.length!==1) return;
   const point=selections[0].start;
-  if(point.col===0) return;
+  if(point.col===0)
+  {
+    if(point.row>0)
+    {
+      view.replace
+      (
+        [{
+          start:{row:point.row-1,col:view.getRowWidth(point.row-1)},
+          end:point,text:''
+        }],
+        view.revision
+      );
+    }
+    return;
+  }
   const region=view.getRegions
   (
     point.row,point.col-1,point.row+1,point.col
@@ -656,6 +684,22 @@ function deleteForward()
   {
     view.insert('');
     return;
+  }
+  if(selections.length===1)
+  {
+    const point=selections[0].start;
+    if(point.col===view.getRowWidth(point.row) &&
+      point.row+1<view.rowCount)
+    {
+      view.replace
+      (
+        [{
+          start:point,end:{row:point.row+1,col:0},text:''
+        }],
+        view.revision
+      );
+      return;
+    }
   }
   deleteNextVisibleUnit();
 }
