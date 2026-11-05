@@ -51,6 +51,7 @@ const actions=new globalThis.CanonicalEditorActions
 );
 let drag=null;
 let keyboardAnchor=null;
+let keyboardCursor=null;
 const imeInput=$('ime-input');
 let composing=false;
 let suppressCompositionInput=false;
@@ -209,6 +210,7 @@ function configure()
   lastRendered=null;
   drag=null;
   keyboardAnchor=null;
+  keyboardCursor=null;
   composing=false;
   imeInput.value='';
   $('composition-preview').textContent='';
@@ -309,6 +311,7 @@ function applyGesture(anchor,cursor)
     if(row===cursor.row) break;
   }
   view.setSelections(range);
+  keyboardCursor=cursor;
   revealCursor(cursor);
 }
 
@@ -322,6 +325,7 @@ function setRange(anchor,cursor)
   (
     [{start:{...start},end:{...end},forward}]
   );
+  keyboardCursor=cursor;
   revealCursor(cursor);
 }
 
@@ -329,6 +333,7 @@ function moveCaret(row,col)
 {
   const point={row,col};
   keyboardAnchor=null;
+  keyboardCursor=null;
   setRange(point,point);
 }
 
@@ -349,7 +354,8 @@ function moveHorizontal(direction,extend=false)
   }
 
   const anchor=selection.forward?selection.start:selection.end;
-  const point=selection.forward?selection.end:selection.start;
+  const point=extend&&keyboardCursor?keyboardCursor:
+    (selection.forward?selection.end:selection.start);
   const rowWidth=view.getRowWidth(point.row);
   const at=point.col+(direction<0?-1:0);
   if(at<0 || (direction>0 && point.col>=rowWidth))
@@ -397,7 +403,8 @@ function moveVertical(direction,extend=false)
   const selection=view.getSelections()[0];
   if(!selection) return;
 
-  const point=selection.forward?selection.end:selection.start;
+  const point=extend&&keyboardCursor?keyboardCursor:
+    (selection.forward?selection.end:selection.start);
   const row=point.row+direction;
   if(row<0 || row>=view.rowCount) return;
   const target=Math.min(point.col,view.getRowWidth(row));
@@ -621,6 +628,8 @@ scroller.addEventListener('pointermove',event=>
 function endDrag(event)
 {
   if(!drag || drag.id!==event.pointerId) return;
+  keyboardAnchor=drag.anchor;
+  keyboardCursor=drag.last;
   drag=null;
   if(scroller.hasPointerCapture(event.pointerId))
   {
