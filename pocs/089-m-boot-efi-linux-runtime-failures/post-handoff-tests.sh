@@ -46,7 +46,7 @@ found=0
 for name_file in /sys/block/dm-*/dm/name; do
     [ -f "$name_file" ] || continue
     [ "$(/bin/busybox cat "$name_file")" = vt_iso_poc ] || continue
-    [ "$(/bin/busybox cat "\${name_file%/dm/name}/ro")" = 1 ] ||
+    [ "$(/bin/busybox cat "${name_file%/dm/name}/ro")" = 1 ] ||
         fail BASELINE_NOT_READONLY
     found=$((found + 1))
 done
@@ -62,7 +62,7 @@ case "$source_part" in
 esac
 [ "$table_kind" = linear ] && [ -b "$source_part" ] ||
     fail SOURCE_PARTITION_MISSING
-source_disk=\${source_part%[0-9]}
+source_disk=${source_part%[0-9]}
 [ -b "$source_disk" ] || fail SOURCE_DISK_MISSING
 /bin/busybox umount /mnt/iso || fail BASELINE_UMOUNT
 /usr/sbin/dmsetup remove vt_iso_poc || fail BASELINE_DM_REMOVE
