@@ -14,7 +14,7 @@ for item in $(cat /proc/cmdline); do
 done
 [ -n "$raw" ] || exit 0
 case "$raw" in
-  /m/boot/*.raw) ;;
+  /m/boot/host/amd64/mboot-ubuntu-host.raw|/m/boot/host/arm64/mboot-ubuntu-host.raw) ;;
   *) echo MBOOT_RAW_ROOT_INVALID_PATH >&2; exit 1 ;;
 esac
 case "$raw" in
@@ -36,16 +36,18 @@ done
   echo MBOOT_RAW_ROOT_SOURCE_NOT_FOUND >&2
   exit 6
 }
-mkdir -p /run/mboot-source
-mount -t ext4 -o rw "/dev/disk/by-uuid/$uuid" /run/mboot-source || {
+# Wubi/Lupin's necessary insight: the source filesystem must outlive
+# initramfs. local-bottom moves /host under the real root before run-init.
+mkdir -p /host
+mount -t ext4 -o rw "/dev/disk/by-uuid/$uuid" /host || {
   echo MBOOT_RAW_ROOT_SOURCE_MOUNT_FAIL >&2
   exit 7
 }
-[ -f "/run/mboot-source$raw" ] || {
+[ -f "/host$raw" ] || {
   echo MBOOT_RAW_ROOT_IMAGE_NOT_FOUND >&2
   exit 8
 }
-loopdev=$(losetup --find --show --partscan "/run/mboot-source$raw") || {
+loopdev=$(losetup --find --show --partscan "/host$raw") || {
   echo MBOOT_RAW_ROOT_LOOP_ATTACH_FAIL >&2
   exit 9
 }
