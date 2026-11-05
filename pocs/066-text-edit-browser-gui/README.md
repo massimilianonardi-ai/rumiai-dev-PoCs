@@ -12,6 +12,41 @@ The same renderer accepts this experimental Raw view, real `CellDocument2D` over
 
 The PoC deliberately tests one physical row with `A😀Be\u0301\tZ`. Raw presentation uses independent `H`/`L` diagnostic placeholders for the emoji's two UTF-16 surrogates and a dotted-circle prefix for an isolated combining mark. The Cell view recomposes the actual emoji and combining grapheme, and its TAB occupies columns through the next stop. The same real Flat/Piece source supports genuine mouse click, caret arrows and single-character editing. The auxiliary Chromium test `tests/presentation-browser.mjs` exercises both backends and three modes, exact-data preservation, real composed Cell resegmentation, visual span non-clipping and actual keyboard/mouse behavior.
 
+### Open the actual GUI manually (no automated tests)
+
+On the already validated Ubuntu ARM64 `vmdev` host, use the existing
+`rumiai-dev-PoCs` checkout **from its parent directory**:
+
+```sh
+git -C rumiai-dev-PoCs pull --ff-only
+sh rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/tests/show-canonical-gui.sh
+```
+
+This opens (or prints) the **real interactive canonical browser GUI**
+at `http://127.0.0.1:8765/src/rumiai-dev-PoCs/pocs/066-text-edit-browser-gui/canonical-gui.html`.
+It does **not** execute the G07/Playwright suites: the HTTP server stays up
+until **Ctrl+C**, so the operator can click, type and navigate the page.
+It uses the existing PoC HTML/JS and the pinned, actually compiled
+`rumiai-os@c453b5764fec8403571125ea62107ae072a823a1` core.
+A disposable product checkout is created outside all operator checkouts,
+the current PoC checkout is linked read-only for HTTP serving, and the
+temporary product checkout is cleaned when the server stops. No sudo,
+permanent product files, test verdict, or reference-host PASS is produced.
+
+If `xdg-open` cannot open a browser, manually paste the printed URL into
+a browser **on vmdev**. If running from SSH without a VM desktop, connect
+from the browsing machine using an SSH local port forward
+(e.g. `ssh -L 8765:127.0.0.1:8765 admino@vmdev`), then use the same
+`http://127.0.0.1:8765/...` address on that browsing machine. The server
+deliberately binds only to `127.0.0.1`; port may be customized with
+`RUMIAI_TEXTEDIT_DEMO_PORT`.
+
+Manual exploration: select Flat or Piece storage, try Cell / nested /
+Annotation / Fold / Substitution, click the text then use left/right,
+Shift+left/right and character insertion. The long-line and 1200-row
+fixtures exercise bounded logical paging with wheel / Shift+wheel and
+PageUp/PageDown. This is not a full GUI or system-clipboard/IME editor.
+
 ### Canonical GUI/Document2D contract pilot (G01)
 
 `canonical-gui.html` and `canonical-gui.js` are a separate browser
