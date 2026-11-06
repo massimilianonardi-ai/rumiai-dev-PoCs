@@ -1,0 +1,48 @@
+name: PoC 098 merged P2 static var routing
+
+on:
+  push:
+    branches: [context-c2-profile-state-views]
+    paths:
+      - '.github/workflows/poc-098-merged-p2-var-routing.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  merged-p2-var-routing:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Checkout exact merged m-os P2 source
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/m-os
+          ref: e07fbec09fae49cab0d688940e6406a25b6b5e83
+          path: m-source
+          persist-credentials: false
+      - name: Checkout exact current v1 catalog source
+        uses: actions/checkout@v4
+        with:
+          repository: massimilianonardi-ai/pkg-catalog
+          ref: 4083aa19c4362f00ec62428a631edfa493faf7f0
+          path: catalog
+          persist-credentials: false
+      - name: Run unchanged real integration probe against merged mainline
+        shell: sh
+        run: |
+          set -eu
+          [ "$(git -C m-source rev-parse HEAD)" = e07fbec09fae49cab0d688940e6406a25b6b5e83 ]
+          [ "$(git -C catalog rev-parse HEAD)" = 4083aa19c4362f00ec62428a631edfa493faf7f0 ]
+          script="$PWD/pocs/098-context-profile-state-views/tests/integrated-catalog-var-routing.sh"
+          descriptor="$PWD/catalog/v1/pkg/geoserver/all/n0001=3.0.1/var/data"
+          sh -n "$script"
+          ./m-source/m sh "$script" "$descriptor"
