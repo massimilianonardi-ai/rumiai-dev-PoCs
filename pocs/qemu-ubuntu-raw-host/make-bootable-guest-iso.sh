@@ -58,8 +58,14 @@ fi
 echo MBOOT_INNER_GUEST_SYSFS_MOUNTED
 for driver in virtio_pci virtio_blk virtio_scsi scsi_mod sd_mod \
               sr_mod cdrom ahci ata_piix; do
+  echo "MBOOT_INNER_GUEST_MODPROBE_BEGIN driver=$driver"
   modprobe "$driver" >/dev/null 2>&1 || :
+  echo "MBOOT_INNER_GUEST_MODPROBE_END driver=$driver"
 done
+
+echo MBOOT_INNER_GUEST_BLOCK_SCAN_BEGIN
+ls -la /sys/class/block 2>/dev/null || :
+echo MBOOT_INNER_GUEST_BLOCK_SCAN_END
 
 found_cd=no
 found_disk=no
