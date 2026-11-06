@@ -186,16 +186,10 @@ def generate(iso, disks, arch, firmware_code, vars_template, vars_private):
         ]
     else:
         command += ["-bios", firmware_code]
-    if arch == "x86_64":
-        command += ["-device", "ich9-ahci,id=ahci"]
-    else:
-        command += ["-device", "virtio-scsi-pci,id=scsi0"]
+    command += ["-device", "virtio-scsi-pci,id=scsi0"]
     command += ["-blockdev", blockdev("file", str(iso), "optical-file")]
     command += ["-blockdev", "driver=raw,node-name=optical,file=optical-file,read-only=on"]
-    if arch == "x86_64":
-        command += ["-device", "ide-cd,drive=optical,bus=ahci.0,bootindex=1"]
-    else:
-        command += ["-device", "scsi-cd,drive=optical,bus=scsi0.0,bootindex=1"]
+    command += ["-device", "scsi-cd,drive=optical,bus=scsi0.0,bootindex=1"]
     # Every inventoried physical block disk is represented read-only.
     for index, item in enumerate(disks):
         name = f"physical{index}"
