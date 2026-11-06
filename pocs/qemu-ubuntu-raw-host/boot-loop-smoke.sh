@@ -13,7 +13,7 @@ case "$(uname -m)" in
   aarch64) arch=arm64; qemu=qemu-system-aarch64 ;;
   *) echo MBOOT_LOOP_UNSUPPORTED_ARCH >&2; exit 3 ;;
 esac
-for cmd in zstd sha256sum mkfs.ext4 blkid grub-mkrescue grub-script-check xorriso timeout "$qemu"; do
+for cmd in zstd sha256sum mkfs.ext4 blkid debugfs grub-mkrescue grub-script-check xorriso timeout "$qemu"; do
   command -v "$cmd" >/dev/null 2>&1 || { echo "MBOOT_LOOP_MISSING_TOOL: $cmd" >&2; exit 4; }
 done
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
@@ -37,6 +37,24 @@ for file in vmlinuz initrd.img kernel-release.txt release-SHA256SUMS; do
 done
 ( cd "$target" && sha256sum -c release-SHA256SUMS ) > "$work/bundle-sha256.log"
 echo MBOOT_LOOP_BUNDLE_INTEGRITY_PASS
+
+# The pinned RAW bundle predates the QMP instrumentation in this source tree.
+# Replace only the launcher inside this disposable extracted RAW copy so the
+# nested run logs the actual QEMU command and guest block/status observations.
+debugfs -w -R 'rm /usr/local/sbin/mboot-qemu-boot' "$target/mboot-ubuntu-host.raw" \
+  > "$work/debugfs-remove-launcher.log" 2>&1
+debugfs -w -R "write $here/launch.py /usr/local/sbin/mboot-qemu-boot" \
+  "$target/mboot-ubuntu-host.raw" > "$work/debugfs-install-launcher.log" 2>&1
+debugfs -w -R 'set_inode_field /usr/local/sbin/mboot-qemu-boot mode 0100755' \
+  "$target/mboot-ubuntu-host.raw" > "$work/debugfs-launcher-mode.log" 2>&1
+debugfs -R 'stat /usr/local/sbin/mboot-qemu-boot' "$target/mboot-ubuntu-host.raw" \
+  > "$work/debugfs-launcher-stat.log" 2>&1
+if ! grep -Eq 'Mode: +0100755' "$work/debugfs-launcher-stat.log"; then
+  echo MBOOT_LOOP_LAUNCHER_INJECTION_FAILED >&2
+  cat "$work/debugfs-launcher-stat.log" >&2
+  exit 22
+fi
+echo MBOOT_LOOP_INSTRUMENTED_LAUNCHER_INJECTED
 
 # Construct an actual bootable Linux ISO fixture and pass it unchanged through
 # GRUB -> Ubuntu's preserved /host -> the inner QEMU read-only CD-ROM.
