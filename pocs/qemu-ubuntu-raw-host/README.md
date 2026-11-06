@@ -99,7 +99,8 @@ on-device upgrade/rollback implementation.
   QMP status and block-device snapshots while QEMU runs.
 - `make-bootable-guest-iso.sh`: unpacks a **disposable copy** of the same
   Ubuntu initramfs, replaces `/init` with a small guest-device observer,
-  repacks its existing kernel modules, and builds a valid EFI bootable
+  creates and verifies the early `/dev`, `/proc` and `/sys` mounts, repacks
+  its existing kernel modules, and builds a valid EFI bootable
   Linux ISO. This changes the **test ISO only**, not the checked/installed
   Ubuntu RAW bundle and not any vendor ISO.
 - `.github/workflows/m-boot-ubuntu-loop-boot.yml`: independently fetches
@@ -135,16 +136,18 @@ guest ISO** and requires `MBOOT_INNER_GUEST_KERNEL_BOOTED` plus
 `MBOOT_INNER_GUEST_INSPECTION_PASS` from inside the inner QEMU VM.
 Its revision-pinned [CI run 42119587994](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/42119587994)
 failed on both native architectures with exit 14 after the outer Ubuntu
-service markers. The AMD64 inner guest produced no serial firmware/kernel
-output; ARM64 selected the virtual CD, logged the EFI stub through
-`Exiting boot services`, then produced no Linux guest marker before timeout.
-Those observations do not distinguish a slow guest kernel from an initramfs,
-console or device issue. The next local source revision now boots the exact
-generated fixture ISO directly before nesting and captures QMP status/block
-snapshots plus the direct serial log. **No rerun has validated these
-diagnostics yet.** The fixture is not vendor installer media, and its disk
-inventory represents one disposable source disk, not a full real-world
-physical-disk topology.
+service markers. AMD64 had no inner firmware/kernel serial output; ARM64
+selected the virtual CD and reached the kernel EFI stub's `Exiting boot
+services` line, with no later Linux marker. A follow-up direct boot of the
+exact fixture ISO on both native runners then showed the kernel itself
+registered both `vda` and `sr0`, while the custom `/init` still reported
+`cd=no disk=no`. This narrows the defect to the fixture's device-observation
+stage; it does not implicate QEMU's device attachment. The earlier init
+silently ignored sysfs mount errors, so the revised fixture now creates its
+mountpoints and reports proc/sys mount failures plus block-class contents.
+That correction has **not yet been rerun**. The fixture is not vendor
+installer media, and its disk inventory represents one disposable source
+disk, not a full real-world physical-disk topology.
 
 The test is not a production m-boot ESP chainload test, never exposes
 real block disks, and cannot authorize writes to any device. Genuine
