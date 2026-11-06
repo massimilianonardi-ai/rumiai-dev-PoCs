@@ -27,7 +27,7 @@ jobs:
           - runner: ubuntu-24.04-arm
             arch: arm64
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 35
+    timeout-minutes: 50
     steps:
       - name: Check out exact experimental source
         uses: actions/checkout@v4

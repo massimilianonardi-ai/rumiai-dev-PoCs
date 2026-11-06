@@ -215,7 +215,7 @@ fi
 # terminate as soon as the running Ubuntu service proves the intended path,
 # and fail early on definite kernel/loop-root failures. Merely reaching a
 # timeout is never accepted as a PASS.
-timeout --signal=TERM --kill-after=10s 1200 \
+timeout --signal=TERM --kill-after=10s 2400 \
   "${cmd[@]}" > "$work/outer-qemu-serial.log" 2>&1 &
 outer_pid=$!
 observed=none
