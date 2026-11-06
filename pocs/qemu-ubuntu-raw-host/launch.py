@@ -167,7 +167,8 @@ def generate(iso, disks, arch, firmware_code, vars_template, vars_private):
     }[arch]
     if not shutil.which(executable):
         fail("QEMU_MISSING", executable)
-    use_kvm = os.access("/dev/kvm", os.R_OK | os.W_OK)
+    use_kvm = (os.environ.get("MBOOT_FORCE_TCG") != "1" and
+               os.access("/dev/kvm", os.R_OK | os.W_OK))
     accel = "kvm" if use_kvm else "tcg"
     machine = "q35" if arch == "x86_64" else "virt"
     command = [
