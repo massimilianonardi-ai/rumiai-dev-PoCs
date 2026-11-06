@@ -28,7 +28,19 @@ PASS: pre-prepared profile-specific launch views isolate A/B for a path-aware to
 PASS: direct immutable-root launch is NOT compatible with the view-relative state contract
 ```
 
-This is a **narrow mechanical filesystem experiment**, not real `m context` validation, macOS/physical-reference-host validation, provider or service integration, or a proof of immutable package-root compatibility.
+This **first probe** is a narrow mechanical filesystem experiment, not real `m context` validation, macOS/physical-reference-host validation, provider or service integration, or a proof of immutable package-root compatibility.
+
+## Actual `m` integration with a real catalog state descriptor (2026-11-06)
+
+The additional test `tests/integrated-catalog-var-routing.sh` is executed by an actual `m-os` bootstrap and `pkg_integrate` from immutable source SHA `1e3a038a5abf6f8c176272d8e44464c842d3cefd`. The workflow checks out the genuine `pkg-catalog/pkg-schema-v2` tree at `a75f9be1c9a62a72899022eddf55e163d86ab630` and passes the published v1 **GeoServer 3.0.1** `var/data` descriptor (`data_dir`) unchanged.
+
+Only the **useful-root payload** is a synthetic, disposable directory with a single marker file. The fixture uses a distinct package name `poc098state@1.0`; it does **not** download, claim to install, run, or validate the upstream GeoServer binary or any production service. The real `pkg_integrate` path validates and moves the staged root, generates its persistent `root/data_dir` and `var/data` links, copies factory state, and uses the actual `m state-path` resolver. The probe verifies that two labelled child processes still follow the one global `system/current` path, then switches the selector **only inside the disposable GitHub Actions checkout** to show that both processes observe the changed profile. The trap restores the original selector and removes the fixture.
+
+Run the integration test through the pinned workflow rather than invoking it in an ordinary workspace; it intentionally mutates only the checkout-owned test state. It does not require network package downloads after the two exact source checkouts.
+
+**Real execution evidence:** [GitHub Actions run 42196202367](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/42196202367), PoC commit `29ee99b109ff40e8bf26fe52fa9026a345afcbcc`: `integrated-catalog-var-fixture (ubuntu-latest)` job `127819943949` **PASS**, confirmed by three final `PASS:` lines in the raw log; `profile-var-routing (ubuntu-latest)` job `127819943846` **PASS**. Both macOS jobs were **QUEUED** at this checkpoint and are **not** classified as PASS or FAIL. Earlier [run 42193917751](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/42193917751) already observed the first probe Ubuntu PASS.
+
+**Evidence limits:** The new test exercises real, current, internal package integration and genuine catalog metadata; it is still an experimental staged-fixture test, **not public `m pkg install` of a real upstream release**. It is not proof of concurrent full contexts, provider policies, system TLS/CA authority, browser NSS, service registration, rollback or physical reference-host validation. Do not promote a C2 contract from these observations alone.
 
 ## Implications and unresolved contracts
 
