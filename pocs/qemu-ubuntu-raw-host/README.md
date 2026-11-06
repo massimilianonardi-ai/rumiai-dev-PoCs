@@ -92,9 +92,11 @@ on-device upgrade/rollback implementation.
 - `boot-loop-smoke.sh`: builds a disposable ext4 MBOOTDATA file from the
   **already verified** Ubuntu RAW bundle, and uses `grub-mkrescue` to
   create a real UEFI GRUB ISO invoking `grub-example.cfg`. Runs native
-  QEMU UEFI with only file-backed source/optical devices. Requires actual
-  outer GRUB and Ubuntu systemd/QEMU service markers, then actual nested
-  Linux guest optical/disk device markers on the serial console.
+  QEMU UEFI with only file-backed source/optical devices. Before nesting,
+  it boots the exact generated guest ISO directly with a disposable disk
+  and requires the guest kernel, optical and disk markers. The nested run
+  then requires the same guest-side markers; the host launcher records
+  QMP status and block-device snapshots while QEMU runs.
 - `make-bootable-guest-iso.sh`: unpacks a **disposable copy** of the same
   Ubuntu initramfs, replaces `/init` with a small guest-device observer,
   repacks its existing kernel modules, and builds a valid EFI bootable
@@ -132,10 +134,17 @@ guest ISO** and requires `MBOOT_INNER_GUEST_KERNEL_BOOTED` plus
 `MBOOT_INNER_GUEST_DISK_PRESENT` and
 `MBOOT_INNER_GUEST_INSPECTION_PASS` from inside the inner QEMU VM.
 Its revision-pinned [CI run 42119587994](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/42119587994)
-was in progress at this checkpoint. These requirements **remain unvalidated
-until its real jobs PASS**. The fixture is not vendor installer media, and
-its disk inventory represents one disposable source disk, not a full
-real-world physical-disk topology.
+failed on both native architectures with exit 14 after the outer Ubuntu
+service markers. The AMD64 inner guest produced no serial firmware/kernel
+output; ARM64 selected the virtual CD, logged the EFI stub through
+`Exiting boot services`, then produced no Linux guest marker before timeout.
+Those observations do not distinguish a slow guest kernel from an initramfs,
+console or device issue. The next local source revision now boots the exact
+generated fixture ISO directly before nesting and captures QMP status/block
+snapshots plus the direct serial log. **No rerun has validated these
+diagnostics yet.** The fixture is not vendor installer media, and its disk
+inventory represents one disposable source disk, not a full real-world
+physical-disk topology.
 
 The test is not a production m-boot ESP chainload test, never exposes
 real block disks, and cannot authorize writes to any device. Genuine
