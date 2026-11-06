@@ -138,16 +138,17 @@ Its revision-pinned [CI run 42119587994](https://github.com/massimilianonardi-ai
 failed on both native architectures with exit 14 after the outer Ubuntu
 service markers. AMD64 had no inner firmware/kernel serial output; ARM64
 selected the virtual CD and reached the kernel EFI stub's `Exiting boot
-services` line, with no later Linux marker. A follow-up direct boot of the
-exact fixture ISO on both native runners then showed the kernel itself
-registered both `vda` and `sr0`, while the custom `/init` still reported
-`cd=no disk=no`. This narrows the defect to the fixture's device-observation
-stage; it does not implicate QEMU's device attachment. The earlier init
-silently ignored sysfs mount errors, so the revised fixture now creates its
-mountpoints and reports proc/sys mount failures plus block-class contents.
-That correction has **not yet been rerun**. The fixture is not vendor
-installer media, and its disk inventory represents one disposable source
-disk, not a full real-world physical-disk topology.
+services` line, with no later Linux marker. A follow-up direct boot first
+showed the kernel registered `vda` on AMD64 and both `vda` and `sr0` on ARM64,
+while the custom `/init` reported no devices because it silently ignored
+sysfs mount errors. After the fixture began creating mountpoints and reporting
+sysfs failures, AMD64 showed `vda` but no `sr0`; its optical device used the
+AHCI/IDE path. Since ARM64 had enumerated `sr0` through `virtio-scsi`/
+`scsi-cd`, the updated direct test and launcher now use that same virtual
+SCSI optical path on AMD64. The current CI rerun will determine whether this
+resolves optical enumeration. The fixture is not vendor installer media,
+and its disk inventory represents one disposable source disk, not a full
+real-world physical-disk topology.
 
 The test is not a production m-boot ESP chainload test, never exposes
 real block disks, and cannot authorize writes to any device. Genuine
