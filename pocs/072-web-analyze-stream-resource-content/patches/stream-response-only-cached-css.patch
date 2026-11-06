@@ -1,0 +1,30 @@
+diff --git a/lib/sys/js/web-analyze.lib.js b/lib/sys/js/web-analyze.lib.js
+index aadddf0..2135b96 100644
+--- a/lib/sys/js/web-analyze.lib.js
++++ b/lib/sys/js/web-analyze.lib.js
+@@ -626,9 +626,12 @@ class _ResourceArchive {
+   }
+   _streamStart(session, item, send)
+   {
++    const eventStream = item.resourceType === 'EventSource' ||
++      String(item.mimeType || '').toLowerCase().startsWith('text/event-stream');
++    const orphanedCachedStylesheet = item.requestProvenance === 'response-only' &&
++      item.resourceType === 'Stylesheet' && item.fromDiskCache === true;
+     if (this.streamSupported === false ||
+-        !(item.resourceType === 'EventSource' ||
+-          String(item.mimeType || '').toLowerCase().startsWith('text/event-stream')))
++        !(eventStream || orphanedCachedStylesheet))
+       return;
+     if (item.stream) return;
+     const key = this._key(session, item.requestId);
+@@ -780,7 +783,9 @@ class _ResourceArchive {
+       protocol:event.response?.protocol || null,
+       responseTimestamp:event.timestamp
+     });
+-    if (String(item.mimeType || '').toLowerCase().startsWith('text/event-stream'))
++    if (String(item.mimeType || '').toLowerCase().startsWith('text/event-stream') ||
++        (item.requestProvenance === 'response-only' &&
++         item.resourceType === 'Stylesheet' && item.fromDiskCache === true))
+       this._streamStart(session, item, send);
+   }
+   cacheHit(session, event)
