@@ -1,0 +1,32 @@
+name: PoC 098 context profile filesystem routing
+
+on:
+  push:
+    branches: [context-c2-profile-state-views]
+    paths:
+      - 'pocs/098-context-profile-state-views/**'
+      - '.github/workflows/poc-098-context-profile-state-views.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  profile-var-routing:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Exercise POSIX shared and profile-specific symlink paths
+        shell: sh
+        run: |
+          set -eu
+          script=pocs/098-context-profile-state-views/tests/profile-var-routing.sh
+          sh -n "$script"
+          sh "$script"
