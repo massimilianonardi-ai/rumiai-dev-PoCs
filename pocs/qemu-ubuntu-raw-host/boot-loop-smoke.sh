@@ -49,7 +49,7 @@ debugfs -w -R 'set_inode_field /usr/local/sbin/mboot-qemu-boot mode 0100755' \
   "$target/mboot-ubuntu-host.raw" > "$work/debugfs-launcher-mode.log" 2>&1
 debugfs -R 'stat /usr/local/sbin/mboot-qemu-boot' "$target/mboot-ubuntu-host.raw" \
   > "$work/debugfs-launcher-stat.log" 2>&1
-if ! grep -Eq 'Mode: +0100755' "$work/debugfs-launcher-stat.log"; then
+if ! grep -Eq 'Mode: +0755' "$work/debugfs-launcher-stat.log"; then
   echo MBOOT_LOOP_LAUNCHER_INJECTION_FAILED >&2
   cat "$work/debugfs-launcher-stat.log" >&2
   exit 22
