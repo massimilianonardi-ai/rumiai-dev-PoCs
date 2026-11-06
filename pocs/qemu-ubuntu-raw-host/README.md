@@ -96,7 +96,10 @@ on-device upgrade/rollback implementation.
   it boots the exact generated guest ISO directly with a disposable disk
   and requires the guest kernel, optical and disk markers. The nested run
   then requires the same guest-side markers; the host launcher records
-  QMP status and block-device snapshots while QEMU runs.
+  QMP status and block-device snapshots while QEMU runs. Because the pinned
+  Ubuntu RAW bundle predates that instrumentation, the smoke test replaces the
+  launcher only inside its disposable extracted RAW copy using `debugfs`; the
+  verified source artifact remains intact.
 - `make-bootable-guest-iso.sh`: unpacks a **disposable copy** of the same
   Ubuntu initramfs, replaces `/init` with a small guest-device observer,
   creates and verifies the early `/dev`, `/proc` and `/sys` mounts, repacks
@@ -145,8 +148,12 @@ sysfs mount errors. After the fixture began creating mountpoints and reporting
 sysfs failures, AMD64 showed `vda` but no `sr0`; its optical device used the
 AHCI/IDE path. Since ARM64 had enumerated `sr0` through `virtio-scsi`/
 `scsi-cd`, the updated direct test and launcher now use that same virtual
-SCSI optical path on AMD64. The current CI rerun will determine whether this
-resolves optical enumeration. The fixture is not vendor installer media,
+SCSI optical path on AMD64. Run
+[42252643980](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/42252643980)
+is still in progress. Its launcher was baked into an older pinned RAW artifact,
+so it does not contain the QMP instrumentation from this source revision; the
+next run injects the current launcher into the disposable RAW copy before boot.
+The fixture is not vendor installer media,
 and its disk inventory represents one disposable source disk, not a full
 real-world physical-disk topology.
 
