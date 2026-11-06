@@ -42,6 +42,15 @@ Run the integration test through the pinned workflow rather than invoking it in 
 
 **Evidence limits:** The new test exercises real, current, internal package integration and genuine catalog metadata; it is still an experimental staged-fixture test, **not public `m pkg install` of a real upstream release**. It is not proof of concurrent full contexts, provider policies, system TLS/CA authority, browser NSS, service registration, rollback or physical reference-host validation. Do not promote a C2 contract from these observations alone.
 
+## Tagged upstream launcher probe (2026-11-06)
+
+The additional `tests/upstream-launcher-paths.sh` uses the unmodified GeoServer 3.0.1 `startup.sh` from `geoserver/geoserver@804fe178e4ff3fb4d0a2d0a0751930b31bf43a2a` and Keycloak 26.7.3 `kc.sh` from `keycloak/keycloak@6d238b6558037085cc25c915893c3d301a80243e`. Its Java stub only captures arguments; neither upstream server is launched.
+
+- GeoServer honors an explicit `GEOSERVER_DATA_DIR` for A/B while retaining one `GEOSERVER_HOME`. The current catalog environment sets `GEOSERVER_HOME`, but not the alternative data-directory variable.
+- Keycloak dereferences the selected symlink launcher to one physical installation and derives home, configuration and runtime JAR paths there. A different symlink invocation alone does not yield a separate installation-state view.
+
+At [workflow run 42198184832](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/42198184832), Ubuntu job `127826608893` **PASS** with all three assertions verified; macOS `127826609294` remained **QUEUED** at this checkpoint. These are shell-entrypoint observations, not real installed-package or full server validation.
+
 ## Implications and unresolved contracts
 
 - A single physical package-root symlink chain targeting mutable global `system/current` cannot implement two simultaneous per-process system profiles. `state-path` alone cannot repair that fixed path.
