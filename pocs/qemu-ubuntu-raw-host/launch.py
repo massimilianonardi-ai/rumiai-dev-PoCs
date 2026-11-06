@@ -171,10 +171,11 @@ def generate(iso, disks, arch, firmware_code, vars_template, vars_private):
                os.access("/dev/kvm", os.R_OK | os.W_OK))
     accel = "kvm" if use_kvm else "tcg"
     machine = "q35" if arch == "x86_64" else "virt"
+    cpu = "host" if use_kvm else ("cortex-a72" if arch == "aarch64" else "max")
     command = [
         executable, "-nodefaults", "-no-user-config",
         "-machine", f"{machine},accel={accel}",
-        "-cpu", "host" if use_kvm else "max",
+        "-cpu", cpu,
         "-m", "2048", "-smp", "2", "-no-reboot",
         "-display", "none", "-monitor", "none", "-serial", "stdio", "-nic", "none",
     ]
