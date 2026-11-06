@@ -13,7 +13,7 @@ case "$(uname -m)" in
   aarch64) arch=arm64; qemu=qemu-system-aarch64 ;;
   *) echo MBOOT_LOOP_UNSUPPORTED_ARCH >&2; exit 3 ;;
 esac
-for cmd in zstd sha256sum mkfs.ext4 blkid grub-mkrescue grub-script-check xorriso timeout "$qemu"; do
+for cmd in zstd sha256sum mkfs.ext4 blkid debugfs grub-mkrescue grub-script-check xorriso timeout "$qemu"; do
   command -v "$cmd" >/dev/null 2>&1 || { echo "MBOOT_LOOP_MISSING_TOOL: $cmd" >&2; exit 4; }
 done
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
@@ -38,6 +38,32 @@ done
 ( cd "$target" && sha256sum -c release-SHA256SUMS ) > "$work/bundle-sha256.log"
 echo MBOOT_LOOP_BUNDLE_INTEGRITY_PASS
 
+# The pinned RAW bundle predates the QMP instrumentation in this source tree.
+# Replace only the launcher inside this disposable extracted RAW copy so the
+# nested run logs the actual QEMU command and guest block/status observations.
+debugfs -w -R 'rm /usr/local/sbin/mboot-qemu-boot' "$target/mboot-ubuntu-host.raw" \
+  > "$work/debugfs-remove-launcher.log" 2>&1
+debugfs -w -R "write $here/launch.py /usr/local/sbin/mboot-qemu-boot" \
+  "$target/mboot-ubuntu-host.raw" > "$work/debugfs-install-launcher.log" 2>&1
+debugfs -w -R 'set_inode_field /usr/local/sbin/mboot-qemu-boot mode 0100755' \
+  "$target/mboot-ubuntu-host.raw" > "$work/debugfs-launcher-mode.log" 2>&1
+debugfs -w -R 'mkdir /etc/systemd/system/mboot-qemu-host.service.d' \
+  "$target/mboot-ubuntu-host.raw" > "$work/debugfs-dropin-dir.log" 2>&1
+cat > "$work/force-tcg.conf" <<'EOF'
+[Service]
+Environment=MBOOT_FORCE_TCG=1
+EOF
+debugfs -w -R "write $work/force-tcg.conf /etc/systemd/system/mboot-qemu-host.service.d/force-tcg.conf" \
+  "$target/mboot-ubuntu-host.raw" > "$work/debugfs-dropin.log" 2>&1
+debugfs -R 'stat /usr/local/sbin/mboot-qemu-boot' "$target/mboot-ubuntu-host.raw" \
+  > "$work/debugfs-launcher-stat.log" 2>&1
+if ! grep -Eq 'Mode: +0755' "$work/debugfs-launcher-stat.log"; then
+  echo MBOOT_LOOP_LAUNCHER_INJECTION_FAILED >&2
+  cat "$work/debugfs-launcher-stat.log" >&2
+  exit 22
+fi
+echo MBOOT_LOOP_INSTRUMENTED_LAUNCHER_AND_TCG_OVERRIDE_INJECTED
+
 # Construct an actual bootable Linux ISO fixture and pass it unchanged through
 # GRUB -> Ubuntu's preserved /host -> the inner QEMU read-only CD-ROM.
 # This is not an original vendor ISO and proves only the guest fixture path.
@@ -45,6 +71,80 @@ bash "$here/make-bootable-guest-iso.sh" \
   "$target/vmlinuz" "$target/initrd.img" \
   "$work/source/m/boot/iso/fixture.iso" "$arch" \
   > "$work/source-iso.log" 2>&1
+
+# Isolate the exact generated guest ISO before adding the second QEMU layer.
+# This uses only a disposable empty disk and proves the fixture's own GRUB,
+# kernel, initramfs, serial console and virtual device drivers.
+direct_dir="$work/direct-guest"
+mkdir -p "$direct_dir"
+truncate -s 64M "$direct_dir/disk.raw"
+direct_cmd=("$qemu" -nodefaults -no-user-config -no-reboot -m 2048 -smp 2
+            -display none -serial stdio -monitor none -nic none)
+if [[ $arch == amd64 ]]; then
+  direct_code=/usr/share/OVMF/OVMF_CODE_4M.fd
+  direct_vars=/usr/share/OVMF/OVMF_VARS_4M.fd
+  [[ -s $direct_code && -s $direct_vars ]] || { echo MBOOT_DIRECT_OVMF_MISSING >&2; exit 17; }
+  cp "$direct_vars" "$direct_dir/ovmf-vars.fd"
+  direct_cmd+=(-machine q35,accel=tcg -cpu max
+    -drive "if=pflash,format=raw,readonly=on,file=$direct_code"
+    -drive "if=pflash,format=raw,file=$direct_dir/ovmf-vars.fd"
+    -device virtio-scsi-pci,id=direct-scsi
+    -drive "file=$work/source/m/boot/iso/fixture.iso,if=none,format=raw,media=cdrom,readonly=on,id=direct-cd"
+    -device scsi-cd,drive=direct-cd,bus=direct-scsi.0,bootindex=1)
+else
+  direct_firmware=/usr/share/qemu-efi-aarch64/QEMU_EFI.fd
+  [[ -s $direct_firmware ]] || { echo MBOOT_DIRECT_AARCH64_FIRMWARE_MISSING >&2; exit 18; }
+  direct_cmd+=(-machine virt,accel=tcg -cpu cortex-a72 -bios "$direct_firmware"
+    -device virtio-scsi-pci,id=direct-scsi
+    -drive "file=$work/source/m/boot/iso/fixture.iso,if=none,format=raw,media=cdrom,readonly=on,id=direct-cd"
+    -device scsi-cd,drive=direct-cd,bus=direct-scsi.0,bootindex=1)
+fi
+direct_cmd+=(-drive "file=$direct_dir/disk.raw,if=none,format=raw,id=direct-disk"
+  -device virtio-blk-pci,drive=direct-disk,bootindex=2)
+"${direct_cmd[@]}" > "$direct_dir/qemu-serial.log" 2>&1 &
+direct_pid=$!
+direct_observed=no
+for ((iteration = 0; iteration < 180; iteration++)); do
+  if grep -Fq MBOOT_INNER_GUEST_INSPECTION_PASS "$direct_dir/qemu-serial.log"; then
+    direct_observed=pass
+    break
+  fi
+  if ! jobs -pr | grep -Fxq "$direct_pid"; then
+    direct_observed=exited
+    break
+  fi
+  sleep 1
+done
+if kill -0 "$direct_pid" 2>/dev/null; then
+  kill -TERM "$direct_pid" 2>/dev/null || :
+fi
+set +e
+wait "$direct_pid"
+direct_status=$?
+set -e
+echo "MBOOT_DIRECT_GUEST_QEMU_EXIT=$direct_status"
+for marker in MBOOT_INNER_GUEST_KERNEL_BOOTED \
+              MBOOT_INNER_GUEST_OPTICAL_PRESENT \
+              MBOOT_INNER_GUEST_DISK_PRESENT \
+              MBOOT_INNER_GUEST_INSPECTION_PASS; do
+  if ! grep -Fq "$marker" "$direct_dir/qemu-serial.log"; then
+    echo "MBOOT_DIRECT_GUEST_MARKER_MISSING: $marker" >&2
+    tail -n 100 "$direct_dir/qemu-serial.log" >&2
+    exit 19
+  fi
+done
+if [[ $direct_observed != pass ]]; then
+  echo "MBOOT_DIRECT_GUEST_NOT_REACHED: phase=$direct_observed" >&2
+  tail -n 100 "$direct_dir/qemu-serial.log" >&2
+  exit 20
+fi
+if [[ $direct_status -ne 0 && $direct_status -ne 143 ]]; then
+  echo MBOOT_DIRECT_GUEST_QEMU_UNEXPECTED_EXIT >&2
+  tail -n 100 "$direct_dir/qemu-serial.log" >&2
+  exit 21
+fi
+echo MBOOT_DIRECT_GUEST_ISO_KERNEL_AND_DEVICES_PASS
+
 source_image="$work/mbootdata.raw"
 truncate -s 6400M "$source_image"
 mkfs.ext4 -q -F -L MBOOTDATA -d "$work/source" "$source_image" \
@@ -115,11 +215,11 @@ fi
 # terminate as soon as the running Ubuntu service proves the intended path,
 # and fail early on definite kernel/loop-root failures. Merely reaching a
 # timeout is never accepted as a PASS.
-timeout --signal=TERM --kill-after=10s 480 \
+timeout --signal=TERM --kill-after=10s 2400 \
   "${cmd[@]}" > "$work/outer-qemu-serial.log" 2>&1 &
 outer_pid=$!
 observed=none
-for ((iteration = 0; iteration < 240; iteration++)); do
+for ((iteration = 0; iteration < 1200; iteration++)); do
   if grep -Fq MBOOT_GRUB_MENUENTRY_SELECTED "$work/outer-qemu-serial.log" &&
      grep -Fq MBOOT_QEMU_GUEST_START "$work/outer-qemu-serial.log" &&
      grep -Fq MBOOT_QEMU_DISKS_READONLY "$work/outer-qemu-serial.log" &&

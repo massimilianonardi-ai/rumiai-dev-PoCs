@@ -39,20 +39,38 @@ cat > "$main/init" <<'EOF'
 #!/bin/sh
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 export PATH
-mount -t devtmpfs devtmpfs /dev 2>/dev/null || :
+mkdir -p /dev /proc /sys
+if ! mount -t devtmpfs devtmpfs /dev; then
+  echo MBOOT_INNER_GUEST_DEVTMPFS_MOUNT_FAILED
+  exit 30
+fi
 exec >/dev/console 2>&1
-mount -t proc proc /proc 2>/dev/null || :
-mount -t sysfs sysfs /sys 2>/dev/null || :
 echo MBOOT_INNER_GUEST_KERNEL_BOOTED
+if ! mount -t proc proc /proc; then
+  echo MBOOT_INNER_GUEST_PROC_MOUNT_FAILED
+  exit 31
+fi
+if ! mount -t sysfs sysfs /sys; then
+  echo MBOOT_INNER_GUEST_SYSFS_MOUNT_FAILED
+  ls -ld /sys
+  exit 32
+fi
+echo MBOOT_INNER_GUEST_SYSFS_MOUNTED
 for driver in virtio_pci virtio_blk virtio_scsi scsi_mod sd_mod \
               sr_mod cdrom ahci ata_piix; do
+  echo "MBOOT_INNER_GUEST_MODPROBE_BEGIN driver=$driver"
   modprobe "$driver" >/dev/null 2>&1 || :
+  echo "MBOOT_INNER_GUEST_MODPROBE_END driver=$driver"
 done
+
+echo MBOOT_INNER_GUEST_BLOCK_SCAN_BEGIN
+ls -la /sys/class/block 2>/dev/null || :
+echo MBOOT_INNER_GUEST_BLOCK_SCAN_END
 
 found_cd=no
 found_disk=no
 n=0
-while [ "$n" -lt 45 ]; do
+while [ "$n" -lt 15 ]; do
   for dev in /sys/class/block/sr*; do
     if [ -e "$dev" ]; then found_cd=yes; fi
   done
@@ -69,6 +87,9 @@ while [ "$n" -lt 45 ]; do
   n=$((n + 1))
 done
 echo "MBOOT_INNER_GUEST_INSPECTION_FAILED cd=$found_cd disk=$found_disk"
+echo MBOOT_INNER_GUEST_BLOCK_CLASS_BEGIN
+ls -la /sys/class/block 2>/dev/null || :
+echo MBOOT_INNER_GUEST_BLOCK_CLASS_END
 while :; do sleep 3600; done
 EOF
 chmod 0755 "$main/init"

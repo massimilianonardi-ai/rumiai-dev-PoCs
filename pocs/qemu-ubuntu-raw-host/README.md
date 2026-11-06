@@ -92,12 +92,19 @@ on-device upgrade/rollback implementation.
 - `boot-loop-smoke.sh`: builds a disposable ext4 MBOOTDATA file from the
   **already verified** Ubuntu RAW bundle, and uses `grub-mkrescue` to
   create a real UEFI GRUB ISO invoking `grub-example.cfg`. Runs native
-  QEMU UEFI with only file-backed source/optical devices. Requires actual
-  outer GRUB and Ubuntu systemd/QEMU service markers, then actual nested
-  Linux guest optical/disk device markers on the serial console.
+  QEMU UEFI with only file-backed source/optical devices. Before nesting,
+  it boots the exact generated guest ISO directly with a disposable disk
+  and requires the guest kernel, optical and disk markers. The nested run
+  then requires the same guest-side markers; the host launcher records
+  QMP status and block-device snapshots while QEMU runs. Because the pinned
+  Ubuntu RAW bundle predates that instrumentation, the smoke test replaces the
+  launcher only inside its disposable extracted RAW copy using `debugfs`, and
+  installs a disposable systemd drop-in to force TCG for the nested diagnostic;
+  the verified source artifact remains intact.
 - `make-bootable-guest-iso.sh`: unpacks a **disposable copy** of the same
   Ubuntu initramfs, replaces `/init` with a small guest-device observer,
-  repacks its existing kernel modules, and builds a valid EFI bootable
+  creates and verifies the early `/dev`, `/proc` and `/sys` mounts, repacks
+  its existing kernel modules, and builds a valid EFI bootable
   Linux ISO. This changes the **test ISO only**, not the checked/installed
   Ubuntu RAW bundle and not any vendor ISO.
 - `.github/workflows/m-boot-ubuntu-loop-boot.yml`: independently fetches
@@ -132,9 +139,28 @@ guest ISO** and requires `MBOOT_INNER_GUEST_KERNEL_BOOTED` plus
 `MBOOT_INNER_GUEST_DISK_PRESENT` and
 `MBOOT_INNER_GUEST_INSPECTION_PASS` from inside the inner QEMU VM.
 Its revision-pinned [CI run 42119587994](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/42119587994)
-was in progress at this checkpoint. These requirements **remain unvalidated
-until its real jobs PASS**. The fixture is not vendor installer media, and
-its disk inventory represents one disposable source disk, not a full
+failed on both native architectures with exit 14 after the outer Ubuntu
+service markers. AMD64 had no inner firmware/kernel serial output; ARM64
+selected the virtual CD and reached the kernel EFI stub's `Exiting boot
+services` line, with no later Linux marker. A follow-up direct boot first
+showed the kernel registered `vda` on AMD64 and both `vda` and `sr0` on ARM64,
+while the custom `/init` reported no devices because it silently ignored
+sysfs mount errors. After the fixture began creating mountpoints and reporting
+sysfs failures, AMD64 showed `vda` but no `sr0`; its optical device used the
+AHCI/IDE path. Since ARM64 had enumerated `sr0` through `virtio-scsi`/
+`scsi-cd`, the updated direct test and launcher now use that same virtual
+SCSI optical path on AMD64. Run
+[42254081986](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/42254081986)
+passed the launcher-injection guard and direct guest ISO boot on both
+architectures. QMP confirmed the optical file and disk backends were read-only.
+The nested ARM64 guest reached the EFI stub's `Exiting boot services` line but
+produced no Linux marker before the 480-second timeout. The nested AMD64 QEMU
+selected KVM and exited with status 0 without guest markers. The next diagnostic
+forces TCG in a systemd drop-in inside the disposable RAW copy and extends the
+outer window to 1200 seconds. This separates KVM behavior from double-TCG boot
+time; it does not change the verified source bundle or product configuration.
+The fixture is not vendor installer media,
+and its disk inventory represents one disposable source disk, not a full
 real-world physical-disk topology.
 
 The test is not a production m-boot ESP chainload test, never exposes
