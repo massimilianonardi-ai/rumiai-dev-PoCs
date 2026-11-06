@@ -47,6 +47,14 @@ debugfs -w -R "write $here/launch.py /usr/local/sbin/mboot-qemu-boot" \
   "$target/mboot-ubuntu-host.raw" > "$work/debugfs-install-launcher.log" 2>&1
 debugfs -w -R 'set_inode_field /usr/local/sbin/mboot-qemu-boot mode 0100755' \
   "$target/mboot-ubuntu-host.raw" > "$work/debugfs-launcher-mode.log" 2>&1
+debugfs -w -R 'mkdir /etc/systemd/system/mboot-qemu-host.service.d' \
+  "$target/mboot-ubuntu-host.raw" > "$work/debugfs-dropin-dir.log" 2>&1
+cat > "$work/force-tcg.conf" <<'EOF'
+[Service]
+Environment=MBOOT_FORCE_TCG=1
+EOF
+debugfs -w -R "write $work/force-tcg.conf /etc/systemd/system/mboot-qemu-host.service.d/force-tcg.conf" \
+  "$target/mboot-ubuntu-host.raw" > "$work/debugfs-dropin.log" 2>&1
 debugfs -R 'stat /usr/local/sbin/mboot-qemu-boot' "$target/mboot-ubuntu-host.raw" \
   > "$work/debugfs-launcher-stat.log" 2>&1
 if ! grep -Eq 'Mode: +0755' "$work/debugfs-launcher-stat.log"; then
@@ -54,7 +62,7 @@ if ! grep -Eq 'Mode: +0755' "$work/debugfs-launcher-stat.log"; then
   cat "$work/debugfs-launcher-stat.log" >&2
   exit 22
 fi
-echo MBOOT_LOOP_INSTRUMENTED_LAUNCHER_INJECTED
+echo MBOOT_LOOP_INSTRUMENTED_LAUNCHER_AND_TCG_OVERRIDE_INJECTED
 
 # Construct an actual bootable Linux ISO fixture and pass it unchanged through
 # GRUB -> Ubuntu's preserved /host -> the inner QEMU read-only CD-ROM.
@@ -207,11 +215,11 @@ fi
 # terminate as soon as the running Ubuntu service proves the intended path,
 # and fail early on definite kernel/loop-root failures. Merely reaching a
 # timeout is never accepted as a PASS.
-timeout --signal=TERM --kill-after=10s 480 \
+timeout --signal=TERM --kill-after=10s 1200 \
   "${cmd[@]}" > "$work/outer-qemu-serial.log" 2>&1 &
 outer_pid=$!
 observed=none
-for ((iteration = 0; iteration < 240; iteration++)); do
+for ((iteration = 0; iteration < 600; iteration++)); do
   if grep -Fq MBOOT_GRUB_MENUENTRY_SELECTED "$work/outer-qemu-serial.log" &&
      grep -Fq MBOOT_QEMU_GUEST_START "$work/outer-qemu-serial.log" &&
      grep -Fq MBOOT_QEMU_DISKS_READONLY "$work/outer-qemu-serial.log" &&
