@@ -62,9 +62,9 @@ if [[ $arch == amd64 ]]; then
   direct_cmd+=(-machine q35,accel=tcg -cpu max
     -drive "if=pflash,format=raw,readonly=on,file=$direct_code"
     -drive "if=pflash,format=raw,file=$direct_dir/ovmf-vars.fd"
-    -device ich9-ahci,id=direct-ahci
+    -device virtio-scsi-pci,id=direct-scsi
     -drive "file=$work/source/m/boot/iso/fixture.iso,if=none,format=raw,media=cdrom,readonly=on,id=direct-cd"
-    -device ide-cd,drive=direct-cd,bus=direct-ahci.0,bootindex=1)
+    -device scsi-cd,drive=direct-cd,bus=direct-scsi.0,bootindex=1)
 else
   direct_firmware=/usr/share/qemu-efi-aarch64/QEMU_EFI.fd
   [[ -s $direct_firmware ]] || { echo MBOOT_DIRECT_AARCH64_FIRMWARE_MISSING >&2; exit 18; }
