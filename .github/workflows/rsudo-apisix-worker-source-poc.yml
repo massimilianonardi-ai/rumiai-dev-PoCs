@@ -1,0 +1,27 @@
+name: rsudo-apisix-worker-source-poc
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/rsudo-apisix-worker-source-poc.yml
+      - pocs/rsudo-apisix-worker-source/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-worker-probe:
+    runs-on: ubuntu-26.04-arm
+    timeout-minutes: 20
+    steps:
+      - name: Checkout experimental source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate POSIX shell syntax
+        run: sh -n pocs/rsudo-apisix-worker-source/run.sh
+      - name: Execute isolated official APISIX 3.16 and 3.19 worker experiment
+        run: sh pocs/rsudo-apisix-worker-source/run.sh
