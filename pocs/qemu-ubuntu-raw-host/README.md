@@ -98,8 +98,9 @@ on-device upgrade/rollback implementation.
   then requires the same guest-side markers; the host launcher records
   QMP status and block-device snapshots while QEMU runs. Because the pinned
   Ubuntu RAW bundle predates that instrumentation, the smoke test replaces the
-  launcher only inside its disposable extracted RAW copy using `debugfs`; the
-  verified source artifact remains intact.
+  launcher only inside its disposable extracted RAW copy using `debugfs`, and
+  installs a disposable systemd drop-in to force TCG for the nested diagnostic;
+  the verified source artifact remains intact.
 - `make-bootable-guest-iso.sh`: unpacks a **disposable copy** of the same
   Ubuntu initramfs, replaces `/init` with a small guest-device observer,
   creates and verifies the early `/dev`, `/proc` and `/sys` mounts, repacks
@@ -149,10 +150,15 @@ sysfs failures, AMD64 showed `vda` but no `sr0`; its optical device used the
 AHCI/IDE path. Since ARM64 had enumerated `sr0` through `virtio-scsi`/
 `scsi-cd`, the updated direct test and launcher now use that same virtual
 SCSI optical path on AMD64. Run
-[42252643980](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/42252643980)
-is still in progress. Its launcher was baked into an older pinned RAW artifact,
-so it does not contain the QMP instrumentation from this source revision; the
-next run injects the current launcher into the disposable RAW copy before boot.
+[42254081986](https://github.com/massimilianonardi-ai/rumiai-dev-PoCs/actions/runs/42254081986)
+passed the launcher-injection guard and direct guest ISO boot on both
+architectures. QMP confirmed the optical file and disk backends were read-only.
+The nested ARM64 guest reached the EFI stub's `Exiting boot services` line but
+produced no Linux marker before the 480-second timeout. The nested AMD64 QEMU
+selected KVM and exited with status 0 without guest markers. The next diagnostic
+forces TCG in a systemd drop-in inside the disposable RAW copy and extends the
+outer window to 1200 seconds. This separates KVM behavior from double-TCG boot
+time; it does not change the verified source bundle or product configuration.
 The fixture is not vendor installer media,
 and its disk inventory represents one disposable source disk, not a full
 real-world physical-disk topology.
