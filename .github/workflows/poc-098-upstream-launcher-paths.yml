@@ -1,0 +1,60 @@
+name: PoC 098 upstream GeoServer and Keycloak launcher path choices
+
+on:
+  push:
+    branches: [context-c2-profile-state-views]
+    paths:
+      - 'pocs/098-context-profile-state-views/tests/upstream-launcher-paths.sh'
+      - '.github/workflows/poc-098-upstream-launcher-paths.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  upstream-launcher-paths:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Fetch GeoServer 3.0.1 launcher from exact upstream commit
+        uses: actions/checkout@v4
+        with:
+          repository: geoserver/geoserver
+          ref: 804fe178e4ff3fb4d0a2d0a0751930b31bf43a2a
+          path: upstream-geoserver
+          persist-credentials: false
+          filter: blob:none
+          sparse-checkout: |
+            src/release/bin/startup.sh
+          sparse-checkout-cone-mode: false
+      - name: Fetch Keycloak 26.7.3 launcher from exact upstream commit
+        uses: actions/checkout@v4
+        with:
+          repository: keycloak/keycloak
+          ref: 6d238b6558037085cc25c915893c3d301a80243e
+          path: upstream-keycloak
+          persist-credentials: false
+          filter: blob:none
+          sparse-checkout: |
+            quarkus/dist/src/main/content/bin/kc.sh
+          sparse-checkout-cone-mode: false
+      - name: Run unmodified upstream shell launchers with inert Java argv capture
+        shell: sh
+        run: |
+          set -eu
+          [ "$(git -C upstream-geoserver rev-parse HEAD)" = 804fe178e4ff3fb4d0a2d0a0751930b31bf43a2a ]
+          [ "$(git -C upstream-keycloak rev-parse HEAD)" = 6d238b6558037085cc25c915893c3d301a80243e ]
+          script=pocs/098-context-profile-state-views/tests/upstream-launcher-paths.sh
+          sh -n "$script"
+          sh -n upstream-geoserver/src/release/bin/startup.sh
+          sh -n upstream-keycloak/quarkus/dist/src/main/content/bin/kc.sh
+          sh "$script" \
+            upstream-geoserver/src/release/bin/startup.sh \
+            upstream-keycloak/quarkus/dist/src/main/content/bin/kc.sh
