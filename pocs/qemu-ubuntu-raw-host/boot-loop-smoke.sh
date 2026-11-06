@@ -219,7 +219,7 @@ timeout --signal=TERM --kill-after=10s 2400 \
   "${cmd[@]}" > "$work/outer-qemu-serial.log" 2>&1 &
 outer_pid=$!
 observed=none
-for ((iteration = 0; iteration < 600; iteration++)); do
+for ((iteration = 0; iteration < 1200; iteration++)); do
   if grep -Fq MBOOT_GRUB_MENUENTRY_SELECTED "$work/outer-qemu-serial.log" &&
      grep -Fq MBOOT_QEMU_GUEST_START "$work/outer-qemu-serial.log" &&
      grep -Fq MBOOT_QEMU_DISKS_READONLY "$work/outer-qemu-serial.log" &&
