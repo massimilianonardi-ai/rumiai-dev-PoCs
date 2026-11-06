@@ -45,6 +45,80 @@ bash "$here/make-bootable-guest-iso.sh" \
   "$target/vmlinuz" "$target/initrd.img" \
   "$work/source/m/boot/iso/fixture.iso" "$arch" \
   > "$work/source-iso.log" 2>&1
+
+# Isolate the exact generated guest ISO before adding the second QEMU layer.
+# This uses only a disposable empty disk and proves the fixture's own GRUB,
+# kernel, initramfs, serial console and virtual device drivers.
+direct_dir="$work/direct-guest"
+mkdir -p "$direct_dir"
+truncate -s 64M "$direct_dir/disk.raw"
+direct_cmd=("$qemu" -nodefaults -no-user-config -no-reboot -m 2048 -smp 2
+            -display none -serial stdio -monitor none -nic none)
+if [[ $arch == amd64 ]]; then
+  direct_code=/usr/share/OVMF/OVMF_CODE_4M.fd
+  direct_vars=/usr/share/OVMF/OVMF_VARS_4M.fd
+  [[ -s $direct_code && -s $direct_vars ]] || { echo MBOOT_DIRECT_OVMF_MISSING >&2; exit 17; }
+  cp "$direct_vars" "$direct_dir/ovmf-vars.fd"
+  direct_cmd+=(-machine q35,accel=tcg -cpu max
+    -drive "if=pflash,format=raw,readonly=on,file=$direct_code"
+    -drive "if=pflash,format=raw,file=$direct_dir/ovmf-vars.fd"
+    -device ich9-ahci,id=direct-ahci
+    -drive "file=$work/source/m/boot/iso/fixture.iso,if=none,format=raw,media=cdrom,readonly=on,id=direct-cd"
+    -device ide-cd,drive=direct-cd,bus=direct-ahci.0,bootindex=1)
+else
+  direct_firmware=/usr/share/qemu-efi-aarch64/QEMU_EFI.fd
+  [[ -s $direct_firmware ]] || { echo MBOOT_DIRECT_AARCH64_FIRMWARE_MISSING >&2; exit 18; }
+  direct_cmd+=(-machine virt,accel=tcg -cpu cortex-a72 -bios "$direct_firmware"
+    -device virtio-scsi-pci,id=direct-scsi
+    -drive "file=$work/source/m/boot/iso/fixture.iso,if=none,format=raw,media=cdrom,readonly=on,id=direct-cd"
+    -device scsi-cd,drive=direct-cd,bus=direct-scsi.0,bootindex=1)
+fi
+direct_cmd+=(-drive "file=$direct_dir/disk.raw,if=none,format=raw,id=direct-disk"
+  -device virtio-blk-pci,drive=direct-disk,bootindex=2)
+"${direct_cmd[@]}" > "$direct_dir/qemu-serial.log" 2>&1 &
+direct_pid=$!
+direct_observed=no
+for ((iteration = 0; iteration < 180; iteration++)); do
+  if grep -Fq MBOOT_INNER_GUEST_INSPECTION_PASS "$direct_dir/qemu-serial.log"; then
+    direct_observed=pass
+    break
+  fi
+  if ! jobs -pr | grep -Fxq "$direct_pid"; then
+    direct_observed=exited
+    break
+  fi
+  sleep 1
+done
+if kill -0 "$direct_pid" 2>/dev/null; then
+  kill -TERM "$direct_pid" 2>/dev/null || :
+fi
+set +e
+wait "$direct_pid"
+direct_status=$?
+set -e
+echo "MBOOT_DIRECT_GUEST_QEMU_EXIT=$direct_status"
+for marker in MBOOT_INNER_GUEST_KERNEL_BOOTED \
+              MBOOT_INNER_GUEST_OPTICAL_PRESENT \
+              MBOOT_INNER_GUEST_DISK_PRESENT \
+              MBOOT_INNER_GUEST_INSPECTION_PASS; do
+  if ! grep -Fq "$marker" "$direct_dir/qemu-serial.log"; then
+    echo "MBOOT_DIRECT_GUEST_MARKER_MISSING: $marker" >&2
+    tail -n 100 "$direct_dir/qemu-serial.log" >&2
+    exit 19
+  fi
+done
+if [[ $direct_observed != pass ]]; then
+  echo "MBOOT_DIRECT_GUEST_NOT_REACHED: phase=$direct_observed" >&2
+  tail -n 100 "$direct_dir/qemu-serial.log" >&2
+  exit 20
+fi
+if [[ $direct_status -ne 0 && $direct_status -ne 143 ]]; then
+  echo MBOOT_DIRECT_GUEST_QEMU_UNEXPECTED_EXIT >&2
+  tail -n 100 "$direct_dir/qemu-serial.log" >&2
+  exit 21
+fi
+echo MBOOT_DIRECT_GUEST_ISO_KERNEL_AND_DEVICES_PASS
+
 source_image="$work/mbootdata.raw"
 truncate -s 6400M "$source_image"
 mkfs.ext4 -q -F -L MBOOTDATA -d "$work/source" "$source_image" \
