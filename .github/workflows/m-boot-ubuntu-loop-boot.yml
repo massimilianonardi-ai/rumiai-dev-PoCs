@@ -5,9 +5,11 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/m-boot-ubuntu-loop-boot.yml'
-      - 'pocs/qemu-ubuntu-raw-host/boot-loop-smoke.sh'
-      - 'pocs/qemu-ubuntu-raw-host/make-bootable-guest-iso.sh'
-      - 'pocs/qemu-ubuntu-raw-host/grub-example.cfg'
+      - 'pocs/qemu-ubuntu-raw-host/**'
+  pull_request:
+    paths:
+      - '.github/workflows/m-boot-ubuntu-loop-boot.yml'
+      - 'pocs/qemu-ubuntu-raw-host/**'
   workflow_dispatch:
 
 permissions:
@@ -90,4 +92,5 @@ jobs:
             ${{ runner.temp }}/mboot-loop-uefi-test/bundle-sha256.log
             ${{ runner.temp }}/mboot-loop-uefi-test/mkfs-source.log
             ${{ runner.temp }}/mboot-loop-uefi-test/source-iso.log
+            ${{ runner.temp }}/mboot-loop-uefi-test/direct-guest/qemu-serial.log
             ${{ runner.temp }}/mboot-loop-uefi-test/source/m/boot/iso/guest-grub-mkrescue.log
